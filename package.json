@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "setup:supabase:schema": "node scripts/apply-supabase-sql.mjs schema",
+    "setup:supabase:seed": "node scripts/apply-supabase-sql.mjs seed",
+    "setup:supabase": "node scripts/apply-supabase-sql.mjs all",
     "verify:supabase-setup": "node scripts/verify-supabase-setup.mjs",
     "verify:live": "node scripts/verify-live.mjs"
   },

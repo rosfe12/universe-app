@@ -66,6 +66,12 @@ psql "$SUPABASE_DB_URL" -f supabase/schema.sql
 psql "$SUPABASE_DB_URL" -f supabase/seed.sql
 ```
 
+CLI만으로 적용하려면:
+
+```bash
+npm run setup:supabase
+```
+
 - 스키마: `supabase/schema.sql`
 - seed: `supabase/seed.sql`
 - `supabase/schema.sql`에는 `media` public bucket 생성, `storage.objects` 업로드 정책, `media_assets` 동기화 트리거까지 포함됩니다.
