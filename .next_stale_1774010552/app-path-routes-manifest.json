@@ -1,0 +1,17 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/lectures/[id]/page": "/lectures/[id]",
+  "/onboarding/page": "/onboarding",
+  "/login/page": "/login",
+  "/admin/page": "/admin",
+  "/page": "/",
+  "/(tabs)/community/page": "/community",
+  "/(tabs)/lectures/page": "/lectures",
+  "/(tabs)/dating/page": "/dating",
+  "/(tabs)/profile/page": "/profile",
+  "/(tabs)/admission/[id]/page": "/admission/[id]",
+  "/(tabs)/admission/page": "/admission",
+  "/(tabs)/home/page": "/home",
+  "/(tabs)/notifications/page": "/notifications",
+  "/(tabs)/trade/page": "/trade"
+}
