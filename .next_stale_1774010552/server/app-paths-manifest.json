@@ -1,9 +1,0 @@
-{
-  "/lectures/[id]/page": "app/lectures/[id]/page.js",
-  "/(tabs)/community/page": "app/(tabs)/community/page.js",
-  "/(tabs)/profile/page": "app/(tabs)/profile/page.js",
-  "/(tabs)/lectures/page": "app/(tabs)/lectures/page.js",
-  "/(tabs)/dating/page": "app/(tabs)/dating/page.js",
-  "/(tabs)/trade/page": "app/(tabs)/trade/page.js",
-  "/(tabs)/home/page": "app/(tabs)/home/page.js"
-}

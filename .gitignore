@@ -1,7 +1,10 @@
 .next
+.next_stale_*
 node_modules
 .env
 .env.local
 .env.production
 coverage
 dist
+.playwright-cli
+*.tsbuildinfo
