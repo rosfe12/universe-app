@@ -207,8 +207,20 @@ export function CommentThread({
 
       {!loading && threadComments.length === 0 ? (
         <Card className="border-dashed border-white/80 bg-white/80">
-          <CardContent className="py-6 text-center text-sm text-muted-foreground">
-            첫 댓글을 남겨보세요.
+          <CardContent className="space-y-4 py-6 text-center">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-foreground">아직 첫 댓글이 없습니다</p>
+              <p className="text-sm text-muted-foreground">
+                {allowAccept
+                  ? "답변을 남겨 질문 흐름을 먼저 열어보세요."
+                  : "가볍게 첫 반응을 남기면 대화가 바로 시작됩니다."}
+              </p>
+            </div>
+            {canComment ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => form.setFocus("content")}>
+                {allowAccept ? "첫 답변 남기기" : "첫 댓글 남기기"}
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

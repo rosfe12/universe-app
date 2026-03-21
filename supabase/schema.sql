@@ -398,7 +398,33 @@ alter table public.notifications
   add column if not exists href text,
   add column if not exists target_type text,
   add column if not exists target_id uuid,
-  add column if not exists metadata jsonb not null default '{}'::jsonb;
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists source_kind text not null default 'activity',
+  add column if not exists delivery_mode text not null default 'instant',
+  add column if not exists read_at timestamptz;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'notifications_source_kind_check'
+  ) then
+    alter table public.notifications
+      add constraint notifications_source_kind_check
+      check (source_kind in ('activity', 'recommendation', 'system'));
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'notifications_delivery_mode_check'
+  ) then
+    alter table public.notifications
+      add constraint notifications_delivery_mode_check
+      check (delivery_mode in ('instant', 'daily'));
+  end if;
+end $$;
 
 create table if not exists public.media_assets (
   id uuid primary key default gen_random_uuid(),
@@ -435,6 +461,7 @@ create index if not exists idx_trade_posts_author_created_at on public.trade_pos
 create index if not exists idx_reports_target on public.reports (target_type, target_id);
 create index if not exists idx_reports_reporter_created_at on public.reports (reporter_id, created_at desc);
 create index if not exists idx_notifications_user_created_at on public.notifications (user_id, created_at desc);
+create index if not exists idx_notifications_user_source_created_at on public.notifications (user_id, source_kind, created_at desc);
 create index if not exists idx_media_assets_owner on public.media_assets (owner_type, owner_id);
 create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs (created_at desc);
 create index if not exists idx_admin_audit_logs_target on public.admin_audit_logs (target_type, target_id);

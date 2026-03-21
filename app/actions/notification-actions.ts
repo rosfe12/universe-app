@@ -20,10 +20,11 @@ async function requireNotificationUser() {
 
 export async function markNotificationRead(notificationId: string) {
   const { supabase, user } = await requireNotificationUser();
+  const now = new Date().toISOString();
 
   const { error } = await supabase
     .from("notifications")
-    .update({ is_read: true })
+    .update({ is_read: true, read_at: now })
     .eq("id", notificationId)
     .eq("user_id", user.id);
 
@@ -37,10 +38,11 @@ export async function markNotificationRead(notificationId: string) {
 
 export async function markAllNotificationsRead() {
   const { supabase, user } = await requireNotificationUser();
+  const now = new Date().toISOString();
 
   const { error } = await supabase
     .from("notifications")
-    .update({ is_read: true })
+    .update({ is_read: true, read_at: now })
     .eq("user_id", user.id)
     .eq("is_read", false);
 

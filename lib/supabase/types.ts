@@ -413,9 +413,12 @@ type NotificationRow = {
   title: string;
   body: string;
   is_read: boolean;
+  read_at: string | null;
   href: string | null;
   target_type: string | null;
   target_id: string | null;
+  source_kind: "activity" | "recommendation" | "system";
+  delivery_mode: "instant" | "daily";
   metadata: Record<string, unknown>;
   created_at: string;
 };
@@ -442,9 +445,12 @@ type NotificationInsert = {
   title: string;
   body: string;
   is_read?: boolean;
+  read_at?: string | null;
   href?: string | null;
   target_type?: string | null;
   target_id?: string | null;
+  source_kind?: "activity" | "recommendation" | "system";
+  delivery_mode?: "instant" | "daily";
   metadata?: Record<string, unknown>;
   created_at?: string;
 };

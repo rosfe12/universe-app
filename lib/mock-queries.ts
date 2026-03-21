@@ -50,8 +50,28 @@ export const currentUser = new Proxy({} as User, {
 const recentFirst = <T extends { createdAt: string }>(items: T[]) =>
   [...items].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 
-const popularFirst = <T extends { likes: number; createdAt: string }>(items: T[]) =>
-  [...items].sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt));
+function getActivityScore(item: {
+  createdAt: string;
+  likes?: number;
+  commentCount?: number;
+}) {
+  const hoursSinceCreated = Math.max(
+    1,
+    (Date.now() - new Date(item.createdAt).getTime()) / (1000 * 60 * 60),
+  );
+  const freshnessBoost = Math.max(0, 72 - hoursSinceCreated);
+
+  return (item.likes ?? 0) * 5 + (item.commentCount ?? 0) * 8 + freshnessBoost;
+}
+
+const popularFirst = <T extends { createdAt: string; likes?: number; commentCount?: number }>(items: T[]) =>
+  [...items].sort(
+    (a, b) =>
+      getActivityScore(b) - getActivityScore(a) ||
+      (b.commentCount ?? 0) - (a.commentCount ?? 0) ||
+      (b.likes ?? 0) - (a.likes ?? 0) ||
+      +new Date(b.createdAt) - +new Date(a.createdAt),
+  );
 
 const getState = () => getRuntimeSnapshot();
 
@@ -315,7 +335,7 @@ export function getCommunityPosts(subcategory?: CommunitySubcategory) {
 }
 
 export function getCareerPosts(kind?: CareerBoardKind) {
-  return recentFirst(
+  return popularFirst(
     getState().posts.filter((post) => {
       const board = getCareerBoardKind(post);
       return post.category === "community" && !isHiddenPost(post) && Boolean(board) && (!kind || board === kind);
@@ -482,8 +502,12 @@ export function getTradeMatchInsight(postId: string) {
 }
 
 export function getNotifications(userId = currentUser.id) {
-  return recentFirst(
+  return [...recentFirst(
     getState().notifications.filter((notification) => notification.userId === userId),
+  )].sort(
+    (a, b) =>
+      Number(a.isRead) - Number(b.isRead) ||
+      +new Date(b.createdAt) - +new Date(a.createdAt),
   );
 }
 

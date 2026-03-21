@@ -276,14 +276,21 @@ function toNotificationCategory(
 
 function mapNotificationRow(row: Record<string, unknown>): Notification {
   const type = toNotificationType(row.type as string | null | undefined);
+  const sourceKind =
+    row.source_kind === "recommendation" || row.source_kind === "system"
+      ? row.source_kind
+      : "activity";
   return {
     id: String(row.id),
     userId: String(row.user_id),
     type,
     category: toNotificationCategory(type),
+    sourceKind,
+    deliveryMode: row.delivery_mode === "daily" ? "daily" : "instant",
     title: String(row.title),
     body: String(row.body),
     isRead: Boolean(row.is_read),
+    readAt: row.read_at ? String(row.read_at) : undefined,
     href: row.href ? String(row.href) : undefined,
     targetType: row.target_type ? String(row.target_type) as Notification["targetType"] : undefined,
     targetId: row.target_id ? String(row.target_id) : undefined,
@@ -291,6 +298,9 @@ function mapNotificationRow(row: Record<string, unknown>): Notification {
       row.metadata && typeof row.metadata === "object"
         ? (row.metadata as Record<string, unknown>)
         : undefined,
+    recommended:
+      sourceKind === "recommendation" ||
+      Boolean((row.metadata as { recommended?: boolean } | null)?.recommended),
     createdAt: String(row.created_at ?? new Date().toISOString()),
   };
 }

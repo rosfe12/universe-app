@@ -167,6 +167,28 @@ export async function PATCH(request: Request) {
         );
       }
 
+      const { error: notificationError } = await admin
+        .from("notifications")
+        .insert({
+          user_id: target.user_id,
+          type: "verification_approved",
+          title: "학교 메일 인증이 승인되었어요",
+          body: "대학생 전용 기능이 열렸습니다. 강의평, 수강신청 교환, 미팅 기능을 바로 이용할 수 있어요.",
+          href: "/profile",
+          target_type: "verification",
+          target_id: target.id,
+          source_kind: "system",
+          delivery_mode: "instant",
+          metadata: {
+            requestId: target.id,
+            schoolId: target.school_id,
+          },
+        });
+
+      if (notificationError) {
+        console.error("[admin] failed to create verification notification", notificationError);
+      }
+
       await insertAdminAuditLog(admin, {
         adminUserId: user.id,
         action: "verification_approved",

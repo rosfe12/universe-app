@@ -30,6 +30,8 @@ export type NotificationType =
   | "reportUpdate"
   | "announcement";
 export type NotificationCategory = "activity" | "notice";
+export type NotificationSourceKind = "activity" | "recommendation" | "system";
+export type NotificationDeliveryMode = "instant" | "daily";
 export type NotificationTargetType =
   | "post"
   | "comment"
@@ -180,9 +182,12 @@ export interface Notification {
   userId: string;
   type: NotificationType;
   category: NotificationCategory;
+  sourceKind: NotificationSourceKind;
+  deliveryMode: NotificationDeliveryMode;
   title: string;
   body: string;
   isRead: boolean;
+  readAt?: string;
   href?: string;
   targetType?: NotificationTargetType;
   targetId?: string;

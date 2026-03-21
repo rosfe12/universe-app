@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { findBlockedKeyword } from "@/lib/moderation";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const visibilitySchema = z.enum([
@@ -210,6 +211,85 @@ function inferScope(input: {
 
 function revalidateFeed(paths: string[]) {
   paths.forEach((path) => revalidatePath(path));
+}
+
+function getCommunityFilterFromPost(post: {
+  category: "admission" | "community" | "dating";
+  subcategory?: string | null;
+  metadata?: { tags?: string[] } | null;
+}) {
+  if (post.category === "dating") {
+    return post.subcategory === "meeting" ? "meeting" : "dating";
+  }
+
+  if (post.category !== "community") {
+    return undefined;
+  }
+
+  if (post.metadata?.tags?.includes("취업정보") || post.metadata?.tags?.includes("채용공고")) {
+    return "career";
+  }
+
+  if (post.subcategory === "hot") return "hot";
+  if (post.subcategory === "dating") return "dating";
+  if (post.subcategory === "meeting") return "meeting";
+  return "advice";
+}
+
+function getPostNotificationHref(post: {
+  id: string;
+  category: "admission" | "community" | "dating";
+  subcategory?: string | null;
+  metadata?: { tags?: string[] } | null;
+}) {
+  if (post.category === "admission") {
+    return `/admission/${post.id}`;
+  }
+
+  if (post.category === "dating") {
+    return "/dating";
+  }
+
+  const filter = getCommunityFilterFromPost(post);
+  return filter ? `/community?filter=${filter}&post=${post.id}` : "/community";
+}
+
+async function insertNotificationsAsSystem(
+  payload: Array<{
+    user_id: string;
+    type:
+      | "comment"
+      | "reply"
+      | "trending_post"
+      | "lecture_reaction"
+      | "trade_match"
+      | "admission_answer"
+      | "school_recommendation"
+      | "freshman_trending"
+      | "admission_unanswered"
+      | "verification_approved"
+      | "report_update"
+      | "announcement";
+    title: string;
+    body: string;
+    href?: string | null;
+    target_type?: string | null;
+    target_id?: string | null;
+    source_kind?: "activity" | "recommendation" | "system";
+    delivery_mode?: "instant" | "daily";
+    metadata?: Record<string, unknown>;
+  }>,
+) {
+  if (payload.length === 0) {
+    return;
+  }
+
+  const admin = createAdminSupabaseClient();
+  const { error } = await admin.from("notifications").insert(payload);
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 async function guardPostSubmission(
@@ -451,16 +531,12 @@ async function createTradeMatchNotifications(
     href: "/trade",
     target_type: "trade",
     target_id: input.tradePostId,
+    source_kind: "activity" as const,
+    delivery_mode: "instant" as const,
     metadata: item.metadata,
   }));
 
-  const { error: notificationError } = await supabase
-    .from("notifications")
-    .insert(payload);
-
-  if (notificationError) {
-    throw new Error(notificationError.message);
-  }
+  await insertNotificationsAsSystem(payload);
 }
 
 async function guardReportSubmission(
@@ -539,7 +615,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
     throw new Error(error.message);
   }
 
-  revalidateFeed(["/home", "/admission", "/community", "/school", "/career"]);
+  revalidateFeed(["/home", "/admission", "/community", "/school", "/career", "/notifications", "/profile"]);
   return data;
 }
 
@@ -548,7 +624,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   const { supabase, authUser, profile } = await requireCurrentUser();
   const { data: post, error: postError } = await supabase
     .from("posts")
-    .select("id, category")
+    .select("id, author_id, category, subcategory, metadata")
     .eq("id", values.postId)
     .single();
 
@@ -596,6 +672,92 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  try {
+    const notifications: Array<{
+      user_id: string;
+      type:
+        | "comment"
+        | "reply"
+        | "admission_answer";
+      title: string;
+      body: string;
+      href: string;
+      target_type: "post" | "comment";
+      target_id: string;
+      source_kind: "activity";
+      delivery_mode: "instant";
+      metadata: Record<string, unknown>;
+    }> = [];
+    const postHref = getPostNotificationHref({
+      id: String(post.id),
+      category: post.category,
+      subcategory: (post.subcategory as string | null | undefined) ?? undefined,
+      metadata:
+        post.metadata && typeof post.metadata === "object"
+          ? (post.metadata as { tags?: string[] })
+          : undefined,
+    });
+
+    if (String(post.author_id) !== authUser.id) {
+      notifications.push({
+        user_id: String(post.author_id),
+        type: post.category === "admission" ? "admission_answer" : "comment",
+        title:
+          post.category === "admission"
+            ? "입시 질문에 새 답변이 도착했어요"
+            : "내 글에 새 댓글이 달렸어요",
+        body: values.content.slice(0, 80),
+        href: postHref,
+        target_type: "post",
+        target_id: String(post.id),
+        source_kind: "activity",
+        delivery_mode: "instant",
+        metadata: {
+          actorUserId: authUser.id,
+          postId: String(post.id),
+          commentId: String(data.id),
+        },
+      });
+    }
+
+    const { data: priorComments } = await supabase
+      .from("comments")
+      .select("id, author_id")
+      .eq("post_id", values.postId)
+      .neq("author_id", authUser.id)
+      .neq("id", data.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const replyTarget = (priorComments ?? []).find(
+      (comment) => String(comment.author_id) !== String(post.author_id),
+    );
+
+    if (replyTarget) {
+      notifications.push({
+        user_id: String(replyTarget.author_id),
+        type: "reply",
+        title: "내가 참여한 글에 새 답글이 달렸어요",
+        body: values.content.slice(0, 80),
+        href: postHref,
+        target_type: "comment",
+        target_id: String(replyTarget.id),
+        source_kind: "activity",
+        delivery_mode: "instant",
+        metadata: {
+          actorUserId: authUser.id,
+          postId: String(post.id),
+          commentId: String(data.id),
+          parentCommentId: String(replyTarget.id),
+        },
+      });
+    }
+
+    await insertNotificationsAsSystem(notifications);
+  } catch {
+    // noop
   }
 
   revalidateFeed(["/home", "/admission", "/community", "/school", "/career"]);

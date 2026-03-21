@@ -175,6 +175,14 @@ function getNotificationHref(item: Notification) {
   }
 }
 
+function getDeliveryLabel(item: Notification) {
+  if (item.deliveryMode === "instant") {
+    return "실시간";
+  }
+
+  return item.sourceKind === "recommendation" ? "오늘 추천" : "오늘 알림";
+}
+
 function buildRecommendedNotifications(userId: string, schoolName?: string) {
   const schoolHotPost = getSchoolHotPosts()[0];
   const hotPost = getHotGalleryPosts("popular")[0];
@@ -202,6 +210,8 @@ function buildRecommendedNotifications(userId: string, schoolName?: string) {
       title: "지금 반응이 빠르게 붙는 핫갤 글",
       body: hotPost.title,
       isRead: true,
+      sourceKind: "recommendation",
+      deliveryMode: "daily",
       href: `/community?filter=hot&post=${hotPost.id}`,
       targetType: "post",
       targetId: hotPost.id,
@@ -219,6 +229,8 @@ function buildRecommendedNotifications(userId: string, schoolName?: string) {
       title: `${lecture.courseName} 리뷰가 몰리고 있어요`,
       body: `${lecture.professor} · 꿀강 점수 ${lecture.averageHoneyScore.toFixed(1)} · 리뷰 ${lecture.reviewCount}개`,
       isRead: true,
+      sourceKind: "recommendation",
+      deliveryMode: "daily",
       href: `/lectures/${lecture.id}`,
       targetType: "lecture",
       targetId: lecture.id,
@@ -236,6 +248,8 @@ function buildRecommendedNotifications(userId: string, schoolName?: string) {
       title: "수강신청 교환 글이 활발한 시간대예요",
       body: tradePost.note,
       isRead: true,
+      sourceKind: "recommendation",
+      deliveryMode: "daily",
       href: "/trade",
       targetType: "trade",
       targetId: tradePost.id,
@@ -253,6 +267,8 @@ function buildRecommendedNotifications(userId: string, schoolName?: string) {
       title: `${schoolName ?? "우리학교"}에서 많이 보는 글`,
       body: schoolHotPost.title,
       isRead: true,
+      sourceKind: "recommendation",
+      deliveryMode: "daily",
       href: "/school",
       targetType: "post",
       targetId: schoolHotPost.id,
@@ -270,6 +286,8 @@ function buildRecommendedNotifications(userId: string, schoolName?: string) {
       title: "새내기존에서 질문이 활발해요",
       body: freshmanPost.title,
       isRead: true,
+      sourceKind: "recommendation",
+      deliveryMode: "daily",
       href: "/school?tab=freshman",
       targetType: "post",
       targetId: freshmanPost.id,
@@ -287,6 +305,8 @@ function buildRecommendedNotifications(userId: string, schoolName?: string) {
       title: "답변을 기다리는 입시 질문",
       body: unansweredAdmission.title,
       isRead: true,
+      sourceKind: "recommendation",
+      deliveryMode: "daily",
       href: `/admission/${unansweredAdmission.id}`,
       targetType: "post",
       targetId: unansweredAdmission.id,
@@ -303,6 +323,8 @@ function buildRecommendedNotifications(userId: string, schoolName?: string) {
     title: "알림 탭에서 바로 이어서 보세요",
     body: "읽지 않은 반응과 추천 콘텐츠를 한 번에 정리해줍니다.",
     isRead: true,
+    sourceKind: "system",
+    deliveryMode: "daily",
     href: "/community",
     targetType: "system",
     recommended: true,
@@ -529,7 +551,7 @@ export function NotificationsPage({
                   const meta = NOTIFICATION_META[item.type];
                   const Icon = meta.icon;
                   const href = getNotificationHref(item);
-                  const highlightUnread = !item.isRead && !item.recommended;
+                  const highlightUnread = !item.isRead && item.sourceKind !== "recommendation";
 
                   return (
                     <Card
@@ -558,12 +580,23 @@ export function NotificationsPage({
                             <div className="flex items-start gap-3">
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <Badge variant={item.recommended ? "outline" : meta.badgeVariant}>
-                                    {item.recommended ? "추천" : meta.label}
+                                  <Badge
+                                    variant={
+                                      item.sourceKind === "recommendation" ? "outline" : meta.badgeVariant
+                                    }
+                                  >
+                                    {item.sourceKind === "recommendation"
+                                      ? "추천"
+                                      : item.sourceKind === "system"
+                                        ? "공지"
+                                        : meta.label}
                                   </Badge>
                                   {highlightUnread ? (
                                     <span className="text-[11px] font-semibold text-primary">읽지 않음</span>
                                   ) : null}
+                                  <span className="text-[11px] font-medium text-muted-foreground">
+                                    {getDeliveryLabel(item)}
+                                  </span>
                                 </div>
                                 <p className="mt-3 text-[15px] font-semibold leading-6 text-balance text-foreground">
                                   {item.title}
@@ -579,7 +612,7 @@ export function NotificationsPage({
                             <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                               <span>{formatRelativeLabel(item.createdAt)}</span>
                               <span className="font-semibold text-primary">
-                                {item.recommended ? "지금 보기" : "바로 이동"}
+                                {item.sourceKind === "recommendation" ? "지금 보기" : "바로 이동"}
                               </span>
                             </div>
                           </div>
