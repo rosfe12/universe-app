@@ -1554,6 +1554,18 @@ const buildDerivedAdmissionPosts = (base: SeedPost, index: number): SeedPost[] =
       content: `${summary}. 학교를 비교할 때는 커뮤니티 분위기보다 공식 자료 안에 있는 학과 소개, 학생지원, 학사 운영 구조를 같이 보는 편이 더 객관적이었습니다. 같은 계열 학과끼리 비교할 때도 공식 설명이 생각보다 판단 기준을 잘 잡아줬습니다.\n출처: ${sourceUrl}`,
       tags: uniqTags(baseTags, ["공식자료", "학교비교"]),
     },
+    {
+      suffix: "schoollife",
+      title: `${schoolName} 지원 전에 학교생활 자료까지 같이 봐야 했던 이유`,
+      content: `${summary}. 입시만 보면 숫자 비교에 갇히기 쉬운데, 학교생활 자료까지 함께 보면 내가 이 학교 안에서 실제로 어떤 경험을 하게 될지 감이 더 잘 잡혔습니다. ${schoolName}처럼 공식 안내가 풍부한 학교는 입시생일수록 생활 자료도 같이 읽어볼 가치가 있었습니다.\n출처: ${sourceUrl}`,
+      tags: uniqTags(baseTags, ["공식자료", "학교생활"]),
+    },
+    {
+      suffix: "strategy-notes",
+      title: `${schoolName} 지원 전략 메모할 때 공식 자료에서 바로 옮겨 적은 부분`,
+      content: `${summary}. 저는 지원 대학을 고를 때 학교별 공식 안내에서 핵심 문장을 먼저 메모해두고, 그다음 커뮤니티 후기와 비교했습니다. ${schoolName} 자료는 전형 흐름과 학교 자원을 같이 보여줘서 전략 정리용으로 쓰기 좋았습니다.\n출처: ${sourceUrl}`,
+      tags: uniqTags(baseTags, ["공식자료", "전략메모"]),
+    },
   ];
 
   return variants.map((variant, variantIndex) => ({
@@ -1608,6 +1620,18 @@ const buildDerivedFreshmanPosts = (base: SeedPost, index: number): SeedPost[] =>
       title: `${schoolName} 새내기라면 오티 전에 커뮤니티랑 같이 보면 좋은 자료`,
       content: `${summary}. 커뮤니티 후기만 보면 분위기는 알 수 있지만, 실제 준비물과 일정은 결국 공식 자료가 가장 정확했습니다. 저는 새내기존 글이랑 공식 공지를 같이 보면서 질문거리를 먼저 정리해두는 방식이 제일 편했습니다.\n출처: ${sourceUrl}`,
       tags: uniqTags(baseTags, ["새내기존", "질문준비"]),
+    },
+    {
+      suffix: "freshman-registration",
+      title: `${schoolName} 새내기 수강신청 전에 공식 공지에서 먼저 체크한 것`,
+      content: `${summary}. 예비입학생 때는 수강신청 화면보다 공지 안에 있는 신청 순서, 우선 수강, 오티 안내를 먼저 익혀두는 편이 훨씬 덜 당황스러웠습니다. 학교생활 자료를 먼저 읽고 질문을 모아두는 방식이 실전에서 가장 편했습니다.\n출처: ${sourceUrl}`,
+      tags: uniqTags(baseTags, ["새내기존", "수강신청"]),
+    },
+    {
+      suffix: "freshman-rhythm",
+      title: `${schoolName} 입학 전 생활 리듬 잡는 데 도움 된 공식 안내`,
+      content: `${summary}. 입학 전에 공지에서 학사 일정, 캠퍼스 공간, 생활 채널을 먼저 익혀두니 학기 초 리듬이 빠르게 잡혔습니다. 새내기존에서는 이런 자료를 기반으로 질문을 주고받는 게 훨씬 실용적이었습니다.\n출처: ${sourceUrl}`,
+      tags: uniqTags(baseTags, ["새내기존", "학기준비"]),
     },
   ];
 
@@ -1666,6 +1690,18 @@ const buildDerivedCampusPosts = (base: SeedPost, index: number): SeedPost[] => {
           content: `${summary}. 복학 직후엔 최신 커뮤니티 글보다 학교가 현재 어떤 학생활동 구조를 운영하는지 공식 페이지에서 먼저 확인하는 편이 덜 헷갈렸습니다. 공백기가 있었던 학생일수록 공식 안내가 기준점이 됐습니다.\n출처: ${sourceUrl}`,
           tags: uniqTags(baseTags, ["공식자료", "복학생"]),
         },
+        {
+          suffix: "club-channel",
+          title: `${schoolName} 학생활동 채널 찾을 때 공식 페이지부터 보는 편이 편했습니다`,
+          content: `${summary}. 동아리 모집 글은 시기마다 흩어져 올라오지만, 공식 학생활동 페이지를 먼저 보면 어디에서 모집 공지를 확인해야 하는지 기준이 생겼습니다. 학교생활 적응 단계에서는 이런 안내가 생각보다 큰 차이를 만들었습니다.\n출처: ${sourceUrl}`,
+          tags: uniqTags(baseTags, ["공식자료", "학생채널"]),
+        },
+        {
+          suffix: "club-role",
+          title: `${schoolName} 학생회나 동아리 역할 구조 볼 때 도움 된 공식 소개`,
+          content: `${summary}. 동아리만 보지 말고 학생회나 자치조직 구조까지 함께 보면 학교생활의 큰 흐름이 보였습니다. 동아리를 고를 때도 이런 공식 소개가 판단 기준으로 꽤 유용했습니다.\n출처: ${sourceUrl}`,
+          tags: uniqTags(baseTags, ["공식자료", "자치구조"]),
+        },
       ]
     : [
         {
@@ -1703,6 +1739,18 @@ const buildDerivedCampusPosts = (base: SeedPost, index: number): SeedPost[] => {
           title: `${schoolName} 시험기간에 특히 도움 된 학교 안 생활 정보 정리`,
           content: `${summary}. 시험기간에는 외부 맛집보다 학교 안 식당, 복사실, 편의시설 위치를 알고 있는 게 훨씬 중요했습니다. 공식 안내를 기준으로 메모해두면 급할 때 바로 움직일 수 있었습니다.\n출처: ${sourceUrl}`,
           tags: uniqTags(baseTags, ["공식자료", "시험기간"]),
+        },
+        {
+          suffix: "food-break",
+          title: `${schoolName} 공강 시간 활용할 때 공식 생활권 안내가 은근 유용했습니다`,
+          content: `${summary}. 공강 때 어디서 밥 먹고 어디서 쉬는지가 정리돼 있으면 생활 만족도가 꽤 달라졌습니다. 커뮤니티 추천글과 별개로 학교 안 생활권을 먼저 아는 게 장기적으로 훨씬 편했습니다.\n출처: ${sourceUrl}`,
+          tags: uniqTags(baseTags, ["공식자료", "공강동선"]),
+        },
+        {
+          suffix: "food-evening",
+          title: `${schoolName} 저녁 수업 많은 학생에게 도움 된 캠퍼스 생활 메모`,
+          content: `${summary}. 늦은 시간까지 학교에 남아 있는 날은 외부 맛집보다 내부 편의시설 위치를 알고 있는 게 훨씬 유용했습니다. 공식 캠퍼스 안내 기준으로 메모해두면 생활이 훨씬 안정적이었습니다.\n출처: ${sourceUrl}`,
+          tags: uniqTags(baseTags, ["공식자료", "저녁수업"]),
         },
       ];
 
@@ -1759,6 +1807,18 @@ const buildDerivedCareerPosts = (base: SeedPost, index: number): SeedPost[] => {
       content: `${summary}. 저는 학교 공식 공지를 읽고 상담, 서류, 면접, 현장실습처럼 준비 단계를 체크리스트로 바꿔서 정리했습니다. 취업 커뮤니티 글만 따라가기보다 교내 지원 구조를 먼저 보는 쪽이 훨씬 체계적이었습니다.\n출처: ${sourceUrl}`,
       tags: uniqTags(baseTags, ["공식자료", "체크리스트"]),
     },
+    {
+      suffix: "career-alumni",
+      title: `${schoolName} 취업 준비하면서 동문·교내 연결 포인트 먼저 본 기록`,
+      content: `${summary}. 막연하게 공고만 보는 것보다 학교 안에 어떤 네트워크와 프로그램이 연결되는지 먼저 확인하는 편이 훨씬 안정적이었습니다. ${schoolName} 공식 안내는 그런 연결점을 찾는 출발점으로 쓰기 좋았습니다.\n출처: ${sourceUrl}`,
+      tags: uniqTags(baseTags, ["공식자료", "교내네트워크"]),
+    },
+    {
+      suffix: "career-roadmap",
+      title: `${schoolName} 학년별 취업 준비 로드맵 짤 때 공식 자료가 도움 된 부분`,
+      content: `${summary}. 취업 준비를 할 때 당장 지원할 것만 찾기보다, 학년별로 어떤 교내 자원을 언제 쓰는지 먼저 정리하는 쪽이 오래 버티기 좋았습니다. 공식 공지를 기준으로 로드맵을 짜면 준비 순서가 훨씬 명확해졌습니다.\n출처: ${sourceUrl}`,
+      tags: uniqTags(baseTags, ["공식자료", "준비로드맵"]),
+    },
   ];
 
   return variants.map((variant, variantIndex) => ({
@@ -1781,6 +1841,95 @@ const generatedReferencePosts: SeedPost[] = [
   ),
   ...referenceCareerPosts.flatMap(buildDerivedCareerPosts),
 ];
+
+const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => {
+  const baseUrl = `https://${school.domain}`;
+  const createdDay = 14 + (index % 8);
+  return [
+    {
+      id: `coverage-${school.id}-admission`,
+      category: "admission",
+      authorId: "user-hs-sujin",
+      schoolId: school.id,
+      title: `[공식 참고] ${school.name} 입시 준비할 때 학교 홈페이지부터 저장해둔 이유`,
+      content: `${school.name} 준비할 때 커뮤니티 글만 보지 않고 학교 공식 홈페이지에서 입학처, 학사, 학생지원 메뉴를 먼저 저장해두니 질문을 정리하기 훨씬 편했습니다. 학교별 공지는 결국 공식 채널이 가장 정확해서 지원 전략을 잡을 때 기준점 역할을 해줬습니다.\n출처: ${baseUrl}`,
+      createdAt: at(createdDay, "09:20:00"),
+      likes: 11 + (index % 5),
+      visibilityLevel: "school",
+      tags: ["공식자료", "입학", school.name],
+      meta: {
+        region: "서울",
+        track: "기타",
+        scoreType: "공식 정보 참고",
+        interestUniversity: school.name,
+        interestDepartment: "지원 학과",
+      },
+    },
+    {
+      id: `coverage-${school.id}-freshman`,
+      category: "community",
+      subcategory: "freshman",
+      authorId: "user-fresh-yerin",
+      schoolId: school.id,
+      title: `${school.name} 새내기라면 공식 홈페이지에서 먼저 확인해둘 것`,
+      content: `${school.name} 입학 직후에는 오티 일정, 학사 공지, 수강신청 안내처럼 학교생활에 바로 연결되는 메뉴를 먼저 저장해두는 게 가장 실용적이었습니다. 새내기존에서도 공식 안내를 먼저 보고 질문을 남기는 편이 훨씬 덜 헤맸습니다.\n출처: ${baseUrl}`,
+      createdAt: at(createdDay, "10:40:00"),
+      likes: 9 + (index % 4),
+      visibilityLevel: "school",
+      tags: ["새내기존", "공식자료", "학교생활"],
+    },
+    {
+      id: `coverage-${school.id}-club`,
+      category: "community",
+      subcategory: "club",
+      authorId: "user-dohyun",
+      schoolId: school.id,
+      title: `${school.name} 학생활동 정보는 공식 페이지 먼저 보는 편이 편했습니다`,
+      content: `${school.name} 동아리나 학생활동을 찾을 때는 모집 글만 보기보다 학교 공식 홈페이지에서 학생지원, 학생자치, 학생활동 메뉴를 먼저 확인하는 편이 훨씬 안정적이었습니다. 어떤 활동군이 있는지 먼저 감을 잡고 커뮤니티 글을 보면 판단이 빨랐습니다.\n출처: ${baseUrl}`,
+      createdAt: at(createdDay, "13:10:00"),
+      likes: 8 + (index % 4),
+      visibilityLevel: "schoolDepartment",
+      tags: ["공식자료", "동아리", "학생활동"],
+      imageUrl: campusImages[index % campusImages.length],
+    },
+    {
+      id: `coverage-${school.id}-food`,
+      category: "community",
+      subcategory: "food",
+      authorId: "user-jiyoon",
+      schoolId: school.id,
+      title: `${school.name} 캠퍼스 생활권은 공식 안내 먼저 익혀두면 편했습니다`,
+      content: `${school.name} 새 학기에는 외부 맛집보다 학교 안 식당, 편의시설, 주요 건물 위치부터 익혀두는 게 훨씬 유용했습니다. 생활권은 공식 홈페이지나 캠퍼스 안내를 기준으로 먼저 정리해두면 공강이나 시험기간 동선이 안정적이었습니다.\n출처: ${baseUrl}`,
+      createdAt: at(createdDay, "15:30:00"),
+      likes: 10 + (index % 5),
+      visibilityLevel: "schoolDepartment",
+      tags: ["공식자료", "생활권", "학생식당"],
+      imageUrl: campusImages[(index + 3) % campusImages.length],
+    },
+  ];
+};
+
+const baseSchoolSeedPosts = [
+  ...admissionPosts,
+  ...referenceAdmissionPosts,
+  ...communityPosts,
+  ...advicePosts,
+  ...freePosts,
+  ...askPosts,
+  ...referenceCommunityPosts,
+  ...datingPosts,
+  ...careerPosts,
+  ...referenceCareerPosts,
+  ...generatedReferencePosts,
+];
+
+const schoolIdsWithSeedContent = new Set(
+  baseSchoolSeedPosts.map((post) => post.schoolId).filter(Boolean),
+);
+
+const generatedSchoolCoveragePosts: SeedPost[] = schools.flatMap((school, index) =>
+  schoolIdsWithSeedContent.has(school.id) ? [] : buildSchoolCoveragePosts(school, index),
+);
 
 let commentId = 1;
 const nextCommentId = () => `comment-${commentId++}`;
@@ -2183,6 +2332,27 @@ const generatedReferenceComments: Comment[] = generatedReferencePosts.map((post,
   };
 });
 
+const generatedSchoolCoverageComments: Comment[] = generatedSchoolCoveragePosts.map((post, index) => ({
+  id: `coverage-comment-${post.id}`,
+  postId: post.id,
+  authorId:
+    post.category === "admission"
+      ? "user-junseo"
+      : post.subcategory === "freshman"
+        ? "user-fresh-joon"
+        : "user-minjae",
+  content:
+    post.category === "admission"
+      ? "입시 준비할 때 학교 홈페이지 기본 메뉴부터 저장해두면 질문 정리 속도가 훨씬 빨라집니다."
+      : post.subcategory === "freshman"
+        ? "오티나 수강신청 공지는 공식 채널 기준으로 한 번 정리해두면 첫 학기가 정말 편해져요."
+        : post.subcategory === "club"
+          ? "학생활동은 공식 소개로 큰 구조를 먼저 보고 커뮤니티 모집 글을 보는 흐름이 제일 편했습니다."
+          : "생활권 정보는 공식 안내를 기준으로 먼저 외워두면 공강 동선이 훨씬 안정적이었습니다.",
+  accepted: false,
+  createdAt: shiftIsoMinutes(post.createdAt, 39 + (index % 4) * 11),
+}));
+
 export const comments: Comment[] = [
   ...admissionComments,
   ...communityComments,
@@ -2194,6 +2364,7 @@ export const comments: Comment[] = [
   ...careerComments,
   ...referenceComments,
   ...generatedReferenceComments,
+  ...generatedSchoolCoverageComments,
 ];
 
 export const posts: Post[] = [
@@ -2208,6 +2379,7 @@ export const posts: Post[] = [
   ...careerPosts,
   ...referenceCareerPosts,
   ...generatedReferencePosts,
+  ...generatedSchoolCoveragePosts,
 ].map((post) => ({
   ...post,
   commentCount: comments.filter((comment) => comment.postId === post.id).length,
