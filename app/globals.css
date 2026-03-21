@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 240 33% 99%;
-    --foreground: 229 30% 15%;
+    --background: 236 45% 98%;
+    --foreground: 231 34% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 229 30% 15%;
+    --card-foreground: 231 34% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 229 30% 15%;
-    --primary: 244 82% 65%;
+    --popover-foreground: 231 34% 14%;
+    --primary: 244 78% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 29% 96%;
-    --secondary-foreground: 229 30% 15%;
-    --muted: 240 20% 96%;
-    --muted-foreground: 226 15% 45%;
-    --accent: 252 55% 95%;
-    --accent-foreground: 229 30% 15%;
+    --secondary: 238 34% 95%;
+    --secondary-foreground: 231 34% 14%;
+    --muted: 236 26% 95%;
+    --muted-foreground: 229 14% 44%;
+    --accent: 252 74% 95%;
+    --accent-foreground: 231 34% 14%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 24% 91%;
-    --input: 240 24% 91%;
-    --ring: 244 82% 65%;
-    --radius: 1.5rem;
-    --chart-1: 244 82% 65%;
-    --chart-2: 262 83% 67%;
-    --chart-3: 216 92% 60%;
-    --chart-4: 338 83% 60%;
-    --chart-5: 199 89% 48%;
+    --border: 240 28% 89%;
+    --input: 240 28% 89%;
+    --ring: 244 78% 58%;
+    --radius: 1.75rem;
+    --chart-1: 244 78% 58%;
+    --chart-2: 256 78% 60%;
+    --chart-3: 220 84% 56%;
+    --chart-4: 274 78% 63%;
+    --chart-5: 196 84% 48%;
   }
 
   * {
@@ -53,9 +53,10 @@
       "Noto Sans KR",
       sans-serif;
     background-image:
-      radial-gradient(circle at top, rgba(99, 102, 241, 0.16), transparent 32%),
-      radial-gradient(circle at 85% 8%, rgba(168, 85, 247, 0.1), transparent 24%),
-      linear-gradient(180deg, rgba(245, 247, 255, 0.95) 0%, rgba(255, 255, 255, 1) 42%);
+      radial-gradient(circle at top, rgba(55, 48, 163, 0.18), transparent 32%),
+      radial-gradient(circle at 82% 10%, rgba(109, 40, 217, 0.12), transparent 26%),
+      radial-gradient(circle at 18% 18%, rgba(99, 102, 241, 0.12), transparent 24%),
+      linear-gradient(180deg, rgba(243, 245, 255, 0.98) 0%, rgba(255, 255, 255, 1) 42%);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     word-break: keep-all;
@@ -71,7 +72,7 @@
   }
 
   ::selection {
-    background: rgba(99, 102, 241, 0.16);
+    background: rgba(79, 70, 229, 0.2);
   }
 }
 

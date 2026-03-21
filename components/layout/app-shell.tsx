@@ -20,12 +20,12 @@ export function AppShell({
   topAction?: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.16),_transparent_28%),radial-gradient(circle_at_24%_0%,_rgba(168,85,247,0.12),_transparent_24%),linear-gradient(180deg,#f7f8ff_0%,#ffffff_48%)] md:px-4 md:py-5">
-      <div className="mx-auto flex min-h-screen max-w-[440px] flex-col overflow-hidden bg-background/96 md:min-h-[calc(100vh-2.5rem)] md:rounded-[44px] md:border md:border-white/80 md:shadow-[0_32px_90px_-44px_rgba(79,70,229,0.3)]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(55,48,163,0.18),_transparent_28%),radial-gradient(circle_at_18%_0%,_rgba(79,70,229,0.14),_transparent_24%),radial-gradient(circle_at_82%_8%,_rgba(124,58,237,0.14),_transparent_24%),linear-gradient(180deg,#f4f6ff_0%,#ffffff_48%)] md:px-4 md:py-5">
+      <div className="mx-auto flex min-h-screen max-w-[440px] flex-col overflow-hidden bg-background/96 md:min-h-[calc(100vh-2.5rem)] md:rounded-[48px] md:border md:border-white/85 md:shadow-[0_34px_96px_-44px_rgba(55,48,163,0.34)]">
         <div className="flex justify-center pt-3.5">
           <div className="h-1.5 w-20 rounded-full bg-slate-900/8" />
         </div>
-        <header className="sticky top-0 z-20 border-b border-white/80 bg-background/92 px-6 pb-5 pt-5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/82">
+        <header className="sticky top-0 z-20 border-b border-white/85 bg-background/92 px-6 pb-5 pt-5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/84">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">

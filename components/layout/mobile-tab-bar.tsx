@@ -32,7 +32,7 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.65rem)] left-1/2 z-30 w-[calc(100%-1rem)] max-w-[440px] -translate-x-1/2 rounded-[36px] border border-white/90 bg-white/92 px-2 py-2.5 shadow-[0_30px_80px_-34px_rgba(79,70,229,0.38)] backdrop-blur-xl">
+    <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.65rem)] left-1/2 z-30 w-[calc(100%-1rem)] max-w-[440px] -translate-x-1/2 rounded-[38px] border border-white/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,245,255,0.94))] px-2 py-2.5 shadow-[0_32px_84px_-34px_rgba(55,48,163,0.42)] backdrop-blur-xl">
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-white/85" />
       <ul className="grid grid-cols-5 gap-0.5">
         {tabs.map((tab) => {
@@ -50,9 +50,9 @@ export function MobileTabBar() {
               >
                 <span
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-[18px] bg-secondary/90 text-muted-foreground transition-all group-hover:bg-accent",
+                    "flex h-10 w-10 items-center justify-center rounded-[20px] bg-secondary/90 text-muted-foreground transition-all group-hover:bg-accent",
                     active &&
-                      "bg-[linear-gradient(135deg,#6366f1_0%,#8b5cf6_100%)] text-primary-foreground shadow-[0_18px_30px_-18px_rgba(99,102,241,0.9)]",
+                      "bg-[linear-gradient(135deg,#3730a3_0%,#4f46e5_42%,#7c3aed_100%)] text-primary-foreground shadow-[0_18px_34px_-18px_rgba(79,70,229,0.9)]",
                   )}
                 >
                   <Icon className="h-4 w-4" />
