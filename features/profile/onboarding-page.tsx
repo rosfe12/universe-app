@@ -64,6 +64,7 @@ export function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/home";
+  const isVerificationMode = searchParams.get("mode") === "verification";
   const { currentUser, schools, loading, isAuthenticated, refresh } = useAppRuntime();
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -135,10 +136,10 @@ export function OnboardingPage() {
 
   useEffect(() => {
     if (loading || pending || !isAuthenticated) return;
-    if (hasCompletedOnboarding(currentUser)) {
+    if (hasCompletedOnboarding(currentUser) && !isVerificationMode) {
       router.replace(nextPath);
     }
-  }, [currentUser, isAuthenticated, loading, nextPath, pending, router]);
+  }, [currentUser, isAuthenticated, isVerificationMode, loading, nextPath, pending, router]);
 
   useEffect(() => {
     if (loading) return;

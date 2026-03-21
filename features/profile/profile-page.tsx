@@ -209,7 +209,7 @@ export function ProfilePage({
               type="button"
               variant="outline"
               className="w-full sm:w-auto"
-              onClick={() => router.push("/onboarding?next=/profile")}
+              onClick={() => router.push("/onboarding?next=/profile&mode=verification")}
             >
               학교 메일 다시 인증
             </Button>
