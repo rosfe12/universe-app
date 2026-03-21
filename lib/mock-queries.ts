@@ -11,6 +11,7 @@ import {
   getDefaultVisibilityLevel,
   getPublicIdentityLabel,
   getSchoolShortName,
+  getStudentVerificationBadge,
   getTrustTier,
 } from "@/lib/user-identity";
 import {
@@ -54,7 +55,6 @@ const getState = () => getRuntimeSnapshot();
 const ANONYMOUS_GLYPH: Record<User["userType"], string> = {
   college: "익",
   highSchool: "입",
-  parent: "부",
 };
 
 const ANONYMOUS_AVATAR_TONES = [
@@ -488,11 +488,13 @@ export function getHomeSections() {
 }
 
 export function getDashboardStats(viewer: User = currentUser) {
+  const verificationBadge = getStudentVerificationBadge(viewer);
+
   return [
     {
       label: "학교 인증",
-      value: viewer.verified ? "완료" : "대기",
-      tone: viewer.verified ? "positive" : "warning",
+      value: verificationBadge.shortLabel,
+      tone: verificationBadge.tone,
     },
     { label: "신뢰 점수", value: `${viewer.trustScore}점`, tone: "neutral" },
     {
@@ -562,7 +564,7 @@ export function getHomeCategoryStats() {
     {
       label: "입시 질문",
       value: `${getAdmissionQuestions().length}개`,
-      description: "고등학생 / 학부모 유입 허브",
+      description: "고등학생 유입 허브",
       href: "/admission",
     },
     {

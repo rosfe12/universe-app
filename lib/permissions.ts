@@ -1,4 +1,5 @@
 import type { User } from "@/types";
+import { isVerifiedStudent } from "@/lib/user-identity";
 
 function isSignedInUser(user: User) {
   return user.id !== "guest-user";
@@ -13,17 +14,21 @@ export function canWriteAdmissionAnswer(user: User) {
 }
 
 export function canWriteLectureReview(user: User) {
-  return isSignedInUser(user);
+  return isVerifiedStudent(user);
 }
 
-export function canAccessTrade() {
-  return true;
+export function canAccessSchoolFeatures(user: User) {
+  return isSignedInUser(user) && user.userType === "college";
 }
 
-export function canAccessDating() {
-  return true;
+export function canAccessTrade(user: User) {
+  return isVerifiedStudent(user);
+}
+
+export function canAccessDating(user: User) {
+  return isVerifiedStudent(user);
 }
 
 export function canWriteCommunity(user: User) {
-  return isSignedInUser(user);
+  return canAccessSchoolFeatures(user);
 }

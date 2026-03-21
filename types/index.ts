@@ -1,4 +1,4 @@
-export type UserType = "college" | "highSchool" | "parent";
+export type UserType = "college" | "highSchool";
 
 export type CommunitySubcategory = "club" | "meetup" | "food" | "hot";
 export type PostCategory = "admission" | "community" | "dating";
@@ -25,6 +25,13 @@ export type ExamStyle = "multipleChoice" | "essay" | "project" | "mixed";
 export type GradingStyle = "tough" | "medium" | "generous";
 export type MatchStrength = "high" | "medium" | "low";
 export type VisibilityLevel = "anonymous" | "school" | "schoolDepartment" | "profile";
+export type StudentVerificationStatus =
+  | "none"
+  | "unverified"
+  | "pending"
+  | "verified"
+  | "rejected";
+export type VerificationRequestStatus = "pending" | "verified" | "expired" | "cancelled";
 
 export interface School {
   id: string;
@@ -43,6 +50,9 @@ export interface User {
   department?: string;
   grade?: number;
   verified: boolean;
+  studentVerificationStatus?: StudentVerificationStatus;
+  schoolEmail?: string;
+  schoolEmailVerifiedAt?: string;
   trustScore: number;
   reportCount?: number;
   warningCount?: number;
@@ -193,6 +203,38 @@ export interface MediaAsset {
   ownerId: string;
   mediaType: "image" | "video";
   fileUrl: string;
+  createdAt: string;
+}
+
+export interface StudentVerificationRequest {
+  id: string;
+  userId: string;
+  schoolId: string;
+  schoolEmail: string;
+  verificationUserId?: string;
+  status: VerificationRequestStatus;
+  nextPath: string;
+  requestedAt: string;
+  verifiedAt?: string;
+  expiresAt: string;
+  schoolName: string;
+  userNickname: string;
+  userDepartment?: string;
+  userGrade?: number;
+  trustScore: number;
+  reportCount: number;
+  warningCount: number;
+  studentVerificationStatus: StudentVerificationStatus;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  adminUserId: string;
+  action: string;
+  targetType: "verification_request" | "report";
+  targetId?: string;
+  summary: string;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 

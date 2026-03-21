@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { findBlockedKeyword } from "@/lib/moderation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const visibilitySchema = z.enum([
@@ -94,13 +95,39 @@ const blockUserSchema = z.object({
 
 type CurrentProfile = {
   id: string;
-  user_type: "student" | "highschool" | "parent";
+  user_type: "student" | "highschool";
   school_id: string | null;
   department: string | null;
   grade: number | null;
+  verified: boolean;
+  student_verification_status:
+    | "none"
+    | "unverified"
+    | "pending"
+    | "verified"
+    | "rejected"
+    | null;
+  school_email: string | null;
   is_restricted: boolean;
   default_visibility_level: "anonymous" | "school" | "schoolDepartment" | "profile";
 };
+
+const ONE_MINUTE_MS = 60 * 1000;
+const TEN_MINUTES_MS = 10 * 60 * 1000;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_REPORTS_PER_DAY = 20;
+
+function normalizeModerationText(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function occurredWithin(createdAt: string, windowMs: number) {
+  return Date.now() - new Date(createdAt).getTime() <= windowMs;
+}
+
+function windowStart(windowMs: number) {
+  return new Date(Date.now() - windowMs).toISOString();
+}
 
 async function requireCurrentUser() {
   const supabase = await createServerSupabaseClient();
@@ -116,7 +143,7 @@ async function requireCurrentUser() {
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select(
-      "id, user_type, school_id, department, grade, is_restricted, default_visibility_level",
+      "id, user_type, school_id, department, grade, verified, student_verification_status, school_email, is_restricted, default_visibility_level",
     )
     .eq("id", user.id)
     .single();
@@ -136,6 +163,23 @@ async function requireCurrentUser() {
   };
 }
 
+function requireVerifiedStudentProfile(
+  profile: CurrentProfile,
+  featureLabel: string,
+) {
+  if (profile.user_type !== "student") {
+    throw new Error(`${featureLabel}은 대학생만 사용할 수 있습니다.`);
+  }
+
+  if (
+    !profile.verified ||
+    profile.student_verification_status !== "verified" ||
+    !profile.school_id
+  ) {
+    throw new Error(`${featureLabel}은 학교 메일 인증을 완료한 대학생만 사용할 수 있습니다.`);
+  }
+}
+
 function inferScope(input: { category: "admission" | "community" | "dating"; subcategory?: string }) {
   if (input.category === "dating" || input.subcategory === "hot") {
     return "global" as const;
@@ -148,9 +192,201 @@ function revalidateFeed(paths: string[]) {
   paths.forEach((path) => revalidatePath(path));
 }
 
+async function guardPostSubmission(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  authUserId: string,
+  values: z.infer<typeof postSchema>,
+) {
+  const keyword = findBlockedKeyword(`${values.title} ${values.content}`);
+  if (keyword) {
+    throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+  }
+
+  const { data, error } = await supabase
+    .from("posts")
+    .select("title, content, category, created_at")
+    .eq("author_id", authUserId)
+    .gte("created_at", windowStart(TEN_MINUTES_MS))
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const recentRows = data ?? [];
+  const sameCategoryCount = recentRows.filter(
+    (row) =>
+      row.category === values.category &&
+      occurredWithin(String(row.created_at), ONE_MINUTE_MS),
+  ).length;
+
+  if (sameCategoryCount >= 1) {
+    throw new Error("1분 내 같은 카테고리 글은 1개만 작성할 수 있습니다.");
+  }
+
+  const incoming = normalizeModerationText(`${values.title} ${values.content}`);
+  const duplicate = recentRows.some(
+    (row) =>
+      normalizeModerationText(`${row.title ?? ""} ${row.content ?? ""}`) === incoming,
+  );
+
+  if (duplicate) {
+    throw new Error("같은 내용을 짧은 시간 안에 반복 작성할 수 없습니다.");
+  }
+}
+
+async function guardCommentSubmission(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  authUserId: string,
+  values: z.infer<typeof commentSchema>,
+) {
+  const keyword = findBlockedKeyword(values.content);
+  if (keyword) {
+    throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+  }
+
+  const { data, error } = await supabase
+    .from("comments")
+    .select("content, post_id, created_at")
+    .eq("author_id", authUserId)
+    .gte("created_at", windowStart(TEN_MINUTES_MS))
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const recentRows = data ?? [];
+  const sameContent = normalizeModerationText(values.content);
+  const duplicate = recentRows.some(
+    (row) => normalizeModerationText(String(row.content ?? "")) === sameContent,
+  );
+  if (duplicate) {
+    throw new Error("동일한 댓글은 잠시 후 다시 작성할 수 있습니다.");
+  }
+
+  const samePostRecentCount = recentRows.filter(
+    (row) =>
+      row.post_id === values.postId &&
+      occurredWithin(String(row.created_at), ONE_MINUTE_MS),
+  ).length;
+  if (samePostRecentCount >= 2) {
+    throw new Error("같은 글에 너무 빠르게 댓글을 반복할 수 없습니다.");
+  }
+}
+
+async function guardLectureReviewSubmission(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  authUserId: string,
+  values: z.infer<typeof lectureReviewSchema>,
+) {
+  const keyword = findBlockedKeyword(`${values.shortComment} ${values.longComment}`);
+  if (keyword) {
+    throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+  }
+
+  const { data, error } = await supabase
+    .from("lecture_reviews")
+    .select("id")
+    .eq("author_id", authUserId)
+    .eq("lecture_id", values.lectureId)
+    .eq("semester", values.semester)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (data) {
+    throw new Error("같은 강의와 같은 학기에는 리뷰를 한 번만 남길 수 있습니다.");
+  }
+}
+
+async function guardTradePostSubmission(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  authUserId: string,
+  values: z.infer<typeof tradePostSchema>,
+) {
+  const keyword = findBlockedKeyword(values.note);
+  if (keyword) {
+    throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+  }
+
+  const { data, error } = await supabase
+    .from("trade_posts")
+    .select("note, created_at")
+    .eq("author_id", authUserId)
+    .gte("created_at", windowStart(TEN_MINUTES_MS))
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const recentRows = data ?? [];
+  const oneMinuteCount = recentRows.filter((row) =>
+    occurredWithin(String(row.created_at), ONE_MINUTE_MS),
+  ).length;
+  if (oneMinuteCount >= 1) {
+    throw new Error("1분 내 매칭 글은 1개만 작성할 수 있습니다.");
+  }
+
+  const normalizedNote = normalizeModerationText(values.note);
+  const duplicate = recentRows.some(
+    (row) => normalizeModerationText(String(row.note ?? "")) === normalizedNote,
+  );
+  if (duplicate) {
+    throw new Error("같은 매칭 메모는 잠시 후 다시 작성할 수 있습니다.");
+  }
+}
+
+async function guardReportSubmission(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  authUserId: string,
+  values: z.infer<typeof reportContentSchema>,
+) {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("target_type, target_id, created_at, status")
+    .eq("reporter_id", authUserId)
+    .gte("created_at", windowStart(ONE_DAY_MS))
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const recentReports = data ?? [];
+  if (recentReports.length >= MAX_REPORTS_PER_DAY) {
+    throw new Error("신고는 하루에 너무 많이 보낼 수 없습니다.");
+  }
+
+  const duplicate = recentReports.some(
+    (row) =>
+      row.target_type === values.targetType &&
+      row.target_id === values.targetId &&
+      row.status !== "dismissed",
+  );
+
+  if (duplicate) {
+    throw new Error("같은 대상은 한 번만 신고할 수 있습니다.");
+  }
+}
+
 export async function createPost(input: z.input<typeof postSchema>) {
   const values = postSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
+  if (profile.user_type === "highschool" && values.category !== "admission") {
+    throw new Error("고등학생은 입시 게시판만 작성할 수 있습니다.");
+  }
+  if (values.category === "dating") {
+    requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
+  }
+  await guardPostSubmission(supabase, authUser.id, values);
   const schoolId = values.schoolId ?? profile.school_id ?? null;
   const scope = inferScope(values);
 
@@ -185,6 +421,21 @@ export async function createPost(input: z.input<typeof postSchema>) {
 export async function createComment(input: z.input<typeof commentSchema>) {
   const values = commentSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .select("id, category")
+    .eq("id", values.postId)
+    .single();
+
+  if (postError || !post) {
+    throw new Error("댓글을 남길 글을 찾을 수 없습니다.");
+  }
+
+  if (profile.user_type === "highschool" && post.category !== "admission") {
+    throw new Error("고등학생은 입시 게시판에만 댓글을 남길 수 있습니다.");
+  }
+
+  await guardCommentSubmission(supabase, authUser.id, values);
 
   const { data, error } = await supabase
     .from("comments")
@@ -208,6 +459,8 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 export async function createLectureReview(input: z.input<typeof lectureReviewSchema>) {
   const values = lectureReviewSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
+  requireVerifiedStudentProfile(profile, "강의평 작성");
+  await guardLectureReviewSubmission(supabase, authUser.id, values);
 
   const { data, error } = await supabase
     .from("lecture_reviews")
@@ -241,10 +494,8 @@ export async function createLectureReview(input: z.input<typeof lectureReviewSch
 export async function createTradePost(input: z.input<typeof tradePostSchema>) {
   const values = tradePostSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
-
-  if (profile.user_type !== "student") {
-    throw new Error("수강신청 교환 글은 대학생만 작성할 수 있습니다.");
-  }
+  requireVerifiedStudentProfile(profile, "수강신청 교환");
+  await guardTradePostSubmission(supabase, authUser.id, values);
 
   const schoolId = values.schoolId ?? profile.school_id;
   if (!schoolId) {
@@ -280,10 +531,7 @@ export async function createTradePost(input: z.input<typeof tradePostSchema>) {
 export async function createDatingProfile(input: z.input<typeof datingProfileSchema>) {
   const values = datingProfileSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
-
-  if (profile.user_type !== "student") {
-    throw new Error("미팅 프로필은 대학생만 등록할 수 있습니다.");
-  }
+  requireVerifiedStudentProfile(profile, "미팅 프로필 등록");
 
   const schoolId = values.schoolId ?? profile.school_id;
   if (!schoolId) {
@@ -320,6 +568,7 @@ export async function createDatingProfile(input: z.input<typeof datingProfileSch
 export async function reportContent(input: z.input<typeof reportContentSchema>) {
   const values = reportContentSchema.parse(input);
   const { supabase, authUser } = await requireCurrentUser();
+  await guardReportSubmission(supabase, authUser.id, values);
 
   const { data, error } = await supabase
     .from("reports")

@@ -15,7 +15,6 @@ import type {
 export const USER_TYPE_LABELS: Record<UserType, string> = {
   college: "대학생",
   highSchool: "고등학생",
-  parent: "학부모",
 };
 
 export const TRADE_STATUS_LABELS: Record<TradeStatus, string> = {

@@ -14,7 +14,9 @@ type SupabaseTable<Row, Insert, Update = Partial<Insert>> = {
 };
 
 type VisibilityLevel = "anonymous" | "school" | "schoolDepartment" | "profile";
-type UserType = "student" | "highschool" | "parent";
+type UserType = "student" | "highschool";
+type StudentVerificationStatus = "none" | "unverified" | "pending" | "verified" | "rejected";
+type VerificationRequestStatus = "pending" | "verified" | "expired" | "cancelled";
 type ReportStatus = "pending" | "reviewed" | "reviewing" | "confirmed" | "dismissed";
 type ReportReason = "misinformation" | "abuse" | "spam" | "harassment" | "fraud" | "other";
 type ReportTargetType = "post" | "comment" | "review" | "profile" | "user";
@@ -50,6 +52,9 @@ type UserRow = {
   created_at: string;
   name: string | null;
   verified: boolean;
+  student_verification_status: StudentVerificationStatus;
+  school_email: string | null;
+  school_email_verified_at: string | null;
   default_visibility_level: VisibilityLevel;
   bio: string | null;
   avatar_url: string | null;
@@ -71,6 +76,9 @@ type UserInsert = {
   created_at?: string;
   name?: string | null;
   verified?: boolean;
+  student_verification_status?: StudentVerificationStatus;
+  school_email?: string | null;
+  school_email_verified_at?: string | null;
   default_visibility_level?: VisibilityLevel;
   bio?: string | null;
   avatar_url?: string | null;
@@ -89,6 +97,32 @@ type UserRoleInsert = {
   user_id: string;
   role?: "admin" | "moderator";
   created_at?: string;
+};
+
+type StudentVerificationRequestRow = {
+  id: string;
+  user_id: string;
+  school_id: string;
+  school_email: string;
+  verification_user_id: string | null;
+  status: VerificationRequestStatus;
+  next_path: string;
+  requested_at: string;
+  verified_at: string | null;
+  expires_at: string;
+};
+
+type StudentVerificationRequestInsert = {
+  id?: string;
+  user_id: string;
+  school_id: string;
+  school_email: string;
+  verification_user_id?: string | null;
+  status?: VerificationRequestStatus;
+  next_path?: string;
+  requested_at?: string;
+  verified_at?: string | null;
+  expires_at?: string;
 };
 
 type PostRow = {
@@ -369,12 +403,38 @@ type MediaAssetInsert = {
   created_at?: string;
 };
 
+type AdminAuditLogRow = {
+  id: string;
+  admin_user_id: string;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  summary: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+type AdminAuditLogInsert = {
+  id?: string;
+  admin_user_id: string;
+  action: string;
+  target_type: string;
+  target_id?: string | null;
+  summary: string;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+};
+
 export interface Database {
   public: {
     Tables: {
       schools: SupabaseTable<SchoolRow, SchoolInsert>;
       users: SupabaseTable<UserRow, UserInsert>;
       user_roles: SupabaseTable<UserRoleRow, UserRoleInsert>;
+      student_verification_requests: SupabaseTable<
+        StudentVerificationRequestRow,
+        StudentVerificationRequestInsert
+      >;
       posts: SupabaseTable<PostRow, PostInsert>;
       comments: SupabaseTable<CommentRow, CommentInsert>;
       lectures: SupabaseTable<LectureRow, LectureInsert>;
@@ -385,6 +445,7 @@ export interface Database {
       blocks: SupabaseTable<BlockRow, BlockInsert>;
       notifications: SupabaseTable<NotificationRow, NotificationInsert>;
       media_assets: SupabaseTable<MediaAssetRow, MediaAssetInsert>;
+      admin_audit_logs: SupabaseTable<AdminAuditLogRow, AdminAuditLogInsert>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -400,6 +461,7 @@ export interface Database {
           department: string | null;
           grade: number | null;
           verified: boolean;
+          student_verification_status: StudentVerificationStatus;
           trust_score: number;
           report_count: number;
           warning_count: number;
@@ -413,6 +475,8 @@ export interface Database {
     };
     Enums: {
       user_type: UserType;
+      student_verification_status: StudentVerificationStatus;
+      verification_request_status: VerificationRequestStatus;
       visibility_level: VisibilityLevel;
       report_status: ReportStatus;
       report_reason: ReportReason;

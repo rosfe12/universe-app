@@ -37,6 +37,7 @@ import { createPost } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { injectInlineAdSlots, isAdPlacementEnabled } from "@/lib/ads";
 import { validatePostSubmission } from "@/lib/moderation";
+import { canAccessSchoolFeatures, canWriteCommunity } from "@/lib/permissions";
 import {
   addBlockToSnapshot,
   addPostToSnapshot,
@@ -218,7 +219,12 @@ export function CommunityPage({
   const [composerOpen, setComposerOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
-  const canCompose = isAuthenticated && hasCompletedOnboarding(currentUser);
+  const canCompose =
+    isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCommunity(currentUser);
+  const canAccessCommunity =
+    !isAuthenticated ||
+    !hasCompletedOnboarding(currentUser) ||
+    canAccessSchoolFeatures(currentUser);
 
   useEffect(() => {
     setActiveFilter(isSharedFilter(filterParam) ? filterParam : "all");
@@ -254,6 +260,26 @@ export function CommunityPage({
     dating: datingPosts.length,
     meeting: meetingPosts.length,
   };
+
+  if (!loading && !canAccessCommunity) {
+    return (
+      <AppShell title="커뮤니티" subtitle="대학생 중심 익명 커뮤니티">
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">고등학생 계정은 입시 게시판만 사용할 수 있습니다</p>
+              <p className="text-sm text-muted-foreground">
+                커뮤니티, 핫갤, 연애/미팅은 대학생 계정에서만 열립니다.
+              </p>
+            </div>
+            <Button type="button" onClick={() => router.push("/admission")}>
+              입시 게시판으로 이동
+            </Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   const form = useForm<CommunityFormValues>({
     resolver: zodResolver(communitySchema),

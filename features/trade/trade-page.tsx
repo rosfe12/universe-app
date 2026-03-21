@@ -95,7 +95,8 @@ export function TradePage({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [tradeItems, setTradeItems] = useState(getTradePosts());
   const [isSubmitting, startSubmitTransition] = useTransition();
-  const canCompose = isAuthenticated && hasCompletedOnboarding(currentUser);
+  const canCompose =
+    isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessTrade(currentUser);
   const currentSchool = getCurrentSchool();
   const lectureOptions = getLectures().map(
     (lecture) => [lecture.id, lecture.courseName] as const,
@@ -213,12 +214,12 @@ export function TradePage({
     form.reset();
   });
 
-  if (!canAccessTrade()) {
+  if (!canAccessTrade(currentUser)) {
     return (
       <AppShell title="수강신청 매칭" subtitle="대학생 전용 기능" showTabs>
         <EmptyState
-          title="대학생 인증 후 이용 가능"
-          description="수강신청 매칭은 대학생 인증 완료 계정만 작성과 조회가 가능합니다."
+          title="학교 메일 인증 후 이용 가능"
+          description="수강신청 교환은 학교 메일 인증을 끝낸 대학생만 사용할 수 있습니다."
         />
       </AppShell>
     );
@@ -338,6 +339,10 @@ export function TradePage({
       <FloatingComposeButton
         onClick={() => {
           if (!canCompose) {
+            if (isAuthenticated && hasCompletedOnboarding(currentUser)) {
+              router.push(`/onboarding?next=${encodeURIComponent(pathname)}`);
+              return;
+            }
             router.push(
               getAuthFlowHref({
                 isAuthenticated,

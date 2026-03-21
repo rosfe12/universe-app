@@ -1,4 +1,9 @@
-import type { School, User, VisibilityLevel } from "@/types";
+import type {
+  School,
+  StudentVerificationStatus,
+  User,
+  VisibilityLevel,
+} from "@/types";
 
 const SCHOOL_CODE_OVERRIDES: Record<string, string> = {
   건국대학교: "KU",
@@ -64,11 +69,76 @@ export function getDefaultVisibilityLevel(user?: Pick<User, "userType" | "school
     return user.schoolId ? "schoolDepartment" : "anonymous";
   }
 
-  if (user.userType === "parent") {
-    return "anonymous";
+  return user.schoolId ? "school" : "anonymous";
+}
+
+export function getStudentVerificationStatus(
+  user?: Pick<User, "userType" | "studentVerificationStatus" | "verified"> | null,
+): StudentVerificationStatus {
+  if (!user) return "none";
+  if (user.userType !== "college") return "none";
+  if (user.studentVerificationStatus) return user.studentVerificationStatus;
+  return user.verified ? "verified" : "unverified";
+}
+
+export function isVerifiedStudent(
+  user?: Pick<User, "id" | "userType" | "schoolId" | "studentVerificationStatus" | "verified"> | null,
+) {
+  if (!user || user.id === "guest-user") return false;
+  return (
+    user.userType === "college" &&
+    Boolean(user.schoolId) &&
+    getStudentVerificationStatus(user) === "verified"
+  );
+}
+
+export function getStudentVerificationBadge(
+  user?: Pick<User, "userType" | "studentVerificationStatus" | "verified"> | null,
+) {
+  const status = getStudentVerificationStatus(user);
+
+  if (status === "verified") {
+    return {
+      status,
+      label: "학교 메일 인증 완료",
+      shortLabel: "완료",
+      tone: "positive" as const,
+    };
   }
 
-  return user.schoolId ? "school" : "anonymous";
+  if (status === "pending") {
+    return {
+      status,
+      label: "학교 메일 인증 대기",
+      shortLabel: "대기",
+      tone: "warning" as const,
+    };
+  }
+
+  if (status === "rejected") {
+    return {
+      status,
+      label: "학교 메일 인증 반려",
+      shortLabel: "반려",
+      tone: "warning" as const,
+    };
+  }
+
+  if (status === "unverified") {
+    return {
+      status,
+      label: "학교 메일 미인증",
+      shortLabel: "미인증",
+      tone: "warning" as const,
+    };
+  }
+
+  return {
+    status,
+    label: "학생 인증 해당 없음",
+    shortLabel: "해당 없음",
+    tone: "neutral" as const,
+  };
 }
 
 export function getPublicIdentityLabel({

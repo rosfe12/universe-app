@@ -34,6 +34,7 @@ npm run dev
 npm run typecheck
 npm run lint
 npm run build
+npm run verify:deploy-config
 npm run verify:supabase-setup
 npm run verify:live
 ```
@@ -45,15 +46,65 @@ npm run verify:live
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
+NEXT_PUBLIC_AUTH_SITE_URL=http://127.0.0.1:3000
+NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_DB_URL=postgresql://postgres:password@db.your-project-ref.supabase.co:5432/postgres
+SUPABASE_MIGRATION_DB_URL=postgresql://postgres.project-ref:password@aws-0-your-region.pooler.supabase.com:5432/postgres
+SUPABASE_AUTH_SITE_URL=https://your-domain.com
+SUPABASE_AUTH_ADDITIONAL_REDIRECT_URLS=http://127.0.0.1:3000/login,http://127.0.0.1:3000/login?next=*,http://127.0.0.1:3000/auth/school-email/callback
+SUPABASE_SMTP_HOST=smtp.your-provider.com
+SUPABASE_SMTP_PORT=587
+SUPABASE_SMTP_USER=your-smtp-user
+SUPABASE_SMTP_PASSWORD=your-smtp-password
+SUPABASE_SMTP_SENDER_NAME=유니버스
+SUPABASE_SMTP_SENDER_EMAIL=no-reply@your-domain.com
 E2E_TEST_EMAIL=tester@example.com
 E2E_TEST_PASSWORD=secure-password
+SCHOOL_VERIFICATION_TEST_EMAIL=qa.verification@example.com
+SCHOOL_VERIFICATION_TEST_SCHOOL_EMAIL=qa.verification@konkuk.ac.kr
 ```
 
 Supabase를 연결하면 로그인/온보딩/주요 CRUD는 실제 데이터로 동작합니다.
 환경변수가 없으면 mock 데이터 데모 모드로 자동 fallback 됩니다.
 환경변수는 있는데 스키마나 정책이 빠진 상태면 로컬 화면 상단에 설정 경고를 표시합니다.
+
+## 배포 전 Auth 설정
+
+`NEXT_PUBLIC_APP_URL`을 실제 서비스 도메인으로 맞춘 뒤 배포 설정을 검증합니다.
+
+```bash
+npm run print:supabase-auth-config
+npm run verify:deploy-config
+```
+
+- 앱 SMTP(`SUPABASE_SMTP_*`)가 있으면 학교 메일 인증은 앱 서버가 직접 발송합니다.
+- 앱 SMTP가 없으면 Supabase Auth 메일 발송 경로로 fallback 됩니다.
+- `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`일 때만 구글 로그인 버튼이 노출됩니다.
+- Google 로그인을 켜는 경우에만 아래 값을 대시보드에 입력합니다.
+  - Site URL: `https://your-domain.com`
+  - Redirect URLs
+    - `https://your-domain.com/login`
+    - `https://your-domain.com/login?next=*`
+    - `https://your-domain.com/auth/school-email/callback`
+    - `http://127.0.0.1:3000/login`
+    - `http://127.0.0.1:3000/login?next=*`
+    - `http://127.0.0.1:3000/auth/school-email/callback`
+  - Google Cloud Authorized JavaScript origins: 앱 도메인 origin
+  - Google Cloud Authorized redirect URI: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+
+학교 메일 인증 템플릿:
+
+- 제목은
+  [`supabase/email-templates/student-verification-magic-link.subject.txt`](/Users/rosfe/univers%20app/supabase/email-templates/student-verification-magic-link.subject.txt)
+  내용을 사용합니다.
+- Supabase Auth > Email Templates > Magic Link에
+  [`supabase/email-templates/student-verification-magic-link.html`](/Users/rosfe/univers%20app/supabase/email-templates/student-verification-magic-link.html)
+  내용을 붙여넣습니다.
+- 버튼 링크는 `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email` 형식을 사용합니다.
+- 앱 SMTP를 사용할 경우 같은 템플릿을 서버 메일 발송에 재사용합니다.
+- 발신자 이름은 `유니버스`, 발신 메일은 운영 도메인 메일을 사용합니다.
 
 ## Supabase 연결 순서
 
@@ -72,11 +123,15 @@ CLI만으로 적용하려면:
 npm run setup:supabase
 ```
 
+- 현재 작업 환경에서 direct DB 호스트가 막히면 `SUPABASE_MIGRATION_DB_URL`에 Session pooler 연결 문자열을 넣고 실행합니다.
+- Supabase Auth URL 설정에는 현재 사용하는 앱 도메인과 `/auth/school-email/callback` 콜백 경로를 허용해야 합니다.
+
 - 스키마: `supabase/schema.sql`
 - seed: `supabase/seed.sql`
 - `supabase/schema.sql`에는 `media` public bucket 생성, `storage.objects` 업로드 정책, `media_assets` 동기화 트리거까지 포함됩니다.
 - 현재 앱 동작 방식: 서버 컴포넌트가 Supabase에서 먼저 스냅샷을 읽고, 빈 데이터이거나 미연결이면 mock fallback
 - 로그인/회원가입: `/login`, `/onboarding`
+- 학교 메일 인증 콜백: `/auth/school-email/callback`
 - `auth.users`에 새 계정이 생성되면 trigger로 `public.users`가 자동 생성됩니다.
 - 실제 연결 우선 범위
   - posts 목록 / 상세
@@ -110,6 +165,18 @@ npm run verify:live
 - `trade_posts` 작성
 - `media` bucket 업로드 / public URL 확인
 - 검증 후 생성 데이터 cleanup
+- `admin_audit_logs` 포함 setup 검증
+
+학교 메일 인증 수동 검증:
+
+```bash
+npm run reset:school-verification-test-user
+NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000 npm run generate:school-verification-link -- qa.verification@example.com
+```
+
+- 첫 번째 명령은 QA 인증 계정을 초기화합니다.
+- 두 번째 명령은 현재 pending 요청 기준 테스트 링크를 출력합니다.
+- 실제 사용자 메일 발송 검증은 앱 SMTP 또는 Supabase Auth 메일 설정 후 `/onboarding` UI에서 진행합니다.
 
 ## 테스트 계정
 
@@ -118,7 +185,7 @@ npm run verify:live
 - `seoyeon@konkuk.ac.kr` / `univers123`
 - `dohyun@cau.ac.kr` / `univers123`
 - `hayoon@example.com` / `univers123`
-- `sujin.parent@example.com` / `univers123`
+- `sujin.hs@example.com` / `univers123`
 
 ## seed 구성
 
@@ -193,6 +260,7 @@ types/
 - `lecture_reviews`
 - `trade_posts`
 - `notifications`
+- `admin_audit_logs`
 - `reports`
 - `blocks`
 - `dating_profiles`

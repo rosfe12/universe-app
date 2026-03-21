@@ -6,15 +6,23 @@ loadLocalEnv();
 requireEnv([
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
   "E2E_TEST_EMAIL",
   "E2E_TEST_PASSWORD",
 ]);
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const email = process.env.E2E_TEST_EMAIL;
 const password = process.env.E2E_TEST_PASSWORD;
 const client = createClient(url, anonKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+const adminClient = createClient(url, serviceRoleKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
@@ -54,7 +62,7 @@ async function cleanup() {
   }
 
   if (created.storagePath) {
-    await client.storage.from("media").remove([created.storagePath]);
+    await adminClient.storage.from("media").remove([created.storagePath]);
   }
 }
 
@@ -91,7 +99,7 @@ try {
   const storagePath = `posts/${authUser.id}/${now}.png`;
   created.storagePath = storagePath;
 
-  const uploadResult = await client.storage.from("media").upload(storagePath, createTinyPngBlob(), {
+  const uploadResult = await adminClient.storage.from("media").upload(storagePath, createTinyPngBlob(), {
     upsert: true,
     contentType: "image/png",
   });
@@ -102,7 +110,7 @@ try {
 
   const {
     data: { publicUrl },
-  } = client.storage.from("media").getPublicUrl(storagePath);
+  } = adminClient.storage.from("media").getPublicUrl(storagePath);
 
   const { data: post, error: postError } = await client
     .from("posts")

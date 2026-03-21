@@ -5,7 +5,11 @@ import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
 import { getMockRuntimeSnapshot, guestUser } from "@/lib/runtime-state";
-import { hasPublicSupabaseEnv } from "@/lib/env";
+import {
+  hasPublicSupabaseEnv,
+  isGoogleAuthEnabled,
+  resolveAppUrl,
+} from "@/lib/env";
 import { getSupabaseSetupIssue } from "@/lib/supabase/setup-issue";
 import {
   generateAutoNickname,
@@ -26,6 +30,7 @@ import type {
   ReportTargetType,
   ReportStatus,
   School,
+  StudentVerificationStatus,
   TradePost,
   User,
   UserType,
@@ -34,14 +39,29 @@ import type {
 
 const toUserType = (value?: string | null): UserType => {
   if (value === "high_school" || value === "highschool") return "highSchool";
-  if (value === "parent") return "parent";
   return "college";
 };
 
 const fromUserType = (value: UserType) => {
   if (value === "highSchool") return "highschool";
-  if (value === "college") return "student";
-  return "parent";
+  return "student";
+};
+
+const toStudentVerificationStatus = (
+  value?: string | null,
+  verified = false,
+): StudentVerificationStatus => {
+  if (
+    value === "none" ||
+    value === "unverified" ||
+    value === "pending" ||
+    value === "verified" ||
+    value === "rejected"
+  ) {
+    return value;
+  }
+
+  return verified ? "verified" : "unverified";
 };
 
 const toVisibilityLevel = (
@@ -81,6 +101,10 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
   const school = schools.find(
     (item) => item.id === String(row.school_id ?? ""),
   );
+  const studentVerificationStatus = toStudentVerificationStatus(
+    row.student_verification_status as string | null | undefined,
+    Boolean(row.verified),
+  );
 
   return {
     id: String(row.id),
@@ -98,7 +122,12 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     schoolId: row.school_id ? String(row.school_id) : undefined,
     department: row.department ? String(row.department) : undefined,
     grade: typeof row.grade === "number" ? row.grade : undefined,
-    verified: Boolean(row.verified),
+    verified: studentVerificationStatus === "verified" || Boolean(row.verified),
+    studentVerificationStatus,
+    schoolEmail: row.school_email ? String(row.school_email) : undefined,
+    schoolEmailVerifiedAt: row.school_email_verified_at
+      ? String(row.school_email_verified_at)
+      : undefined,
     trustScore: typeof row.trust_score === "number" ? row.trust_score : 50,
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,
@@ -293,6 +322,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
     department: undefined,
     grade: undefined,
     verified: false,
+    studentVerificationStatus: "unverified",
     trustScore: 50,
     reportCount: 0,
     warningCount: 0,
@@ -424,8 +454,9 @@ export async function loadClientRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
             .select("*")
             .order("created_at", { ascending: false }),
           supabase.from("media_assets").select("*").order("created_at", { ascending: false }),
+          supabase.from("users").select("*").eq("id", authUser.id).single(),
         ])
-      : [null, null, null, null, null, null];
+      : [null, null, null, null, null, null, null];
 
     const [
       tradePostsResult,
@@ -434,6 +465,7 @@ export async function loadClientRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
       blocksResult,
       datingProfilesResult,
       mediaAssetsResult,
+      currentUserProfileResult,
     ] = authOnlyResults;
 
     const schools = (schoolsResult.data ?? []).map(mapSchoolRow);
@@ -476,6 +508,17 @@ export async function loadClientRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
 
     snapshot.currentUser = authUser
       ? (() => {
+          const privateProfileRow = currentUserProfileResult?.error
+            ? null
+            : (currentUserProfileResult?.data as Record<string, unknown> | null);
+
+          if (privateProfileRow) {
+            return {
+              ...mapUserRow(privateProfileRow, schools),
+              email: authUser.email ?? String(privateProfileRow.email ?? ""),
+            };
+          }
+
           const matchedUser = snapshot.users.find((user) => user.id === authUser.id);
           if (!matchedUser) {
             return createFallbackUser(authUser);
@@ -510,7 +553,7 @@ export async function signInWithGoogle(nextPath = "/home") {
   const redirectTo =
     typeof window === "undefined"
       ? undefined
-      : `${window.location.origin}/login?next=${encodeURIComponent(nextPath)}`;
+      : `${resolveAppUrl(window.location.origin)}/login?next=${encodeURIComponent(nextPath)}`;
 
   return supabase.auth.signInWithOAuth({
     provider: "google",
@@ -518,6 +561,10 @@ export async function signInWithGoogle(nextPath = "/home") {
       redirectTo,
     },
   });
+}
+
+export function isGoogleSignInEnabled() {
+  return isGoogleAuthEnabled();
 }
 
 export async function signUpWithSupabase({
@@ -555,12 +602,46 @@ export async function signOutFromSupabase() {
   return supabase.auth.signOut();
 }
 
+export async function requestStudentVerificationEmail(input: {
+  schoolId: string;
+  schoolEmail: string;
+  nextPath?: string;
+}) {
+  const response = await fetch("/api/auth/student-verification/request", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string; ok?: boolean; alreadyVerified?: boolean }
+    | null;
+
+  if (!response.ok) {
+    return {
+      data: null,
+      error: new Error(payload?.error ?? "학교 메일 인증 요청에 실패했습니다."),
+    };
+  }
+
+  return {
+    data: payload ?? { ok: true },
+    error: null,
+  };
+}
+
 export async function upsertUserProfile(user: User) {
   const supabase = createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  const resolvedEmail = authUser?.email ?? user.email;
   return supabase.from("users").upsert(
     {
       id: user.id,
-      email: user.email,
+      email: resolvedEmail,
       name: user.name,
       nickname: user.nickname ?? null,
       user_type: fromUserType(user.userType),
@@ -568,6 +649,11 @@ export async function upsertUserProfile(user: User) {
       department: user.department ?? null,
       grade: user.grade ?? null,
       verified: user.verified,
+      student_verification_status:
+        user.studentVerificationStatus ??
+        (user.userType === "college" ? "unverified" : "none"),
+      school_email: user.schoolEmail ?? null,
+      school_email_verified_at: user.schoolEmailVerifiedAt ?? null,
       trust_score: user.trustScore,
       report_count: user.reportCount ?? 0,
       warning_count: user.warningCount ?? 0,

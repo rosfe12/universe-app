@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>유니버스 대학생 인증</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f5f1ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#231815;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fffaf4;border:1px solid #eadfce;border-radius:28px;overflow:hidden;">
+            <tr>
+              <td style="padding:32px 28px 12px;">
+                <p style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:0.18em;color:#f97316;">UNIVERS</p>
+                <h1 style="margin:0;font-size:28px;line-height:1.2;">대학생 인증을 완료하세요</h1>
+                <p style="margin:14px 0 0;font-size:15px;line-height:1.7;color:#6b5f52;">
+                  유니버스에서 대학생 전용 기능을 열기 위해 학교 메일 확인이 필요합니다.
+                  아래 버튼을 눌러 인증을 마치면 강의평 작성, 수강신청 교환, 미팅/연애 기능이 열립니다.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 28px 8px;">
+                <a
+                  href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email"
+                  style="display:inline-block;border-radius:999px;background:#111827;color:#ffffff;text-decoration:none;padding:14px 22px;font-size:15px;font-weight:700;"
+                >
+                  대학생 인증 완료
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:8px 28px 32px;">
+                <div style="border-radius:22px;background:#f4ede3;padding:16px 18px;">
+                  <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#3f3428;">유의사항</p>
+                  <p style="margin:0;font-size:13px;line-height:1.7;color:#6b5f52;">
+                    인증 링크는 24시간 동안 유효합니다.
+                    <br />
+                    본인이 요청하지 않았다면 이 메일을 무시해도 됩니다.
+                  </p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

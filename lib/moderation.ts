@@ -5,6 +5,7 @@ import type {
   ReportTargetType,
   User,
 } from "@/types";
+import { isVerifiedStudent } from "@/lib/user-identity";
 
 export const DAILY_TRUST_CAP = 10;
 export const POST_DAILY_TRUST_CAP = 6;
@@ -314,6 +315,10 @@ export function validateLectureReviewSubmission(
 export function validateDatingWriteAccess(user: User) {
   if (user.id === "guest-user") {
     return "로그인 후 미팅 글을 작성할 수 있습니다.";
+  }
+
+  if (!isVerifiedStudent(user)) {
+    return "학교 메일 인증을 완료한 대학생만 미팅 글을 작성할 수 있습니다.";
   }
 
   return null;

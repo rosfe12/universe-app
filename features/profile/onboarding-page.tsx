@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CheckCircle2 } from "lucide-react";
@@ -23,18 +23,42 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { isSupabaseEnabled, upsertUserProfile, hasCompletedOnboarding } from "@/lib/supabase/app-data";
-import { generateAutoNickname, getDefaultVisibilityLevel } from "@/lib/user-identity";
+import { createClient } from "@/lib/supabase/client";
+import {
+  hasCompletedOnboarding,
+  isSupabaseEnabled,
+  requestStudentVerificationEmail,
+  upsertUserProfile,
+} from "@/lib/supabase/app-data";
+import {
+  generateAutoNickname,
+  getDefaultVisibilityLevel,
+  getStudentVerificationBadge,
+} from "@/lib/user-identity";
 
 const onboardingSchema = z.object({
-  userType: z.enum(["college", "highSchool", "parent"]),
+  userType: z.enum(["college", "highSchool"]),
   schoolId: z.string().min(1),
+  schoolEmail: z.string().email("학교 메일 형식이 필요합니다.").optional().or(z.literal("")),
   department: z.string().optional(),
   grade: z.string().optional(),
   bio: z.string().optional(),
+}).superRefine((value, ctx) => {
+  if (value.userType === "college" && !value.schoolEmail?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["schoolEmail"],
+      message: "대학생은 학교 메일 인증 정보가 필요합니다.",
+    });
+  }
 });
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
+
+const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
+
+const hasSchoolEmailDomain = (email: string, domain?: string) =>
+  Boolean(email && domain && email.endsWith(`@${domain.toLowerCase()}`));
 
 export function OnboardingPage() {
   const router = useRouter();
@@ -43,6 +67,7 @@ export function OnboardingPage() {
   const { currentUser, schools, loading, isAuthenticated, refresh } = useAppRuntime();
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
 
   const schoolOptions = useMemo(
     () => schools.map((school) => ({ id: school.id, name: school.name })),
@@ -54,18 +79,43 @@ export function OnboardingPage() {
     defaultValues: {
       userType: currentUser.userType,
       schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
+      schoolEmail: currentUser.schoolEmail ?? "",
       department: currentUser.department ?? "",
       grade: currentUser.grade ? String(currentUser.grade) : "",
       bio: currentUser.bio ?? "",
     },
   });
+  const selectedSchool = schools.find((school) => school.id === form.watch("schoolId"));
+  const selectedUserType = form.watch("userType");
+  const schoolEmailValue = form.watch("schoolEmail");
+  const normalizedSchoolEmailValue = normalizeEmail(schoolEmailValue);
+  const verificationPreview = getStudentVerificationBadge({
+    userType: selectedUserType,
+    studentVerificationStatus:
+      selectedUserType !== "college"
+        ? "none"
+        : currentUser.studentVerificationStatus === "verified" &&
+            normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmailValue &&
+            currentUser.schoolId === selectedSchool?.id
+          ? "verified"
+          : normalizedSchoolEmailValue
+            ? "pending"
+            : "unverified",
+    verified:
+      selectedUserType === "college" &&
+      currentUser.studentVerificationStatus === "verified" &&
+      normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmailValue &&
+      currentUser.schoolId === selectedSchool?.id,
+  });
+  const currentLoginEmail =
+    authEmail || (currentUser.email !== "guest@univers.app" ? currentUser.email : "");
 
   useEffect(() => {
-    if (loading || !isAuthenticated) return;
+    if (loading || pending || !isAuthenticated) return;
     if (hasCompletedOnboarding(currentUser)) {
       router.replace(nextPath);
     }
-  }, [currentUser, isAuthenticated, loading, nextPath, router]);
+  }, [currentUser, isAuthenticated, loading, nextPath, pending, router]);
 
   useEffect(() => {
     if (loading) return;
@@ -73,6 +123,7 @@ export function OnboardingPage() {
     form.reset({
       userType: currentUser.userType,
       schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
+      schoolEmail: currentUser.schoolEmail ?? "",
       department: currentUser.department ?? "",
       grade: currentUser.grade ? String(currentUser.grade) : "",
       bio: currentUser.bio ?? "",
@@ -81,12 +132,32 @@ export function OnboardingPage() {
     currentUser.bio,
     currentUser.department,
     currentUser.grade,
+    currentUser.schoolEmail,
     currentUser.schoolId,
     currentUser.userType,
     form,
     loading,
     schoolOptions,
   ]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isSupabaseEnabled()) {
+      setAuthEmail("");
+      return;
+    }
+
+    let active = true;
+    const supabase = createClient();
+
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      setAuthEmail(data.user?.email ?? "");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setErrorMessage("");
@@ -98,31 +169,78 @@ export function OnboardingPage() {
 
     setPending(true);
     const selectedSchool = schools.find((school) => school.id === values.schoolId) ?? null;
+    const normalizedSchoolEmail = normalizeEmail(values.schoolEmail);
+
+    if (
+      values.userType === "college" &&
+      !hasSchoolEmailDomain(normalizedSchoolEmail, selectedSchool?.domain)
+    ) {
+      setPending(false);
+      form.setError("schoolEmail", {
+        message: `${selectedSchool?.domain ?? "학교"} 메일만 학생 인증에 사용할 수 있습니다.`,
+      });
+      return;
+    }
+
     const result = await upsertUserProfile({
       ...currentUser,
       userType: values.userType,
       schoolId: values.schoolId,
       nickname: generateAutoNickname({
         id: currentUser.id,
-        email: currentUser.email,
+        email: currentLoginEmail || currentUser.email,
         school: selectedSchool,
       }),
       department: values.department?.trim() || undefined,
       grade: values.grade ? Number(values.grade) : undefined,
+      schoolEmail:
+        values.userType === "college" ? normalizedSchoolEmail : undefined,
+      schoolEmailVerifiedAt: undefined,
+      studentVerificationStatus:
+        values.userType === "college"
+          ? normalizedSchoolEmail
+            ? "pending"
+            : "unverified"
+          : "none",
+      verified: false,
       bio: values.bio?.trim() || undefined,
       defaultVisibilityLevel: getDefaultVisibilityLevel({
         userType: values.userType,
         schoolId: values.schoolId,
       }),
     });
-    setPending(false);
 
     if (result.error) {
+      setPending(false);
       setErrorMessage(result.error.message);
       return;
     }
 
+    if (values.userType === "college") {
+      const verificationResult = await requestStudentVerificationEmail({
+        schoolId: values.schoolId,
+        schoolEmail: normalizedSchoolEmail,
+        nextPath,
+      });
+
+      setPending(false);
+
+      if (verificationResult.error) {
+        setErrorMessage(verificationResult.error.message);
+        return;
+      }
+
+      await refresh();
+      router.push(
+        verificationResult.data?.alreadyVerified
+          ? "/profile?schoolVerified=1"
+          : "/profile?verification=pending",
+      );
+      return;
+    }
+
     await refresh();
+    setPending(false);
     router.push(nextPath);
   });
 
@@ -147,17 +265,17 @@ export function OnboardingPage() {
           <div>
             <CardTitle className="text-2xl">기본 프로필 설정</CardTitle>
             <p className="mt-2 text-sm text-muted-foreground">
-              유저 타입과 학교만 선택하면 바로 글쓰기와 댓글을 사용할 수 있습니다.
+              계정은 자유롭게 만들고, 대학생 권한은 학교 메일이 확인된 뒤 열립니다.
             </p>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-3 gap-3">
-            {["로그인", "유형 선택", "학교 선택"].map((step, index) => (
+          <div className="grid grid-cols-4 gap-3">
+            {["로그인", "유형 선택", "학교 선택", "학교 메일"].map((step, index) => (
               <div
                 key={step}
                 className={`rounded-2xl border px-3 py-3 text-center text-sm ${
-                  index < 3 ? "border-primary/20 bg-primary/10 text-primary" : "bg-secondary"
+                  index < 4 ? "border-primary/20 bg-primary/10 text-primary" : "bg-secondary"
                 }`}
               >
                 {step}
@@ -186,40 +304,81 @@ export function OnboardingPage() {
             ) : null}
             <div className="space-y-2">
               <Label>유저 타입</Label>
-              <Select
-                value={form.watch("userType")}
-                onValueChange={(value) =>
-                  form.setValue("userType", value as OnboardingFormValues["userType"])
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="유저 타입 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="college">대학생</SelectItem>
-                  <SelectItem value="highSchool">고등학생</SelectItem>
-                  <SelectItem value="parent">학부모</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={form.control}
+                name="userType"
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) =>
+                      field.onChange(value as OnboardingFormValues["userType"])
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="유저 타입 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="college">대학생</SelectItem>
+                      <SelectItem value="highSchool">고등학생</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.userType ? (
+                <p className="text-sm text-rose-600">
+                  {form.formState.errors.userType.message}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label>학교</Label>
-              <Select
-                value={form.watch("schoolId")}
-                onValueChange={(value) => form.setValue("schoolId", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="학교 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {schoolOptions.map((school) => (
-                    <SelectItem key={school.id} value={school.id}>
-                      {school.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                control={form.control}
+                name="schoolId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="학교 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schoolOptions.map((school) => (
+                        <SelectItem key={school.id} value={school.id}>
+                          {school.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.schoolId ? (
+                <p className="text-sm text-rose-600">
+                  {form.formState.errors.schoolId.message}
+                </p>
+              ) : null}
             </div>
+            {form.watch("userType") === "college" ? (
+              <div className="space-y-2">
+                <Label>학교 메일</Label>
+                <Input
+                  placeholder={selectedSchool ? `예: your-id@${selectedSchool.domain}` : "학교 메일"}
+                  {...form.register("schoolEmail")}
+                />
+                {form.formState.errors.schoolEmail ? (
+                  <p className="text-sm text-rose-600">
+                    {form.formState.errors.schoolEmail.message}
+                  </p>
+                ) : null}
+                <div className="rounded-[22px] bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">
+                  현재 로그인 이메일: {currentLoginEmail || "로그인 이메일 확인 중"}
+                </div>
+                <div className="rounded-[22px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm">
+                  <p className="font-medium text-foreground">{verificationPreview.label}</p>
+                  <p className="mt-1 text-muted-foreground">
+                    저장 후 학교 메일로 인증 링크를 보내고, 확인이 끝나면 대학생 권한이 열립니다.
+                  </p>
+                </div>
+              </div>
+            ) : null}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>학과 선택 입력</Label>

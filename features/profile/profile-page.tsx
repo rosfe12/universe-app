@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import {
   BadgeCheck,
@@ -44,9 +44,11 @@ import {
   signOutFromSupabase,
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
+import { getStudentVerificationBadge } from "@/lib/user-identity";
 
 export function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { loading, source, isAuthenticated, refresh, setSnapshot } = useAppRuntime();
   const profile = getDatingProfileByUserId(currentUser.id);
   const blockedUsers = getBlocks();
@@ -59,6 +61,9 @@ export function ProfilePage() {
     currentUser.id,
     getUserVisibilityLevel(currentUser.id, currentUser.defaultVisibilityLevel),
   );
+  const verificationBadge = getStudentVerificationBadge(currentUser);
+  const schoolVerified = searchParams.get("schoolVerified") === "1";
+  const verificationPending = searchParams.get("verification") === "pending";
   const [settings, setSettings] = useState({
     comment: true,
     answer: true,
@@ -110,15 +115,57 @@ export function ProfilePage() {
               <p className="text-sm text-muted-foreground">{identity.label}</p>
               <TrustScoreBadge score={currentUser.trustScore} />
             </div>
-            <Badge variant={currentUser.verified ? "success" : "warning"}>
-              {currentUser.verified ? "학교 인증 완료" : "학교 인증 대기"}
+            <Badge
+              variant={
+                verificationBadge.tone === "positive"
+                  ? "success"
+                  : verificationBadge.tone === "warning"
+                    ? "warning"
+                    : "outline"
+              }
+            >
+              {verificationBadge.label}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-3 gap-3">
           <StatChip label="신뢰 점수" value={`${currentUser.trustScore}점`} tone="primary" />
-          <StatChip label="학교 인증" value={currentUser.verified ? "완료" : "대기"} tone="positive" />
+          <StatChip label="학교 인증" value={verificationBadge.shortLabel} tone={verificationBadge.tone} />
           <StatChip label="읽지 않은 알림" value={`${unreadNotifications.length}건`} tone="warning" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-2 py-5">
+          {schoolVerified ? (
+            <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              학교 메일 인증이 완료되었습니다. 대학생 전용 기능이 바로 열립니다.
+            </div>
+          ) : null}
+          {verificationPending ? (
+            <div className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              학교 메일로 인증 링크를 보냈습니다. 받은 메일에서 인증을 마치면 권한이 열립니다.
+            </div>
+          ) : null}
+          <p className="text-sm font-semibold">학생 인증 상태</p>
+          <p className="text-sm text-muted-foreground">
+            {currentUser.schoolEmail
+              ? `인증 대상 메일: ${currentUser.schoolEmail}`
+              : "학교 메일이 아직 등록되지 않았습니다."}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            대학생 전용 기능은 학교 메일 인증 완료 후 열립니다.
+          </p>
+          {verificationBadge.status !== "verified" ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => router.push("/onboarding?next=/profile")}
+            >
+              학교 메일 다시 인증
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
 

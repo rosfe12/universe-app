@@ -17,7 +17,8 @@ with seeded_auth_users as (
       ('c3333333-3333-4333-8333-333333333333'::uuid, 'seoyeon@konkuk.ac.kr', '김서연'),
       ('d4444444-4444-4444-8444-444444444444'::uuid, 'dohyun@cau.ac.kr', '정도현'),
       ('e5555555-5555-4555-8555-555555555555'::uuid, 'hayoon@example.com', '유하윤'),
-      ('f6666666-6666-4666-8666-666666666666'::uuid, 'sujin.parent@example.com', '한수진')
+      ('f6666666-6666-4666-8666-666666666666'::uuid, 'sujin.hs@example.com', '박수진'),
+      ('77777777-7777-4777-8777-777777777777'::uuid, 'qa.verification@example.com', 'QA Verification')
   ) as t(id, email, full_name)
 )
 insert into auth.users (
@@ -74,6 +75,8 @@ with seeded_profiles as (
         '11111111-1111-4111-8111-111111111111'::uuid,
         '경영학과',
         3,
+        'jiyoon@konkuk.ac.kr',
+        'verified'::public.student_verification_status,
         'KU_익명_21',
         82,
         true,
@@ -87,6 +90,8 @@ with seeded_profiles as (
         '11111111-1111-4111-8111-111111111111'::uuid,
         '컴퓨터공학과',
         2,
+        'minsu@konkuk.ac.kr',
+        'verified'::public.student_verification_status,
         'KU_익명_54',
         74,
         true,
@@ -100,6 +105,8 @@ with seeded_profiles as (
         '11111111-1111-4111-8111-111111111111'::uuid,
         '미디어커뮤니케이션학과',
         4,
+        'seoyeon@konkuk.ac.kr',
+        'verified'::public.student_verification_status,
         'KU_익명_88',
         91,
         true,
@@ -113,6 +120,8 @@ with seeded_profiles as (
         '22222222-2222-4222-8222-222222222222'::uuid,
         '심리학과',
         3,
+        'dohyun@cau.ac.kr',
+        'verified'::public.student_verification_status,
         'CAU_익명_32',
         67,
         true,
@@ -126,6 +135,8 @@ with seeded_profiles as (
         '11111111-1111-4111-8111-111111111111'::uuid,
         null,
         12,
+        null,
+        'none'::public.student_verification_status,
         '익명_KU_7',
         45,
         false,
@@ -134,16 +145,33 @@ with seeded_profiles as (
       ),
       (
         'f6666666-6666-4666-8666-666666666666'::uuid,
-        'sujin.parent@example.com',
-        'parent'::public.user_type,
+        'sujin.hs@example.com',
+        'highschool'::public.user_type,
         '11111111-1111-4111-8111-111111111111'::uuid,
         null,
+        12,
         null,
-        '익명_부모_11',
+        'none'::public.student_verification_status,
+        '익명_KU_11',
         39,
         false,
         'school'::public.visibility_level,
-        '입시 일정과 학교 생활 정보를 찾고 있습니다.'
+        '건국대 생활권과 학과 분위기를 함께 보고 있습니다.'
+      ),
+      (
+        '77777777-7777-4777-8777-777777777777'::uuid,
+        'qa.verification@example.com',
+        'student'::public.user_type,
+        null,
+        null,
+        null,
+        null,
+        'unverified'::public.student_verification_status,
+        'QA_익명_77',
+        28,
+        false,
+        'anonymous'::public.visibility_level,
+        '학교 메일 인증 브라우저 검증용 계정입니다.'
       )
   ) as t(
     id,
@@ -152,6 +180,8 @@ with seeded_profiles as (
     school_id,
     department,
     grade,
+    school_email,
+    student_verification_status,
     nickname,
     trust_score,
     verified,
@@ -166,6 +196,8 @@ insert into public.users (
   school_id,
   department,
   grade,
+  school_email,
+  student_verification_status,
   nickname,
   trust_score,
   verified,
@@ -176,12 +208,14 @@ select
   id,
   email,
   user_type,
-  school_id,
-  department,
-  grade,
-  nickname,
-  trust_score,
-  verified,
+    school_id,
+    department,
+    grade,
+    school_email,
+    student_verification_status,
+    nickname,
+    trust_score,
+    verified,
   default_visibility_level,
   bio
 from seeded_profiles
@@ -192,11 +226,19 @@ set
   school_id = excluded.school_id,
   department = excluded.department,
   grade = excluded.grade,
+  school_email = excluded.school_email,
+  student_verification_status = excluded.student_verification_status,
   nickname = excluded.nickname,
   trust_score = excluded.trust_score,
   verified = excluded.verified,
   default_visibility_level = excluded.default_visibility_level,
   bio = excluded.bio;
+
+insert into public.user_roles (user_id, role)
+values
+  ('a1111111-1111-4111-8111-111111111111'::uuid, 'admin'::public.app_role)
+on conflict (user_id) do update
+set role = excluded.role;
 
 with seeded_lectures as (
   select *
@@ -253,9 +295,9 @@ with seeded_posts as (
       ('41111111-1111-4111-8111-111111111110'::uuid, 'c3333333-3333-4333-8333-333333333333'::uuid, 'dating'::public.post_category, 'dating'::public.post_subcategory, '카페 투어 같이 할 사람', '건대입구 신상 카페 두 군데 돌고 조용히 얘기할 분 구합니다. 사진 찍는 거 좋아하면 더 좋아요.', '11111111-1111-4111-8111-111111111111'::uuid, 'global'::public.content_scope, 13, 'profile'::public.visibility_level, '{"tags":["연애","카페"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111111'::uuid, 'e5555555-5555-4555-8555-555555555555'::uuid, 'admission'::public.post_category, null, '건국대 경영 논술 준비는 어느 정도가 적당할까요?', '논술전형 생각 중인데 내신 3점대 초반이면 비교과보다 논술 비중이 큰 편인지 궁금합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 9, 'school'::public.visibility_level, '{"region":"서울","track":"문과","scoreType":"내신 3.2","interestUniversity":"건국대학교","interestDepartment":"경영학과","tags":["문과","건국대"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111112'::uuid, 'e5555555-5555-4555-8555-555555555555'::uuid, 'admission'::public.post_category, null, '건국대 컴공 학생부종합 준비 팁이 있나요?', '세특과 동아리 활동을 어떻게 연결해야 컴퓨터공학 관심도를 자연스럽게 보여줄 수 있을지 궁금합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 7, 'school'::public.visibility_level, '{"region":"경기","track":"이과","scoreType":"내신 2.9","interestUniversity":"건국대학교","interestDepartment":"컴퓨터공학과","tags":["이과","건국대"]}'::jsonb),
-      ('41111111-1111-4111-8111-111111111113'::uuid, 'f6666666-6666-4666-8666-666666666666'::uuid, 'admission'::public.post_category, null, '학부모 입장에서 건국대 기숙사 경쟁률이 궁금합니다', '지방 학생이라 기숙사 수용 비율과 1학년 우선 배정 체감이 어떤지 실제 재학생 이야기를 듣고 싶습니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 5, 'school'::public.visibility_level, '{"region":"대전","track":"기타","scoreType":"학생부종합 준비중","interestUniversity":"건국대학교","interestDepartment":"자유전공","tags":["학부모","기숙사"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111113'::uuid, 'f6666666-6666-4666-8666-666666666666'::uuid, 'admission'::public.post_category, null, '지방 학생 기준 건국대 기숙사 경쟁률이 어느 정도인가요?', '지방 학생이라 기숙사 수용 비율과 1학년 우선 배정 체감이 어떤지 실제 재학생 이야기를 듣고 싶습니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 5, 'school'::public.visibility_level, '{"region":"대전","track":"기타","scoreType":"학생부종합 준비중","interestUniversity":"건국대학교","interestDepartment":"자유전공","tags":["기숙사","생활권"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111114'::uuid, 'e5555555-5555-4555-8555-555555555555'::uuid, 'admission'::public.post_category, null, '건국대 미컴 면접 분위기 어떤가요?', '미디어커뮤니케이션학과 면접에서 시사 이슈 질문 비중이 높은지, 포트폴리오가 필요한지 궁금합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 6, 'school'::public.visibility_level, '{"region":"인천","track":"문과","scoreType":"내신 2.7","interestUniversity":"건국대학교","interestDepartment":"미디어커뮤니케이션학과","tags":["면접","미컴"]}'::jsonb),
-      ('41111111-1111-4111-8111-111111111115'::uuid, 'f6666666-6666-4666-8666-666666666666'::uuid, 'admission'::public.post_category, null, '수의대 희망인데 건국대 생활권은 어떤가요?', '학부모 입장에서 실습 일정이 많을 때 통학과 생활권이 얼마나 중요한지 듣고 싶습니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 4, 'school'::public.visibility_level, '{"region":"부산","track":"이과","scoreType":"수능 중심 준비","interestUniversity":"건국대학교","interestDepartment":"수의예과","tags":["수의대","학부모"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111115'::uuid, 'f6666666-6666-4666-8666-666666666666'::uuid, 'admission'::public.post_category, null, '수의대 희망인데 건국대 생활권은 어떤가요?', '실습 일정이 많을 때 통학과 생활권이 얼마나 중요한지 듣고 싶습니다. 건대입구 주변에서 생활하는 재학생 후기가 궁금합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 4, 'school'::public.visibility_level, '{"region":"부산","track":"이과","scoreType":"수능 중심 준비","interestUniversity":"건국대학교","interestDepartment":"수의예과","tags":["수의대","생활권"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111116'::uuid, 'e5555555-5555-4555-8555-555555555555'::uuid, 'admission'::public.post_category, null, '건국대 광고홍보 전과 분위기 있나요?', '입학 후 전과도 고려 중인데 광고홍보학과는 학점 컷이나 포트폴리오 요구가 있는지 궁금합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 5, 'school'::public.visibility_level, '{"region":"서울","track":"문과","scoreType":"내신 3.0","interestUniversity":"건국대학교","interestDepartment":"광고홍보학과","tags":["전과","광고홍보"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111117'::uuid, 'c3333333-3333-4333-8333-333333333333'::uuid, 'community'::public.post_category, 'club'::public.post_subcategory, '중앙동아리 영상팀 신규 모집', '축제 영상과 학교 행사 촬영 같이 할 사람 찾습니다. 프리미어 기본만 알아도 금방 적응 가능합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 10, 'schoolDepartment'::public.visibility_level, '{"tags":["동아리","영상"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111118'::uuid, 'b2222222-2222-4222-8222-222222222222'::uuid, 'community'::public.post_category, 'club'::public.post_subcategory, '건대 러닝크루 신입 받습니다', '주 2회 건대입구에서 러닝하고 대회도 나가는 크루입니다. 초보도 환영합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 12, 'schoolDepartment'::public.visibility_level, '{"tags":["동아리","러닝"]}'::jsonb),

@@ -162,8 +162,15 @@ export function deriveModerationSnapshot(snapshot: AppRuntimeSnapshot) {
     };
   });
 
-  const currentUser =
-    users.find((user) => user.id === snapshot.currentUser.id) ?? snapshot.currentUser;
+  const matchedCurrentUser = users.find((user) => user.id === snapshot.currentUser.id);
+  const currentUser = matchedCurrentUser
+    ? {
+        ...matchedCurrentUser,
+        email: snapshot.currentUser.email,
+        schoolEmail: snapshot.currentUser.schoolEmail,
+        schoolEmailVerifiedAt: snapshot.currentUser.schoolEmailVerifiedAt,
+      }
+    : snapshot.currentUser;
 
   return {
     ...snapshot,

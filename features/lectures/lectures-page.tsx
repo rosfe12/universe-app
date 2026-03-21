@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Search, Repeat2, Sparkles } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -16,11 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import {
-  getCurrentSchool,
-  getLectureSummaries,
-  getTradePosts,
-} from "@/lib/mock-queries";
+import { currentUser, getCurrentSchool, getLectureSummaries, getTradePosts } from "@/lib/mock-queries";
+import { canAccessSchoolFeatures } from "@/lib/permissions";
+import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import type { AppRuntimeSnapshot } from "@/types";
 
 type LectureView = "reviews" | "trade";
@@ -39,8 +38,13 @@ export function LecturesPage({
 }) {
   const searchParams = useSearchParams();
   const initialView = searchParams.get("view") === "trade" ? "trade" : "reviews";
-  const { loading, lectures: runtimeLectures, lectureReviews, tradePosts: runtimeTradePosts } =
-    useAppRuntime(initialSnapshot);
+  const {
+    loading,
+    lectures: runtimeLectures,
+    lectureReviews,
+    tradePosts: runtimeTradePosts,
+    isAuthenticated,
+  } = useAppRuntime(initialSnapshot);
   const [activeView, setActiveView] = useState<LectureView>(initialView);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -97,6 +101,31 @@ export function LecturesPage({
     };
   }, [lectures]);
   const featuredLecture = lectureOverview.topLecture;
+
+  if (
+    !loading &&
+    isAuthenticated &&
+    hasCompletedOnboarding(currentUser) &&
+    !canAccessSchoolFeatures(currentUser)
+  ) {
+    return (
+      <AppShell title="강의" subtitle="대학생 전용 강의 정보">
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">고등학생 계정은 입시 게시판만 사용할 수 있습니다</p>
+              <p className="text-sm text-muted-foreground">
+                강의평과 수강신청 교환은 대학생 계정에서만 열립니다.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/admission">입시 게시판으로 이동</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

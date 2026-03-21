@@ -89,7 +89,8 @@ export function DatingPage() {
   const [open, setOpen] = useState(false);
   const [detailPost, setDetailPost] = useState<Post | null>(null);
   const [items, setItems] = useState(getDatingPosts());
-  const canCompose = isAuthenticated && hasCompletedOnboarding(currentUser);
+  const canCompose =
+    isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessDating(currentUser);
 
   useEffect(() => {
     setItems(getDatingPosts());
@@ -212,12 +213,12 @@ export function DatingPage() {
     form.reset();
   });
 
-  if (!canAccessDating()) {
+  if (!canAccessDating(currentUser)) {
     return (
       <AppShell title="미팅 / 연애" subtitle="대학생 전용" showTabs>
         <EmptyState
-          title="대학생만 접근할 수 있습니다"
-          description="안전성과 맥락 유지를 위해 대학생 인증 계정만 열람 가능합니다."
+          title="학교 메일 인증 후 접근할 수 있습니다"
+          description="안전성과 맥락 유지를 위해 학교 메일 인증을 끝낸 대학생만 이용할 수 있습니다."
         />
       </AppShell>
     );
@@ -444,6 +445,10 @@ export function DatingPage() {
       <FloatingComposeButton
         onClick={() => {
           if (!canCompose) {
+            if (isAuthenticated && hasCompletedOnboarding(currentUser)) {
+              router.push(`/onboarding?next=${encodeURIComponent(pathname)}`);
+              return;
+            }
             router.push(
               getAuthFlowHref({
                 isAuthenticated,

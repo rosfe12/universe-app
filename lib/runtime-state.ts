@@ -24,6 +24,7 @@ export const guestUser = {
   department: undefined,
   grade: undefined,
   verified: false,
+  studentVerificationStatus: "none",
   trustScore: 0,
   reportCount: 0,
   warningCount: 0,

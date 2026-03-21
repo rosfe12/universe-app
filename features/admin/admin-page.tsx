@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ShieldAlert, ShieldMinus, TriangleAlert, UserRoundX } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -29,15 +29,211 @@ import {
   getReportTargetUserId,
 } from "@/lib/mock-queries";
 import { REPORT_REASON_LABELS, REPORT_STATUS_LABELS } from "@/lib/constants";
-import { updateReportStatusRecord } from "@/lib/supabase/app-data";
+import type { AdminAuditLog, StudentVerificationRequest } from "@/types";
+
+async function loadAdminVerificationRequests() {
+  const response = await fetch("/api/admin/verification-requests", {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { requests?: StudentVerificationRequest[]; error?: string }
+    | null;
+
+  if (!response.ok) {
+    return {
+      canManage: false,
+      items: [] as StudentVerificationRequest[],
+      error: payload?.error ?? "학생 인증 요청을 불러오지 못했습니다.",
+    };
+  }
+
+  return {
+    canManage: true,
+    items: payload?.requests ?? [],
+    error: "",
+  };
+}
+
+async function updateAdminVerificationRequest(
+  requestId: string,
+  action: "approve" | "reject",
+) {
+  const response = await fetch("/api/admin/verification-requests", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      requestId,
+      action,
+    }),
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        ok?: boolean;
+        requests?: StudentVerificationRequest[];
+        auditLogs?: AdminAuditLog[];
+        error?: string;
+      }
+    | null;
+
+  if (!response.ok) {
+    return {
+      canManage: false,
+      items: [] as StudentVerificationRequest[],
+      auditLogs: [] as AdminAuditLog[],
+      error: payload?.error ?? "학생 인증 요청을 처리하지 못했습니다.",
+    };
+  }
+
+  return {
+    canManage: true,
+    items: payload?.requests ?? [],
+    auditLogs: payload?.auditLogs ?? [],
+    error: "",
+  };
+}
+
+async function loadAdminAuditLogs() {
+  const response = await fetch("/api/admin/audit-logs", {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { auditLogs?: AdminAuditLog[]; error?: string }
+    | null;
+
+  if (!response.ok) {
+    return {
+      items: [] as AdminAuditLog[],
+      error: payload?.error ?? "운영 이력을 불러오지 못했습니다.",
+    };
+  }
+
+  return {
+    items: payload?.auditLogs ?? [],
+    error: "",
+  };
+}
+
+async function updateAdminReportStatus(
+  reportId: string,
+  status: "pending" | "reviewing" | "confirmed" | "dismissed",
+) {
+  const response = await fetch("/api/admin/reports", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      reportId,
+      status,
+    }),
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { ok?: boolean; auditLogs?: AdminAuditLog[]; error?: string }
+    | null;
+
+  if (!response.ok) {
+    return {
+      auditLogs: [] as AdminAuditLog[],
+      error: payload?.error ?? "신고 상태를 변경하지 못했습니다.",
+    };
+  }
+
+  return {
+    auditLogs: payload?.auditLogs ?? [],
+    error: "",
+  };
+}
 
 export function AdminPage() {
-  const { loading, reports, source, isAuthenticated, setSnapshot } = useAppRuntime();
+  const { loading, reports, setSnapshot } = useAppRuntime();
   const summary = useMemo(() => getAdminSummary(), [reports]);
   const reportItems = useMemo(() => getReports(), [reports]);
   const autoHiddenItems = useMemo(() => getAutoHiddenContent(), [reports]);
   const reportedUsers = useMemo(() => getReportedUsersForAdmin(), [reports]);
   const lowTrustUsers = useMemo(() => getLowTrustUsers(), [reports]);
+  const [verificationItems, setVerificationItems] = useState<StudentVerificationRequest[]>([]);
+  const [canManageVerifications, setCanManageVerifications] = useState(false);
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState("");
+  const pendingVerificationCount = verificationItems.filter(
+    (item) => item.status === "pending",
+  ).length;
+
+  useEffect(() => {
+    let active = true;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    async function loadVerificationRequests() {
+      setVerificationLoading(true);
+      if (!active) {
+        return;
+      }
+      const result = await loadAdminVerificationRequests();
+
+      if (!active) {
+        return;
+      }
+      setVerificationItems(result.items);
+      setCanManageVerifications(result.canManage);
+      setVerificationError(result.error ?? "");
+      setVerificationLoading(false);
+
+      if (!result.canManage) {
+        retryTimer = setTimeout(() => {
+          void loadVerificationRequests();
+        }, 400);
+      }
+    }
+
+    async function refreshAuditLogs() {
+      setAuditLoading(true);
+      const result = await loadAdminAuditLogs();
+
+      if (!active) {
+        return;
+      }
+
+      setAuditLogs(result.items);
+      setAuditError(result.error);
+      setAuditLoading(false);
+    }
+
+    void loadVerificationRequests();
+    void refreshAuditLogs();
+
+    return () => {
+      active = false;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+      }
+    };
+  }, []);
+
+  async function mutateVerificationRequest(
+    requestId: string,
+    action: "approve" | "reject",
+  ) {
+    setVerificationError("");
+    const result = await updateAdminVerificationRequest(requestId, action);
+    setVerificationItems(result.items);
+    setCanManageVerifications(result.canManage);
+    setVerificationError(result.error ?? "");
+    if (result.auditLogs.length > 0) {
+      setAuditLogs(result.auditLogs);
+      setAuditError("");
+    }
+  }
 
   return (
     <AppShell
@@ -64,11 +260,79 @@ export function AdminPage() {
 
       <Tabs defaultValue="reports" className="space-y-4">
         <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="verification">학생 인증</TabsTrigger>
           <TabsTrigger value="reports">신고 목록</TabsTrigger>
+          <TabsTrigger value="audit">운영 이력</TabsTrigger>
           <TabsTrigger value="hidden">자동 숨김</TabsTrigger>
           <TabsTrigger value="reported-users">신고 많은 사용자</TabsTrigger>
           <TabsTrigger value="low-trust">낮은 신뢰도</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="verification" className="space-y-3">
+          {verificationLoading ? <LoadingState /> : null}
+          {verificationError ? (
+            <Card className="border-rose-200 bg-rose-50/80">
+              <CardContent className="py-4 text-sm text-rose-700">
+                {verificationError}
+              </CardContent>
+            </Card>
+          ) : null}
+          <Card className="border-sky-200 bg-sky-50/80">
+            <CardContent className="flex items-center justify-between gap-3 py-5">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-sky-950">학교 메일 인증 대기</p>
+                <p className="text-sm text-sky-900/70">
+                  현재 확인이 필요한 요청 {pendingVerificationCount}건
+                </p>
+              </div>
+              <Badge variant="secondary">{verificationItems.length}건</Badge>
+            </CardContent>
+          </Card>
+          {verificationItems.length === 0 ? (
+            <Card>
+              <CardContent className="py-6 text-sm text-muted-foreground">
+                아직 들어온 학교 메일 인증 요청이 없습니다.
+              </CardContent>
+            </Card>
+          ) : null}
+          {verificationItems.map((item) => (
+            <VerificationRequestCard
+              key={item.id}
+              item={item}
+              canManage={canManageVerifications}
+              onApprove={() => {
+                setVerificationItems((current) =>
+                  current.map((request) =>
+                    request.id === item.id
+                      ? {
+                          ...request,
+                          status: "verified",
+                          verifiedAt: new Date().toISOString(),
+                          studentVerificationStatus: "verified",
+                        }
+                      : request,
+                  ),
+                );
+                void mutateVerificationRequest(item.id, "approve");
+              }}
+              onReject={() => {
+                setVerificationItems((current) =>
+                  current.map((request) =>
+                    request.id === item.id
+                      ? {
+                          ...request,
+                          status: "cancelled",
+                          verifiedAt: undefined,
+                          studentVerificationStatus: "rejected",
+                        }
+                      : request,
+                  ),
+                );
+                void mutateVerificationRequest(item.id, "reject");
+              }}
+            />
+          ))}
+        </TabsContent>
 
         <TabsContent value="reports" className="space-y-3">
           {reportItems.map((item) => {
@@ -110,8 +374,14 @@ export function AdminPage() {
                       size="sm"
                       variant={item.status === status ? "default" : "outline"}
                       onClick={async () => {
-                        if (source === "supabase" && isAuthenticated) {
-                          await updateReportStatusRecord(item.id, status);
+                        const result = await updateAdminReportStatus(item.id, status);
+                        if (result.error) {
+                          setAuditError(result.error);
+                          return;
+                        }
+                        if (result.auditLogs.length > 0) {
+                          setAuditLogs(result.auditLogs);
+                          setAuditError("");
                         }
 
                         setSnapshot((snapshot) =>
@@ -137,6 +407,41 @@ export function AdminPage() {
               </Card>
             );
           })}
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-3">
+          {auditLoading ? <LoadingState /> : null}
+          {auditError ? (
+            <Card className="border-rose-200 bg-rose-50/80">
+              <CardContent className="py-4 text-sm text-rose-700">{auditError}</CardContent>
+            </Card>
+          ) : null}
+          {auditLogs.length === 0 ? (
+            <Card>
+              <CardContent className="py-6 text-sm text-muted-foreground">
+                아직 기록된 운영 이력이 없습니다.
+              </CardContent>
+            </Card>
+          ) : null}
+          {auditLogs.map((log) => (
+            <Card key={log.id}>
+              <CardContent className="space-y-2 py-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="font-semibold">{log.summary}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {getAnonymousHandle(log.adminUserId)} · {log.createdAt.slice(0, 16)}
+                    </p>
+                  </div>
+                  <Badge variant="outline">{log.action}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary">{log.targetType}</Badge>
+                  {log.targetId ? <Badge variant="secondary">{log.targetId.slice(0, 8)}</Badge> : null}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </TabsContent>
 
         <TabsContent value="hidden" className="space-y-3">
@@ -219,6 +524,66 @@ export function AdminPage() {
   );
 }
 
+function VerificationRequestCard({
+  item,
+  canManage,
+  onApprove,
+  onReject,
+}: {
+  item: StudentVerificationRequest;
+  canManage: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base">{item.schoolName}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {item.userNickname}
+              {item.userDepartment ? ` · ${item.userDepartment}` : ""}
+              {item.userGrade ? ` · ${item.userGrade}학년` : ""}
+            </p>
+          </div>
+          <Badge variant={getVerificationStatusVariant(item.status)}>
+            {getVerificationStatusLabel(item.status, item.studentVerificationStatus)}
+          </Badge>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline">{item.schoolEmail}</Badge>
+          <TrustScoreBadge score={item.trustScore} />
+          <Badge variant="secondary">신고 {item.reportCount}건</Badge>
+          <Badge variant="secondary">경고 {item.warningCount}회</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          요청 {item.requestedAt.slice(0, 16)} · 만료 {item.expiresAt.slice(0, 16)}
+        </p>
+      </CardHeader>
+      {canManage ? (
+        <CardContent className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            onClick={onApprove}
+            disabled={item.status === "verified"}
+          >
+            승인
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onReject}
+            disabled={item.status !== "pending"}
+          >
+            반려
+          </Button>
+        </CardContent>
+      ) : null}
+    </Card>
+  );
+}
+
 function SummaryCard({
   label,
   value,
@@ -277,5 +642,23 @@ function getStatusVariant(status: keyof typeof REPORT_STATUS_LABELS) {
   if (status === "pending") return "danger";
   if (status === "reviewing") return "warning";
   if (status === "confirmed") return "success";
+  return "outline";
+}
+
+function getVerificationStatusLabel(
+  status: StudentVerificationRequest["status"],
+  studentVerificationStatus: StudentVerificationRequest["studentVerificationStatus"],
+) {
+  if (status === "verified") return "인증 완료";
+  if (studentVerificationStatus === "rejected") return "반려";
+  if (status === "expired") return "만료";
+  if (status === "cancelled") return "취소";
+  return "대기";
+}
+
+function getVerificationStatusVariant(status: StudentVerificationRequest["status"]) {
+  if (status === "verified") return "success";
+  if (status === "pending") return "warning";
+  if (status === "expired") return "danger";
   return "outline";
 }

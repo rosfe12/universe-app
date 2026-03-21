@@ -1,9 +1,11 @@
-"use client";
-
-import { createClient } from "@/lib/supabase/client";
-
 export const MEDIA_BUCKET = "media";
 export type UploadTarget = "post" | "profile";
+export const MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const ALLOWED_IMAGE_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
 
 function normalizeExtension(file: File) {
   const fromType = file.type.split("/")[1];
@@ -26,59 +28,57 @@ export function getStoragePathFromPublicUrl(publicUrl: string) {
   return publicUrl.slice(index + marker.length);
 }
 
-export async function uploadImage(
-  file: File,
-  userId: string,
-  target: UploadTarget = "post",
-) {
+export function validateUploadImageFile(file: File) {
   if (!file) {
     throw new Error("이미지 파일을 선택해주세요.");
   }
 
-  const supabase = createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    throw new Error("로그인 후 이미지를 업로드할 수 있습니다.");
+  if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_MIME_TYPES)[number])) {
+    throw new Error("JPG, PNG, WEBP 파일만 업로드할 수 있습니다.");
   }
 
-  if (!file.type.startsWith("image/")) {
-    throw new Error("이미지 파일만 업로드할 수 있습니다.");
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+    throw new Error("이미지는 5MB 이하만 업로드할 수 있습니다.");
   }
+}
 
-  if (user.id !== userId) {
-    throw new Error("본인 계정으로만 이미지를 업로드할 수 있습니다.");
-  }
+export async function uploadImage(
+  file: File,
+  _userId: string,
+  target: UploadTarget = "post",
+) {
+  validateUploadImageFile(file);
 
-  const path =
-    target === "profile" ? buildProfileImagePath(userId, file) : buildPostImagePath(userId, file);
+  const formData = new FormData();
+  formData.set("file", file);
+  formData.set("target", target);
 
-  const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
-    cacheControl: "3600",
-    upsert: true,
-    contentType: file.type,
+  const response = await fetch("/api/uploads/image", {
+    method: "POST",
+    body: formData,
   });
 
-  if (error) {
-    throw new Error(error.message);
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.publicUrl) {
+    throw new Error(payload?.error ?? "이미지 업로드에 실패했습니다.");
   }
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
-
-  return publicUrl;
+  return payload.publicUrl as string;
 }
 
 export async function deleteImageByPublicUrl(publicUrl?: string | null) {
   if (!publicUrl) return;
 
-  const path = getStoragePathFromPublicUrl(publicUrl);
-  if (!path) return;
+  const response = await fetch("/api/uploads/image", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ publicUrl }),
+  });
 
-  const supabase = createClient();
-  await supabase.storage.from(MEDIA_BUCKET).remove([path]);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error ?? "이미지 삭제에 실패했습니다.");
+  }
 }

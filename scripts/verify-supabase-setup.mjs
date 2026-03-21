@@ -1,3 +1,5 @@
+import { createClient } from "@supabase/supabase-js";
+
 import { loadLocalEnv, requireEnv } from "./_env.mjs";
 
 loadLocalEnv();
@@ -41,6 +43,10 @@ async function checkEndpoint(name, endpoint, headers = restHeaders) {
 const checks = [
   checkEndpoint("public.schools", "/rest/v1/schools?select=id&limit=1"),
   checkEndpoint("public.users", "/rest/v1/users?select=id&limit=1"),
+  checkEndpoint(
+    "public.student_verification_requests",
+    "/rest/v1/student_verification_requests?select=id&limit=1",
+  ),
   checkEndpoint("public.posts", "/rest/v1/posts?select=id&limit=1"),
   checkEndpoint("public.comments", "/rest/v1/comments?select=id&limit=1"),
   checkEndpoint("public.lectures", "/rest/v1/lectures?select=id&limit=1"),
@@ -51,6 +57,7 @@ const checks = [
   checkEndpoint("public.blocks", "/rest/v1/blocks?select=id&limit=1"),
   checkEndpoint("public.dating_profiles", "/rest/v1/dating_profiles?select=id&limit=1"),
   checkEndpoint("public.media_assets", "/rest/v1/media_assets?select=id&limit=1"),
+  checkEndpoint("public.admin_audit_logs", "/rest/v1/admin_audit_logs?select=id&limit=1"),
   checkEndpoint("rpc.list_user_public_profiles", "/rest/v1/rpc/list_user_public_profiles", {
     ...restHeaders,
     "content-type": "application/json",
@@ -59,10 +66,31 @@ const checks = [
 
 if (serviceRoleKey) {
   checks.push(
-    checkEndpoint("storage.bucket.media", "/storage/v1/bucket/media", {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-    }),
+    (async () => {
+      try {
+        const adminClient = createClient(url, serviceRoleKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        });
+        const { data, error } = await adminClient.storage.getBucket("media");
+
+        return {
+          name: "storage.bucket.media",
+          ok: !error && Boolean(data?.id),
+          status: error ? 500 : 200,
+          body: error?.message ?? "",
+        };
+      } catch (error) {
+        return {
+          name: "storage.bucket.media",
+          ok: false,
+          status: 0,
+          body: error instanceof Error ? error.message : "unknown network error",
+        };
+      }
+    })(),
   );
 }
 

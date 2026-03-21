@@ -22,6 +22,7 @@ import type {
   Post,
   Report,
   School,
+  StudentVerificationStatus,
   TradePost,
   User,
   UserType,
@@ -43,8 +44,24 @@ function createSupabaseFallbackSnapshot(issue?: string): AppRuntimeSnapshot {
 
 const toUserType = (value?: string | null): UserType => {
   if (value === "high_school" || value === "highschool") return "highSchool";
-  if (value === "parent") return "parent";
   return "college";
+};
+
+const toStudentVerificationStatus = (
+  value?: string | null,
+  verified = false,
+): StudentVerificationStatus => {
+  if (
+    value === "none" ||
+    value === "unverified" ||
+    value === "pending" ||
+    value === "verified" ||
+    value === "rejected"
+  ) {
+    return value;
+  }
+
+  return verified ? "verified" : "unverified";
 };
 
 const toVisibilityLevel = (
@@ -73,6 +90,10 @@ function mapSchoolRow(row: Record<string, unknown>): School {
 
 function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
   const school = schools.find((item) => item.id === String(row.school_id ?? ""));
+  const studentVerificationStatus = toStudentVerificationStatus(
+    row.student_verification_status as string | null | undefined,
+    Boolean(row.verified),
+  );
 
   return {
     id: String(row.id),
@@ -90,7 +111,12 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     schoolId: row.school_id ? String(row.school_id) : undefined,
     department: row.department ? String(row.department) : undefined,
     grade: typeof row.grade === "number" ? row.grade : undefined,
-    verified: Boolean(row.verified),
+    verified: studentVerificationStatus === "verified" || Boolean(row.verified),
+    studentVerificationStatus,
+    schoolEmail: row.school_email ? String(row.school_email) : undefined,
+    schoolEmailVerifiedAt: row.school_email_verified_at
+      ? String(row.school_email_verified_at)
+      : undefined,
     trustScore: typeof row.trust_score === "number" ? row.trust_score : 50,
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,
@@ -285,6 +311,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
     department: undefined,
     grade: undefined,
     verified: false,
+    studentVerificationStatus: "unverified",
     trustScore: 50,
     reportCount: 0,
     warningCount: 0,
@@ -386,8 +413,9 @@ export async function loadServerRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
           supabase.from("blocks").select("*").order("created_at", { ascending: false }),
           supabase.from("dating_profiles").select("*").order("created_at", { ascending: false }),
           supabase.from("media_assets").select("*").order("created_at", { ascending: false }),
+          supabase.from("users").select("*").eq("id", authUser.id).single(),
         ])
-      : [null, null, null, null, null, null];
+      : [null, null, null, null, null, null, null];
 
     const [
       tradePostsResult,
@@ -396,6 +424,7 @@ export async function loadServerRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
       blocksResult,
       datingProfilesResult,
       mediaAssetsResult,
+      currentUserProfileResult,
     ] = authOnly;
 
     const snapshot: AppRuntimeSnapshot = {
@@ -444,7 +473,20 @@ export async function loadServerRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
     };
 
     snapshot.currentUser = authUser
-      ? users.find((user: User) => user.id === authUser.id) ?? createFallbackUser(authUser)
+      ? (() => {
+          const privateProfileRow = currentUserProfileResult?.error
+            ? null
+            : (currentUserProfileResult?.data as Record<string, unknown> | null);
+
+          if (privateProfileRow) {
+            return {
+              ...mapUserRow(privateProfileRow, schools),
+              email: authUser.email ?? String(privateProfileRow.email ?? ""),
+            };
+          }
+
+          return users.find((user: User) => user.id === authUser.id) ?? createFallbackUser(authUser);
+        })()
       : guestUser;
 
     if (snapshot.schools.length === 0 || (snapshot.posts.length === 0 && snapshot.lectures.length === 0)) {

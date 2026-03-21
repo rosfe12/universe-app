@@ -16,12 +16,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { canAccessSchoolFeatures } from "@/lib/permissions";
 import {
+  currentUser,
   getCommunityPosts,
   getCurrentSchool,
   getLectureSummaries,
   getTradePosts,
 } from "@/lib/mock-queries";
+import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import type { AppRuntimeSnapshot } from "@/types";
 
 type SchoolTab = "lectures" | "trade" | "club" | "food";
@@ -70,8 +73,14 @@ export function SchoolPage({
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const initialTab: SchoolTab = isSchoolTab(tabParam) ? tabParam : "lectures";
-  const { loading, lectures: runtimeLectures, lectureReviews, tradePosts: runtimeTradePosts, posts } =
-    useAppRuntime(initialSnapshot);
+  const {
+    loading,
+    lectures: runtimeLectures,
+    lectureReviews,
+    tradePosts: runtimeTradePosts,
+    posts,
+    isAuthenticated,
+  } = useAppRuntime(initialSnapshot);
   const [activeTab, setActiveTab] = useState<SchoolTab>(initialTab);
   const currentSchool = getCurrentSchool();
   const schoolName = currentSchool?.name ?? "건국대학교";
@@ -84,6 +93,31 @@ export function SchoolPage({
   const tradeItems = useMemo(() => getTradePosts().slice(0, 6), [runtimeTradePosts]);
   const clubPosts = useMemo(() => getCommunityPosts("club").slice(0, 6), [posts]);
   const foodPosts = useMemo(() => getCommunityPosts("food").slice(0, 6), [posts]);
+
+  if (
+    !loading &&
+    isAuthenticated &&
+    hasCompletedOnboarding(currentUser) &&
+    !canAccessSchoolFeatures(currentUser)
+  ) {
+    return (
+      <AppShell title={schoolName} subtitle="우리 학교 이야기">
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">고등학생 계정은 입시 게시판만 사용할 수 있습니다</p>
+              <p className="text-sm text-muted-foreground">
+                우리학교 탭은 대학생 중심 기능만 제공합니다.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/admission">입시 게시판으로 이동</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell

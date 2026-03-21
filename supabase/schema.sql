@@ -4,7 +4,7 @@ create extension if not exists citext;
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'user_type') then
-    create type public.user_type as enum ('student', 'highschool', 'parent');
+    create type public.user_type as enum ('student', 'highschool');
   end if;
   if not exists (select 1 from pg_type where typname = 'content_scope') then
     create type public.content_scope as enum ('school', 'global');
@@ -17,6 +17,12 @@ begin
   end if;
   if not exists (select 1 from pg_type where typname = 'visibility_level') then
     create type public.visibility_level as enum ('anonymous', 'school', 'schoolDepartment', 'profile');
+  end if;
+  if not exists (select 1 from pg_type where typname = 'student_verification_status') then
+    create type public.student_verification_status as enum ('none', 'unverified', 'pending', 'verified', 'rejected');
+  end if;
+  if not exists (select 1 from pg_type where typname = 'verification_request_status') then
+    create type public.verification_request_status as enum ('pending', 'verified', 'expired', 'cancelled');
   end if;
   if not exists (select 1 from pg_type where typname = 'difficulty_level') then
     create type public.difficulty_level as enum ('easy', 'medium', 'hard');
@@ -117,6 +123,9 @@ create table if not exists public.users (
   created_at timestamptz not null default timezone('utc', now()),
   name text,
   verified boolean not null default false,
+  student_verification_status public.student_verification_status not null default 'unverified',
+  school_email citext,
+  school_email_verified_at timestamptz,
   default_visibility_level public.visibility_level not null default 'anonymous',
   bio text,
   avatar_url text,
@@ -124,12 +133,68 @@ create table if not exists public.users (
   constraint users_grade_check check (grade is null or grade between 1 and 12)
 );
 
+alter table public.users
+  add column if not exists student_verification_status public.student_verification_status not null default 'unverified';
+
+alter table public.users
+  add column if not exists school_email citext;
+
+alter table public.users
+  add column if not exists school_email_verified_at timestamptz;
+
+update public.users
+set user_type = 'highschool'
+where user_type::text not in ('student', 'highschool');
+
+update public.users
+set school_email = lower(email::text)::citext
+where user_type = 'student'
+  and school_email is null
+  and exists (
+    select 1
+    from public.schools
+    where id = users.school_id
+      and split_part(lower(users.email::text), '@', 2) = lower(domain::text)
+  );
+
+update public.users
+set student_verification_status = case
+  when user_type <> 'student' then 'none'::public.student_verification_status
+  when verified then 'verified'::public.student_verification_status
+  when school_email is not null then 'pending'::public.student_verification_status
+  else 'unverified'::public.student_verification_status
+end
+where student_verification_status is null
+   or student_verification_status = 'none'
+   or student_verification_status = 'unverified';
+
+update public.users
+set school_email_verified_at = coalesce(school_email_verified_at, created_at)
+where student_verification_status = 'verified'
+  and school_email_verified_at is null;
+
 create table if not exists public.user_roles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.users(id) on delete cascade,
   role public.app_role not null default 'moderator',
   created_at timestamptz not null default timezone('utc', now())
 );
+
+create table if not exists public.student_verification_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  school_id uuid not null references public.schools(id) on delete cascade,
+  school_email citext not null,
+  verification_user_id uuid,
+  status public.verification_request_status not null default 'pending',
+  next_path text not null default '/home',
+  requested_at timestamptz not null default timezone('utc', now()),
+  verified_at timestamptz,
+  expires_at timestamptz not null default (timezone('utc', now()) + interval '1 day')
+);
+
+alter table public.student_verification_requests
+  add column if not exists verification_user_id uuid;
 
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
@@ -284,24 +349,48 @@ create table if not exists public.media_assets (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.admin_audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  admin_user_id uuid not null references public.users(id) on delete cascade,
+  action text not null,
+  target_type text not null,
+  target_id uuid,
+  summary text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
 create index if not exists idx_posts_school_id on public.posts (school_id);
 create index if not exists idx_posts_scope on public.posts (scope);
 create index if not exists idx_posts_author_created_at on public.posts (author_id, created_at desc);
+create index if not exists idx_student_verification_requests_user_status on public.student_verification_requests (user_id, status, requested_at desc);
+create unique index if not exists idx_users_verified_school_email on public.users (school_email) where school_email is not null and student_verification_status = 'verified';
 create index if not exists idx_comments_post_id on public.comments (post_id);
 create index if not exists idx_comments_author_created_at on public.comments (author_id, created_at desc);
 create index if not exists idx_lecture_reviews_lecture_id on public.lecture_reviews (lecture_id);
 create index if not exists idx_lecture_reviews_author_semester on public.lecture_reviews (author_id, semester);
+create index if not exists idx_lecture_reviews_author_created_at on public.lecture_reviews (author_id, created_at desc);
 create index if not exists idx_trade_posts_school_status on public.trade_posts (school_id, status);
+create index if not exists idx_trade_posts_author_created_at on public.trade_posts (author_id, created_at desc);
 create index if not exists idx_reports_target on public.reports (target_type, target_id);
+create index if not exists idx_reports_reporter_created_at on public.reports (reporter_id, created_at desc);
 create index if not exists idx_notifications_user_created_at on public.notifications (user_id, created_at desc);
 create index if not exists idx_media_assets_owner on public.media_assets (owner_type, owner_id);
+create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs (created_at desc);
+create index if not exists idx_admin_audit_logs_target on public.admin_audit_logs (target_type, target_id);
 
 create or replace function public.set_user_defaults()
 returns trigger
 language plpgsql
 set search_path = public
 as $$
+declare
+  actor_can_override boolean := auth.uid() is null or public.is_admin();
 begin
+  if new.school_email is not null then
+    new.school_email := lower(btrim(new.school_email::text))::citext;
+  end if;
+
   if new.nickname is null or btrim(new.nickname) = '' then
     new.nickname := public.generate_user_nickname(new.id, new.school_id);
   end if;
@@ -312,6 +401,44 @@ begin
       when new.user_type = 'highschool' and new.school_id is not null then 'school'::public.visibility_level
       else 'anonymous'::public.visibility_level
     end;
+  end if;
+
+  if new.user_type <> 'student' then
+    new.student_verification_status := 'none';
+    new.school_email_verified_at := null;
+    new.verified := false;
+    return new;
+  end if;
+
+  if new.student_verification_status is null or new.student_verification_status = 'none' then
+    new.student_verification_status := case
+      when new.school_email is not null then 'pending'::public.student_verification_status
+      else 'unverified'::public.student_verification_status
+    end;
+  end if;
+
+  if new.school_email is not null and new.school_id is not null and not exists (
+    select 1
+    from public.schools
+    where id = new.school_id
+      and split_part(lower(new.school_email::text), '@', 2) = lower(domain::text)
+  ) then
+    raise exception '학교 메일 도메인이 학교 정보와 일치하지 않습니다.';
+  end if;
+
+  if new.student_verification_status = 'verified' and not actor_can_override then
+    new.student_verification_status := case
+      when new.school_email is not null then 'pending'::public.student_verification_status
+      else 'unverified'::public.student_verification_status
+    end;
+  end if;
+
+  if new.student_verification_status = 'verified' then
+    new.school_email_verified_at := coalesce(new.school_email_verified_at, timezone('utc', now()));
+    new.verified := true;
+  else
+    new.school_email_verified_at := null;
+    new.verified := false;
   end if;
 
   return new;
@@ -395,6 +522,45 @@ as $$
   where id = auth.uid()
 $$;
 
+create or replace function public.current_student_verification_status()
+returns public.student_verification_status
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select student_verification_status
+  from public.users
+  where id = auth.uid()
+$$;
+
+create or replace function public.current_auth_email()
+returns citext
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select lower(email)::citext
+  from auth.users
+  where id = auth.uid()
+$$;
+
+create or replace function public.is_current_auth_email_confirmed()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select exists(
+    select 1
+    from auth.users
+    where id = auth.uid()
+      and email_confirmed_at is not null
+  )
+$$;
+
 create or replace function public.is_student()
 returns boolean
 language sql
@@ -403,6 +569,41 @@ security definer
 set search_path = public
 as $$
   select coalesce(public.current_user_type() = 'student', false)
+$$;
+
+create or replace function public.can_self_verify_student(
+  p_school_id uuid,
+  p_school_email citext
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists(
+    select 1
+    from public.schools
+    where id = p_school_id
+      and p_school_email is not null
+      and lower(p_school_email::text) = lower(public.current_auth_email()::text)
+      and split_part(lower(p_school_email::text), '@', 2) = lower(domain::text)
+      and public.is_current_auth_email_confirmed()
+  )
+$$;
+
+create or replace function public.is_verified_student()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    public.current_user_type() = 'student'
+    and public.current_student_verification_status() = 'verified',
+    false
+  )
 $$;
 
 create or replace function public.is_admin()
@@ -664,7 +865,8 @@ after insert or update of photo_url or delete on public.dating_profiles
 for each row
 execute function public.sync_profile_media_asset();
 
-create or replace function public.list_user_public_profiles()
+drop function if exists public.list_user_public_profiles();
+create function public.list_user_public_profiles()
 returns table (
   id uuid,
   email text,
@@ -675,6 +877,7 @@ returns table (
   department text,
   grade integer,
   verified boolean,
+  student_verification_status public.student_verification_status,
   trust_score integer,
   report_count integer,
   warning_count integer,
@@ -699,6 +902,7 @@ as $$
     u.department,
     u.grade,
     u.verified,
+    u.student_verification_status,
     u.trust_score,
     u.report_count,
     u.warning_count,
@@ -713,12 +917,15 @@ $$;
 grant execute on function public.list_user_public_profiles() to anon, authenticated;
 grant execute on function public.current_user_school_id() to authenticated;
 grant execute on function public.current_user_type() to authenticated;
+grant execute on function public.current_student_verification_status() to authenticated;
 grant execute on function public.is_student() to authenticated;
+grant execute on function public.is_verified_student() to authenticated;
 grant execute on function public.is_admin() to authenticated;
 
 alter table public.schools enable row level security;
 alter table public.users enable row level security;
 alter table public.user_roles enable row level security;
+alter table public.student_verification_requests enable row level security;
 alter table public.posts enable row level security;
 alter table public.comments enable row level security;
 alter table public.lectures enable row level security;
@@ -729,6 +936,7 @@ alter table public.reports enable row level security;
 alter table public.blocks enable row level security;
 alter table public.notifications enable row level security;
 alter table public.media_assets enable row level security;
+alter table public.admin_audit_logs enable row level security;
 
 drop policy if exists "schools read" on public.schools;
 create policy "schools read"
@@ -782,6 +990,31 @@ to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
+drop policy if exists "student verification requests own read" on public.student_verification_requests;
+create policy "student verification requests own read"
+on public.student_verification_requests
+for select
+to authenticated
+using (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "student verification requests own insert" on public.student_verification_requests;
+create policy "student verification requests own insert"
+on public.student_verification_requests
+for insert
+to authenticated
+with check (
+  auth.uid() = user_id
+  and status = 'pending'
+);
+
+drop policy if exists "student verification requests admin update" on public.student_verification_requests;
+create policy "student verification requests admin update"
+on public.student_verification_requests
+for update
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
 drop policy if exists "posts read by scope" on public.posts;
 create policy "posts read by scope"
 on public.posts
@@ -790,6 +1023,7 @@ to anon, authenticated
 using (
   not auto_hidden
   and public.can_read_post(scope, school_id)
+  and (category <> 'dating' or public.is_verified_student())
 );
 
 drop policy if exists "posts insert own" on public.posts;
@@ -800,6 +1034,7 @@ to authenticated
 with check (
   auth.uid() = author_id
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
+  and (category <> 'dating' or public.is_verified_student())
   and (
     scope = 'global'
     or school_id = public.current_user_school_id()
@@ -905,6 +1140,7 @@ to authenticated
 with check (
   auth.uid() = author_id
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
+  and public.is_verified_student()
 );
 
 drop policy if exists "lecture_reviews update own" on public.lecture_reviews;
@@ -929,6 +1165,7 @@ for select
 to authenticated
 using (
   not auto_hidden
+  and public.is_verified_student()
   and (
     auth.uid() = author_id
     or school_id = public.current_user_school_id()
@@ -942,7 +1179,7 @@ for insert
 to authenticated
 with check (
   auth.uid() = author_id
-  and public.is_student()
+  and public.is_verified_student()
   and school_id = public.current_user_school_id()
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
 );
@@ -968,7 +1205,7 @@ on public.dating_profiles
 for select
 to authenticated
 using (
-  public.is_student()
+  public.is_verified_student()
   and is_visible
   and not auto_hidden
 );
@@ -980,7 +1217,7 @@ for insert
 to authenticated
 with check (
   auth.uid() = user_id
-  and public.is_student()
+  and public.is_verified_student()
   and school_id = public.current_user_school_id()
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
 );
@@ -1116,87 +1353,43 @@ using (
   )
 );
 
+drop policy if exists "admin audit logs read" on public.admin_audit_logs;
+create policy "admin audit logs read"
+on public.admin_audit_logs
+for select
+to authenticated
+using (public.is_admin());
+
+drop policy if exists "admin audit logs insert" on public.admin_audit_logs;
+create policy "admin audit logs insert"
+on public.admin_audit_logs
+for insert
+to authenticated
+with check (public.is_admin() and auth.uid() = admin_user_id);
+
 insert into storage.buckets (id, name, public)
 values ('media', 'media', true)
 on conflict (id) do update
 set name = excluded.name,
     public = excluded.public;
 
-alter table storage.objects enable row level security;
+do $$
+begin
+  begin
+    execute 'alter table storage.objects enable row level security';
+    execute 'drop policy if exists "media public read" on storage.objects';
+    execute 'create policy "media public read" on storage.objects for select to public using (bucket_id = ''media'')';
+    execute 'drop policy if exists "media authenticated insert" on storage.objects';
+    execute 'create policy "media authenticated insert" on storage.objects for insert to authenticated with check (bucket_id = ''media'' and (((storage.foldername(name))[1] = ''posts'' and (storage.foldername(name))[2] = auth.uid()::text) or ((storage.foldername(name))[1] = ''profiles'' and (storage.foldername(name))[2] = auth.uid()::text)))';
+    execute 'drop policy if exists "media authenticated update" on storage.objects';
+    execute 'create policy "media authenticated update" on storage.objects for update to authenticated using (bucket_id = ''media'' and (((storage.foldername(name))[1] = ''posts'' and (storage.foldername(name))[2] = auth.uid()::text) or ((storage.foldername(name))[1] = ''profiles'' and (storage.foldername(name))[2] = auth.uid()::text))) with check (bucket_id = ''media'' and (((storage.foldername(name))[1] = ''posts'' and (storage.foldername(name))[2] = auth.uid()::text) or ((storage.foldername(name))[1] = ''profiles'' and (storage.foldername(name))[2] = auth.uid()::text)))';
+    execute 'drop policy if exists "media authenticated delete" on storage.objects';
+    execute 'create policy "media authenticated delete" on storage.objects for delete to authenticated using (bucket_id = ''media'' and (((storage.foldername(name))[1] = ''posts'' and (storage.foldername(name))[2] = auth.uid()::text) or ((storage.foldername(name))[1] = ''profiles'' and (storage.foldername(name))[2] = auth.uid()::text)))';
+  exception
+    when insufficient_privilege then
+      raise notice 'Skipping storage.objects policy setup due to insufficient privilege';
+  end;
+end
+$$;
 
-drop policy if exists "media public read" on storage.objects;
-create policy "media public read"
-on storage.objects
-for select
-to public
-using (bucket_id = 'media');
-
-drop policy if exists "media authenticated insert" on storage.objects;
-create policy "media authenticated insert"
-on storage.objects
-for insert
-to authenticated
-with check (
-  bucket_id = 'media'
-  and (
-    (
-      (storage.foldername(name))[1] = 'posts'
-      and (storage.foldername(name))[2] = auth.uid()::text
-    )
-    or (
-      (storage.foldername(name))[1] = 'profiles'
-      and (storage.foldername(name))[2] = auth.uid()::text
-    )
-  )
-);
-
-drop policy if exists "media authenticated update" on storage.objects;
-create policy "media authenticated update"
-on storage.objects
-for update
-to authenticated
-using (
-  bucket_id = 'media'
-  and (
-    (
-      (storage.foldername(name))[1] = 'posts'
-      and (storage.foldername(name))[2] = auth.uid()::text
-    )
-    or (
-      (storage.foldername(name))[1] = 'profiles'
-      and (storage.foldername(name))[2] = auth.uid()::text
-    )
-  )
-)
-with check (
-  bucket_id = 'media'
-  and (
-    (
-      (storage.foldername(name))[1] = 'posts'
-      and (storage.foldername(name))[2] = auth.uid()::text
-    )
-    or (
-      (storage.foldername(name))[1] = 'profiles'
-      and (storage.foldername(name))[2] = auth.uid()::text
-    )
-  )
-);
-
-drop policy if exists "media authenticated delete" on storage.objects;
-create policy "media authenticated delete"
-on storage.objects
-for delete
-to authenticated
-using (
-  bucket_id = 'media'
-  and (
-    (
-      (storage.foldername(name))[1] = 'posts'
-      and (storage.foldername(name))[2] = auth.uid()::text
-    )
-    or (
-      (storage.foldername(name))[1] = 'profiles'
-      and (storage.foldername(name))[2] = auth.uid()::text
-    )
-  )
-);
+notify pgrst, 'reload schema';
