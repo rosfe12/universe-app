@@ -80,7 +80,7 @@ const FILTERS: Array<{
   icon: typeof Sparkles;
 }> = [
   { value: "all", label: "전체", icon: Sparkles },
-  { value: "hot", label: "핫갤", icon: Flame },
+  { value: "hot", label: "19금", icon: Flame },
   { value: "dating", label: "연애", icon: Heart },
   { value: "meeting", label: "미팅", icon: Users2 },
 ] as const;
@@ -96,7 +96,7 @@ function getCardVariant(post: Post): BadgeProps["variant"] {
 }
 
 function getCardLabel(post: Post) {
-  if (post.subcategory === "hot") return "핫갤";
+  if (post.subcategory === "hot") return "19금";
   if (post.subcategory === "meeting") return "미팅";
   return "연애";
 }
@@ -129,9 +129,9 @@ function SharedFeedCard({
         />
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            {post.subcategory === "hot" ? <Badge variant="danger">HOT</Badge> : null}
+            {post.subcategory === "hot" ? <Badge variant="danger">19+</Badge> : null}
             {post.subcategory === "hot" && hotScore ? (
-              <Badge variant="outline">지수 {hotScore}</Badge>
+              <Badge variant="outline">반응 {hotScore}</Badge>
             ) : null}
           </div>
           <CardTitle className="text-[19px] leading-7 tracking-tight">{post.title}</CardTitle>
@@ -269,7 +269,7 @@ export function CommunityPage({
             <div className="space-y-1">
               <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
               <p className="text-sm text-muted-foreground">
-                커뮤니티, 핫갤, 연애/미팅은 대학생 계정에서만 열립니다.
+                커뮤니티, 19금, 연애/미팅은 대학생 계정에서만 열립니다.
               </p>
             </div>
             <Button type="button" onClick={() => router.push("/admission")}>
@@ -319,7 +319,7 @@ export function CommunityPage({
       createdAt,
       likes: 0,
       commentCount: 0,
-      tags: ["HOT", "자유글"],
+      tags: ["19+", "익명"],
       imageUrl: values.imageUrl || undefined,
     };
 
@@ -335,7 +335,7 @@ export function CommunityPage({
               title: values.title,
               content: values.content,
               imageUrl: values.imageUrl || undefined,
-              tags: ["HOT", "자유글"],
+              tags: ["19+", "익명"],
             });
             await refresh();
             setComposerOpen(false);
@@ -362,7 +362,7 @@ export function CommunityPage({
   return (
     <AppShell
       title="커뮤니티"
-      subtitle="핫갤, 연애, 미팅처럼 빠르게 소비되는 공유 피드"
+      subtitle="공유 피드"
     >
       {loading ? <LoadingState /> : null}
 
@@ -373,11 +373,11 @@ export function CommunityPage({
             <Sparkles className="h-5 w-5 text-amber-200" />
           </div>
           <div className="space-y-2">
-            <p className="text-[26px] font-semibold tracking-tight">핫갤은 빠르게, 연애와 미팅은 자연스럽게</p>
+            <p className="text-[26px] font-semibold tracking-tight">연애, 미팅, 19금 익명 토크</p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
-              <p className="text-[11px] text-white/70">핫갤</p>
+              <p className="text-[11px] text-white/70">19금</p>
               <p className="mt-1 text-sm font-semibold">{counts.hot}개</p>
             </div>
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
@@ -536,7 +536,7 @@ export function CommunityPage({
                   />
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={getCardVariant(detailPost)}>{getCardLabel(detailPost)}</Badge>
-                    {detailPost.subcategory === "hot" ? <Badge variant="danger">HOT</Badge> : null}
+                    {detailPost.subcategory === "hot" ? <Badge variant="danger">19+</Badge> : null}
                   </div>
                   {detailPost.imageUrl ? (
                     <div className="relative overflow-hidden rounded-[24px] border border-white/70 bg-secondary/50">
@@ -619,14 +619,14 @@ export function CommunityPage({
 
           setComposerOpen(true);
         }}
-        label="핫갤 글쓰기"
+        label="19금 글쓰기"
       />
 
       <Dialog open={composerOpen} onOpenChange={setComposerOpen}>
         <DialogContent className="max-h-[88vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>핫갤 글쓰기</DialogTitle>
-            <DialogDescription>학교 밖 공유 영역에 올라가는 자유 익명 글입니다.</DialogDescription>
+            <DialogTitle>19금 글쓰기</DialogTitle>
+            <DialogDescription>성인 익명 토크 카테고리에 올라가는 글입니다.</DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
@@ -639,7 +639,7 @@ export function CommunityPage({
             </div>
             <ImageUploadField
               label="대표 이미지"
-              helperText="핫갤 글 사이에 노출될 이미지를 업로드합니다."
+              helperText="글 카드에 함께 노출될 이미지를 업로드합니다."
               value={form.watch("imageUrl")}
               onChange={(url) => form.setValue("imageUrl", url, { shouldValidate: true })}
               userId={currentUser.id}

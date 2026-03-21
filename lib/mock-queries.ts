@@ -503,7 +503,7 @@ export function getHomeSections() {
     community: getCommunityPosts()
       .filter((post) => post.subcategory === "club" || post.subcategory === "meetup")
       .slice(0, 4),
-    hot: getHotGalleryPosts().slice(0, 4),
+    hot: [],
     dating: mixedDating.slice(0, 4),
   };
 }
@@ -533,7 +533,8 @@ export function getSchoolHotPosts(schoolId = currentUser.schoolId) {
         post.schoolId === schoolId &&
         !getCareerBoardKind(post) &&
         !isHiddenPost(post) &&
-        (post.subcategory === "hot" || post.likes >= 40),
+        post.subcategory !== "hot" &&
+        post.likes >= 40,
     ),
   ).slice(0, 4);
 }
@@ -600,7 +601,7 @@ export function getHomeCategoryStats() {
     {
       label: "커뮤니티",
       value: `${getCommunityPosts().length + getDatingPosts().length}개`,
-      description: "동아리, 맛집, 번개, 핫갤",
+      description: "동아리, 맛집, 번개, 연애",
       href: "/community",
     },
     {

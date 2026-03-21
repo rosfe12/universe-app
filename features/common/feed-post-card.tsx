@@ -61,8 +61,8 @@ export function FeedPostCard({
             {badge.label}
           </Badge>
           {post.subcategory === "hot" ? (
-            <Badge variant="danger" className="bg-[linear-gradient(135deg,#f43f5e_0%,#fb7185_100%)] text-white shadow-[0_16px_30px_-18px_rgba(244,63,94,0.82)]">
-              HOT
+            <Badge variant="danger" className="bg-[linear-gradient(135deg,#be123c_0%,#e11d48_100%)] text-white shadow-[0_16px_30px_-18px_rgba(190,24,93,0.72)]">
+              19+
             </Badge>
           ) : null}
         </div>
