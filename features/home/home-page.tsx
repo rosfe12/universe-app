@@ -34,7 +34,7 @@ import {
 import { cn, formatRelativeLabel } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post } from "@/types";
 
-function FeaturedHotCard({ post, schoolName }: { post: Post; schoolName: string }) {
+function FeaturedHotCard({ post }: { post: Post }) {
   return (
     <Link href="/community?filter=hot">
       <Card className="group overflow-hidden border-white/85 bg-[linear-gradient(140deg,#1e1b4b_0%,#4338ca_45%,#7c3aed_100%)] text-white transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_38px_88px_-38px_rgba(79,70,229,0.68)]">
@@ -109,7 +109,6 @@ function FeaturedHotCard({ post, schoolName }: { post: Post; schoolName: string 
                   <Sparkles className="h-3.5 w-3.5 text-violet-100" />
                   핫갤 메인
                 </div>
-                <p className="line-clamp-2 text-sm font-medium text-white/92">{schoolName}</p>
               </div>
             </div>
           </div>
@@ -281,7 +280,7 @@ export function HomePage({
   return (
     <AppShell
       title="홈"
-      subtitle={`${schoolName}에서 지금 반응이 큰 글과 학교 생활 정보를 바로 이어서 둘러보세요`}
+      subtitle="지금 반응이 큰 글과 학교 생활 정보를 한 화면에서 이어서 둘러보세요"
     >
       {loading ? <LoadingState /> : null}
 
@@ -291,7 +290,7 @@ export function HomePage({
             title="🔥 지금 제일 뜨는 핫갤"
             href="/community?filter=hot"
           />
-          <FeaturedHotCard post={heroHotPost} schoolName={schoolName} />
+          <FeaturedHotCard post={heroHotPost} />
           <div className="grid grid-cols-2 gap-3">
             {secondaryHotPosts.map((post) => (
               <HotCard key={post.id} post={post} />
