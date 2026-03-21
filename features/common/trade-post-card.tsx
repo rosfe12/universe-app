@@ -6,7 +6,7 @@ import { PostAuthorRow } from "@/features/common/post-author-row";
 import { TRADE_STATUS_LABELS } from "@/lib/constants";
 import { getLectureById, getTradeMatchInsight } from "@/lib/mock-queries";
 import type { ReportReason, TradePost } from "@/types";
-import { ArrowRightLeft, Clock3, Sparkles } from "lucide-react";
+import { ArrowRightLeft, BellRing, CheckCircle2, Clock3, Sparkles } from "lucide-react";
 
 export function TradePostCard({
   tradePost,
@@ -24,6 +24,18 @@ export function TradePostCard({
   const haveLecture = getLectureById(tradePost.haveLectureId);
   const wantLecture = getLectureById(tradePost.wantLectureId);
   const match = getTradeMatchInsight(tradePost.id);
+  const statusVariant =
+    tradePost.status === "open"
+      ? "success"
+      : tradePost.status === "matching"
+        ? "warning"
+        : "outline";
+  const statusCaption =
+    tradePost.status === "open"
+      ? "바로 교환 가능한 글"
+      : tradePost.status === "matching"
+        ? "후보와 조율 중"
+        : "거래가 정리된 글";
 
   return (
     <Card className="overflow-hidden border-white/80 bg-white/94 transition-transform hover:-translate-y-0.5">
@@ -35,7 +47,17 @@ export function TradePostCard({
               createdAt={tradePost.createdAt}
               visibilityLevel={tradePost.visibilityLevel}
             />
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Badge variant={statusVariant}>
+                {tradePost.status === "closed" ? (
+                  <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                ) : tradePost.status === "matching" ? (
+                  <Clock3 className="mr-1 h-3.5 w-3.5" />
+                ) : (
+                  <ArrowRightLeft className="mr-1 h-3.5 w-3.5" />
+                )}
+                {TRADE_STATUS_LABELS[tradePost.status]}
+              </Badge>
               <Badge
                 variant={
                   match.strength === "high"
@@ -49,21 +71,18 @@ export function TradePostCard({
                 {match.label}
               </Badge>
               {match.count > 0 ? <Badge variant="outline">후보 {match.count}건</Badge> : null}
+              {tradePost.status === "open" ? (
+                <Badge variant="outline">
+                  <BellRing className="mr-1 h-3.5 w-3.5" />
+                  알림 대상
+                </Badge>
+              ) : null}
             </div>
             <CardTitle className="mt-3 text-[18px] leading-7">수강 교환 제안</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">{tradePost.semester}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tradePost.semester} · {statusCaption}
+            </p>
           </div>
-          <Badge
-            variant={
-              tradePost.status === "open"
-                ? "success"
-                : tradePost.status === "matching"
-                  ? "warning"
-                  : "outline"
-            }
-          >
-            {TRADE_STATUS_LABELS[tradePost.status]}
-          </Badge>
         </div>
         <div className="space-y-3 rounded-[24px] bg-secondary/80 p-4 text-sm">
           <div className="rounded-[18px] bg-white/80 px-3 py-3">

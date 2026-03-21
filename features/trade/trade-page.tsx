@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AlertTriangle, ArrowRightLeft } from "lucide-react";
+import { AlertTriangle, ArrowRightLeft, BellRing, CheckCircle2, Clock3 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
@@ -291,7 +291,10 @@ export function TradePage({
       <div className="grid grid-cols-3 gap-3">
         <Card className="border-none bg-secondary/60 shadow-none">
           <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">모집중</p>
+            <div className="flex items-center gap-2 text-emerald-700">
+              <ArrowRightLeft className="h-4 w-4" />
+              <p className="text-xs font-semibold">교환 가능</p>
+            </div>
             <p className="mt-1 text-lg font-semibold">
               {items.filter((item) => item.status === "open").length}개
             </p>
@@ -299,7 +302,10 @@ export function TradePage({
         </Card>
         <Card className="border-none bg-secondary/60 shadow-none">
           <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">매칭중</p>
+            <div className="flex items-center gap-2 text-amber-700">
+              <Clock3 className="h-4 w-4" />
+              <p className="text-xs font-semibold">매칭 중</p>
+            </div>
             <p className="mt-1 text-lg font-semibold">
               {items.filter((item) => item.status === "matching").length}건
             </p>
@@ -307,13 +313,30 @@ export function TradePage({
         </Card>
         <Card className="border-none bg-secondary/60 shadow-none">
           <CardContent className="py-4">
-            <p className="text-xs text-muted-foreground">후보 있음</p>
+            <div className="flex items-center gap-2 text-slate-700">
+              <CheckCircle2 className="h-4 w-4" />
+              <p className="text-xs font-semibold">완료</p>
+            </div>
             <p className="mt-1 text-lg font-semibold">
-              {items.filter((item) => item.match.count > 0).length}건
+              {items.filter((item) => item.status === "closed").length}건
             </p>
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-white/80 bg-[linear-gradient(135deg,rgba(99,102,241,0.12),rgba(255,255,255,0.94))] shadow-none">
+        <CardContent className="flex items-start gap-3 py-5">
+          <div className="rounded-[18px] bg-primary/10 p-3 text-primary">
+            <BellRing className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <p className="font-semibold">원하는 강의가 올라오면 알림으로 바로 연결됩니다</p>
+            <p className="text-sm text-muted-foreground">
+              내가 찾는 강의를 가진 새 글이 올라오면 알림 탭에서 바로 확인할 수 있습니다.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-amber-200 bg-amber-50/90">
         <CardContent className="space-y-3 py-5">
@@ -487,6 +510,26 @@ export function TradePage({
                 }
               />
             </div>
+            <div className="space-y-2">
+              <Label>상태</Label>
+              <Select
+                value={form.watch("status")}
+                onValueChange={(value) =>
+                  form.setValue("status", value as TradeFormValues["status"], {
+                    shouldValidate: true,
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="상태 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">교환 가능</SelectItem>
+                  <SelectItem value="matching">매칭 중</SelectItem>
+                  <SelectItem value="closed">완료</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {form.formState.errors.root?.message ? (
               <p className="text-sm text-rose-600">{form.formState.errors.root.message}</p>
             ) : null}
@@ -588,7 +631,13 @@ export function TradePage({
                           <p className="font-medium">
                             {getLectureById(candidate.haveLectureId)?.courseName}
                           </p>
-                          <Badge variant="outline">{candidate.status === "matching" ? "매칭중" : "모집중"}</Badge>
+                          <Badge variant="outline">
+                            {candidate.status === "matching"
+                              ? "매칭 중"
+                              : candidate.status === "closed"
+                                ? "완료"
+                                : "교환 가능"}
+                          </Badge>
                         </div>
                         <p className="text-muted-foreground">{candidate.note}</p>
                       </CardContent>

@@ -363,6 +363,106 @@ async function guardTradePostSubmission(
   }
 }
 
+async function createTradeMatchNotifications(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  input: {
+    tradePostId: string;
+    authorId: string;
+    schoolId: string;
+    haveLectureId: string;
+    wantLectureId: string;
+  },
+) {
+  const [{ data: lectureRows, error: lectureError }, { data: candidateRows, error: candidateError }] =
+    await Promise.all([
+      supabase
+        .from("lectures")
+        .select("id, course_name")
+        .in("id", [input.haveLectureId, input.wantLectureId]),
+      supabase
+        .from("trade_posts")
+        .select("id, author_id, have_lecture_id, want_lecture_id, status")
+        .eq("school_id", input.schoolId)
+        .neq("author_id", input.authorId),
+    ]);
+
+  if (lectureError) {
+    throw new Error(lectureError.message);
+  }
+
+  if (candidateError) {
+    throw new Error(candidateError.message);
+  }
+
+  const lectureNameMap = new Map(
+    (lectureRows ?? []).map((lecture) => [lecture.id, lecture.course_name]),
+  );
+  const haveLectureName =
+    lectureNameMap.get(input.haveLectureId) ?? "원하는 강의";
+  const wantLectureName =
+    lectureNameMap.get(input.wantLectureId) ?? "보유 강의";
+
+  const notificationsByUser = new Map<
+    string,
+    {
+      title: string;
+      body: string;
+      metadata: Record<string, unknown>;
+    }
+  >();
+
+  for (const candidate of candidateRows ?? []) {
+    if (candidate.status === "closed") {
+      continue;
+    }
+
+    if (candidate.want_lecture_id !== input.haveLectureId) {
+      continue;
+    }
+
+    const isDirectMatch = candidate.have_lecture_id === input.wantLectureId;
+    const notificationTitle = isDirectMatch
+      ? "교환 가능한 강의가 올라왔어요"
+      : "원하는 강의가 새로 올라왔어요";
+    const notificationBody = isDirectMatch
+      ? `${haveLectureName} 글이 올라와 바로 교환을 검토할 수 있어요.`
+      : `${haveLectureName} 글이 올라왔습니다. ${wantLectureName} 조합으로 이어질 수 있어요.`;
+
+    notificationsByUser.set(candidate.author_id, {
+      title: notificationTitle,
+      body: notificationBody,
+      metadata: {
+        createdTradePostId: input.tradePostId,
+        interestedTradePostId: candidate.id,
+        directMatch: isDirectMatch,
+      },
+    });
+  }
+
+  if (notificationsByUser.size === 0) {
+    return;
+  }
+
+  const payload = [...notificationsByUser.entries()].map(([userId, item]) => ({
+    user_id: userId,
+    type: "trade_match" as const,
+    title: item.title,
+    body: item.body,
+    href: "/trade",
+    target_type: "trade",
+    target_id: input.tradePostId,
+    metadata: item.metadata,
+  }));
+
+  const { error: notificationError } = await supabase
+    .from("notifications")
+    .insert(payload);
+
+  if (notificationError) {
+    throw new Error(notificationError.message);
+  }
+}
+
 async function guardReportSubmission(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   authUserId: string,
@@ -570,7 +670,15 @@ export async function createTradePost(input: z.input<typeof tradePostSchema>) {
     throw new Error(error.message);
   }
 
-  revalidateFeed(["/school", "/trade"]);
+  await createTradeMatchNotifications(supabase, {
+    tradePostId: data.id,
+    authorId: authUser.id,
+    schoolId,
+    haveLectureId: values.haveLectureId,
+    wantLectureId: values.wantLectureId,
+  });
+
+  revalidateFeed(["/school", "/trade", "/notifications"]);
   return data;
 }
 

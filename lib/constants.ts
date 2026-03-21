@@ -19,9 +19,9 @@ export const USER_TYPE_LABELS: Record<UserType, string> = {
 };
 
 export const TRADE_STATUS_LABELS: Record<TradeStatus, string> = {
-  open: "모집중",
-  matching: "매칭중",
-  closed: "종료",
+  open: "교환 가능",
+  matching: "매칭 중",
+  closed: "완료",
 };
 
 export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
