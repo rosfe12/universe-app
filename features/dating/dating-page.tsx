@@ -400,7 +400,7 @@ export function DatingPage({
                     {post.subcategory === "meeting" ? "미팅" : "연애"}
                   </Badge>
                 </div>
-                <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                   {post.content}
                 </p>
               </div>

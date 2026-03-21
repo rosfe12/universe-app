@@ -385,7 +385,7 @@ export function ProfilePage({
                     {post.visibilityLevel ? <Badge variant="secondary">{post.visibilityLevel}</Badge> : null}
                   </div>
                   <p className="font-semibold">{post.title}</p>
-                  <p className="text-sm text-muted-foreground">{post.content}</p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
                 </CardContent>
               </Card>
             ))}

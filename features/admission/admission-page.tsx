@@ -274,7 +274,7 @@ export function AdmissionPage({
                   <div className="space-y-3">
                     <div>
                       <CardTitle className="leading-snug">{question.title}</CardTitle>
-                      <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
+                      <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                         {question.content}
                       </p>
                     </div>

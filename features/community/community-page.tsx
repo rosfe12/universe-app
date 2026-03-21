@@ -139,7 +139,7 @@ function SharedFeedCard({
             ) : null}
           </div>
           <CardTitle className="text-[19px] leading-7 tracking-tight">{post.title}</CardTitle>
-          <CardDescription className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+          <CardDescription className="line-clamp-2 text-sm leading-6 text-muted-foreground">
             {post.content}
           </CardDescription>
         </div>
