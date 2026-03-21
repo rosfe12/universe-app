@@ -13,6 +13,7 @@ import {
   getPublicIdentityLabel,
   getSchoolShortName,
   getStudentVerificationBadge,
+  getUserLevel,
   getTrustTier,
 } from "@/lib/user-identity";
 import {
@@ -537,6 +538,7 @@ export function getHomeSections() {
 
 export function getDashboardStats(viewer: User = currentUser) {
   const verificationBadge = getStudentVerificationBadge(viewer);
+  const userLevel = getUserLevel(viewer.trustScore);
 
   return [
     {
@@ -544,7 +546,7 @@ export function getDashboardStats(viewer: User = currentUser) {
       value: verificationBadge.shortLabel,
       tone: verificationBadge.tone,
     },
-    { label: "신뢰 점수", value: `${viewer.trustScore}점`, tone: "neutral" },
+    { label: "현재 등급", value: `${userLevel.icon} ${userLevel.label}`, tone: "neutral" },
     {
       label: "읽지 않은 알림",
       value: `${getNotifications(viewer.id).filter((item) => !item.isRead).length}건`,

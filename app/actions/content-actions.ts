@@ -6,6 +6,7 @@ import { z } from "zod";
 import { findBlockedKeyword } from "@/lib/moderation";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { isReliabilityRestricted } from "@/lib/user-identity";
 
 const visibilitySchema = z.enum([
   "anonymous",
@@ -130,6 +131,7 @@ type CurrentProfile = {
     | null;
   school_email: string | null;
   is_restricted: boolean;
+  trust_score: number;
   default_visibility_level: "anonymous" | "school" | "schoolDepartment" | "profile";
 };
 
@@ -164,7 +166,7 @@ async function requireCurrentUser() {
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select(
-      "id, user_type, school_id, department, grade, verified, student_verification_status, school_email, is_restricted, default_visibility_level",
+      "id, user_type, school_id, department, grade, verified, student_verification_status, school_email, is_restricted, trust_score, default_visibility_level",
     )
     .eq("id", user.id)
     .single();
@@ -182,6 +184,40 @@ async function requireCurrentUser() {
     authUser: user,
     profile: profile as CurrentProfile,
   };
+}
+
+function ensureWritableTrustLevel(profile: CurrentProfile) {
+  if (isReliabilityRestricted(profile.trust_score)) {
+    throw new Error("현재 계정은 활동 제한 상태라 글쓰기와 댓글 작성이 잠시 제한됩니다.");
+  }
+}
+
+async function awardTrustScore(userId: string, delta: number) {
+  if (!delta) return;
+
+  const admin = createAdminSupabaseClient();
+  const { data: profileRow, error: readError } = await admin
+    .from("users")
+    .select("trust_score")
+    .eq("id", userId)
+    .single();
+
+  if (readError) {
+    throw new Error(readError.message);
+  }
+
+  const nextTrustScore = Math.round(
+    (typeof profileRow?.trust_score === "number" ? profileRow.trust_score : 0) + delta,
+  );
+
+  const { error: updateError } = await admin
+    .from("users")
+    .update({ trust_score: nextTrustScore })
+    .eq("id", userId);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
 }
 
 function requireVerifiedStudentProfile(
@@ -589,6 +625,7 @@ async function guardReportSubmission(
 export async function createPost(input: z.input<typeof postSchema>) {
   const values = postSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
+  ensureWritableTrustLevel(profile);
   if (profile.user_type === "highschool" && values.category !== "admission") {
     throw new Error("입시생은 입시 게시판만 작성할 수 있습니다.");
   }
@@ -628,6 +665,8 @@ export async function createPost(input: z.input<typeof postSchema>) {
     throw new Error(error.message);
   }
 
+  await awardTrustScore(authUser.id, 5);
+
   revalidateFeed(["/home", "/admission", "/community", "/school", "/career", "/notifications", "/profile"]);
   return data;
 }
@@ -635,6 +674,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
 export async function createComment(input: z.input<typeof commentSchema>) {
   const values = commentSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
+  ensureWritableTrustLevel(profile);
   const { data: post, error: postError } = await supabase
     .from("posts")
     .select("id, author_id, category, subcategory, metadata")
@@ -686,6 +726,8 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   if (error) {
     throw new Error(error.message);
   }
+
+  await awardTrustScore(authUser.id, 2);
 
   try {
     const notifications: Array<{
@@ -780,6 +822,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 export async function createLectureReview(input: z.input<typeof lectureReviewSchema>) {
   const values = lectureReviewSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
+  ensureWritableTrustLevel(profile);
   requireVerifiedStudentProfile(profile, "강의평 작성");
   await guardLectureReviewSubmission(supabase, authUser.id, values);
 
@@ -808,6 +851,8 @@ export async function createLectureReview(input: z.input<typeof lectureReviewSch
     throw new Error(error.message);
   }
 
+  await awardTrustScore(authUser.id, 10);
+
   revalidateFeed(["/lectures", `/lectures/${values.lectureId}`, "/school"]);
   return data;
 }
@@ -815,6 +860,7 @@ export async function createLectureReview(input: z.input<typeof lectureReviewSch
 export async function createTradePost(input: z.input<typeof tradePostSchema>) {
   const values = tradePostSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
+  ensureWritableTrustLevel(profile);
   requireVerifiedStudentProfile(profile, "수강신청 교환");
   await guardTradePostSubmission(supabase, authUser.id, values);
 
@@ -844,6 +890,8 @@ export async function createTradePost(input: z.input<typeof tradePostSchema>) {
   if (error) {
     throw new Error(error.message);
   }
+
+  await awardTrustScore(authUser.id, 5);
 
   await createTradeMatchNotifications(supabase, {
     tradePostId: data.id,
@@ -897,6 +945,7 @@ export async function createDatingProfile(input: z.input<typeof datingProfileSch
 export async function createDatingPost(input: z.input<typeof datingPostSchema>) {
   const values = datingPostSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
+  ensureWritableTrustLevel(profile);
   requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
 
   if (!profile.school_id) {
@@ -961,11 +1010,71 @@ export async function createDatingPost(input: z.input<typeof datingPostSchema>) 
     throw new Error(profileError?.message ?? "프로필 저장에 실패했습니다.");
   }
 
+  await awardTrustScore(authUser.id, 5);
+
   revalidateFeed(["/home", "/community", "/dating"]);
   return {
     post,
     datingProfile,
   };
+}
+
+export async function acceptAdmissionAnswer(postId: string, commentId: string) {
+  const { supabase, authUser } = await requireCurrentUser();
+  const admin = createAdminSupabaseClient();
+
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .select("id, author_id, category")
+    .eq("id", postId)
+    .single();
+
+  if (postError || !post) {
+    throw new Error("질문을 찾을 수 없습니다.");
+  }
+
+  if (String(post.author_id) !== authUser.id) {
+    throw new Error("질문 작성자만 답변을 채택할 수 있습니다.");
+  }
+
+  if (post.category !== "admission") {
+    throw new Error("입시 질문 답변만 채택할 수 있습니다.");
+  }
+
+  const { data: targetComment, error: commentError } = await admin
+    .from("comments")
+    .select("id, author_id, accepted")
+    .eq("id", commentId)
+    .eq("post_id", postId)
+    .single();
+
+  if (commentError || !targetComment) {
+    throw new Error("채택할 답변을 찾을 수 없습니다.");
+  }
+
+  const { error: resetError } = await admin
+    .from("comments")
+    .update({ accepted: false })
+    .eq("post_id", postId);
+
+  if (resetError) {
+    throw new Error(resetError.message);
+  }
+
+  const { error: acceptError } = await admin
+    .from("comments")
+    .update({ accepted: true })
+    .eq("id", commentId);
+
+  if (acceptError) {
+    throw new Error(acceptError.message);
+  }
+
+  if (!targetComment.accepted) {
+    await awardTrustScore(String(targetComment.author_id), 5);
+  }
+
+  revalidateFeed(["/admission", `/admission/${postId}`, "/notifications"]);
 }
 
 export async function reportContent(input: z.input<typeof reportContentSchema>) {

@@ -131,7 +131,7 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     schoolEmailVerifiedAt: row.school_email_verified_at
       ? String(row.school_email_verified_at)
       : undefined,
-    trustScore: typeof row.trust_score === "number" ? row.trust_score : 50,
+    trustScore: typeof row.trust_score === "number" ? row.trust_score : 0,
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,
     isRestricted: Boolean(row.is_restricted),
@@ -379,7 +379,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
     grade: undefined,
     verified: false,
     studentVerificationStatus: "unverified",
-    trustScore: 50,
+    trustScore: 0,
     reportCount: 0,
     warningCount: 0,
     isRestricted: false,

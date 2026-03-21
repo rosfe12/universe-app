@@ -193,6 +193,11 @@ export function OnboardingPage() {
     setPending(true);
     const selectedSchool = schools.find((school) => school.id === values.schoolId) ?? null;
     const normalizedSchoolEmail = normalizeEmail(values.schoolEmail);
+    const keepsVerifiedStudentState =
+      values.userType === "college" &&
+      currentUser.studentVerificationStatus === "verified" &&
+      currentUser.schoolId === values.schoolId &&
+      normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmail;
 
     if (
       values.userType === "college" &&
@@ -218,14 +223,18 @@ export function OnboardingPage() {
       grade: values.grade ? Number(values.grade) : undefined,
       schoolEmail:
         values.userType === "college" ? normalizedSchoolEmail : undefined,
-      schoolEmailVerifiedAt: undefined,
+      schoolEmailVerifiedAt: keepsVerifiedStudentState
+        ? currentUser.schoolEmailVerifiedAt
+        : undefined,
       studentVerificationStatus:
-        values.userType === "college"
+        keepsVerifiedStudentState
+          ? "verified"
+          : values.userType === "college"
           ? normalizedSchoolEmail
             ? "pending"
             : "unverified"
           : "none",
-      verified: false,
+      verified: keepsVerifiedStudentState,
       bio: values.bio?.trim() || undefined,
       defaultVisibilityLevel: getDefaultVisibilityLevel({
         userType: values.userType,
@@ -239,7 +248,7 @@ export function OnboardingPage() {
       return;
     }
 
-    if (values.userType === "college") {
+    if (values.userType === "college" && !keepsVerifiedStudentState) {
       const verificationResult = await requestStudentVerificationEmail({
         schoolId: values.schoolId,
         schoolEmail: normalizedSchoolEmail,

@@ -37,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { createLectureReview } from "@/app/actions/content-actions";
 import { PostAuthorRow } from "@/features/common/post-author-row";
+import { TrustScoreBadge } from "@/components/shared/trust-score-badge";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { isAdPlacementEnabled } from "@/lib/ads";
 import {
@@ -67,7 +68,7 @@ import {
   getAuthFlowHref,
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel } from "@/lib/user-identity";
+import { getDefaultVisibilityLevel, getUserLevel } from "@/lib/user-identity";
 import { average } from "@/lib/utils";
 import type { AppRuntimeSnapshot, LectureReview, ReportReason } from "@/types";
 
@@ -733,8 +734,8 @@ function ReviewCard({
   onReport: (input: { reason?: ReportReason; memo?: string }) => Promise<void> | void;
   onBlock: () => Promise<void> | void;
 }) {
-  const trustScore = getTrustScore(review.reviewerId);
-  const isTrustedReviewer = trustScore >= 80;
+  const userLevel = getUserLevel(getTrustScore(review.reviewerId));
+  const isTrustedReviewer = userLevel.level >= 5;
   const isLatestSemester = review.semester === latestSemester;
 
   return (
@@ -792,7 +793,7 @@ function ReviewCard({
               도움 {review.helpfulCount}
             </Badge>
             {isTrustedReviewer ? (
-              <Badge variant="outline">신뢰도 {trustScore}</Badge>
+              <TrustScoreBadge score={getTrustScore(review.reviewerId)} interactive={false} />
             ) : null}
           </div>
         </div>

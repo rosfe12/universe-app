@@ -58,6 +58,7 @@ import {
   getAuthFlowHref,
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
+import { canWriteAdmissionQuestion } from "@/lib/permissions";
 import { deleteImageByPublicUrl } from "@/lib/supabase/storage";
 import { getDefaultVisibilityLevel } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot, VisibilityLevel } from "@/types";
@@ -99,7 +100,8 @@ export function AdmissionPage({
   const [selectedSchool, setSelectedSchool] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("");
   const [isSubmitting, startSubmitTransition] = useTransition();
-  const canCompose = isAuthenticated && hasCompletedOnboarding(currentUser);
+  const canCompose =
+    isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion(currentUser);
   const currentSchool = getCurrentSchool();
   const questions = useMemo(
     () => getAdmissionQuestions(),

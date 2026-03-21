@@ -15,11 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { createComment } from "@/app/actions/content-actions";
+import { acceptAdmissionAnswer, createComment } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { validateCommentSubmission } from "@/lib/moderation";
 import {
-  acceptCommentRecord,
   createBlockRecord,
   createReportRecord,
 } from "@/lib/supabase/app-data";
@@ -31,8 +30,8 @@ import {
 } from "@/lib/runtime-mutations";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel } from "@/lib/user-identity";
-import { getCommentsByPostId, isRepeatedlyReportedUser } from "@/lib/mock-queries";
+import { getDefaultVisibilityLevel, isLegendarySenior, isReliabilityRestricted } from "@/lib/user-identity";
+import { getCommentsByPostId, getPublicIdentitySummary, isRepeatedlyReportedUser } from "@/lib/mock-queries";
 import { formatRelativeLabel } from "@/lib/utils";
 import type { VisibilityLevel } from "@/types";
 
@@ -69,13 +68,33 @@ export function CommentThread({
   } = useAppRuntime();
   const currentUser = runtimeUser;
   const pathname = usePathname();
+  const isReliabilityBlocked = isAuthenticated && isReliabilityRestricted(currentUser.trustScore);
   const threadComments = useMemo(
     () => getCommentsByPostId(postId),
     [blocks, comments, postId, reports],
   );
+  const sortedComments = useMemo(
+    () =>
+      [...threadComments].sort((a, b) => {
+        if (!allowAccept) {
+          return +new Date(b.createdAt) - +new Date(a.createdAt);
+        }
+
+        const aScore =
+          (a.accepted ? 20 : 0) +
+          (isLegendarySenior(getAuthorTrustScore(a.authorId)) ? 6 : 0);
+        const bScore =
+          (b.accepted ? 20 : 0) +
+          (isLegendarySenior(getAuthorTrustScore(b.authorId)) ? 6 : 0);
+
+        return bScore - aScore || +new Date(b.createdAt) - +new Date(a.createdAt);
+      }),
+    [allowAccept, threadComments],
+  );
   const [isSubmitting, startSubmitTransition] = useTransition();
   const canComment =
-    canCommentOverride ?? (isAuthenticated && hasCompletedOnboarding(runtimeUser));
+    canCommentOverride ??
+    (isAuthenticated && hasCompletedOnboarding(runtimeUser) && !isReliabilityBlocked);
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
@@ -149,10 +168,10 @@ export function CommentThread({
                 <h3 className="font-semibold">댓글 {threadComments.length}</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                {allowAccept ? "답변은 채택 처리할 수 있습니다." : "최신 댓글부터 바로 이어서 볼 수 있습니다."}
+                {allowAccept ? "전설의 선배님 답변은 조금 더 먼저 보여줍니다." : "최신 댓글부터 바로 이어서 볼 수 있습니다."}
               </p>
             </div>
-            <Badge variant="secondary">최신순</Badge>
+            <Badge variant="secondary">{allowAccept ? "신뢰도 반영" : "최신순"}</Badge>
           </div>
           {canComment ? (
             <form className="space-y-3" onSubmit={onSubmit}>
@@ -184,6 +203,18 @@ export function CommentThread({
                 </Button>
               </div>
             </form>
+          ) : isReliabilityBlocked ? (
+            <div className="rounded-[24px] border border-rose-200 bg-rose-50/80 px-4 py-5">
+              <div className="flex items-center gap-2">
+                <Badge variant="danger">🚫 활동 제한</Badge>
+              </div>
+              <p className="mt-3 text-sm font-semibold text-rose-700">
+                현재 계정은 글쓰기와 댓글 작성이 잠시 제한됩니다
+              </p>
+              <p className="mt-1 text-sm text-rose-600">
+                신고 누적이나 제재 이력이 정리되면 다시 참여할 수 있습니다.
+              </p>
+            </div>
           ) : (
             <AccountRequiredCard
               isAuthenticated={isAuthenticated}
@@ -225,7 +256,7 @@ export function CommentThread({
         </Card>
       ) : null}
 
-      {threadComments.map((comment) => (
+      {sortedComments.map((comment) => (
         <Card key={comment.id} className="overflow-hidden border-white/80 bg-white/92">
           <CardContent className="space-y-3 py-5">
             <PostAuthorRow
@@ -236,6 +267,11 @@ export function CommentThread({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 {comment.accepted ? <Badge variant="success">채택됨</Badge> : null}
+                {allowAccept && isLegendarySenior(getAuthorTrustScore(comment.authorId)) ? (
+                  <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700">
+                    🦴 전설의 선배님
+                  </Badge>
+                ) : null}
               </div>
               <div className="rounded-[20px] bg-secondary/55 px-4 py-3">
                 <p className="text-sm leading-6">{comment.content}</p>
@@ -251,7 +287,7 @@ export function CommentThread({
                     type="button"
                     onClick={async () => {
                       if (source === "supabase" && isAuthenticated) {
-                        await acceptCommentRecord(postId, comment.id);
+                        await acceptAdmissionAnswer(postId, comment.id);
                         await refresh();
                         return;
                       }
@@ -322,6 +358,10 @@ export function CommentThread({
       ))}
     </div>
   );
+}
+
+function getAuthorTrustScore(authorId: string) {
+  return getPublicIdentitySummary(authorId).trustScore;
 }
 
 function LoadingStateBlock() {

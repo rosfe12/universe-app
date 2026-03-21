@@ -43,7 +43,7 @@ import {
   signOutFromSupabase,
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
-import { getStudentVerificationBadge } from "@/lib/user-identity";
+import { getStudentVerificationBadge, getUserLevelProgress } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot } from "@/types";
 
 export function ProfilePage({
@@ -74,6 +74,7 @@ export function ProfilePage({
     getUserVisibilityLevel(currentUser.id, currentUser.defaultVisibilityLevel),
   );
   const verificationBadge = getStudentVerificationBadge(currentUser);
+  const levelProgress = getUserLevelProgress(currentUser.trustScore);
   const schoolVerified = searchParams.get("schoolVerified") === "1";
   const verificationPending = searchParams.get("verification") === "pending";
   const [settings, setSettings] = useState({
@@ -141,9 +142,44 @@ export function ProfilePage({
           </div>
         </CardHeader>
         <CardContent className="grid grid-cols-3 gap-3">
-          <StatChip label="신뢰 점수" value={`${currentUser.trustScore}점`} tone="primary" />
+          <StatChip label="현재 등급" value={levelProgress.currentLevel.label} tone="primary" />
           <StatChip label="학교 인증" value={verificationBadge.shortLabel} tone={verificationBadge.tone} />
           <StatChip label="읽지 않은 알림" value={`${unreadNotifications.length}건`} tone="warning" />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-4 py-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">캠퍼스 진화론</p>
+              <TrustScoreBadge score={currentUser.trustScore} className="text-sm" />
+              <p className="text-sm leading-6 text-muted-foreground">
+                {levelProgress.currentLevel.description}
+              </p>
+            </div>
+            <div className="rounded-[22px] bg-secondary/65 px-4 py-3 text-right">
+              <p className="text-xs text-muted-foreground">다음 단계</p>
+              <p className="mt-1 text-sm font-semibold">
+                {levelProgress.nextLevel
+                  ? `${levelProgress.nextLevel.icon} ${levelProgress.nextLevel.label}`
+                  : "최고 등급"}
+              </p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-3 overflow-hidden rounded-full bg-secondary/70">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(135deg,#4f46e5_0%,#8b5cf6_100%)] transition-all"
+                style={{ width: `${levelProgress.progressPercent}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {levelProgress.nextLevel
+                ? `${levelProgress.nextLevel.label}까지 ${levelProgress.remaining}점 남음`
+                : "현재 최고 등급입니다."}
+            </p>
+          </div>
         </CardContent>
       </Card>
 

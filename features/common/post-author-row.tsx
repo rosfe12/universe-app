@@ -42,7 +42,7 @@ export function PostAuthorRow({
             <p className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
               {identity.label}
             </p>
-            <TrustScoreBadge score={identity.trustScore} />
+            <TrustScoreBadge score={identity.trustScore} interactive />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>{formatRelativeLabel(createdAt)}</span>

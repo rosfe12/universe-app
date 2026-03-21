@@ -144,7 +144,7 @@ export function SchoolPage({
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteFreshmanZone(currentUser);
   const freshmanCommentEnabled = freshmanComposeEnabled;
   const admissionWriteEnabled =
-    isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion();
+    isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion(currentUser);
   const freshmanDetailPost = useMemo(
     () => freshmanZonePosts.find((post) => post.id === detailPostId) ?? null,
     [detailPostId, freshmanZonePosts],

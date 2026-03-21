@@ -10,7 +10,7 @@ import { isVerifiedStudent } from "@/lib/user-identity";
 export const DAILY_TRUST_CAP = 10;
 export const POST_DAILY_TRUST_CAP = 6;
 export const COMMENT_DAILY_TRUST_CAP = 5;
-export const LECTURE_REVIEW_DAILY_TRUST_CAP = 6;
+export const LECTURE_REVIEW_DAILY_TRUST_CAP = 10;
 export const REPORT_AUTO_HIDE_THRESHOLD = 3;
 export const REPEATED_REPORT_THRESHOLD = 2;
 export const LOW_TRUST_THRESHOLD = 40;
@@ -84,9 +84,9 @@ function getPositiveTrustEarnedToday(
   ).length;
 
   return (
-    Math.min(todayPosts * 2 + todayTradePosts * 2, POST_DAILY_TRUST_CAP) +
-    Math.min(todayComments, COMMENT_DAILY_TRUST_CAP) +
-    Math.min(todayLectureReviews * 3, LECTURE_REVIEW_DAILY_TRUST_CAP) +
+    Math.min(todayPosts * 5 + todayTradePosts * 5, POST_DAILY_TRUST_CAP) +
+    Math.min(todayComments * 2, COMMENT_DAILY_TRUST_CAP) +
+    Math.min(todayLectureReviews * 10, LECTURE_REVIEW_DAILY_TRUST_CAP) +
     todayAccepted * 5
   );
 }
@@ -126,10 +126,10 @@ function getActionCap(action: PositiveTrustAction) {
 }
 
 function getActionBaseScore(action: PositiveTrustAction) {
-  if (action === "post") return 2;
-  if (action === "comment") return 1;
+  if (action === "post") return 5;
+  if (action === "comment") return 2;
   if (action === "acceptedAnswer") return 5;
-  return 3;
+  return 10;
 }
 
 function getActionEarnedToday(
@@ -146,7 +146,7 @@ function getActionEarnedToday(
         (tradePost) => dayKey(tradePost.createdAt) === dayKey(createdAt),
       ).length;
 
-    return Math.min(count * 2, POST_DAILY_TRUST_CAP);
+    return Math.min(count * 5, POST_DAILY_TRUST_CAP);
   }
 
   if (action === "comment") {
@@ -154,7 +154,7 @@ function getActionEarnedToday(
       (comment) => dayKey(comment.createdAt) === dayKey(createdAt),
     ).length;
 
-    return Math.min(count, COMMENT_DAILY_TRUST_CAP);
+    return Math.min(count * 2, COMMENT_DAILY_TRUST_CAP);
   }
 
   if (action === "acceptedAnswer") {
@@ -167,7 +167,7 @@ function getActionEarnedToday(
     (review) => dayKey(review.createdAt) === dayKey(createdAt),
   ).length;
 
-  return Math.min(count * 3, LECTURE_REVIEW_DAILY_TRUST_CAP);
+  return Math.min(count * 10, LECTURE_REVIEW_DAILY_TRUST_CAP);
 }
 
 export function getPositiveTrustGain(

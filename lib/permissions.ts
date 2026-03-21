@@ -1,20 +1,24 @@
 import type { User } from "@/types";
-import { isVerifiedStudent } from "@/lib/user-identity";
+import { isReliabilityRestricted, isVerifiedStudent } from "@/lib/user-identity";
 
 function isSignedInUser(user: User) {
   return user.id !== "guest-user";
 }
 
-export function canWriteAdmissionQuestion() {
-  return true;
+function canParticipate(user: User) {
+  return isSignedInUser(user) && !isReliabilityRestricted(user.trustScore);
+}
+
+export function canWriteAdmissionQuestion(user: User) {
+  return canParticipate(user);
 }
 
 export function canWriteAdmissionAnswer(user: User) {
-  return isSignedInUser(user);
+  return canParticipate(user);
 }
 
 export function canWriteLectureReview(user: User) {
-  return isVerifiedStudent(user);
+  return canParticipate(user) && isVerifiedStudent(user);
 }
 
 export function canAccessSchoolFeatures(user: User) {
@@ -22,21 +26,21 @@ export function canAccessSchoolFeatures(user: User) {
 }
 
 export function canAccessTrade(user: User) {
-  return isVerifiedStudent(user);
+  return canParticipate(user) && isVerifiedStudent(user);
 }
 
 export function canAccessDating(user: User) {
-  return isVerifiedStudent(user);
+  return canParticipate(user) && isVerifiedStudent(user);
 }
 
 export function canWriteCommunity(user: User) {
-  return isSignedInUser(user) && user.userType === "college";
+  return canParticipate(user) && user.userType === "college";
 }
 
 export function canWriteFreshmanZone(user: User) {
-  return isSignedInUser(user) && user.userType === "freshman" && Boolean(user.schoolId);
+  return canParticipate(user) && user.userType === "freshman" && Boolean(user.schoolId);
 }
 
 export function canWriteCareer(user: User) {
-  return isSignedInUser(user) && (user.userType === "college" || user.userType === "freshman");
+  return canParticipate(user) && (user.userType === "college" || user.userType === "freshman");
 }
