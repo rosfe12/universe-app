@@ -277,6 +277,7 @@ export function CareerPage({
           <div key={post.id} className="space-y-3">
             <FeedPostCard
               post={post}
+              onOpen={() => setDetailPostId(post.id)}
               showActions
               onReport={async ({ reason, memo }) => {
                 if (source === "supabase" && isAuthenticated) {
@@ -327,7 +328,7 @@ export function CareerPage({
                 <p className="mt-1 text-xs text-muted-foreground">댓글 {post.commentCount}개</p>
               </div>
               <Button type="button" size="sm" onClick={() => setDetailPostId(post.id)}>
-                댓글 보기
+                상세 보기
               </Button>
             </div>
           </div>

@@ -393,7 +393,11 @@ export function DatingPage({
                 createdAt={post.createdAt}
                 visibilityLevel={post.visibilityLevel ?? "profile"}
               />
-              <div>
+              <button
+                type="button"
+                onClick={() => setDetailPost(post)}
+                className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="text-[18px] leading-7">{post.title}</CardTitle>
                   <Badge variant={post.subcategory === "meeting" ? "warning" : "danger"}>
@@ -403,11 +407,15 @@ export function DatingPage({
                 <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                   {post.content}
                 </p>
-              </div>
+              </button>
             </CardHeader>
             <CardContent className="space-y-4 pt-0">
               {post.imageUrl ? (
-                <div className="relative overflow-hidden rounded-[22px]">
+                <button
+                  type="button"
+                  onClick={() => setDetailPost(post)}
+                  className="block w-full overflow-hidden rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                >
                   <Image
                     src={post.imageUrl}
                     alt={post.title}
@@ -415,7 +423,7 @@ export function DatingPage({
                     height={900}
                     className="h-48 w-full object-cover"
                   />
-                </div>
+                </button>
               ) : null}
               <div className="flex flex-wrap gap-2">
                 {post.tags?.map((tag) => (
@@ -431,7 +439,7 @@ export function DatingPage({
                 </div>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="ghost" onClick={() => setDetailPost(post)}>
-                  보기
+                  상세 보기
                   </Button>
                   <ReportBlockActions
                     targetType="post"

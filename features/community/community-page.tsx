@@ -163,7 +163,11 @@ function SharedFeedCard({
           visibilityLevel={post.visibilityLevel}
           trailing={<Badge variant={getCardVariant(post)}>{getCardLabel(post)}</Badge>}
         />
-        <div className="space-y-2">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="block w-full space-y-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+        >
           <div className="flex flex-wrap items-center gap-2">
             {post.subcategory === "hot" ? <Badge variant="danger">19+</Badge> : null}
             {post.subcategory === "hot" && hotScore ? (
@@ -174,11 +178,15 @@ function SharedFeedCard({
           <CardDescription className="line-clamp-2 text-sm leading-6 text-muted-foreground">
             {post.content}
           </CardDescription>
-        </div>
+        </button>
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
         {post.imageUrl ? (
-          <div className="relative overflow-hidden rounded-[22px] border border-white/70 bg-secondary/50">
+          <button
+            type="button"
+            onClick={onOpen}
+            className="block w-full overflow-hidden rounded-[22px] border border-white/70 bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+          >
             <Image
               src={post.imageUrl}
               alt={post.title}
@@ -186,7 +194,7 @@ function SharedFeedCard({
               height={900}
               className="h-52 w-full object-cover"
             />
-          </div>
+          </button>
         ) : null}
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1 rounded-full bg-secondary/70 px-3 py-1.5 font-medium">
@@ -201,17 +209,21 @@ function SharedFeedCard({
           </span>
         </div>
         {latestComment ? (
-          <div className="rounded-[18px] border border-white/75 bg-secondary/70 px-4 py-3 text-sm text-muted-foreground">
+          <button
+            type="button"
+            onClick={onOpen}
+            className="block w-full rounded-[18px] border border-white/75 bg-secondary/70 px-4 py-3 text-left text-sm text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+          >
             <span className="inline-flex items-center gap-1 font-medium text-foreground">
               <MessageCircle className="h-4 w-4" />
               최근 댓글
             </span>
             <p className="mt-1 line-clamp-2 leading-6">{latestComment}</p>
-          </div>
+          </button>
         ) : null}
         <div className="flex items-center justify-between gap-2">
           <Button type="button" size="sm" onClick={onOpen}>
-            댓글 보기
+            상세 보기
           </Button>
           <ReportBlockActions
             compact

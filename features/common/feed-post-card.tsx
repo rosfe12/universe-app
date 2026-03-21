@@ -40,6 +40,7 @@ function getPostBadge(post: Post) {
 export function FeedPostCard({
   post,
   href,
+  onOpen,
   showActions = false,
   onReport,
   onBlock,
@@ -47,6 +48,7 @@ export function FeedPostCard({
 }: {
   post: Post;
   href?: string;
+  onOpen?: () => void;
   showActions?: boolean;
   onReport?: (input: { reason?: ReportReason; memo?: string }) => Promise<void> | void;
   onBlock?: () => Promise<void> | void;
@@ -87,6 +89,20 @@ export function FeedPostCard({
     </div>
   );
 
+  const interactiveContent = href ? (
+    <Link href={href}>{content}</Link>
+  ) : onOpen ? (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+    >
+      {content}
+    </button>
+  ) : (
+    content
+  );
+
   return (
     <Card className="group overflow-hidden border-white/85 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbff_100%)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_28px_56px_-34px_rgba(79,70,229,0.24)]">
       <CardHeader className="space-y-4 pb-4">
@@ -95,7 +111,7 @@ export function FeedPostCard({
           createdAt={post.createdAt}
           visibilityLevel={post.visibilityLevel}
         />
-        {href ? <Link href={href}>{content}</Link> : content}
+        {interactiveContent}
       </CardHeader>
       <CardContent className="space-y-4 border-t border-border/70 pt-4">
         {post.tags?.length ? (

@@ -375,7 +375,7 @@ export function SchoolPage({
             <div className="space-y-3">
               {freshmanZonePosts.map((post) => (
                 <div key={post.id} className="space-y-3">
-                  <FeedPostCard post={post} />
+                  <FeedPostCard post={post} onOpen={() => setDetailPostId(post.id)} />
                   <Button
                     type="button"
                     variant="outline"
@@ -383,7 +383,7 @@ export function SchoolPage({
                     onClick={() => setDetailPostId(post.id)}
                   >
                     <MessageCircle className="h-4 w-4" />
-                    댓글 보기
+                    상세 보기
                   </Button>
                 </div>
               ))}
