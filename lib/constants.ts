@@ -14,7 +14,7 @@ import type {
 
 export const USER_TYPE_LABELS: Record<UserType, string> = {
   college: "대학생",
-  highSchool: "고등학생",
+  highSchool: "입시생",
   freshman: "예비입학생",
 };
 

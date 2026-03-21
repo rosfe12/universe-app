@@ -390,7 +390,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
   const values = postSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   if (profile.user_type === "highschool" && values.category !== "admission") {
-    throw new Error("고등학생은 입시 게시판만 작성할 수 있습니다.");
+    throw new Error("입시생은 입시 게시판만 작성할 수 있습니다.");
   }
   if (values.category === "dating") {
     requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
@@ -446,7 +446,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   }
 
   if (profile.user_type === "highschool" && post.category !== "admission") {
-    throw new Error("고등학생은 입시 게시판에만 댓글을 남길 수 있습니다.");
+    throw new Error("입시생은 입시 게시판에만 댓글을 남길 수 있습니다.");
   }
   if (post.category === "community") {
     const { data: postDetail, error: postDetailError } = await supabase

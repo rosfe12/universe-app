@@ -185,7 +185,7 @@ export function SchoolPage({
         <Card className="border-dashed border-white/80 bg-white/92">
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
             <div className="space-y-1">
-              <p className="font-semibold">고등학생 계정은 입시 게시판만 사용할 수 있습니다</p>
+              <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
               <p className="text-sm text-muted-foreground">
                 우리학교 탭은 대학생과 같은 학교 예비입학생 중심 기능만 제공합니다.
               </p>

@@ -320,7 +320,7 @@ export function OnboardingPage() {
                     <SelectContent>
                       <SelectItem value="college">대학생</SelectItem>
                       <SelectItem value="freshman">예비입학생</SelectItem>
-                      <SelectItem value="highSchool">고등학생</SelectItem>
+                      <SelectItem value="highSchool">입시생</SelectItem>
                     </SelectContent>
                   </Select>
                 )}

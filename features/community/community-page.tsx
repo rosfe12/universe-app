@@ -268,7 +268,7 @@ export function CommunityPage({
         <Card className="border-dashed border-white/80 bg-white/92">
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
             <div className="space-y-1">
-              <p className="font-semibold">고등학생 계정은 입시 게시판만 사용할 수 있습니다</p>
+              <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
               <p className="text-sm text-muted-foreground">
                 커뮤니티, 핫갤, 연애/미팅은 대학생 계정에서만 열립니다.
               </p>

@@ -565,7 +565,7 @@ export function getHomeCategoryStats() {
     {
       label: "입시 질문",
       value: `${getAdmissionQuestions().length}개`,
-      description: "고등학생 유입 허브",
+      description: "입시생 유입 허브",
       href: "/admission",
     },
     {
