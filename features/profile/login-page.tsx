@@ -38,13 +38,14 @@ export function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/home";
+  const adminOnlyFlow = nextPath.startsWith("/admin");
   const schoolVerified = searchParams.get("schoolVerified") === "1";
   const schoolVerificationExpired = searchParams.get("schoolVerificationExpired") === "1";
   const schoolVerificationFailed = searchParams.get("schoolVerificationFailed") === "1";
   const { currentUser, isAuthenticated, loading, refresh } = useAppRuntime();
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>(adminOnlyFlow ? "login" : "login");
   const googleSignInEnabled = isGoogleSignInEnabled();
   const showTestAccounts = shouldShowTestAccounts();
   const form = useForm<LoginFormValues>({
@@ -54,6 +55,12 @@ export function LoginPage() {
       password: showTestAccounts ? "univers123" : "",
     },
   });
+
+  useEffect(() => {
+    if (adminOnlyFlow && mode !== "login") {
+      setMode("login");
+    }
+  }, [adminOnlyFlow, mode]);
 
   useEffect(() => {
     if (loading || !isAuthenticated) return;
@@ -112,12 +119,18 @@ export function LoginPage() {
           <p className="text-xs font-semibold tracking-[0.2em]">유니버스</p>
           <div>
             <CardTitle className="text-2xl">
-              {mode === "login" ? "캠퍼스 커뮤니티에 로그인" : "유니버스 회원가입"}
+              {adminOnlyFlow
+                ? "관리자 로그인"
+                : mode === "login"
+                  ? "캠퍼스 커뮤니티에 로그인"
+                  : "유니버스 회원가입"}
             </CardTitle>
             <p className="mt-2 text-sm text-white/80">
-              {mode === "login"
-                ? "캠퍼스 라이프 플랫폼"
-                : "가입 후 온보딩에서 학교와 유저 유형을 설정합니다."}
+              {adminOnlyFlow
+                ? "관리자 권한이 있는 계정으로 로그인합니다."
+                : mode === "login"
+                  ? "캠퍼스 라이프 플랫폼"
+                  : "가입 후 온보딩에서 학교와 유저 유형을 설정합니다."}
             </p>
           </div>
         </CardHeader>
@@ -141,7 +154,7 @@ export function LoginPage() {
           {errorMessage ? (
             <ErrorState title="로그인 실패" description={errorMessage} />
           ) : null}
-          {googleSignInEnabled ? (
+          {googleSignInEnabled && !adminOnlyFlow ? (
             <>
               <Button
                 type="button"
@@ -172,38 +185,40 @@ export function LoginPage() {
               </div>
             </>
           ) : null}
-          <div className="grid grid-cols-2 gap-2 rounded-[22px] bg-secondary/70 p-1">
-            <button
-              type="button"
-              className={cn(
-                "h-11 rounded-[18px] text-sm font-semibold transition-colors",
-                mode === "login"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground",
-              )}
-              onClick={() => {
-                setMode("login");
-                setErrorMessage("");
-              }}
-            >
-              로그인
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "h-11 rounded-[18px] text-sm font-semibold transition-colors",
-                mode === "signup"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground",
-              )}
-              onClick={() => {
-                setMode("signup");
-                setErrorMessage("");
-              }}
-            >
-              회원가입
-            </button>
-          </div>
+          {!adminOnlyFlow ? (
+            <div className="grid grid-cols-2 gap-2 rounded-[22px] bg-secondary/70 p-1">
+              <button
+                type="button"
+                className={cn(
+                  "h-11 rounded-[18px] text-sm font-semibold transition-colors",
+                  mode === "login"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground",
+                )}
+                onClick={() => {
+                  setMode("login");
+                  setErrorMessage("");
+                }}
+              >
+                로그인
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "h-11 rounded-[18px] text-sm font-semibold transition-colors",
+                  mode === "signup"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground",
+                )}
+                onClick={() => {
+                  setMode("signup");
+                  setErrorMessage("");
+                }}
+              >
+                회원가입
+              </button>
+            </div>
+          ) : null}
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <Label>이메일</Label>
@@ -215,20 +230,22 @@ export function LoginPage() {
             </div>
             <Button type="submit" className="w-full">
               <Mail className="h-4 w-4" />
-              {mode === "login" ? "로그인" : "회원가입"}
+              {adminOnlyFlow ? "관리자 로그인" : mode === "login" ? "로그인" : "회원가입"}
             </Button>
-            <button
-              type="button"
-              className="w-full text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => {
-                setMode((current) => (current === "login" ? "signup" : "login"));
-                setErrorMessage("");
-              }}
-            >
-              {mode === "login"
-                ? "처음이라면 회원가입"
-                : "이미 계정이 있다면 로그인"}
-            </button>
+            {!adminOnlyFlow ? (
+              <button
+                type="button"
+                className="w-full text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                onClick={() => {
+                  setMode((current) => (current === "login" ? "signup" : "login"));
+                  setErrorMessage("");
+                }}
+              >
+                {mode === "login"
+                  ? "처음이라면 회원가입"
+                  : "이미 계정이 있다면 로그인"}
+              </button>
+            ) : null}
           </form>
           {showTestAccounts ? (
             <div className="space-y-2 rounded-[24px] bg-secondary/70 p-4 text-sm">
