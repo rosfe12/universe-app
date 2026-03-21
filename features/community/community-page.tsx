@@ -82,7 +82,7 @@ const FILTERS: Array<{
 }> = [
   { value: "all", label: "전체", icon: Sparkles },
   { value: "advice", label: "고민상담", icon: MessageCircle },
-  { value: "hot", label: "19금", icon: Flame },
+  { value: "hot", label: "핫갤", icon: Flame },
   { value: "dating", label: "연애", icon: Heart },
   { value: "meeting", label: "미팅", icon: Users2 },
 ] as const;
@@ -100,7 +100,7 @@ function getCardVariant(post: Post): BadgeProps["variant"] {
 
 function getCardLabel(post: Post) {
   if (post.subcategory === "advice") return "고민상담";
-  if (post.subcategory === "hot") return "19금";
+  if (post.subcategory === "hot") return "핫갤";
   if (post.subcategory === "meeting") return "미팅";
   return "연애";
 }
@@ -275,7 +275,7 @@ export function CommunityPage({
             <div className="space-y-1">
               <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
               <p className="text-sm text-muted-foreground">
-                커뮤니티, 19금, 연애/미팅은 대학생 계정에서만 열립니다.
+                커뮤니티, 핫갤, 연애/미팅은 대학생 계정에서만 열립니다.
               </p>
             </div>
             <Button type="button" onClick={() => router.push("/admission")}>
@@ -380,7 +380,7 @@ export function CommunityPage({
             <Sparkles className="h-5 w-5 text-amber-200" />
           </div>
           <div className="space-y-2">
-            <p className="text-[26px] font-semibold tracking-tight">고민상담, 연애, 미팅, 19금 익명 토크</p>
+            <p className="text-[26px] font-semibold tracking-tight">고민상담, 연애, 미팅, 핫갤 익명 토크</p>
           </div>
           <div className="grid grid-cols-4 gap-3">
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
@@ -388,7 +388,7 @@ export function CommunityPage({
               <p className="mt-1 text-sm font-semibold">{counts.advice}개</p>
             </div>
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
-              <p className="text-[11px] text-white/70">19금</p>
+              <p className="text-[11px] text-white/70">핫갤</p>
               <p className="mt-1 text-sm font-semibold">{counts.hot}개</p>
             </div>
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
@@ -633,7 +633,7 @@ export function CommunityPage({
             shouldValidate: true,
           });
         }}
-        label={activeFilter === "hot" ? "19금 글쓰기" : "고민상담 글쓰기"}
+        label={activeFilter === "hot" ? "핫갤 글쓰기" : "고민상담 글쓰기"}
       />
 
       <Dialog open={composerOpen} onOpenChange={setComposerOpen}>
@@ -668,7 +668,7 @@ export function CommunityPage({
                     })
                   }
                 >
-                  19금
+                  핫갤
                 </Button>
               </div>
             </div>

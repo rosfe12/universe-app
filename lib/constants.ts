@@ -83,7 +83,7 @@ export const COMMUNITY_CATEGORY_LABELS = {
   meetup: "모임 / 번개",
   food: "맛집",
   advice: "고민상담",
-  hot: "19금",
+  hot: "핫갤",
   freshman: "새내기존",
   dating: "연애",
   meeting: "미팅",
