@@ -3,6 +3,7 @@ import "server-only";
 import type { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 const DEFAULT_MASTER_ADMIN_EMAILS = ["rosfe12@gmail.com"];
+const DEFAULT_MASTER_ADMIN_HANDLE = "rosfe";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -26,6 +27,10 @@ export function isMasterAdminEmail(email?: string | null) {
   return getMasterAdminEmails().includes(normalizeEmail(email));
 }
 
+function getMasterAdminHandle() {
+  return (process.env.MASTER_ADMIN_HANDLE ?? DEFAULT_MASTER_ADMIN_HANDLE).trim();
+}
+
 export async function ensureMasterAdminRole(
   admin: ReturnType<typeof createAdminSupabaseClient>,
   user: {
@@ -37,16 +42,28 @@ export async function ensureMasterAdminRole(
     return false;
   }
 
-  const { error } = await admin.from("user_roles").upsert(
-    {
-      user_id: user.id,
-      role: "admin",
-    },
-    { onConflict: "user_id" },
-  );
+  const handle = getMasterAdminHandle();
+  const [{ error: roleError }, { error: userError }] = await Promise.all([
+    admin.from("user_roles").upsert(
+      {
+        user_id: user.id,
+        role: "admin",
+      },
+      { onConflict: "user_id" },
+    ),
+    admin.from("users").upsert(
+      {
+        id: user.id,
+        email: user.email ?? null,
+        name: handle,
+        nickname: handle,
+      },
+      { onConflict: "id" },
+    ),
+  ]);
 
-  if (error) {
-    throw error;
+  if (roleError || userError) {
+    throw roleError ?? userError;
   }
 
   return true;
