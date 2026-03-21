@@ -743,7 +743,13 @@ export async function createPostRecord(input: {
 }) {
   const supabase = createClient();
   const scope =
-    input.category === "dating" || input.subcategory === "hot" ? "global" : "school";
+    input.category === "dating" ||
+    input.subcategory === "hot" ||
+    input.subcategory === "free" ||
+    input.subcategory === "advice" ||
+    input.subcategory === "ask"
+      ? "global"
+      : "school";
   return supabase
     .from("posts")
     .insert({

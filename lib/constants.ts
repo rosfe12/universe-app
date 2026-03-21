@@ -79,10 +79,12 @@ export const GRADING_STYLE_LABELS: Record<GradingStyle, string> = {
 };
 
 export const COMMUNITY_CATEGORY_LABELS = {
+  free: "자유",
   club: "동아리",
   meetup: "모임 / 번개",
   food: "맛집",
-  advice: "고민상담",
+  advice: "고민",
+  ask: "무물",
   hot: "핫갤",
   freshman: "새내기존",
   dating: "연애",

@@ -738,6 +738,21 @@ set
   accepted = excluded.accepted,
   visibility_level = excluded.visibility_level;
 
+update public.posts
+set comment_count = case id
+  when '41111111-1111-4111-8111-111111111211'::uuid then 1
+  when '41111111-1111-4111-8111-111111111212'::uuid then 1
+  when '41111111-1111-4111-8111-111111111215'::uuid then 1
+  when '41111111-1111-4111-8111-111111111218'::uuid then 1
+  else comment_count
+end
+where id in (
+  '41111111-1111-4111-8111-111111111211'::uuid,
+  '41111111-1111-4111-8111-111111111212'::uuid,
+  '41111111-1111-4111-8111-111111111215'::uuid,
+  '41111111-1111-4111-8111-111111111218'::uuid
+);
+
 insert into public.comments (
   id,
   post_id,
@@ -932,3 +947,183 @@ set
   source_kind = excluded.source_kind,
   delivery_mode = excluded.delivery_mode,
   metadata = excluded.metadata;
+
+insert into public.posts (
+  id,
+  author_id,
+  category,
+  subcategory,
+  title,
+  content,
+  school_id,
+  scope,
+  like_count,
+  visibility_level,
+  metadata
+)
+values
+  (
+    '41111111-1111-4111-8111-111111111211'::uuid,
+    (select id from public.users where email = 'sejin@hongik.ac.kr'),
+    'community'::public.post_category,
+    'free'::public.post_subcategory,
+    '요즘 학교 다니면서 제일 의외였던 점 하나씩 말해보자',
+    '전 고등학교 때보다 오히려 학교 안에서 혼자 있는 시간이 훨씬 편해졌어요. 수업, 동아리, 과제 말고 다들 사소하게 느낀 변화 있으면 궁금합니다.',
+    (select school_id from public.users where email = 'sejin@hongik.ac.kr'),
+    'global'::public.content_scope,
+    29,
+    'anonymous'::public.visibility_level,
+    '{"tags":["자유","대학생활"]}'::jsonb
+  ),
+  (
+    '41111111-1111-4111-8111-111111111212'::uuid,
+    (select id from public.users where email = 'yonji@yonsei.ac.kr'),
+    'community'::public.post_category,
+    'free'::public.post_subcategory,
+    '수업 끝나고 집 갈 때 듣는 플레이리스트 추천받아요',
+    '요즘 등하교 루틴이 너무 똑같아서요. 너무 잔잔한 것보다 텐션 적당히 올라가는 곡 있으면 공유 부탁합니다.',
+    (select school_id from public.users where email = 'yonji@yonsei.ac.kr'),
+    'global'::public.content_scope,
+    24,
+    'anonymous'::public.visibility_level,
+    '{"tags":["자유","플레이리스트"]}'::jsonb
+  ),
+  (
+    '41111111-1111-4111-8111-111111111213'::uuid,
+    (select id from public.users where email = 'danbi@hufs.ac.kr'),
+    'community'::public.post_category,
+    'free'::public.post_subcategory,
+    '팀플 끝난 날 다들 혼자 쉬는 편이에요, 바로 약속 잡는 편이에요?',
+    '전 진이 빠져서 바로 귀가하는 편인데 주변은 오히려 그날 밥 약속 더 잘 잡더라고요. 다들 팀플 끝난 날 루틴이 궁금합니다.',
+    (select school_id from public.users where email = 'danbi@hufs.ac.kr'),
+    'global'::public.content_scope,
+    18,
+    'anonymous'::public.visibility_level,
+    '{"tags":["자유","팀플"]}'::jsonb
+  ),
+  (
+    '41111111-1111-4111-8111-111111111214'::uuid,
+    (select id from public.users where email = 'jieun@sookmyung.ac.kr'),
+    'community'::public.post_category,
+    'free'::public.post_subcategory,
+    '이번 학기 목표 하나만 적고 가요',
+    '거창한 거 말고 진짜 지킬 수 있는 걸로요. 전 이번엔 결석 0번이 목표입니다. 서로 적어두면 조금은 덜 미룰 것 같아서 올려봐요.',
+    (select school_id from public.users where email = 'jieun@sookmyung.ac.kr'),
+    'global'::public.content_scope,
+    22,
+    'anonymous'::public.visibility_level,
+    '{"tags":["자유","학기목표"]}'::jsonb
+  ),
+  (
+    '41111111-1111-4111-8111-111111111215'::uuid,
+    (select id from public.users where email = 'yeji@ewha.ac.kr'),
+    'community'::public.post_category,
+    'ask'::public.post_subcategory,
+    '무물) 공강 2시간 생기면 다들 뭐 해요?',
+    '도서관 가기엔 애매하고 집 가기엔 더 애매한 시간이 자주 생겨요. 학교 안팎에서 공강 보내는 루틴 추천받습니다.',
+    (select school_id from public.users where email = 'yeji@ewha.ac.kr'),
+    'global'::public.content_scope,
+    17,
+    'anonymous'::public.visibility_level,
+    '{"tags":["무물","공강"]}'::jsonb
+  ),
+  (
+    '41111111-1111-4111-8111-111111111216'::uuid,
+    (select id from public.users where email = 'jaeho@ssu.ac.kr'),
+    'community'::public.post_category,
+    'ask'::public.post_subcategory,
+    '무물) 에어팟 한쪽 잃어버리면 다시 사나요 그냥 버티나요',
+    '왼쪽만 잃어버렸는데 다시 사자니 돈 아깝고, 그냥 쓰자니 너무 불편합니다. 실제로 다들 어떻게 처리했는지 궁금해요.',
+    (select school_id from public.users where email = 'jaeho@ssu.ac.kr'),
+    'global'::public.content_scope,
+    14,
+    'anonymous'::public.visibility_level,
+    '{"tags":["무물","일상"]}'::jsonb
+  ),
+  (
+    '41111111-1111-4111-8111-111111111217'::uuid,
+    (select id from public.users where email = 'yubin@seoultech.ac.kr'),
+    'community'::public.post_category,
+    'ask'::public.post_subcategory,
+    '무물) 전공 책은 다들 중고로 먼저 찾나요?',
+    '이번 학기 교재값이 생각보다 세서요. 새 책이 꼭 필요한 과목 말고는 중고로 버티는 편인지 궁금합니다.',
+    (select school_id from public.users where email = 'yubin@seoultech.ac.kr'),
+    'global'::public.content_scope,
+    16,
+    'anonymous'::public.visibility_level,
+    '{"tags":["무물","교재"]}'::jsonb
+  ),
+  (
+    '41111111-1111-4111-8111-111111111218'::uuid,
+    (select id from public.users where email = 'hyobin@korea.ac.kr'),
+    'community'::public.post_category,
+    'ask'::public.post_subcategory,
+    '무물) 조별과제 첫 모임은 보통 카톡으로만 해도 충분해요?',
+    '굳이 대면으로 한 번 더 모이는 팀도 있고 카톡으로 다 정리하는 팀도 있던데, 처음에 어디까지 정리하면 매끄러운지 알고 싶어요.',
+    (select school_id from public.users where email = 'hyobin@korea.ac.kr'),
+    'global'::public.content_scope,
+    15,
+    'anonymous'::public.visibility_level,
+    '{"tags":["무물","조별과제"]}'::jsonb
+  )
+on conflict (id) do update
+set
+  author_id = excluded.author_id,
+  category = excluded.category,
+  subcategory = excluded.subcategory,
+  title = excluded.title,
+  content = excluded.content,
+  school_id = excluded.school_id,
+  scope = excluded.scope,
+  like_count = excluded.like_count,
+  visibility_level = excluded.visibility_level,
+  metadata = excluded.metadata;
+
+insert into public.comments (
+  id,
+  post_id,
+  author_id,
+  content,
+  accepted,
+  visibility_level
+)
+values
+  (
+    '51111111-1111-4111-8111-111111111211'::uuid,
+    '41111111-1111-4111-8111-111111111211'::uuid,
+    (select id from public.users where email = 'yeji@ewha.ac.kr'),
+    '이런 가벼운 주제 글이 오히려 자주 들어오게 되는 것 같아요. 저도 비슷하게 느꼈습니다.',
+    false,
+    'anonymous'::public.visibility_level
+  ),
+  (
+    '51111111-1111-4111-8111-111111111212'::uuid,
+    '41111111-1111-4111-8111-111111111212'::uuid,
+    (select id from public.users where email = 'hyobin@korea.ac.kr'),
+    '생각보다 다들 비슷한 루틴이 있어서 공감되네요. 이런 글 더 자주 올라오면 좋겠습니다.',
+    false,
+    'anonymous'::public.visibility_level
+  ),
+  (
+    '51111111-1111-4111-8111-111111111213'::uuid,
+    '41111111-1111-4111-8111-111111111215'::uuid,
+    (select id from public.users where email = 'yonji@yonsei.ac.kr'),
+    '저는 이런 건 최대한 학교 안에서 먼저 해결하려고 해요. 생각보다 공강 루틴 공유해주는 사람이 많더라고요.',
+    false,
+    'anonymous'::public.visibility_level
+  ),
+  (
+    '51111111-1111-4111-8111-111111111214'::uuid,
+    '41111111-1111-4111-8111-111111111218'::uuid,
+    (select id from public.users where email = 'danbi@hufs.ac.kr'),
+    '비슷한 경험 있었는데 다들 방법이 조금씩 다르네요. 댓글 모이면 참고하기 좋을 것 같아요.',
+    false,
+    'anonymous'::public.visibility_level
+  )
+on conflict (id) do update
+set
+  post_id = excluded.post_id,
+  author_id = excluded.author_id,
+  content = excluded.content,
+  accepted = excluded.accepted,
+  visibility_level = excluded.visibility_level;

@@ -138,10 +138,12 @@ type PostRow = {
   author_id: string;
   category: "admission" | "community" | "dating";
   subcategory:
+    | "free"
     | "club"
     | "meetup"
     | "food"
     | "advice"
+    | "ask"
     | "hot"
     | "freshman"
     | "dating"
@@ -167,10 +169,12 @@ type PostInsert = {
   author_id: string;
   category: "admission" | "community" | "dating";
   subcategory?:
+    | "free"
     | "club"
     | "meetup"
     | "food"
     | "advice"
+    | "ask"
     | "hot"
     | "freshman"
     | "dating"

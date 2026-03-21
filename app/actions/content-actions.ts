@@ -26,7 +26,18 @@ const reportReasonSchema = z.enum([
 const postSchema = z.object({
   category: z.enum(["admission", "community", "dating"]),
   subcategory: z
-    .enum(["club", "meetup", "food", "advice", "hot", "freshman", "dating", "meeting"])
+    .enum([
+      "free",
+      "club",
+      "meetup",
+      "food",
+      "advice",
+      "ask",
+      "hot",
+      "freshman",
+      "dating",
+      "meeting",
+    ])
     .optional(),
   title: z.string().trim().min(1).max(120),
   content: z.string().trim().min(1).max(5000),
@@ -197,7 +208,9 @@ function inferScope(input: {
 }) {
   if (
     input.category === "dating" ||
+    input.subcategory === "free" ||
     input.subcategory === "advice" ||
+    input.subcategory === "ask" ||
     input.subcategory === "hot" ||
     ("tags" in input &&
       Array.isArray(input.tags) &&
@@ -231,8 +244,8 @@ function getCommunityFilterFromPost(post: {
   }
 
   if (post.subcategory === "hot") return "hot";
-  if (post.subcategory === "dating") return "dating";
-  if (post.subcategory === "meeting") return "meeting";
+  if (post.subcategory === "free") return "free";
+  if (post.subcategory === "ask") return "ask";
   return "advice";
 }
 

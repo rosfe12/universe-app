@@ -321,6 +321,7 @@ export function getLatestCommentPreview(postId: string) {
 }
 
 export function getCommunityPosts(subcategory?: CommunitySubcategory) {
+  const sharedCommunityBoards: CommunitySubcategory[] = ["free", "advice", "ask", "hot"];
   return popularFirst(
     getState().posts.filter(
       (post) =>
@@ -329,7 +330,7 @@ export function getCommunityPosts(subcategory?: CommunitySubcategory) {
         !isHiddenPost(post) &&
         (subcategory
           ? post.subcategory === subcategory
-          : post.subcategory !== "food"),
+          : sharedCommunityBoards.includes(post.subcategory as CommunitySubcategory)),
     ),
   );
 }
@@ -626,8 +627,8 @@ export function getHomeCategoryStats() {
     },
     {
       label: "커뮤니티",
-      value: `${getCommunityPosts().length + getDatingPosts().length}개`,
-      description: "동아리, 번개, 연애, 고민상담",
+      value: `${getCommunityPosts().length + getCareerPosts().length}개`,
+      description: "자유, 고민, 핫갤, 무물, 취업",
       href: "/community",
     },
     {
