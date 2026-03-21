@@ -144,6 +144,10 @@ function getFilterFromBoard(board: CommunityFormValues["board"]): SharedFilter {
   return board;
 }
 
+function getPopularityScore(post: Post) {
+  return post.likes * 5 + post.commentCount * 8;
+}
+
 function getFilterForPost(post: Post): SharedFilter {
   if (getCareerBoardKind(post)) return "career";
   if (post.subcategory === "free") return "free";
@@ -280,7 +284,7 @@ export function CommunityPage({
   const [activeFilter, setActiveFilter] = useState<SharedFilter>(
     isSharedFilter(filterParam) ? filterParam : "all",
   );
-  const [hotSort, setHotSort] = useState<"popular" | "latest">("popular");
+  const [sortMode, setSortMode] = useState<"popular" | "latest">("popular");
   const [composerOpen, setComposerOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
@@ -294,7 +298,7 @@ export function CommunityPage({
   }, [filterParam]);
 
   const freePosts = useMemo(() => getCommunityPosts("free"), [blocks, posts, reports]);
-  const hotPosts = useMemo(() => getHotGalleryPosts(hotSort), [blocks, hotSort, posts, reports]);
+  const hotPosts = useMemo(() => getHotGalleryPosts(), [blocks, posts, reports]);
   const advicePosts = useMemo(() => getCommunityPosts("advice"), [blocks, posts, reports]);
   const askPosts = useMemo(() => getCommunityPosts("ask"), [blocks, posts, reports]);
   const careerPosts = useMemo(() => getCareerPosts(), [blocks, posts, reports]);
@@ -327,7 +331,21 @@ export function CommunityPage({
     if (activeFilter === "career") return careerPosts;
     return advicePosts;
   }, [activeFilter, advicePosts, askPosts, careerPosts, feedItems, freePosts, hotPosts]);
-  const feedSlots = useMemo(() => injectInlineAdSlots(filteredItems), [filteredItems]);
+  const sortedItems = useMemo(() => {
+    const items = [...filteredItems];
+    if (sortMode === "latest") {
+      return items.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+    }
+
+    return items.sort(
+      (a, b) =>
+        getPopularityScore(b) - getPopularityScore(a) ||
+        b.likes - a.likes ||
+        b.commentCount - a.commentCount ||
+        +new Date(b.createdAt) - +new Date(a.createdAt),
+    );
+  }, [filteredItems, sortMode]);
+  const feedSlots = useMemo(() => injectInlineAdSlots(sortedItems), [sortedItems]);
 
   const detailPost = useMemo(
     () => feedItems.find((post) => post.id === detailPostId) ?? null,
@@ -534,33 +552,31 @@ export function CommunityPage({
               </button>
             ))}
           </div>
-          {activeFilter === "hot" ? (
-              <Card className="border-white/80 bg-white/90 shadow-none">
-              <CardContent className="flex items-center justify-between gap-3 py-4">
-                <div>
-                  <p className="text-sm font-semibold">인기 기준</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={hotSort === "popular" ? "default" : "outline"}
-                    onClick={() => setHotSort("popular")}
-                  >
-                    인기순
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={hotSort === "latest" ? "default" : "outline"}
-                    onClick={() => setHotSort("latest")}
-                  >
-                    최신순
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+          <Card className="border-white/80 bg-white/90 shadow-none">
+            <CardContent className="flex items-center justify-between gap-3 py-4">
+              <div>
+                <p className="text-sm font-semibold">정렬</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={sortMode === "popular" ? "default" : "outline"}
+                  onClick={() => setSortMode("popular")}
+                >
+                  인기순
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={sortMode === "latest" ? "default" : "outline"}
+                  onClick={() => setSortMode("latest")}
+                >
+                  최신순
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
