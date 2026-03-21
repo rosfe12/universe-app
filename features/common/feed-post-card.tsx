@@ -5,13 +5,21 @@ import { ArrowUpRight, Heart, MessageCircle, Tags } from "lucide-react";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { COMMUNITY_CATEGORY_LABELS } from "@/lib/constants";
+import { CAREER_BOARD_LABELS, COMMUNITY_CATEGORY_LABELS } from "@/lib/constants";
+import { getCareerBoardKind } from "@/lib/mock-queries";
 import type { Post, ReportReason } from "@/types";
 
 import { PostAuthorRow } from "./post-author-row";
 
 function getPostBadge(post: Post) {
   if (post.category === "admission") return { label: "입시", variant: "secondary" as const };
+  const careerBoard = getCareerBoardKind(post);
+  if (careerBoard) {
+    return {
+      label: CAREER_BOARD_LABELS[careerBoard],
+      variant: careerBoard === "jobPosting" ? ("warning" as const) : ("secondary" as const),
+    };
+  }
   if (post.subcategory) {
     return {
       label: COMMUNITY_CATEGORY_LABELS[post.subcategory],

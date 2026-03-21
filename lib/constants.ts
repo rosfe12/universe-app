@@ -88,6 +88,11 @@ export const COMMUNITY_CATEGORY_LABELS = {
   meeting: "미팅",
 } as const;
 
+export const CAREER_BOARD_LABELS = {
+  careerInfo: "취업정보",
+  jobPosting: "채용공고",
+} as const;
+
 export const VISIBILITY_LEVEL_LABELS: Record<VisibilityLevel, string> = {
   anonymous: "완전 익명",
   school: "학교만 공개",
@@ -104,8 +109,9 @@ export const VISIBILITY_LEVEL_DESCRIPTIONS: Record<VisibilityLevel, string> = {
 
 export const MAIN_TABS = [
   { href: "/home", label: "홈" },
-  { href: "/admission", label: "입시" },
-  { href: "/school", label: "우리학교" },
   { href: "/community", label: "커뮤니티" },
+  { href: "/school", label: "우리학교" },
+  { href: "/admission", label: "입시" },
+  { href: "/career", label: "취업" },
   { href: "/profile", label: "마이" },
 ] as const;

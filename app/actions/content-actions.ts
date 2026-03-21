@@ -189,8 +189,18 @@ function requireVerifiedStudentProfile(
   }
 }
 
-function inferScope(input: { category: "admission" | "community" | "dating"; subcategory?: string }) {
-  if (input.category === "dating" || input.subcategory === "hot") {
+function inferScope(input: {
+  category: "admission" | "community" | "dating";
+  subcategory?: string;
+  tags?: string[];
+}) {
+  if (
+    input.category === "dating" ||
+    input.subcategory === "hot" ||
+    ("tags" in input &&
+      Array.isArray(input.tags) &&
+      input.tags.some((tag) => tag === "취업정보" || tag === "채용공고"))
+  ) {
     return "global" as const;
   }
 
@@ -428,7 +438,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
     throw new Error(error.message);
   }
 
-  revalidateFeed(["/home", "/admission", "/community", "/school"]);
+  revalidateFeed(["/home", "/admission", "/community", "/school", "/career"]);
   return data;
 }
 
@@ -487,7 +497,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
     throw new Error(error.message);
   }
 
-  revalidateFeed(["/home", "/admission", "/community", "/school"]);
+  revalidateFeed(["/home", "/admission", "/community", "/school", "/career"]);
   return data;
 }
 
@@ -696,7 +706,7 @@ export async function reportContent(input: z.input<typeof reportContentSchema>) 
     throw new Error(error.message);
   }
 
-  revalidateFeed(["/community", "/admission", "/lectures", "/trade", "/dating"]);
+  revalidateFeed(["/community", "/career", "/admission", "/lectures", "/trade", "/dating"]);
   return data;
 }
 
@@ -724,6 +734,6 @@ export async function blockUser(input: z.input<typeof blockUserSchema>) {
     throw new Error(error.message);
   }
 
-  revalidateFeed(["/community", "/admission", "/lectures", "/trade", "/dating", "/profile"]);
+  revalidateFeed(["/community", "/career", "/admission", "/lectures", "/trade", "/dating", "/profile"]);
   return data;
 }

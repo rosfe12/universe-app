@@ -1,5 +1,6 @@
 import {
   ATTENDANCE_LABELS,
+  CAREER_BOARD_LABELS,
   COMMUNITY_CATEGORY_LABELS,
   MATCH_STRENGTH_LABELS,
   USER_TYPE_LABELS,
@@ -37,6 +38,8 @@ import type {
   User,
   VisibilityLevel,
 } from "@/types";
+
+export type CareerBoardKind = "careerInfo" | "jobPosting";
 
 export const currentUser = new Proxy({} as User, {
   get(_target, prop) {
@@ -268,6 +271,13 @@ function isHiddenDatingProfile(profile: DatingProfile) {
   );
 }
 
+export function getCareerBoardKind(post: Pick<Post, "category" | "tags">) {
+  if (post.category !== "community") return undefined;
+  if (post.tags?.includes(CAREER_BOARD_LABELS.jobPosting)) return "jobPosting" as const;
+  if (post.tags?.includes(CAREER_BOARD_LABELS.careerInfo)) return "careerInfo" as const;
+  return undefined;
+}
+
 export function getAdmissionQuestions() {
   return popularFirst(
     getState().posts.filter((post) => post.category === "admission" && !isHiddenPost(post)),
@@ -295,9 +305,19 @@ export function getCommunityPosts(subcategory?: CommunitySubcategory) {
     getState().posts.filter(
       (post) =>
         post.category === "community" &&
+        !getCareerBoardKind(post) &&
         !isHiddenPost(post) &&
         (!subcategory || post.subcategory === subcategory),
     ),
+  );
+}
+
+export function getCareerPosts(kind?: CareerBoardKind) {
+  return recentFirst(
+    getState().posts.filter((post) => {
+      const board = getCareerBoardKind(post);
+      return post.category === "community" && !isHiddenPost(post) && Boolean(board) && (!kind || board === kind);
+    }),
   );
 }
 
@@ -511,6 +531,7 @@ export function getSchoolHotPosts(schoolId = currentUser.schoolId) {
     getState().posts.filter(
       (post) =>
         post.schoolId === schoolId &&
+        !getCareerBoardKind(post) &&
         !isHiddenPost(post) &&
         (post.subcategory === "hot" || post.likes >= 40),
     ),
@@ -519,7 +540,9 @@ export function getSchoolHotPosts(schoolId = currentUser.schoolId) {
 
 export function getRealtimeSchoolFeed(schoolId = currentUser.schoolId) {
   return recentFirst(
-    getState().posts.filter((post) => post.schoolId === schoolId && !isHiddenPost(post)),
+    getState().posts.filter(
+      (post) => post.schoolId === schoolId && !getCareerBoardKind(post) && !isHiddenPost(post),
+    ),
   ).slice(0, 5);
 }
 

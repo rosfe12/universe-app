@@ -8,6 +8,10 @@ export async function getCommunityPageSnapshot() {
   return loadServerRuntimeSnapshot();
 }
 
+export async function getCareerPageSnapshot() {
+  return loadServerRuntimeSnapshot();
+}
+
 export async function getAdmissionPageSnapshot() {
   return loadServerRuntimeSnapshot();
 }

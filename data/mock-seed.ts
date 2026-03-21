@@ -639,6 +639,19 @@ const datingSeeds = [
   ["건대입구에서 전시보다 영화 취향 맞는 사람 찾습니다", "대화 텐션보다 취향이 맞는 게 더 중요해서요. 좋아하는 감독이나 장르 비슷하면 더 좋겠습니다.", "영화 취향", 17, "user-seungmin"],
 ] as const;
 
+const careerSeeds = [
+  ["careerInfo", "서류 합격률 높였던 자소서 루틴 공유", "지원 직무별로 문항을 따로 새로 쓰기보다 공통 경험을 먼저 묶어놓고, 직무 키워드만 마지막에 얹는 방식이 효율이 좋았습니다.", 34, "user-dohyun", "자소서"],
+  ["careerInfo", "금융권 인턴 면접에서 반복해서 나온 질문 정리", "지원 동기보다 '왜 이 직무를 지금 선택했는지'를 더 집요하게 물었습니다. 건국대 선배들끼리 예상 질문 풀을 같이 맞춰보면 훨씬 편해요.", 29, "user-jiyoon", "면접"],
+  ["careerInfo", "컴공 포트폴리오 정리할 때 GitHub보다 먼저 본 것", "프로젝트 수보다 문제 정의, 맡은 역할, 배포 링크가 더 중요했습니다. README보다 시연 가능한 결과물을 먼저 보여주는 편이 반응이 좋았어요.", 26, "user-minjae", "포트폴리오"],
+  ["careerInfo", "예비입학생도 미리 해두면 좋은 취업 준비", "학과 커리큘럼 보기, 관심 직무 채용 공고 읽기, 링크드인/노션 정리 정도만 해둬도 입학 후 훨씬 덜 급합니다.", 21, "user-fresh-yerin", "새내기"],
+  ["careerInfo", "현직자 커피챗 요청할 때 답장률 높았던 템플릿", "길게 쓰기보다 학교 / 관심 직무 / 왜 연락드렸는지 세 줄로 정리하는 편이 답이 빨랐습니다. 질문은 최대 2개가 제일 깔끔했어요.", 19, "user-sohee", "커피챗"],
+  ["jobPosting", "건국대 창업지원단 콘텐츠 인턴 모집 공유", "캠퍼스 행사 촬영, 카드뉴스 제작 중심이고 주 3회 근무 기준입니다. 포트폴리오 3개 정도 있으면 지원 가능하다고 안내받았어요.", 18, "user-arin", "교내인턴"],
+  ["jobPosting", "성수 브랜드 마케팅 인턴 공고 떴어요", "브랜드 SNS 운영 경험이나 숏폼 제작 경험이 있으면 유리해 보입니다. 출근 위치가 건대입구에서 멀지 않아서 통학도 가능한 편이에요.", 17, "user-sohee", "마케팅"],
+  ["jobPosting", "하계 SW 아카데미 모집 공고 정리", "프론트 / 백엔드 / 데이터 트랙이 나뉘고 과제 제출형입니다. 대학생은 물론 예비입학생도 지원 가능한 오픈 트랙이 있어요.", 22, "user-minjae", "개발"],
+  ["jobPosting", "연구실 학부연구생 모집 공지 공유", "컴퓨터비전 쪽 랩에서 파이썬 / 논문 리딩 가능한 학생을 찾고 있습니다. 학점보다 프로젝트 경험을 먼저 본다고 합니다.", 15, "user-seungmin", "학부연구생"],
+  ["jobPosting", "대외활동형 에디터 모집, 콘텐츠 써본 사람 추천", "에디터 경험 없어도 학교 커뮤니티나 개인 블로그 운영 경험 있으면 지원 가능해 보입니다. 마감이 빨라서 미리 자소서 준비하면 좋겠어요.", 14, "user-chaeeun", "에디터"],
+] as const;
+
 const admissionPosts: SeedPost[] = admissionSeeds.map((seed, index) => ({
   id: `admission-${index + 1}`,
   category: "admission",
@@ -699,6 +712,19 @@ const datingPosts: SeedPost[] = datingSeeds.map((seed, index) => ({
     index % 2 === 0 ? "건대입구" : "성수",
     seed[0].includes("미팅") || seed[0].includes("2:2") ? "미팅" : "연애",
   ],
+}));
+
+const careerPosts: SeedPost[] = careerSeeds.map((seed, index) => ({
+  id: `career-${index + 1}`,
+  category: "community",
+  authorId: seed[4],
+  schoolId: getSchoolIdByUser(seed[4]),
+  title: seed[1],
+  content: seed[2],
+  createdAt: at(20 - Math.floor(index / 2), `${10 + (index % 6)}:${index % 2 === 0 ? "15" : "45"}:00`),
+  likes: seed[3],
+  tags: [seed[0] === "careerInfo" ? "취업정보" : "채용공고", seed[5], "취업"],
+  imageUrl: campusImages[(index + 2) % campusImages.length],
 }));
 
 let commentId = 1;
@@ -766,14 +792,27 @@ const datingComments: Comment[] = datingPosts.slice(0, 8).map((post, index) => (
   createdAt: at(20 - Math.floor(index / 2), "22:00:00"),
 }));
 
+const careerComments: Comment[] = careerPosts.slice(0, 8).map((post, index) => ({
+  id: nextCommentId(),
+  postId: post.id,
+  authorId: collegeReviewerIds[(index + 4) % collegeReviewerIds.length],
+  content:
+    post.tags?.includes("채용공고")
+      ? "지원 조건이 꽤 명확하네요. 준비 서류나 포트폴리오 팁 있으면 더 공유 부탁드려요."
+      : "실제로 부딪혀본 내용이라 도움 됩니다. 다음엔 면접 질문 정리도 같이 올려주면 좋겠어요.",
+  accepted: false,
+  createdAt: at(19 - Math.floor(index / 2), "20:40:00"),
+}));
+
 export const comments: Comment[] = [
   ...admissionComments,
   ...communityComments,
   ...freshmanZoneComments,
   ...datingComments,
+  ...careerComments,
 ];
 
-export const posts: Post[] = [...admissionPosts, ...communityPosts, ...datingPosts].map(
+export const posts: Post[] = [...admissionPosts, ...communityPosts, ...datingPosts, ...careerPosts].map(
   (post) => ({
     ...post,
     commentCount: comments.filter((comment) => comment.postId === post.id).length,

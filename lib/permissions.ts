@@ -36,3 +36,7 @@ export function canWriteCommunity(user: User) {
 export function canWriteFreshmanZone(user: User) {
   return isSignedInUser(user) && user.userType === "freshman" && Boolean(user.schoolId);
 }
+
+export function canWriteCareer(user: User) {
+  return isSignedInUser(user) && (user.userType === "college" || user.userType === "freshman");
+}
