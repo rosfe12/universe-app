@@ -136,18 +136,27 @@ export function SchoolPage({
   const [composerOpen, setComposerOpen] = useState(false);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const currentSchool = getCurrentSchool();
+  const schoolId = currentUser.schoolId;
   const schoolName = currentSchool?.name ?? "우리학교";
 
   useEffect(() => {
     setActiveTab(isSchoolTab(tabParam) ? tabParam : "lectures");
   }, [tabParam]);
 
-  const lectures = getLectureSummaries().slice(0, 6);
-  const tradeItems = getTradePosts().slice(0, 6);
-  const clubPosts = getCommunityPosts("club").slice(0, 6);
-  const foodPosts = getCommunityPosts("food").slice(0, 6);
+  const lectures = getLectureSummaries()
+    .filter((lecture) => !schoolId || lecture.schoolId === schoolId)
+    .slice(0, 6);
+  const tradeItems = getTradePosts()
+    .filter((tradePost) => !schoolId || tradePost.schoolId === schoolId)
+    .slice(0, 6);
+  const clubPosts = getCommunityPosts("club")
+    .filter((post) => !schoolId || post.schoolId === schoolId)
+    .slice(0, 6);
+  const foodPosts = getCommunityPosts("food")
+    .filter((post) => !schoolId || post.schoolId === schoolId)
+    .slice(0, 6);
   const freshmanZonePosts = getCommunityPosts("freshman")
-    .filter((post) => post.schoolId === (currentUser.schoolId ?? currentSchool?.id))
+    .filter((post) => !schoolId || post.schoolId === schoolId)
     .slice(0, 8);
   const freshmanComposeEnabled =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteFreshmanZone(currentUser);
@@ -165,6 +174,59 @@ export function SchoolPage({
       visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
     },
   });
+
+  if (!loading && !isAuthenticated) {
+    return (
+      <AppShell title="우리학교">
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">로그인 후 우리학교가 열립니다</p>
+            </div>
+            <Button asChild>
+              <Link href={getAuthFlowHref({ isAuthenticated, user: currentUser, nextPath: "/school" })}>
+                로그인하기
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
+
+  if (!loading && isAuthenticated && !hasCompletedOnboarding(currentUser)) {
+    return (
+      <AppShell title="우리학교">
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">학교를 먼저 선택해주세요</p>
+            </div>
+            <Button asChild>
+              <Link href="/onboarding">학교 선택하기</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
+
+  if (!loading && isAuthenticated && (!schoolId || !currentSchool)) {
+    return (
+      <AppShell title="우리학교">
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">학교를 선택하면 우리학교 탭이 열립니다</p>
+            </div>
+            <Button asChild>
+              <Link href="/profile">프로필 설정하기</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   if (
     !loading &&
