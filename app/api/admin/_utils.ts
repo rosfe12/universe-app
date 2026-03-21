@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { ensureMasterAdminRole } from "@/lib/admin/master-admin";
 import { publicEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -54,6 +55,10 @@ export async function requireAdminUser(request: Request) {
   }
 
   const admin = createAdminSupabaseClient();
+  await ensureMasterAdminRole(admin, {
+    id: user.id,
+    email: user.email,
+  });
   const { data: role, error: roleError } = await admin
     .from("user_roles")
     .select("role")

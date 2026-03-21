@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { ensureMasterAdminRole } from "@/lib/admin/master-admin";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -21,6 +22,12 @@ async function requireAdmin() {
   if (authError || !user) {
     throw new Error("로그인이 필요합니다.");
   }
+
+  const admin = createAdminSupabaseClient();
+  await ensureMasterAdminRole(admin, {
+    id: user.id,
+    email: user.email,
+  });
 
   const { data: role, error: roleError } = await supabase
     .from("user_roles")
