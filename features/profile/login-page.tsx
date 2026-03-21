@@ -24,6 +24,7 @@ import {
 } from "@/lib/supabase/app-data";
 import { shouldShowTestAccounts } from "@/lib/env";
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
+import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
   email: z.string().email("이메일 형식이 필요합니다."),
@@ -31,6 +32,7 @@ const loginSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+type AuthMode = "login" | "signup";
 
 export function LoginPage() {
   const router = useRouter();
@@ -42,6 +44,7 @@ export function LoginPage() {
   const { currentUser, isAuthenticated, loading, refresh } = useAppRuntime();
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [mode, setMode] = useState<AuthMode>("login");
   const googleSignInEnabled = isGoogleSignInEnabled();
   const showTestAccounts = shouldShowTestAccounts();
   const form = useForm<LoginFormValues>({
@@ -73,11 +76,22 @@ export function LoginPage() {
     }
 
     setPending(true);
-    const result = await signInWithSupabase(values.email, values.password);
+    const result =
+      mode === "login"
+        ? await signInWithSupabase(values.email, values.password)
+        : await signUpWithSupabase({
+            email: values.email,
+            password: values.password,
+          });
     setPending(false);
 
     if (result.error) {
       setErrorMessage(result.error.message);
+      return;
+    }
+
+    if (mode === "signup") {
+      router.push(`/onboarding?next=${encodeURIComponent(nextPath)}`);
       return;
     }
 
@@ -97,8 +111,14 @@ export function LoginPage() {
         <CardHeader className="space-y-4 bg-[linear-gradient(135deg,#0f172a_0%,#0ea5e9_100%)] text-white">
           <p className="text-xs font-semibold tracking-[0.2em]">유니버스</p>
           <div>
-            <CardTitle className="text-2xl">캠퍼스 커뮤니티에 로그인</CardTitle>
-            <p className="mt-2 text-sm text-white/80">캠퍼스 라이프 플랫폼</p>
+            <CardTitle className="text-2xl">
+              {mode === "login" ? "캠퍼스 커뮤니티에 로그인" : "유니버스 회원가입"}
+            </CardTitle>
+            <p className="mt-2 text-sm text-white/80">
+              {mode === "login"
+                ? "캠퍼스 라이프 플랫폼"
+                : "가입 후 온보딩에서 학교와 유저 유형을 설정합니다."}
+            </p>
           </div>
         </CardHeader>
         <CardContent className="space-y-5 py-6">
@@ -143,7 +163,7 @@ export function LoginPage() {
                 }}
               >
                 <Chrome className="h-4 w-4" />
-                구글로 시작하기
+                {mode === "login" ? "구글로 로그인" : "구글로 회원가입"}
               </Button>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <div className="h-px flex-1 bg-border" />
@@ -152,6 +172,38 @@ export function LoginPage() {
               </div>
             </>
           ) : null}
+          <div className="grid grid-cols-2 gap-2 rounded-[22px] bg-secondary/70 p-1">
+            <button
+              type="button"
+              className={cn(
+                "h-11 rounded-[18px] text-sm font-semibold transition-colors",
+                mode === "login"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+              onClick={() => {
+                setMode("login");
+                setErrorMessage("");
+              }}
+            >
+              로그인
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "h-11 rounded-[18px] text-sm font-semibold transition-colors",
+                mode === "signup"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground",
+              )}
+              onClick={() => {
+                setMode("signup");
+                setErrorMessage("");
+              }}
+            >
+              회원가입
+            </button>
+          </div>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <Label>이메일</Label>
@@ -161,52 +213,22 @@ export function LoginPage() {
               <Label>비밀번호</Label>
               <Input type="password" {...form.register("password")} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="submit" className="w-full">
-                <Mail className="h-4 w-4" />
-                로그인
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={async () => {
-                  const values = form.getValues();
-                  const parsed = loginSchema.safeParse(values);
-
-                  if (!parsed.success) {
-                    parsed.error.issues.forEach((issue) => {
-                      const field = issue.path[0] as keyof LoginFormValues;
-                      form.setError(field, { message: issue.message });
-                    });
-                    return;
-                  }
-
-                  setErrorMessage("");
-
-                  if (!isSupabaseEnabled()) {
-                    router.push("/home");
-                    return;
-                  }
-
-                  setPending(true);
-                  const result = await signUpWithSupabase({
-                    email: parsed.data.email,
-                    password: parsed.data.password,
-                  });
-                  setPending(false);
-
-                  if (result.error) {
-                    setErrorMessage(result.error.message);
-                    return;
-                  }
-
-                  router.push(`/onboarding?next=${encodeURIComponent(nextPath)}`);
-                }}
-              >
-                이메일로 시작
-              </Button>
-            </div>
+            <Button type="submit" className="w-full">
+              <Mail className="h-4 w-4" />
+              {mode === "login" ? "로그인" : "회원가입"}
+            </Button>
+            <button
+              type="button"
+              className="w-full text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => {
+                setMode((current) => (current === "login" ? "signup" : "login"));
+                setErrorMessage("");
+              }}
+            >
+              {mode === "login"
+                ? "처음이라면 회원가입"
+                : "이미 계정이 있다면 로그인"}
+            </button>
           </form>
           {showTestAccounts ? (
             <div className="space-y-2 rounded-[24px] bg-secondary/70 p-4 text-sm">
