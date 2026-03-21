@@ -280,7 +280,6 @@ export function HomePage({
   return (
     <AppShell
       title="홈"
-      subtitle="지금 반응이 큰 글과 학교 생활 정보를 한 화면에서 이어서 둘러보세요"
     >
       {loading ? <LoadingState /> : null}
 
@@ -327,9 +326,6 @@ export function HomePage({
           <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_100%)]">
             <CardContent className="space-y-3 py-5">
               <p className="text-base font-semibold text-foreground">새내기존 첫 글을 기다리고 있어요</p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                우리학교 예비입학생 글이 올라오면 여기에서 바로 확인할 수 있어요.
-              </p>
               <Link
                 href="/school?tab=freshman"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
@@ -381,9 +377,6 @@ export function HomePage({
           <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_100%)]">
             <CardContent className="space-y-3 py-5">
               <p className="text-base font-semibold text-foreground">강의 정보가 곧 채워집니다</p>
-              <p className="text-sm leading-6 text-muted-foreground">
-                강의 페이지에서 최신 리뷰와 평균 점수를 먼저 확인해보세요.
-              </p>
               <Link
                 href="/lectures"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-primary"

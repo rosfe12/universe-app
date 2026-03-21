@@ -217,9 +217,6 @@ export function CareerPage({
           </div>
           <div className="space-y-2">
             <h2 className="text-[28px] font-semibold tracking-tight text-slate-950">채용공고부터 합격 후기까지</h2>
-            <p className="text-sm leading-6 text-slate-600">
-              같은 학교 선배들의 실전 정보와 지금 올라오는 채용 공고를 한 번에 확인합니다.
-            </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-[22px] border border-white/85 bg-white/90 px-4 py-4">

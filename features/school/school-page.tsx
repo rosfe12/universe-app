@@ -208,9 +208,6 @@ export function SchoolPage({
           </div>
           <div className="space-y-2">
             <h2 className="text-[30px] font-semibold tracking-tight text-slate-950 text-balance">{schoolName}</h2>
-            <p className="text-sm leading-6 text-slate-600">
-              강의 정보, 수강신청 교환, 동아리, 맛집까지 학교에서 자주 찾는 메뉴를 모았습니다.
-            </p>
           </div>
           <div className="grid grid-cols-2 gap-3.5">
             {SCHOOL_SECTIONS.map((section) => (
@@ -224,7 +221,6 @@ export function SchoolPage({
                       <p className="text-balance text-[17px] font-semibold leading-6 text-slate-950">
                         {section.title}
                       </p>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">우리 학교 전용</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -290,9 +286,6 @@ export function SchoolPage({
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-semibold tracking-tight text-slate-950">같은 학교 예비입학생끼리 먼저 친해지기</h3>
-                <p className="text-sm leading-6 text-slate-600">
-                  합격 직후 궁금한 기숙사, 수강신청 감, 오티 분위기를 익명으로 가볍게 나누는 공간입니다.
-                </p>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-[20px] border border-emerald-200 bg-white/85 px-3 py-3">

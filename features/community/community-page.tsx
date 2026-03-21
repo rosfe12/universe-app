@@ -374,9 +374,6 @@ export function CommunityPage({
           </div>
           <div className="space-y-2">
             <p className="text-[26px] font-semibold tracking-tight">핫갤은 빠르게, 연애와 미팅은 자연스럽게</p>
-            <p className="text-sm leading-6 text-white/80">
-              학교 내부 정보는 우리학교 탭으로, 익명 인기글과 관계형 콘텐츠는 여기서 소비합니다.
-            </p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
@@ -419,11 +416,10 @@ export function CommunityPage({
             ))}
           </div>
           {activeFilter === "hot" ? (
-            <Card className="border-white/80 bg-white/90 shadow-none">
+              <Card className="border-white/80 bg-white/90 shadow-none">
               <CardContent className="flex items-center justify-between gap-3 py-4">
                 <div>
                   <p className="text-sm font-semibold">인기 기준</p>
-                  <p className="text-sm text-muted-foreground">반응 x2 + 댓글 x3 기준으로 HOT 순위를 계산합니다.</p>
                 </div>
                 <div className="flex gap-2">
                   <Button

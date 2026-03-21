@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 export function AppShell({
   children,
   title,
-  subtitle,
   showTabs = true,
   topAction,
 }: {
@@ -33,11 +32,6 @@ export function AppShell({
                 유니버스
               </p>
               <h1 className="mt-1 text-[25px] font-bold tracking-tight text-balance">{title}</h1>
-              {subtitle ? (
-                <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground/95">
-                  {subtitle}
-                </p>
-              ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {topAction}

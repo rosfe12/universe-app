@@ -3,7 +3,6 @@ import { ArrowRight } from "lucide-react";
 
 export function SectionHeader({
   title,
-  description,
   href,
 }: {
   title: string;
@@ -14,9 +13,6 @@ export function SectionHeader({
     <div className="flex items-end justify-between gap-4">
       <div className="min-w-0">
         <h2 className="text-[20px] font-bold tracking-tight">{title}</h2>
-        {description ? (
-          <p className="mt-1 text-[13px] leading-5 text-muted-foreground">{description}</p>
-        ) : null}
       </div>
       {href ? (
         <Link
