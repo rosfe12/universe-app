@@ -307,7 +307,9 @@ export function getCommunityPosts(subcategory?: CommunitySubcategory) {
         post.category === "community" &&
         !getCareerBoardKind(post) &&
         !isHiddenPost(post) &&
-        (!subcategory || post.subcategory === subcategory),
+        (subcategory
+          ? post.subcategory === subcategory
+          : post.subcategory !== "food"),
     ),
   );
 }
@@ -601,7 +603,7 @@ export function getHomeCategoryStats() {
     {
       label: "커뮤니티",
       value: `${getCommunityPosts().length + getDatingPosts().length}개`,
-      description: "동아리, 맛집, 번개, 연애",
+      description: "동아리, 번개, 연애, 고민상담",
       href: "/community",
     },
     {

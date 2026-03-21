@@ -8,7 +8,6 @@ import {
   Heart,
   Sparkles,
   Users,
-  UtensilsCrossed,
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -134,8 +133,8 @@ export function HomePage({
   const lectureHighlights = getLectureSummaries().slice(0, 3);
   const campusLifePosts = [
     ...getCommunityPosts("club").slice(0, 2),
-    ...getCommunityPosts("food").slice(0, 2),
     ...getCommunityPosts("meetup").slice(0, 2),
+    ...getCommunityPosts("advice").slice(0, 2),
   ]
     .sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, 4);
@@ -162,7 +161,7 @@ export function HomePage({
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">
                   캠퍼스 믹스
                 </p>
-                <p className="mt-2 text-lg font-bold text-foreground">동아리, 맛집, 모임 글부터 보여줘요</p>
+                <p className="mt-2 text-lg font-bold text-foreground">동아리, 모임, 고민 글부터 보여줘요</p>
               </div>
               <div className="rounded-[22px] bg-white px-4 py-3 text-right shadow-[0_20px_44px_-28px_rgba(251,146,60,0.28)]">
                 <p className="text-[11px] text-muted-foreground">게시글</p>
@@ -175,8 +174,8 @@ export function HomePage({
                 동아리
               </Badge>
               <Badge variant="outline">
-                <UtensilsCrossed className="mr-1 h-3.5 w-3.5" />
-                맛집
+                <Sparkles className="mr-1 h-3.5 w-3.5" />
+                고민상담
               </Badge>
               <Badge variant="outline">모임</Badge>
             </div>
