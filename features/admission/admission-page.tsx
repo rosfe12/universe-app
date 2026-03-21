@@ -217,7 +217,7 @@ export function AdmissionPage({
   return (
     <AppShell
       title="입시 Q&A"
-      subtitle={`${currentSchool?.name ?? "건국대학교"} 중심 구조화 입시 질문답변`}
+      subtitle="구조화된 질문답변으로 입시 정보를 빠르게 찾습니다"
       topAction={
         <Button asChild size="icon" variant="ghost">
           <Link href="/home">
@@ -240,8 +240,8 @@ export function AdmissionPage({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">전체 학교</SelectItem>
-                <SelectItem value={currentUser.schoolId ?? "school-konkuk"}>
-                  {currentSchool?.name ?? "건국대학교"}
+                <SelectItem value={currentUser.schoolId ?? "school-default"}>
+                  {currentSchool?.name ?? "내 학교"}
                 </SelectItem>
               </SelectContent>
             </Select>

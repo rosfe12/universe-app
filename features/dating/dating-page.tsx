@@ -271,7 +271,7 @@ export function DatingPage({
   return (
     <AppShell
       title="미팅 / 연애"
-      subtitle="건국대 중심 익명 관계 피드"
+      subtitle="대학생 익명 관계 피드"
     >
       {loading ? <LoadingState /> : null}
       <Card className="border-amber-200 bg-amber-50/90">

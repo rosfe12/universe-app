@@ -136,7 +136,7 @@ export function SchoolPage({
   const [composerOpen, setComposerOpen] = useState(false);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const currentSchool = getCurrentSchool();
-  const schoolName = currentSchool?.name ?? "건국대학교";
+  const schoolName = currentSchool?.name ?? "우리학교";
 
   useEffect(() => {
     setActiveTab(isSchoolTab(tabParam) ? tabParam : "lectures");

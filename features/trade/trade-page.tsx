@@ -114,7 +114,7 @@ export function TradePage({
   const form = useForm<TradeFormValues>({
     resolver: zodResolver(tradeSchema),
     defaultValues: {
-      schoolId: currentUser.schoolId ?? "school-konkuk",
+      schoolId: currentUser.schoolId ?? "school-default",
       semester: "2026-1",
       haveLectureId: "lecture-1",
       wantLectureId: "lecture-3",
@@ -285,7 +285,7 @@ export function TradePage({
   return (
     <AppShell
       title="수강신청 매칭"
-      subtitle={`${currentSchool?.name ?? "건국대학교"} 수강신청 정보 연결 중심 교환 게시판`}
+      subtitle="수강신청 정보 연결 중심 교환 게시판"
     >
       {loading ? <LoadingState /> : null}
       <div className="grid grid-cols-3 gap-3">
@@ -430,7 +430,7 @@ export function TradePage({
                 value={form.watch("schoolId")}
                 onChange={(value) => form.setValue("schoolId", value)}
                 options={[
-                  [currentUser.schoolId ?? "school-konkuk", currentSchool?.name ?? "건국대학교"],
+                  [currentUser.schoolId ?? "school-default", currentSchool?.name ?? "내 학교"],
                 ]}
               />
               <div className="space-y-2">

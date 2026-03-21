@@ -254,7 +254,7 @@ export function HomePage({
 }) {
   const { loading } = useAppRuntime(initialSnapshot);
   const currentSchool = getCurrentSchool();
-  const schoolName = currentSchool?.name ?? "건국대학교";
+  const schoolName = currentSchool?.name ?? "우리학교";
   const hotPosts = getHotGalleryPosts().slice(0, 5);
   const heroHotPost = hotPosts[0];
   const secondaryHotPosts = hotPosts.slice(1, 5);

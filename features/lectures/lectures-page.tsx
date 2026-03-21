@@ -132,7 +132,7 @@ export function LecturesPage({
   return (
     <AppShell
       title="강의"
-      subtitle={`${currentSchool?.name ?? "건국대학교"} 강의평 탐색과 수강신청 매칭을 한 메뉴에서 이어봅니다`}
+      subtitle="강의평 탐색과 수강신청 매칭을 한 메뉴에서 이어봅니다"
     >
       {loading ? <LoadingState /> : null}
 

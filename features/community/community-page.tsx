@@ -235,7 +235,6 @@ export function CommunityPage({
   const datingPosts = useMemo(() => getDatingPosts("dating"), [blocks, posts, reports]);
   const meetingPosts = useMemo(() => getDatingPosts("meeting"), [blocks, posts, reports]);
   const currentSchool = getCurrentSchool();
-  const schoolName = currentSchool?.name ?? "건국대학교";
 
   const feedItems = useMemo(() => {
     const all = [...hotPosts, ...datingPosts, ...meetingPosts];
@@ -363,7 +362,7 @@ export function CommunityPage({
   return (
     <AppShell
       title="커뮤니티"
-      subtitle={`${schoolName} 밖으로 퍼지는 공유 영역: 핫갤, 연애, 미팅`}
+      subtitle="핫갤, 연애, 미팅처럼 빠르게 소비되는 공유 피드"
     >
       {loading ? <LoadingState /> : null}
 
