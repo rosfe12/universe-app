@@ -495,40 +495,6 @@ export function CommunityPage({
     >
       {loading ? <LoadingState /> : null}
 
-      <Card className="overflow-hidden bg-[linear-gradient(135deg,#111827_0%,#1f2937_50%,#f5e9cd_100%)] text-white">
-        <CardContent className="space-y-4 py-5">
-          <div className="flex items-center justify-between">
-            <Badge className="border-white/10 bg-white/15 text-white">전체 공유 영역</Badge>
-            <Sparkles className="h-5 w-5 text-amber-200" />
-          </div>
-          <div className="space-y-2">
-            <p className="text-[26px] font-semibold tracking-tight">자유, 고민, 핫갤, 무물, 취업 보드</p>
-          </div>
-          <div className="grid grid-cols-5 gap-3">
-            <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
-              <p className="text-[11px] text-white/70">자유</p>
-              <p className="mt-1 text-sm font-semibold">{counts.free}개</p>
-            </div>
-            <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
-              <p className="text-[11px] text-white/70">고민</p>
-              <p className="mt-1 text-sm font-semibold">{counts.advice}개</p>
-            </div>
-            <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
-              <p className="text-[11px] text-white/70">핫갤</p>
-              <p className="mt-1 text-sm font-semibold">{counts.hot}개</p>
-            </div>
-            <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
-              <p className="text-[11px] text-white/70">무물</p>
-              <p className="mt-1 text-sm font-semibold">{counts.ask}개</p>
-            </div>
-            <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
-              <p className="text-[11px] text-white/70">취업</p>
-              <p className="mt-1 text-sm font-semibold">{counts.career}개</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <section className="space-y-3">
         <div className="space-y-3">
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
