@@ -281,7 +281,7 @@ export function HomePage({
   return (
     <AppShell
       title="홈"
-      subtitle={`${schoolName}에서 지금 많이 보는 글과 학교 정보를 한눈에 확인해보세요`}
+      subtitle={`${schoolName}에서 지금 반응이 큰 글과 학교 생활 정보를 바로 이어서 둘러보세요`}
     >
       {loading ? <LoadingState /> : null}
 
@@ -355,7 +355,7 @@ export function HomePage({
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500">
                   강의 한눈에
                 </p>
-                <p className="mt-2 text-lg font-bold text-foreground">많이 보는 강의평을 먼저 모아봤어요</p>
+                <p className="mt-2 text-lg font-bold text-foreground">수강 전에 먼저 보는 강의평만 골랐어요</p>
               </div>
               <div className="rounded-[22px] bg-white px-4 py-3 text-right shadow-[0_20px_44px_-28px_rgba(99,102,241,0.35)]">
                 <p className="text-[11px] text-muted-foreground">강의 수</p>
@@ -409,7 +409,7 @@ export function HomePage({
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">
                   캠퍼스 믹스
                 </p>
-                <p className="mt-2 text-lg font-bold text-foreground">학교 안 소식을 한 번에 모아봤어요</p>
+                <p className="mt-2 text-lg font-bold text-foreground">동아리, 맛집, 번개 글만 깔끔하게 모았어요</p>
               </div>
               <div className="rounded-[22px] bg-white px-4 py-3 text-right shadow-[0_20px_44px_-28px_rgba(251,146,60,0.28)]">
                 <p className="text-[11px] text-muted-foreground">게시글</p>
@@ -440,7 +440,7 @@ export function HomePage({
             <CardContent className="space-y-3 py-5">
               <p className="text-base font-semibold text-foreground">학교 생활 글이 곧 이어집니다</p>
               <p className="text-sm leading-6 text-muted-foreground">
-                동아리, 맛집, 모임 글이 올라오면 여기에서 바로 볼 수 있어요.
+                동아리, 맛집, 모임 글이 올라오면 홈에서 바로 이어서 볼 수 있어요.
               </p>
               <Link
                 href="/school"
@@ -470,7 +470,7 @@ export function HomePage({
             <CardContent className="space-y-3 py-5">
               <p className="text-base font-semibold text-foreground">미팅 글이 올라오면 여기서 바로 보여줘요</p>
               <p className="text-sm leading-6 text-muted-foreground">
-                새 글이 올라오면 홈 하단에서 바로 확인할 수 있어요.
+                학교 인증이 끝난 뒤 프로필 카드와 새 글을 홈 하단에서 바로 확인할 수 있어요.
               </p>
               <Link
                 href="/community?filter=meeting"

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, GraduationCap, School2, Sparkles } from "lucide-react";
 
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { ErrorState } from "@/components/shared/error-state";
@@ -113,6 +113,25 @@ export function OnboardingPage() {
   });
   const currentLoginEmail =
     authEmail || (currentUser.email !== "guest@univers.app" ? currentUser.email : "");
+  const typeGuide =
+    selectedUserType === "college"
+      ? {
+          icon: GraduationCap,
+          title: "대학생 권한",
+          description: "학교 메일 인증을 마치면 강의평, 수강신청, 미팅까지 바로 열립니다.",
+        }
+      : selectedUserType === "freshman"
+        ? {
+            icon: Sparkles,
+            title: "예비입학생 시작",
+            description: "새내기존과 우리학교 커뮤니티를 먼저 둘러보고 학교 분위기를 익혀보세요.",
+          }
+        : {
+            icon: School2,
+            title: "입시생 흐름",
+            description: "입시 질문과 재학생 답변을 중심으로 필요한 정보만 빠르게 볼 수 있습니다.",
+          };
+  const TypeGuideIcon = typeGuide.icon;
 
   useEffect(() => {
     if (loading || pending || !isAuthenticated) return;
@@ -301,6 +320,18 @@ export function OnboardingPage() {
             </CardContent>
           </Card>
 
+          <Card className="border-white/80 bg-[linear-gradient(135deg,#f8faff_0%,#ffffff_100%)] shadow-none">
+            <CardContent className="flex items-center gap-3 py-4">
+              <div className="rounded-full bg-primary/10 p-2 text-primary">
+                <TypeGuideIcon className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-semibold">{typeGuide.title}</p>
+                <p className="text-sm text-muted-foreground">{typeGuide.description}</p>
+              </div>
+            </CardContent>
+          </Card>
+
           <form className="space-y-4" onSubmit={onSubmit}>
             {pending || loading ? <LoadingState /> : null}
             {errorMessage ? (
@@ -396,6 +427,9 @@ export function OnboardingPage() {
                     학교 선택과 학교 메일 형식이 맞아야 인증 요청을 보낼 수 있습니다.
                   </p>
                 ) : null}
+                <p className="text-xs text-muted-foreground">
+                  인증 메일을 누르면 바로 대학생 권한으로 전환됩니다.
+                </p>
               </div>
             ) : null}
             <div className="grid grid-cols-2 gap-3">

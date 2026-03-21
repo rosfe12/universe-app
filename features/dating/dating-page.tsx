@@ -9,6 +9,7 @@ import { z } from "zod";
 import { ShieldCheck, Users } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { ImageUploadField } from "@/components/shared/image-upload-field";
@@ -210,11 +211,58 @@ export function DatingPage({
   });
 
   if (!canAccessDating(currentUser)) {
+    if (!isAuthenticated || !hasCompletedOnboarding(currentUser)) {
+      return (
+        <AppShell title="미팅 / 연애" subtitle="안전하게 연결되는 대학생 익명 피드" showTabs>
+          <AccountRequiredCard
+            isAuthenticated={isAuthenticated}
+            user={currentUser}
+            nextPath={pathname}
+            title={isAuthenticated ? "프로필 설정을 마치면 바로 둘러볼 수 있습니다" : "로그인 후 미팅 / 연애 피드를 볼 수 있습니다"}
+            description={
+              isAuthenticated
+                ? "학교와 기본 공개 범위를 정하면 프로필 카드와 글이 자연스럽게 이어집니다."
+                : "로그인 후 프로필을 만들면 학교 기반 익명 매칭 피드를 바로 확인할 수 있습니다."
+            }
+            ctaLabel={isAuthenticated ? "프로필 설정 이어가기" : "로그인하고 보기"}
+          />
+        </AppShell>
+      );
+    }
+
+    if (currentUser.userType === "highSchool") {
+      return (
+        <AppShell title="미팅 / 연애" subtitle="대학생 중심 익명 관계 피드" showTabs>
+          <EmptyState
+            title="입시생 계정은 입시 탭부터 이용할 수 있습니다"
+            description="연애와 미팅은 대학 생활 맥락에서 열리는 기능입니다. 지금은 입시 질문과 학교 정보를 먼저 살펴보세요."
+            actionLabel="입시 탭으로 이동"
+            href="/admission"
+          />
+        </AppShell>
+      );
+    }
+
+    if (currentUser.userType === "freshman") {
+      return (
+        <AppShell title="미팅 / 연애" subtitle="대학생 중심 익명 관계 피드" showTabs>
+          <EmptyState
+            title="예비입학생은 새내기존과 커뮤니티부터 이용할 수 있습니다"
+            description="미팅과 연애는 대학생 인증 뒤 열리는 공간입니다. 지금은 새내기존과 학교 생활 글부터 천천히 둘러보세요."
+            actionLabel="새내기존 보기"
+            href="/school?tab=freshman"
+          />
+        </AppShell>
+      );
+    }
+
     return (
       <AppShell title="미팅 / 연애" subtitle="대학생 전용" showTabs>
         <EmptyState
-          title="학교 메일 인증 후 접근할 수 있습니다"
-          description="안전성과 맥락 유지를 위해 학교 메일 인증을 끝낸 대학생만 이용할 수 있습니다."
+          title="학교 메일 인증을 마치면 바로 열립니다"
+          description="안전한 이용을 위해 학교 메일 인증을 끝낸 대학생만 프로필 카드와 글쓰기를 사용할 수 있습니다."
+          actionLabel="인증하러 가기"
+          href="/profile"
         />
       </AppShell>
     );

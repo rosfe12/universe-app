@@ -191,12 +191,13 @@ export function CommentThread({
               nextPath={pathname}
               title={
                 accountRequiredTitle ??
-                (isAuthenticated ? "학교 정보 설정 후 댓글을 남길 수 있습니다" : "로그인 후 댓글을 남길 수 있습니다")
+                (isAuthenticated ? "프로필 설정을 마치면 댓글을 남길 수 있습니다" : "로그인 후 댓글을 남길 수 있습니다")
               }
               description={
                 accountRequiredDescription ??
-                (isAuthenticated ? "온보딩을 마치면 바로 댓글을 작성할 수 있습니다." : "읽기는 자유롭게, 댓글은 계정 로그인 후 이용할 수 있습니다.")
+                (isAuthenticated ? "학교와 유저 타입을 먼저 정하면 대부분의 게시판에서 바로 참여할 수 있습니다." : "읽기는 자유롭게, 댓글은 로그인 후 바로 이어서 작성할 수 있습니다.")
               }
+              ctaLabel={isAuthenticated ? "프로필 설정 이어가기" : "로그인하고 댓글 쓰기"}
             />
           )}
         </CardContent>

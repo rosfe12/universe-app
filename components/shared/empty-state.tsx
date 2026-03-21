@@ -1,13 +1,19 @@
 import { Inbox } from "lucide-react";
+import Link from "next/link";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export function EmptyState({
   title,
   description,
+  actionLabel,
+  href,
 }: {
   title: string;
   description: string;
+  actionLabel?: string;
+  href?: string;
 }) {
   return (
     <Card className="border-dashed">
@@ -19,6 +25,11 @@ export function EmptyState({
           <p className="font-semibold">{title}</p>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
+        {actionLabel && href ? (
+          <Button asChild variant="outline">
+            <Link href={href}>{actionLabel}</Link>
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );

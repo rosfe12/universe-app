@@ -14,12 +14,14 @@ export function AccountRequiredCard({
   nextPath,
   title,
   description,
+  ctaLabel,
 }: {
   isAuthenticated: boolean;
   user?: Pick<User, "schoolId"> | null;
   nextPath: string;
   title: string;
   description: string;
+  ctaLabel?: string;
 }) {
   const needsOnboarding = isAuthenticated && !hasCompletedOnboarding(user);
   const href = getAuthFlowHref({ isAuthenticated, user, nextPath });
@@ -36,7 +38,7 @@ export function AccountRequiredCard({
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <Button asChild>
-          <Link href={href}>{needsOnboarding ? "학교 정보 입력" : "로그인하기"}</Link>
+          <Link href={href}>{ctaLabel ?? (needsOnboarding ? "프로필 설정 이어가기" : "로그인하기")}</Link>
         </Button>
       </CardContent>
     </Card>

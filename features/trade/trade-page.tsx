@@ -8,6 +8,7 @@ import { z } from "zod";
 import { AlertTriangle, ArrowRightLeft } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -224,11 +225,58 @@ export function TradePage({
   });
 
   if (!canAccessTrade(currentUser)) {
+    if (!isAuthenticated || !hasCompletedOnboarding(currentUser)) {
+      return (
+        <AppShell title="수강신청 매칭" subtitle="학교 시간표 조정이 필요한 순간에 바로 쓰는 보드" showTabs>
+          <AccountRequiredCard
+            isAuthenticated={isAuthenticated}
+            user={currentUser}
+            nextPath={pathname}
+            title={isAuthenticated ? "프로필 설정을 마치면 바로 이용할 수 있습니다" : "로그인 후 수강신청 매칭을 볼 수 있습니다"}
+            description={
+              isAuthenticated
+                ? "학교와 기본 정보를 설정하면 우리학교 매칭 글을 바로 확인할 수 있습니다."
+                : "로그인 후 우리학교 매칭 글을 보고, 필요한 순간에 바로 글을 올릴 수 있습니다."
+            }
+            ctaLabel={isAuthenticated ? "프로필 설정 이어가기" : "로그인하고 보기"}
+          />
+        </AppShell>
+      );
+    }
+
+    if (currentUser.userType === "highSchool") {
+      return (
+        <AppShell title="수강신청 매칭" subtitle="대학 생활 기능" showTabs>
+          <EmptyState
+            title="입시생 계정은 입시 탭부터 둘러보세요"
+            description="수강신청 매칭은 대학생용 기능입니다. 지금은 입시 질문과 재학생 답변을 먼저 확인하면 충분합니다."
+            actionLabel="입시 탭으로 이동"
+            href="/admission"
+          />
+        </AppShell>
+      );
+    }
+
+    if (currentUser.userType === "freshman") {
+      return (
+        <AppShell title="수강신청 매칭" subtitle="대학생 전용 기능" showTabs>
+          <EmptyState
+            title="예비입학생은 새내기존과 우리학교부터 이용할 수 있습니다"
+            description="수강신청 매칭은 재학생 시간표가 열린 뒤 사용하게 됩니다. 지금은 우리학교 탭에서 새내기존과 생활 글을 먼저 둘러보세요."
+            actionLabel="우리학교로 이동"
+            href="/school?tab=freshman"
+          />
+        </AppShell>
+      );
+    }
+
     return (
       <AppShell title="수강신청 매칭" subtitle="대학생 전용 기능" showTabs>
         <EmptyState
-          title="학교 메일 인증 후 이용 가능"
-          description="수강신청 교환은 학교 메일 인증을 끝낸 대학생만 사용할 수 있습니다."
+          title="학교 메일 인증을 마치면 바로 열립니다"
+          description="학교 메일 인증을 완료하면 우리학교 수강신청 매칭 글 작성과 댓글 참여가 바로 가능합니다."
+          actionLabel="인증하러 가기"
+          href="/profile"
         />
       </AppShell>
     );

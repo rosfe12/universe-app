@@ -115,9 +115,9 @@ export function LecturesPage({
         <Card className="border-dashed border-white/80 bg-white/92">
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
             <div className="space-y-1">
-              <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
+              <p className="font-semibold">강의 메뉴는 대학 진학 후 사용할 수 있습니다</p>
               <p className="text-sm text-muted-foreground">
-                강의평과 수강신청 교환은 대학생 계정에서만 열립니다.
+                입시생은 입시 탭에서 재학생 답변과 학교 분위기부터 확인해보세요.
               </p>
             </div>
             <Button asChild>

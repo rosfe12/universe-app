@@ -166,7 +166,7 @@ export function ProfilePage({
               : "학교 메일이 아직 등록되지 않았습니다."}
           </p>
           <p className="text-sm text-muted-foreground">
-            대학생 전용 기능은 학교 메일 인증 완료 후 열립니다.
+            강의평, 수강신청 매칭, 미팅 기능은 학교 메일 인증이 끝나면 바로 열립니다.
           </p>
           {verificationBadge.status !== "verified" ? (
             <Button
