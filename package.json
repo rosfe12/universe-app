@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "next typegen && tsc --noEmit",
+    "typecheck": "rm -rf .next/types tsconfig.tsbuildinfo && next typegen && tsc --noEmit",
     "setup:supabase:schema": "node scripts/apply-supabase-sql.mjs schema",
     "setup:supabase:seed": "node scripts/apply-supabase-sql.mjs seed",
     "setup:supabase": "node scripts/apply-supabase-sql.mjs all",
