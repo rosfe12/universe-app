@@ -1,29 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   BookOpen,
+  GraduationCap,
   MessageCircle,
   Repeat2,
   School,
   Sparkles,
-  UtensilsCrossed,
   Users,
+  UtensilsCrossed,
 } from "lucide-react";
 
+import { createPost } from "@/app/actions/content-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
-import { FeedPostCard } from "@/features/common/feed-post-card";
-import { CommentThread } from "@/features/common/comment-thread";
-import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
-import { PostAuthorRow } from "@/features/common/post-author-row";
-import { TradePostCard } from "@/features/common/trade-post-card";
 import { LoadingState } from "@/components/shared/loading-state";
 import { SectionHeader } from "@/components/shared/section-header";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
@@ -40,13 +37,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createPost } from "@/app/actions/content-actions";
+import { CommentThread } from "@/features/common/comment-thread";
+import { FeedPostCard } from "@/features/common/feed-post-card";
+import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
+import { PostAuthorRow } from "@/features/common/post-author-row";
+import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { validatePostSubmission } from "@/lib/moderation";
-import { canAccessSchoolFeatures, canWriteFreshmanZone } from "@/lib/permissions";
+import {
+  canWriteAdmissionQuestion,
+  canWriteFreshmanZone,
+} from "@/lib/permissions";
 import { addPostToSnapshot } from "@/lib/runtime-mutations";
 import {
+  getAdmissionQuestions,
+  getCommentsByPostId,
   getCommunityPosts,
   getCurrentSchool,
   getLectureSummaries,
@@ -54,7 +59,7 @@ import {
 } from "@/lib/mock-queries";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { getAuthFlowHref, hasCompletedOnboarding } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel } from "@/lib/user-identity";
+import { getDefaultVisibilityLevel, getSchoolShortName } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot, Post, VisibilityLevel } from "@/types";
 
 const freshmanZoneSchema = z.object({
@@ -64,54 +69,28 @@ const freshmanZoneSchema = z.object({
 });
 
 type FreshmanZoneFormValues = z.infer<typeof freshmanZoneSchema>;
-type SchoolTab = "lectures" | "trade" | "club" | "food" | "freshman";
+type SchoolSection = "lectures" | "trade" | "club" | "food" | "freshman" | "admission";
 
-const SCHOOL_SECTIONS = [
-  {
-    value: "lectures",
-    label: "강의",
-    title: "강의 정보",
-    icon: BookOpen,
-    href: "/lectures",
-  },
-  {
-    value: "trade",
-    label: "수강신청",
-    title: "수강신청 교환",
-    icon: Repeat2,
-    href: "/lectures?view=trade",
-  },
-  {
-    value: "club",
-    label: "동아리",
-    title: "동아리",
-    icon: Users,
-    href: "/school?tab=club",
-  },
-  {
-    value: "food",
-    label: "맛집",
-    title: "맛집",
-    icon: UtensilsCrossed,
-    href: "/school?tab=food",
-  },
-  {
-    value: "freshman",
-    label: "새내기존",
-    title: "새내기존",
-    icon: Sparkles,
-    href: "/school?tab=freshman",
-  },
-] as const satisfies ReadonlyArray<{
-  value: SchoolTab;
-  label: string;
-  title: string;
-  icon: typeof BookOpen;
-  href: string;
-}>;
+const SECTION_VALUES: SchoolSection[] = [
+  "lectures",
+  "trade",
+  "club",
+  "food",
+  "freshman",
+  "admission",
+];
 
-function isSchoolTab(value: string | null): value is SchoolTab {
-  return SCHOOL_SECTIONS.some((section) => section.value === value);
+function isSchoolSection(value: string | null): value is SchoolSection {
+  return Boolean(value && SECTION_VALUES.includes(value as SchoolSection));
+}
+
+function matchesSchoolAdmission(post: Post, schoolId?: string, schoolName?: string) {
+  const shortName = getSchoolShortName(schoolName);
+  return (
+    post.schoolId === schoolId ||
+    post.meta?.interestUniversity?.includes(schoolName ?? "") ||
+    post.meta?.interestUniversity?.includes(shortName)
+  );
 }
 
 export function SchoolPage({
@@ -119,9 +98,12 @@ export function SchoolPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const initialTab: SchoolTab = isSchoolTab(tabParam) ? tabParam : "lectures";
+  const highlightSection: SchoolSection | null = isSchoolSection(tabParam)
+    ? tabParam
+    : null;
   const {
     loading,
     currentUser: runtimeUser,
@@ -131,39 +113,49 @@ export function SchoolPage({
     setSnapshot,
   } = useAppRuntime(initialSnapshot);
   const currentUser = runtimeUser;
-  const [activeTab, setActiveTab] = useState<SchoolTab>(initialTab);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const currentSchool = getCurrentSchool();
   const schoolId = currentUser.schoolId;
   const schoolName = currentSchool?.name ?? "우리학교";
-
-  useEffect(() => {
-    setActiveTab(isSchoolTab(tabParam) ? tabParam : "lectures");
-  }, [tabParam]);
+  const schoolShortName = getSchoolShortName(schoolName);
+  const isApplicantMode = currentUser.userType === "highSchool";
 
   const lectures = getLectureSummaries()
     .filter((lecture) => !schoolId || lecture.schoolId === schoolId)
-    .slice(0, 6);
+    .slice(0, 4);
   const tradeItems = getTradePosts()
     .filter((tradePost) => !schoolId || tradePost.schoolId === schoolId)
-    .slice(0, 6);
+    .slice(0, 3);
   const clubPosts = getCommunityPosts("club")
     .filter((post) => !schoolId || post.schoolId === schoolId)
-    .slice(0, 6);
+    .slice(0, 5);
   const foodPosts = getCommunityPosts("food")
     .filter((post) => !schoolId || post.schoolId === schoolId)
-    .slice(0, 6);
+    .slice(0, 5);
   const freshmanZonePosts = getCommunityPosts("freshman")
     .filter((post) => !schoolId || post.schoolId === schoolId)
-    .slice(0, 8);
+    .slice(0, 4);
+  const admissionPosts = getAdmissionQuestions()
+    .filter((post) => matchesSchoolAdmission(post, schoolId, schoolName))
+    .slice(0, 4);
   const freshmanComposeEnabled =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteFreshmanZone(currentUser);
   const freshmanCommentEnabled = freshmanComposeEnabled;
+  const admissionWriteEnabled =
+    isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion();
   const freshmanDetailPost = useMemo(
     () => freshmanZonePosts.find((post) => post.id === detailPostId) ?? null,
     [detailPostId, freshmanZonePosts],
+  );
+  const campusInfoCards = useMemo(
+    () =>
+      [
+        ...clubPosts.map((post) => ({ ...post, boardLabel: "동아리" as const })),
+        ...foodPosts.map((post) => ({ ...post, boardLabel: "맛집" as const })),
+      ].sort((a, b) => b.likes - a.likes || b.commentCount - a.commentCount),
+    [clubPosts, foodPosts],
   );
 
   const freshmanForm = useForm<FreshmanZoneFormValues>({
@@ -174,6 +166,60 @@ export function SchoolPage({
       visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
     },
   });
+
+  const quickTools = isApplicantMode
+    ? [
+        {
+          key: "admission" as const,
+          label: "입시 Q&A",
+          icon: GraduationCap,
+          href: "/admission",
+        },
+        {
+          key: "freshman" as const,
+          label: "새내기 게시판",
+          icon: Sparkles,
+          href: "/school?tab=freshman",
+        },
+        {
+          key: "lectures" as const,
+          label: "강의정보",
+          icon: BookOpen,
+          href: "/lectures",
+        },
+        {
+          key: "club" as const,
+          label: "동아리",
+          icon: Users,
+          href: "/school?tab=club",
+        },
+      ]
+    : [
+        {
+          key: "lectures" as const,
+          label: "강의정보",
+          icon: BookOpen,
+          href: "/lectures",
+        },
+        {
+          key: "trade" as const,
+          label: "수강신청 교환",
+          icon: Repeat2,
+          href: "/trade",
+        },
+        {
+          key: "freshman" as const,
+          label: "새내기 게시판",
+          icon: Sparkles,
+          href: "/school?tab=freshman",
+        },
+        {
+          key: "admission" as const,
+          label: "입시 Q&A",
+          icon: GraduationCap,
+          href: "/admission",
+        },
+      ];
 
   if (!loading && !isAuthenticated) {
     return (
@@ -213,11 +259,11 @@ export function SchoolPage({
 
   if (!loading && isAuthenticated && (!schoolId || !currentSchool)) {
     return (
-      <AppShell title="우리학교">
+      <AppShell title={isApplicantMode ? "지망학교" : "우리학교"}>
         <Card className="border-dashed border-white/80 bg-white/92">
           <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
             <div className="space-y-1">
-              <p className="font-semibold">학교를 선택하면 우리학교 탭이 열립니다</p>
+              <p className="font-semibold">학교를 선택하면 학교 전용 공간이 열립니다</p>
             </div>
             <Button asChild>
               <Link href="/profile">프로필 설정하기</Link>
@@ -228,181 +274,244 @@ export function SchoolPage({
     );
   }
 
-  if (
-    !loading &&
-    isAuthenticated &&
-    hasCompletedOnboarding(currentUser) &&
-    !canAccessSchoolFeatures(currentUser)
-  ) {
-    return (
-      <AppShell title={schoolName} subtitle="우리 학교 이야기">
-        <Card className="border-dashed border-white/80 bg-white/92">
-          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-            <div className="space-y-1">
-              <p className="font-semibold">입시생 계정은 입시 게시판부터 이용할 수 있습니다</p>
-              <p className="text-sm text-muted-foreground">
-                우리학교 탭은 대학생과 예비입학생 중심 공간입니다. 입시 질문과 합격 정보는 입시 탭에서 바로 이어집니다.
-              </p>
-            </div>
-            <Button asChild>
-              <Link href="/admission">입시 게시판으로 이동</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </AppShell>
-    );
-  }
-
   return (
-    <AppShell
-      title={schoolName}
-      subtitle="우리 학교 이야기"
-    >
+    <AppShell title={isApplicantMode ? "지망학교" : "우리학교"}>
       {loading ? <LoadingState /> : null}
 
-      <Card className="overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(34,197,94,0.18),_transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,253,244,0.92))]">
+      <Card className="overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,255,0.94))]">
         <CardContent className="space-y-6 py-6">
           <div className="flex items-center justify-between gap-3">
-            <Badge variant="secondary" className="bg-white/85 text-foreground">
-              우리 학교 중심
+            <Badge variant={isApplicantMode ? "warning" : "secondary"} className="bg-white/85 text-foreground">
+              {isApplicantMode ? "지망학교 모드" : "캠퍼스 라이브"}
             </Badge>
             <School className="h-5 w-5 text-primary" />
           </div>
-          <div className="space-y-2">
-            <h2 className="text-[30px] font-semibold tracking-tight text-slate-950 text-balance">{schoolName}</h2>
+
+          <div className="space-y-3">
+            <h2 className="text-[30px] font-semibold tracking-tight text-slate-950 text-balance">
+              {schoolName}
+            </h2>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-[20px] border border-white/80 bg-white/90 px-4 py-3">
+                <p className="text-[11px] text-muted-foreground">새내기 글</p>
+                <p className="mt-1 text-[18px] font-semibold text-foreground">{freshmanZonePosts.length}</p>
+              </div>
+              <div className="rounded-[20px] border border-white/80 bg-white/90 px-4 py-3">
+                <p className="text-[11px] text-muted-foreground">입시 질문</p>
+                <p className="mt-1 text-[18px] font-semibold text-foreground">{admissionPosts.length}</p>
+              </div>
+              <div className="rounded-[20px] border border-white/80 bg-white/90 px-4 py-3">
+                <p className="text-[11px] text-muted-foreground">강의</p>
+                <p className="mt-1 text-[18px] font-semibold text-foreground">{lectures.length}</p>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3.5">
-            {SCHOOL_SECTIONS.map((section) => (
-              <Link key={section.value} href={`/school?tab=${section.value}`} className="block">
-                <Card className="h-full border-white/80 bg-white/86 shadow-none transition-transform hover:-translate-y-0.5">
-                  <CardContent className="flex min-h-[144px] flex-col items-start justify-between gap-4 px-4 py-[18px]">
-                    <div className="shrink-0 rounded-[20px] bg-primary/10 p-3 text-primary">
-                      <section.icon className="h-5 w-5" />
+
+          {isApplicantMode ? (
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => router.push("/admission")}
+              >
+                질문하기
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => router.push("/school?tab=freshman")}
+              >
+                새내기 글 보기
+              </Button>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <section className="space-y-4">
+        <SectionHeader title="퀵 메뉴" />
+        <div className="grid grid-cols-2 gap-3">
+          {quickTools.map((tool) => (
+            <Link key={tool.key} href={tool.href} className="block">
+              <Card
+                className={
+                  highlightSection === tool.key
+                    ? "border-primary/30 bg-primary/5 shadow-[0_20px_46px_-32px_rgba(99,102,241,0.38)]"
+                    : "border-white/85 bg-white/94 shadow-none"
+                }
+              >
+                <CardContent className="flex min-h-[118px] flex-col items-start justify-between gap-3 py-5">
+                  <div className="rounded-[18px] bg-primary/10 p-3 text-primary">
+                    <tool.icon className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[17px] font-semibold leading-6 text-slate-950">{tool.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <SectionHeader title="캠퍼스 라이브" />
+
+        <div
+          className={
+            highlightSection === "freshman"
+              ? "rounded-[32px] border border-emerald-200/80 bg-emerald-50/40 p-4"
+              : "space-y-4"
+          }
+        >
+          <SectionHeader title="새내기 게시판" />
+          {freshmanZonePosts.length === 0 ? (
+            <EmptyState
+              title="아직 새내기 글이 없습니다"
+              description="오티, 기숙사, 시간표처럼 입학 전에 궁금한 내용을 가장 먼저 올려보세요."
+            />
+          ) : (
+            <div className="space-y-3">
+              {freshmanZonePosts.map((post) => (
+                <div key={post.id} className="space-y-3">
+                  <FeedPostCard post={post} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setDetailPostId(post.id)}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    댓글 보기
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div
+          className={
+            highlightSection === "admission"
+              ? "rounded-[32px] border border-amber-200/80 bg-amber-50/40 p-4"
+              : "space-y-4"
+          }
+        >
+          <SectionHeader title="입시 Q&A" href="/admission" />
+          {admissionPosts.length === 0 ? (
+            <EmptyState
+              title={`${schoolShortName} 입시 질문이 아직 없습니다`}
+              description="이 학교를 목표로 준비 중이라면 첫 질문을 남겨보세요."
+              actionLabel="질문하러 가기"
+              href="/admission"
+            />
+          ) : (
+            <div className="space-y-3">
+              {admissionPosts.map((post) => (
+                <FeedPostCard key={post.id} post={post} href={`/admission/${post.id}`} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <SectionHeader title="강의 정보" href="/lectures" />
+        {lectures.length === 0 ? (
+          <EmptyState
+            title="아직 강의 정보가 없습니다"
+            description="학교 강의 리뷰가 쌓이면 여기에 바로 보입니다."
+            actionLabel="강의 보러 가기"
+            href="/lectures"
+          />
+        ) : (
+          <div className="space-y-3">
+            {lectures.map((lecture) => (
+              <LectureSummaryCard key={lecture.id} lecture={lecture} href={`/lectures/${lecture.id}`} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {!isApplicantMode ? (
+        <section
+          className={
+            highlightSection === "trade"
+              ? "rounded-[32px] border border-violet-200/80 bg-violet-50/30 p-4"
+              : "space-y-4"
+          }
+        >
+          <SectionHeader title="수강신청 교환" href="/trade" />
+          {tradeItems.length === 0 ? (
+            <EmptyState
+              title="아직 교환 글이 없습니다"
+              description="같은 학교 교환 글이 올라오면 바로 이어서 볼 수 있습니다."
+              actionLabel="교환 게시판 보기"
+              href="/trade"
+            />
+          ) : (
+            <div className="space-y-3">
+              {tradeItems.map((tradePost) => (
+                <TradePostCard key={tradePost.id} tradePost={tradePost} />
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      <section className="space-y-4">
+        <SectionHeader title="탐색" />
+        {campusInfoCards.length === 0 ? (
+          <EmptyState
+            title="둘러볼 학교 생활 글이 아직 없습니다"
+            description="동아리 모집과 학교 주변 맛집 글이 차례로 보이게 됩니다."
+          />
+        ) : (
+          <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {campusInfoCards.map((post) => (
+              <Link
+                key={`${post.boardLabel}-${post.id}`}
+                href={post.boardLabel === "동아리" ? "/community" : "/school?tab=food"}
+                className="block min-w-[280px] snap-start"
+              >
+                <Card
+                  className={
+                    highlightSection === (post.boardLabel === "동아리" ? "club" : "food")
+                      ? "h-full border-primary/25 bg-primary/5"
+                      : "h-full border-white/85 bg-white/94"
+                  }
+                >
+                  <CardContent className="space-y-4 py-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <Badge variant={post.boardLabel === "동아리" ? "secondary" : "warning"}>
+                        {post.boardLabel}
+                      </Badge>
+                      {post.boardLabel === "동아리" ? (
+                        <Users className="h-4 w-4 text-primary" />
+                      ) : (
+                        <UtensilsCrossed className="h-4 w-4 text-primary" />
+                      )}
                     </div>
-                    <div className="min-w-0 space-y-1">
-                      <p className="text-balance text-[17px] font-semibold leading-6 text-slate-950">
-                        {section.title}
+                    <div className="space-y-2">
+                      <p className="text-[18px] font-semibold leading-7 text-slate-950 line-clamp-2">
+                        {post.title}
                       </p>
+                      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                        {post.content}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>댓글 {getCommentsByPostId(post.id).length}</span>
+                      <span>좋아요 {post.likes}</span>
                     </div>
                   </CardContent>
                 </Card>
               </Link>
             ))}
           </div>
-        </CardContent>
-      </Card>
-
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SchoolTab)} className="space-y-4">
-        <TabsList className="flex w-full justify-start gap-2 overflow-x-auto rounded-[28px] bg-secondary/75 p-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {SCHOOL_SECTIONS.map((section) => (
-            <TabsTrigger
-              key={section.value}
-              value={section.value}
-              className="h-11 shrink-0 whitespace-nowrap px-4 text-[13px] font-semibold"
-            >
-              {section.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="lectures" className="space-y-3">
-          <SectionHeader title="강의 정보" href="/lectures" />
-          {lectures.map((lecture) => (
-            <LectureSummaryCard key={lecture.id} lecture={lecture} href={`/lectures/${lecture.id}`} />
-          ))}
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/lectures">강의 정보 전체 보기</Link>
-          </Button>
-        </TabsContent>
-
-        <TabsContent value="trade" className="space-y-3">
-          <SectionHeader title="수강신청 교환" href="/lectures?view=trade" />
-          {tradeItems.map((tradePost) => (
-            <TradePostCard key={tradePost.id} tradePost={tradePost} />
-          ))}
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/lectures?view=trade">수강신청 교환 전체 보기</Link>
-          </Button>
-        </TabsContent>
-
-        <TabsContent value="club" className="space-y-3">
-          <SectionHeader title="동아리" />
-          {clubPosts.map((post) => (
-            <FeedPostCard key={post.id} post={post} />
-          ))}
-        </TabsContent>
-
-        <TabsContent value="food" className="space-y-3">
-          <SectionHeader title="맛집" />
-          {foodPosts.map((post) => (
-            <FeedPostCard key={post.id} post={post} />
-          ))}
-        </TabsContent>
-
-        <TabsContent value="freshman" className="space-y-4">
-          <Card className="overflow-hidden bg-[linear-gradient(135deg,#f8fafc_0%,#ecfeff_100%)]">
-            <CardContent className="space-y-4 py-5">
-              <div className="flex items-center justify-between gap-3">
-                <Badge variant="success">{schoolName.replace("대학교", "대")} 새내기존</Badge>
-                <Sparkles className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold tracking-tight text-slate-950">같은 학교 예비입학생끼리 먼저 친해지기</h3>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-[20px] border border-emerald-200 bg-white/85 px-3 py-3">
-                  <p className="text-[11px] text-muted-foreground">학교</p>
-                  <p className="mt-1 text-sm font-semibold">{schoolName.replace("대학교", "대")}</p>
-                </div>
-                <div className="rounded-[20px] border border-emerald-200 bg-white/85 px-3 py-3">
-                  <p className="text-[11px] text-muted-foreground">글 수</p>
-                  <p className="mt-1 text-sm font-semibold">{freshmanZonePosts.length}개</p>
-                </div>
-                <div className="rounded-[20px] border border-emerald-200 bg-white/85 px-3 py-3">
-                  <p className="text-[11px] text-muted-foreground">작성 권한</p>
-                  <p className="mt-1 text-sm font-semibold">{freshmanComposeEnabled ? "예비입학생" : "읽기 전용"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {!freshmanComposeEnabled && currentUser.userType === "college" ? (
-            <Card className="border-white/80 bg-white/92">
-              <CardContent className="flex items-center justify-between gap-3 py-4">
-                <div className="space-y-1">
-                  <p className="font-semibold">대학생 계정은 새내기존을 읽기 전용으로 볼 수 있습니다</p>
-                  <p className="text-sm text-muted-foreground">
-                    예비입학생 글을 읽고 학교 분위기를 먼저 살펴보세요.
-                  </p>
-                </div>
-                <Badge variant="outline">읽기 전용</Badge>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {freshmanZonePosts.length === 0 ? (
-            <EmptyState
-              title="아직 새내기존 글이 없습니다"
-              description="첫 글로 오티, 기숙사, 수강신청 궁금증을 먼저 열어보세요."
-            />
-          ) : (
-            freshmanZonePosts.map((post) => (
-              <div key={post.id} className="space-y-3">
-                <FeedPostCard post={post} />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setDetailPostId(post.id)}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  댓글 보기
-                </Button>
-              </div>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
+        )}
+      </section>
 
       <Dialog
         open={Boolean(freshmanDetailPost)}
@@ -413,7 +522,7 @@ export function SchoolPage({
             <>
               <DialogHeader>
                 <DialogTitle>{freshmanDetailPost.title}</DialogTitle>
-                <DialogDescription>{schoolName.replace("대학교", "대")} 새내기존</DialogDescription>
+                <DialogDescription>{schoolShortName} 새내기 게시판</DialogDescription>
               </DialogHeader>
               <Card className="shadow-none">
                 <CardContent className="space-y-4 py-5">
@@ -450,7 +559,7 @@ export function SchoolPage({
       <Dialog open={composerOpen} onOpenChange={setComposerOpen}>
         <DialogContent className="max-h-[88vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{schoolName.replace("대학교", "대")} 새내기존 글쓰기</DialogTitle>
+            <DialogTitle>{schoolShortName} 새내기 게시판 글쓰기</DialogTitle>
             <DialogDescription>예비입학생끼리 입학 전 궁금한 점과 생활 팁을 익명으로 나눌 수 있습니다.</DialogDescription>
           </DialogHeader>
           <form
@@ -483,7 +592,7 @@ export function SchoolPage({
                 createdAt,
                 likes: 0,
                 commentCount: 0,
-                tags: ["새내기존", schoolName.replace("대학교", "대")],
+                tags: ["새내기존", schoolShortName],
               };
 
               if (source === "supabase" && isAuthenticated) {
@@ -497,7 +606,7 @@ export function SchoolPage({
                         visibilityLevel: values.visibilityLevel,
                         title: values.title,
                         content: values.content,
-                        tags: ["새내기존", schoolName.replace("대학교", "대")],
+                        tags: ["새내기존", schoolShortName],
                       });
                       await refresh();
                       freshmanForm.reset({
@@ -509,7 +618,7 @@ export function SchoolPage({
                       setComposerOpen(false);
                     } catch (error) {
                       freshmanForm.setError("root", {
-                        message: error instanceof Error ? error.message : "새내기존 글 작성에 실패했습니다.",
+                        message: error instanceof Error ? error.message : "새내기 게시판 글 작성에 실패했습니다.",
                       });
                     }
                   })();
@@ -558,15 +667,28 @@ export function SchoolPage({
               <p className="text-xs text-rose-500">{freshmanForm.formState.errors.root.message}</p>
             ) : null}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "등록 중" : "새내기존에 올리기"}
+              {isSubmitting ? "등록 중" : "새내기 게시판에 올리기"}
             </Button>
           </form>
         </DialogContent>
       </Dialog>
 
-      {!isAuthenticated || currentUser.userType === "freshman" ? (
+      {!isAuthenticated || currentUser.userType === "freshman" || isApplicantMode ? (
         <FloatingComposeButton
           onClick={() => {
+            if (isApplicantMode) {
+              if (!admissionWriteEnabled) {
+                window.location.href = getAuthFlowHref({
+                  isAuthenticated,
+                  user: currentUser,
+                  nextPath: "/school?tab=admission",
+                });
+                return;
+              }
+              router.push("/admission");
+              return;
+            }
+
             if (!freshmanComposeEnabled) {
               window.location.href = getAuthFlowHref({
                 isAuthenticated,
@@ -576,10 +698,9 @@ export function SchoolPage({
               return;
             }
 
-            setActiveTab("freshman");
             setComposerOpen(true);
           }}
-          label="새내기존 글쓰기"
+          label={isApplicantMode ? "질문하기" : "새내기 글쓰기"}
         />
       ) : null}
     </AppShell>
