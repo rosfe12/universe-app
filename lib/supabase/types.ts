@@ -394,20 +394,58 @@ type BlockInsert = {
 type NotificationRow = {
   id: string;
   user_id: string;
-  type: "comment" | "answer" | "trade" | "report";
+  type:
+    | "comment"
+    | "reply"
+    | "trending_post"
+    | "lecture_reaction"
+    | "trade_match"
+    | "admission_answer"
+    | "school_recommendation"
+    | "freshman_trending"
+    | "admission_unanswered"
+    | "verification_approved"
+    | "report_update"
+    | "announcement"
+    | "answer"
+    | "trade"
+    | "report";
   title: string;
   body: string;
   is_read: boolean;
+  href: string | null;
+  target_type: string | null;
+  target_id: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
 };
 
 type NotificationInsert = {
   id?: string;
   user_id: string;
-  type: "comment" | "answer" | "trade" | "report";
+  type:
+    | "comment"
+    | "reply"
+    | "trending_post"
+    | "lecture_reaction"
+    | "trade_match"
+    | "admission_answer"
+    | "school_recommendation"
+    | "freshman_trending"
+    | "admission_unanswered"
+    | "verification_approved"
+    | "report_update"
+    | "announcement"
+    | "answer"
+    | "trade"
+    | "report";
   title: string;
   body: string;
   is_read?: boolean;
+  href?: string | null;
+  target_type?: string | null;
+  target_id?: string | null;
+  metadata?: Record<string, unknown>;
   created_at?: string;
 };
 

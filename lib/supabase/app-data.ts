@@ -253,14 +253,57 @@ function mapTradePostRow(row: Record<string, unknown>): TradePost {
   };
 }
 
+function toNotificationType(
+  value?: string | null,
+): Notification["type"] {
+  if (value === "reply") return "reply";
+  if (value === "trending_post") return "trendingPost";
+  if (value === "lecture_reaction") return "lectureReaction";
+  if (value === "trade_match" || value === "trade") return "tradeMatch";
+  if (value === "admission_answer" || value === "answer") return "admissionAnswer";
+  if (value === "school_recommendation") return "schoolRecommendation";
+  if (value === "freshman_trending") return "freshmanTrending";
+  if (value === "admission_unanswered") return "admissionUnanswered";
+  if (value === "verification_approved") return "verificationApproved";
+  if (value === "report_update" || value === "report") return "reportUpdate";
+  if (value === "announcement") return "announcement";
+  return "comment";
+}
+
+function toNotificationCategory(
+  type: Notification["type"],
+): Notification["category"] {
+  if (
+    type === "schoolRecommendation" ||
+    type === "freshmanTrending" ||
+    type === "admissionUnanswered" ||
+    type === "verificationApproved" ||
+    type === "reportUpdate" ||
+    type === "announcement"
+  ) {
+    return "notice";
+  }
+
+  return "activity";
+}
+
 function mapNotificationRow(row: Record<string, unknown>): Notification {
+  const type = toNotificationType(row.type as string | null | undefined);
   return {
     id: String(row.id),
     userId: String(row.user_id),
-    type: row.type as Notification["type"],
+    type,
+    category: toNotificationCategory(type),
     title: String(row.title),
     body: String(row.body),
     isRead: Boolean(row.is_read),
+    href: row.href ? String(row.href) : undefined,
+    targetType: row.target_type ? String(row.target_type) as Notification["targetType"] : undefined,
+    targetId: row.target_id ? String(row.target_id) : undefined,
+    metadata:
+      row.metadata && typeof row.metadata === "object"
+        ? (row.metadata as Record<string, unknown>)
+        : undefined,
     createdAt: String(row.created_at ?? new Date().toISOString()),
   };
 }

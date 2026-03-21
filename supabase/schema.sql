@@ -84,6 +84,24 @@ $$;
 
 do $$
 begin
+  alter type public.notification_type add value if not exists 'reply';
+  alter type public.notification_type add value if not exists 'trending_post';
+  alter type public.notification_type add value if not exists 'lecture_reaction';
+  alter type public.notification_type add value if not exists 'trade_match';
+  alter type public.notification_type add value if not exists 'admission_answer';
+  alter type public.notification_type add value if not exists 'school_recommendation';
+  alter type public.notification_type add value if not exists 'freshman_trending';
+  alter type public.notification_type add value if not exists 'admission_unanswered';
+  alter type public.notification_type add value if not exists 'verification_approved';
+  alter type public.notification_type add value if not exists 'report_update';
+  alter type public.notification_type add value if not exists 'announcement';
+exception
+  when duplicate_object then null;
+end
+$$;
+
+do $$
+begin
   alter type public.post_subcategory add value if not exists 'freshman';
 exception
   when duplicate_object then null;
@@ -375,6 +393,12 @@ create table if not exists public.notifications (
   is_read boolean not null default false,
   created_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.notifications
+  add column if not exists href text,
+  add column if not exists target_type text,
+  add column if not exists target_id uuid,
+  add column if not exists metadata jsonb not null default '{}'::jsonb;
 
 create table if not exists public.media_assets (
   id uuid primary key default gen_random_uuid(),

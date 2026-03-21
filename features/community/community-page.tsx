@@ -129,6 +129,14 @@ function getComposeLabel(filter: SharedFilter) {
   return "고민상담 글쓰기";
 }
 
+function getFilterForPost(post: Post): SharedFilter {
+  if (getCareerBoardKind(post)) return "career";
+  if (post.subcategory === "hot") return "hot";
+  if (post.subcategory === "dating") return "dating";
+  if (post.subcategory === "meeting") return "meeting";
+  return "advice";
+}
+
 function SharedFeedCard({
   post,
   hotScore,
@@ -229,6 +237,7 @@ export function CommunityPage({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const filterParam = searchParams.get("filter");
+  const detailParam = searchParams.get("post");
   const {
     loading,
     posts,
@@ -267,6 +276,20 @@ export function CommunityPage({
     const all = [...advicePosts, ...hotPosts, ...datingPosts, ...meetingPosts, ...careerPosts];
     return [...all].sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt));
   }, [advicePosts, careerPosts, datingPosts, hotPosts, meetingPosts]);
+
+  useEffect(() => {
+    if (!detailParam) {
+      return;
+    }
+
+    const targetPost = feedItems.find((post) => post.id === detailParam);
+    if (!targetPost) {
+      return;
+    }
+
+    setActiveFilter(getFilterForPost(targetPost));
+    setDetailPostId(targetPost.id);
+  }, [detailParam, feedItems]);
 
   const filteredItems = useMemo(() => {
     if (activeFilter === "all") return feedItems;

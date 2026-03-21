@@ -890,15 +890,17 @@ with seeded_notifications as (
   select *
   from (
     values
-      ('81111111-1111-4111-8111-111111111501'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'comment'::public.notification_type, '새 댓글이 달렸습니다', '축제 라인업 글에 새 댓글이 달렸습니다.', false),
-      ('81111111-1111-4111-8111-111111111502'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'answer'::public.notification_type, '답변이 채택되었습니다', '입시 질문 답변이 질문자에게 채택되었습니다.', false),
-      ('81111111-1111-4111-8111-111111111503'::uuid, 'b2222222-2222-4222-8222-222222222222'::uuid, 'trade'::public.notification_type, '매칭 후보가 생겼습니다', '자료구조 교환 글과 맞는 후보가 1건 있습니다.', false),
-      ('81111111-1111-4111-8111-111111111504'::uuid, 'c3333333-3333-4333-8333-333333333333'::uuid, 'comment'::public.notification_type, '커뮤니티 글에 반응이 늘었습니다', '맛집 추천 글의 댓글이 빠르게 늘고 있습니다.', true),
-      ('81111111-1111-4111-8111-111111111505'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'trade'::public.notification_type, '수강신청 교환 문의', '마케팅원론 교환 글을 확인한 사용자가 있습니다.', true),
-      ('81111111-1111-4111-8111-111111111506'::uuid, 'e5555555-5555-4555-8555-555555555555'::uuid, 'answer'::public.notification_type, '입시 질문에 답변이 달렸습니다', '건국대 경영 논술 준비 질문에 대학생 답변이 달렸습니다.', false),
-      ('81111111-1111-4111-8111-111111111507'::uuid, 'f6666666-6666-4666-8666-666666666666'::uuid, 'answer'::public.notification_type, '입시 질문에 답변이 도착했습니다', '기숙사 경쟁률 질문에 실제 재학생 답변이 달렸습니다.', false),
-      ('81111111-1111-4111-8111-111111111508'::uuid, 'd4444444-4444-4444-8444-444444444444'::uuid, 'trade'::public.notification_type, '교환 글 조회가 늘었습니다', '회로이론 교환 글 조회가 빠르게 늘고 있습니다.', true)
-  ) as t(id, user_id, type, title, body, is_read)
+      ('81111111-1111-4111-8111-111111111501'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'comment'::public.notification_type, '내 글에 새 댓글이 달렸습니다', '축제 후기 글에 새로운 댓글이 달렸습니다.', false, '/community?filter=hot', 'post', null::uuid, '{}'::jsonb),
+      ('81111111-1111-4111-8111-111111111502'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'reply'::public.notification_type, '답글이 이어졌습니다', '내가 남긴 댓글에 답글이 달렸습니다.', false, '/community?filter=advice', 'comment', null::uuid, '{}'::jsonb),
+      ('81111111-1111-4111-8111-111111111503'::uuid, 'b2222222-2222-4222-8222-222222222222'::uuid, 'trade_match'::public.notification_type, '교환 매칭 후보가 생겼습니다', '원하는 강의를 가진 글이 새로 올라왔습니다.', false, '/trade', 'trade', null::uuid, '{}'::jsonb),
+      ('81111111-1111-4111-8111-111111111504'::uuid, 'c3333333-3333-4333-8333-333333333333'::uuid, 'trending_post'::public.notification_type, '내 글이 인기글로 올라왔습니다', '반응이 빠르게 붙어 커뮤니티 인기글에 노출되고 있습니다.', true, '/community?filter=hot', 'post', null::uuid, '{}'::jsonb),
+      ('81111111-1111-4111-8111-111111111505'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'lecture_reaction'::public.notification_type, '강의평 반응이 늘고 있습니다', '내가 남긴 강의평을 저장하고 다시 보는 사용자가 많아졌습니다.', true, '/lectures', 'lecture', null::uuid, '{}'::jsonb),
+      ('81111111-1111-4111-8111-111111111506'::uuid, 'e5555555-5555-4555-8555-555555555555'::uuid, 'admission_answer'::public.notification_type, '입시 질문에 답변이 달렸습니다', '질문에 대학생 답변이 달렸습니다. 상세에서 바로 확인해보세요.', false, '/admission', 'post', null::uuid, '{}'::jsonb),
+      ('81111111-1111-4111-8111-111111111507'::uuid, 'f6666666-6666-4666-8666-666666666666'::uuid, 'school_recommendation'::public.notification_type, '우리학교에서 많이 보는 글을 추천합니다', '같은 학교 학생들이 자주 열어보는 글을 모아봤습니다.', true, '/school', 'system', null::uuid, '{"recommended": true}'::jsonb),
+      ('81111111-1111-4111-8111-111111111508'::uuid, 'd4444444-4444-4444-8444-444444444444'::uuid, 'freshman_trending'::public.notification_type, '새내기존 질문이 활발합니다', '예비입학생들이 많이 보는 질문을 확인해보세요.', true, '/school?tab=freshman', 'system', null::uuid, '{"recommended": true}'::jsonb),
+      ('81111111-1111-4111-8111-111111111509'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'verification_approved'::public.notification_type, '학교 메일 인증이 승인되었습니다', '이제 대학생 전용 기능을 사용할 수 있습니다.', false, '/profile', 'verification', null::uuid, '{}'::jsonb),
+      ('81111111-1111-4111-8111-111111111510'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'announcement'::public.notification_type, '이번 주 운영 공지', '댓글 반응, 추천 알림, 인증 상태를 알림 탭에서 바로 확인할 수 있습니다.', true, '/community', 'system', null::uuid, '{}'::jsonb)
+  ) as t(id, user_id, type, title, body, is_read, href, target_type, target_id, metadata)
 )
 insert into public.notifications (
   id,
@@ -906,7 +908,11 @@ insert into public.notifications (
   type,
   title,
   body,
-  is_read
+  is_read,
+  href,
+  target_type,
+  target_id,
+  metadata
 )
 select * from seeded_notifications
 on conflict (id) do update
@@ -915,4 +921,8 @@ set
   type = excluded.type,
   title = excluded.title,
   body = excluded.body,
-  is_read = excluded.is_read;
+  is_read = excluded.is_read,
+  href = excluded.href,
+  target_type = excluded.target_type,
+  target_id = excluded.target_id,
+  metadata = excluded.metadata;

@@ -16,7 +16,28 @@ export type ReportReason =
   | "harassment"
   | "fraud"
   | "other";
-export type NotificationType = "comment" | "answer" | "trade" | "report";
+export type NotificationType =
+  | "comment"
+  | "reply"
+  | "trendingPost"
+  | "lectureReaction"
+  | "tradeMatch"
+  | "admissionAnswer"
+  | "schoolRecommendation"
+  | "freshmanTrending"
+  | "admissionUnanswered"
+  | "verificationApproved"
+  | "reportUpdate"
+  | "announcement";
+export type NotificationCategory = "activity" | "notice";
+export type NotificationTargetType =
+  | "post"
+  | "comment"
+  | "lecture"
+  | "trade"
+  | "verification"
+  | "report"
+  | "system";
 export type TradeStatus = "open" | "matching" | "closed";
 export type DifficultyLevel = "easy" | "medium" | "hard";
 export type WorkloadLevel = "light" | "medium" | "heavy";
@@ -158,9 +179,15 @@ export interface Notification {
   id: string;
   userId: string;
   type: NotificationType;
+  category: NotificationCategory;
   title: string;
   body: string;
   isRead: boolean;
+  href?: string;
+  targetType?: NotificationTargetType;
+  targetId?: string;
+  metadata?: Record<string, unknown>;
+  recommended?: boolean;
   createdAt: string;
 }
 
