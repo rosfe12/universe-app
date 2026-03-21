@@ -137,7 +137,16 @@ type PostRow = {
   id: string;
   author_id: string;
   category: "admission" | "community" | "dating";
-  subcategory: "club" | "meetup" | "food" | "hot" | "freshman" | "dating" | "meeting" | null;
+  subcategory:
+    | "club"
+    | "meetup"
+    | "food"
+    | "advice"
+    | "hot"
+    | "freshman"
+    | "dating"
+    | "meeting"
+    | null;
   title: string;
   content: string;
   school_id: string | null;
@@ -157,7 +166,16 @@ type PostInsert = {
   id?: string;
   author_id: string;
   category: "admission" | "community" | "dating";
-  subcategory?: "club" | "meetup" | "food" | "hot" | "freshman" | "dating" | "meeting" | null;
+  subcategory?:
+    | "club"
+    | "meetup"
+    | "food"
+    | "advice"
+    | "hot"
+    | "freshman"
+    | "dating"
+    | "meeting"
+    | null;
   title: string;
   content: string;
   school_id?: string | null;

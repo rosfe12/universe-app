@@ -629,6 +629,39 @@ set
   visibility_level = excluded.visibility_level,
   metadata = excluded.metadata;
 
+insert into public.posts (
+  id,
+  author_id,
+  category,
+  subcategory,
+  title,
+  content,
+  school_id,
+  scope,
+  like_count,
+  visibility_level,
+  metadata
+)
+values
+  ('41111111-1111-4111-8111-111111111160'::uuid, '3c555555-5555-4555-8555-555555555555'::uuid, 'community'::public.post_category, 'advice'::public.post_subcategory, '휴학 생각이 계속 드는데 바로 결정하는 게 맞을까요?', '학기 초인데도 수업이 손에 잘 안 잡히고 진로 방향도 흐릿해서 휴학 생각이 자꾸 납니다. 비슷한 시기 지나본 사람들은 보통 어떤 기준으로 결정했는지 궁금해요.', 'bbbbbbb5-bbbb-4bbb-8bbb-bbbbbbbbbbb5'::uuid, 'global'::public.content_scope, 26, 'schoolDepartment'::public.visibility_level, '{"tags":["고민상담","휴학"]}'::jsonb),
+  ('41111111-1111-4111-8111-111111111161'::uuid, '2a111111-1111-4111-8111-111111111111'::uuid, 'community'::public.post_category, 'advice'::public.post_subcategory, '과 친구들이랑 멀어졌을 때 다시 다가가는 편인가요?', '2학년 올라오면서 자연스럽게 멀어진 친구들이 있는데 억지로 다시 붙으려니 어색하고 그냥 두자니 학교가 너무 좁게 느껴집니다. 보통 어떻게 정리하는지 듣고 싶어요.', 'bbbbbbb8-bbbb-4bbb-8bbb-bbbbbbbbbbb8'::uuid, 'global'::public.content_scope, 22, 'schoolDepartment'::public.visibility_level, '{"tags":["고민상담","인간관계"]}'::jsonb),
+  ('41111111-1111-4111-8111-111111111162'::uuid, '2f222222-2222-4222-8222-222222222222'::uuid, 'community'::public.post_category, 'advice'::public.post_subcategory, '첫 인턴 불합격 후 멘탈 회복은 어떻게 했나요?', '나름 열심히 준비했다고 생각했는데 서류에서 떨어지고 나니까 다음 지원을 바로 넣는 것도 겁납니다. 텐션 다시 올릴 때 실제로 도움 된 루틴 있으면 공유 부탁해요.', '44444444-4444-4444-8444-444444444444'::uuid, 'global'::public.content_scope, 24, 'schoolDepartment'::public.visibility_level, '{"tags":["고민상담","취업"]}'::jsonb),
+  ('41111111-1111-4111-8111-111111111163'::uuid, '3a333333-3333-4333-8333-333333333333'::uuid, 'community'::public.post_category, 'advice'::public.post_subcategory, '자취 시작하고 생활비 통제가 안 될 때 어떻게 잡았나요?', '학기 시작하고 식비, 카페, 교통비가 생각보다 빨리 나가서 한 달 예산이 계속 깨집니다. 앱으로 관리하는지, 카테고리를 나누는지 현실적인 방법이 궁금해요.', 'bbbbbbb7-bbbb-4bbb-8bbb-bbbbbbbbbbb7'::uuid, 'global'::public.content_scope, 19, 'schoolDepartment'::public.visibility_level, '{"tags":["고민상담","생활비"]}'::jsonb),
+  ('41111111-1111-4111-8111-111111111164'::uuid, '3d666666-6666-4666-8666-666666666666'::uuid, 'community'::public.post_category, 'advice'::public.post_subcategory, '팀플 무임승차를 또 만나면 수업을 바꾸는 게 맞나요?', '이번 학기도 팀플에서 역할 분배가 계속 꼬이는데, 전공 특성상 피하기가 어렵네요. 다음 학기엔 교수님 스타일이나 평가 방식까지 보고 수업을 골라야 하는지 고민입니다.', 'bbbbbbb6-bbbb-4bbb-8bbb-bbbbbbbbbbb6'::uuid, 'global'::public.content_scope, 21, 'schoolDepartment'::public.visibility_level, '{"tags":["고민상담","팀플"]}'::jsonb),
+  ('41111111-1111-4111-8111-111111111165'::uuid, '3e777777-7777-4777-8777-777777777777'::uuid, 'community'::public.post_category, 'advice'::public.post_subcategory, '취업 준비 시작 시점이 늦은 것 같을 때 뭐부터 정리했나요?', '4학년인데 대외활동이나 인턴이 많지 않아서 늦었다는 생각이 큽니다. 자소서, 포트폴리오, 직무 정리 중 어디부터 손대는 게 가장 현실적인지 궁금합니다.', 'aaaaaaa6-aaaa-4aaa-8aaa-aaaaaaaaaaa6'::uuid, 'global'::public.content_scope, 23, 'schoolDepartment'::public.visibility_level, '{"tags":["고민상담","취업"]}'::jsonb)
+on conflict (id) do update
+set
+  author_id = excluded.author_id,
+  category = excluded.category,
+  subcategory = excluded.subcategory,
+  title = excluded.title,
+  content = excluded.content,
+  school_id = excluded.school_id,
+  scope = excluded.scope,
+  like_count = excluded.like_count,
+  visibility_level = excluded.visibility_level,
+  metadata = excluded.metadata;
+
 with seeded_comments as (
   select *
   from (
@@ -697,6 +730,29 @@ insert into public.comments (
   visibility_level
 )
 select * from seeded_comments
+on conflict (id) do update
+set
+  post_id = excluded.post_id,
+  author_id = excluded.author_id,
+  content = excluded.content,
+  accepted = excluded.accepted,
+  visibility_level = excluded.visibility_level;
+
+insert into public.comments (
+  id,
+  post_id,
+  author_id,
+  content,
+  accepted,
+  visibility_level
+)
+values
+  ('51111111-1111-4111-8111-111111111254'::uuid, '41111111-1111-4111-8111-111111111160'::uuid, '2d444444-4444-4444-8444-444444444444'::uuid, '바로 결론 내리기보다 2주 정도 수업 루틴과 감정 패턴을 적어보면 훨씬 선명해지더라고요.', false, 'schoolDepartment'::public.visibility_level),
+  ('51111111-1111-4111-8111-111111111255'::uuid, '41111111-1111-4111-8111-111111111161'::uuid, '2b222222-2222-4222-8222-222222222222'::uuid, '저는 억지로 붙기보다 같이 수업 듣는 한 명이랑만 다시 연결해도 학교 생활이 훨씬 편해졌습니다.', false, 'schoolDepartment'::public.visibility_level),
+  ('51111111-1111-4111-8111-111111111256'::uuid, '41111111-1111-4111-8111-111111111162'::uuid, '3d666666-6666-4666-8666-666666666666'::uuid, '불합격 직후에는 지원서 다시 보기보다 일정부터 비우고 다음 공고 하나만 정하는 게 제일 효과 있었습니다.', false, 'schoolDepartment'::public.visibility_level),
+  ('51111111-1111-4111-8111-111111111257'::uuid, '41111111-1111-4111-8111-111111111163'::uuid, '3b444444-4444-4444-8444-444444444444'::uuid, '식비를 주간 단위로 끊어서 보면 훨씬 관리하기 쉬웠어요. 월 단위로만 보면 체감이 잘 안 옵니다.', false, 'schoolDepartment'::public.visibility_level),
+  ('51111111-1111-4111-8111-111111111258'::uuid, '41111111-1111-4111-8111-111111111164'::uuid, '2c333333-3333-4333-8333-333333333333'::uuid, '다음 학기엔 팀플 비중과 중간평가 방식 먼저 보고 넣으니까 스트레스가 확실히 줄었습니다.', false, 'schoolDepartment'::public.visibility_level),
+  ('51111111-1111-4111-8111-111111111259'::uuid, '41111111-1111-4111-8111-111111111165'::uuid, '2a111111-1111-4111-8111-111111111111'::uuid, '늦었다는 생각 들 때는 직무 하나만 정하고 그 기준으로 자소서 재료부터 모으는 게 제일 빨랐습니다.', false, 'schoolDepartment'::public.visibility_level)
 on conflict (id) do update
 set
   post_id = excluded.post_id,

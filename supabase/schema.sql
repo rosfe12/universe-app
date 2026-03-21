@@ -13,7 +13,7 @@ begin
     create type public.post_category as enum ('admission', 'community', 'dating');
   end if;
   if not exists (select 1 from pg_type where typname = 'post_subcategory') then
-    create type public.post_subcategory as enum ('club', 'meetup', 'food', 'hot', 'freshman', 'dating', 'meeting');
+    create type public.post_subcategory as enum ('club', 'meetup', 'food', 'advice', 'hot', 'freshman', 'dating', 'meeting');
   end if;
   if not exists (select 1 from pg_type where typname = 'visibility_level') then
     create type public.visibility_level as enum ('anonymous', 'school', 'schoolDepartment', 'profile');
@@ -69,6 +69,14 @@ $$;
 do $$
 begin
   alter type public.user_type add value if not exists 'freshman';
+exception
+  when duplicate_object then null;
+end
+$$;
+
+do $$
+begin
+  alter type public.post_subcategory add value if not exists 'advice';
 exception
   when duplicate_object then null;
 end

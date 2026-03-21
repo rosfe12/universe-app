@@ -25,7 +25,7 @@ const reportReasonSchema = z.enum([
 const postSchema = z.object({
   category: z.enum(["admission", "community", "dating"]),
   subcategory: z
-    .enum(["club", "meetup", "food", "hot", "freshman", "dating", "meeting"])
+    .enum(["club", "meetup", "food", "advice", "hot", "freshman", "dating", "meeting"])
     .optional(),
   title: z.string().trim().min(1).max(120),
   content: z.string().trim().min(1).max(5000),
@@ -196,6 +196,7 @@ function inferScope(input: {
 }) {
   if (
     input.category === "dating" ||
+    input.subcategory === "advice" ||
     input.subcategory === "hot" ||
     ("tags" in input &&
       Array.isArray(input.tags) &&

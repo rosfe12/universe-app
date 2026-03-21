@@ -1010,6 +1010,87 @@ const communityPosts: SeedPost[] = communitySeeds.map((seed, index) => ({
   imageUrl: campusImages[index % campusImages.length],
 }));
 
+const advicePosts: SeedPost[] = [
+  {
+    id: "community-advice-1",
+    category: "community",
+    subcategory: "advice",
+    authorId: "user-jieun",
+    schoolId: "school-sookmyung",
+    title: "휴학 생각이 계속 드는데 바로 결정하는 게 맞을까요?",
+    content:
+      "학기 초인데도 수업이 손에 잘 안 잡히고 진로 방향도 흐릿해서 휴학 생각이 자꾸 납니다. 비슷한 시기 지나본 사람들은 보통 어떤 기준으로 결정했는지 궁금해요.",
+    createdAt: at(21, "20:10:00"),
+    likes: 26,
+    tags: ["고민상담", "휴학"],
+  },
+  {
+    id: "community-advice-2",
+    category: "community",
+    subcategory: "advice",
+    authorId: "user-yeji",
+    schoolId: "school-ewha",
+    title: "과 친구들이랑 멀어졌을 때 다시 다가가는 편인가요?",
+    content:
+      "2학년 올라오면서 자연스럽게 멀어진 친구들이 있는데 억지로 다시 붙으려니 어색하고 그냥 두자니 학교가 너무 좁게 느껴집니다. 보통 어떻게 정리하는지 듣고 싶어요.",
+    createdAt: at(21, "20:40:00"),
+    likes: 22,
+    tags: ["고민상담", "인간관계"],
+  },
+  {
+    id: "community-advice-3",
+    category: "community",
+    subcategory: "advice",
+    authorId: "user-hyobin",
+    schoolId: "school-korea",
+    title: "첫 인턴 불합격 후 멘탈 회복은 어떻게 했나요?",
+    content:
+      "나름 열심히 준비했다고 생각했는데 서류에서 떨어지고 나니까 다음 지원을 바로 넣는 것도 겁납니다. 텐션 다시 올릴 때 실제로 도움 된 루틴 있으면 공유 부탁해요.",
+    createdAt: at(21, "21:05:00"),
+    likes: 24,
+    tags: ["고민상담", "취업"],
+  },
+  {
+    id: "community-advice-4",
+    category: "community",
+    subcategory: "advice",
+    authorId: "user-yonji",
+    schoolId: "school-yonsei",
+    title: "자취 시작하고 생활비 통제가 안 될 때 어떻게 잡았나요?",
+    content:
+      "학기 시작하고 식비, 카페, 교통비가 생각보다 빨리 나가서 한 달 예산이 계속 깨집니다. 앱으로 관리하는지, 카테고리를 나누는지 현실적인 방법이 궁금해요.",
+    createdAt: at(21, "21:30:00"),
+    likes: 19,
+    tags: ["고민상담", "생활비"],
+  },
+  {
+    id: "community-advice-5",
+    category: "community",
+    subcategory: "advice",
+    authorId: "user-jaeho",
+    schoolId: "school-soongsil",
+    title: "팀플 무임승차를 또 만나면 수업을 바꾸는 게 맞나요?",
+    content:
+      "이번 학기도 팀플에서 역할 분배가 계속 꼬이는데, 전공 특성상 피하기가 어렵네요. 다음 학기엔 교수님 스타일이나 평가 방식까지 보고 수업을 골라야 하는지 고민입니다.",
+    createdAt: at(21, "21:55:00"),
+    likes: 21,
+    tags: ["고민상담", "팀플"],
+  },
+  {
+    id: "community-advice-6",
+    category: "community",
+    subcategory: "advice",
+    authorId: "user-yubin",
+    schoolId: "school-seoultech",
+    title: "취업 준비 시작 시점이 늦은 것 같을 때 뭐부터 정리했나요?",
+    content:
+      "4학년인데 대외활동이나 인턴이 많지 않아서 늦었다는 생각이 큽니다. 자소서, 포트폴리오, 직무 정리 중 어디부터 손대는 게 가장 현실적인지 궁금합니다.",
+    createdAt: at(21, "22:20:00"),
+    likes: 23,
+    tags: ["고민상담", "취업"],
+  },
+];
+
 const datingPosts: SeedPost[] = datingSeeds.map((seed, index) => ({
   id: `dating-${index + 1}`,
   category: "dating",
@@ -1334,6 +1415,20 @@ const communityComments: Comment[] = communityPosts.slice(0, 14).map((post, inde
   createdAt: at(19 - Math.floor(index / 3), "18:10:00"),
 }));
 
+const adviceComments: Comment[] = advicePosts.map((post, index) => ({
+  id: nextCommentId(),
+  postId: post.id,
+  authorId: collegeReviewerIds[(index + 2) % collegeReviewerIds.length],
+  content:
+    index % 3 === 0
+      ? "바로 결정하기보다 한 주 정도 루틴과 감정 패턴을 적어보면 기준이 좀 선명해지더라고요."
+      : index % 3 === 1
+        ? "저는 비슷한 상황에서 학교 안 사람 한 명보다 바깥 루틴부터 정리하는 게 더 도움이 됐습니다."
+        : "완전히 해결하려 하기보다 다음 한 단계만 정하는 식으로 쪼개면 부담이 훨씬 줄었습니다.",
+  accepted: false,
+  createdAt: at(21, `22:${10 + index * 4}:00`),
+}));
+
 const freshmanZoneComments: Comment[] = communityPosts
   .filter((post) => post.subcategory === "freshman")
   .slice(0, 4)
@@ -1547,6 +1642,7 @@ const referenceComments: Comment[] = [
 export const comments: Comment[] = [
   ...admissionComments,
   ...communityComments,
+  ...adviceComments,
   ...freshmanZoneComments,
   ...datingComments,
   ...careerComments,
@@ -1557,6 +1653,7 @@ export const posts: Post[] = [
   ...admissionPosts,
   ...referenceAdmissionPosts,
   ...communityPosts,
+  ...advicePosts,
   ...referenceCommunityPosts,
   ...datingPosts,
   ...careerPosts,

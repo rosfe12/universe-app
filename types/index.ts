@@ -1,6 +1,6 @@
 export type UserType = "college" | "highSchool" | "freshman";
 
-export type CommunitySubcategory = "club" | "meetup" | "food" | "hot" | "freshman";
+export type CommunitySubcategory = "club" | "meetup" | "food" | "hot" | "freshman" | "advice";
 export type PostCategory = "admission" | "community" | "dating";
 export type ReportTargetType = "post" | "comment" | "user" | "review" | "profile";
 export type ReportStatus =

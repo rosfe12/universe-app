@@ -44,7 +44,7 @@ import {
   addReportToSnapshot,
 } from "@/lib/runtime-mutations";
 import {
-  getCurrentSchool,
+  getCommunityPosts,
   getDatingPosts,
   getHotScore,
   getHotGalleryPosts,
@@ -65,6 +65,7 @@ import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/
 import { deleteImageByPublicUrl } from "@/lib/supabase/storage";
 
 const communitySchema = z.object({
+  subcategory: z.enum(["advice", "hot"]),
   title: z.string().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().min(10, "본문을 10자 이상 입력해주세요."),
   imageUrl: z.string().url().optional().or(z.literal("")),
@@ -72,7 +73,7 @@ const communitySchema = z.object({
 });
 
 type CommunityFormValues = z.infer<typeof communitySchema>;
-type SharedFilter = "all" | "hot" | "dating" | "meeting";
+type SharedFilter = "all" | "advice" | "hot" | "dating" | "meeting";
 
 const FILTERS: Array<{
   value: SharedFilter;
@@ -80,6 +81,7 @@ const FILTERS: Array<{
   icon: typeof Sparkles;
 }> = [
   { value: "all", label: "전체", icon: Sparkles },
+  { value: "advice", label: "고민상담", icon: MessageCircle },
   { value: "hot", label: "19금", icon: Flame },
   { value: "dating", label: "연애", icon: Heart },
   { value: "meeting", label: "미팅", icon: Users2 },
@@ -91,11 +93,13 @@ function isSharedFilter(value: string | null): value is SharedFilter {
 
 function getCardVariant(post: Post): BadgeProps["variant"] {
   if (post.subcategory === "hot") return "danger";
+  if (post.subcategory === "advice") return "outline";
   if (post.subcategory === "meeting") return "warning";
   return "secondary";
 }
 
 function getCardLabel(post: Post) {
+  if (post.subcategory === "advice") return "고민상담";
   if (post.subcategory === "hot") return "19금";
   if (post.subcategory === "meeting") return "미팅";
   return "연애";
@@ -232,21 +236,22 @@ export function CommunityPage({
   }, [filterParam]);
 
   const hotPosts = useMemo(() => getHotGalleryPosts(hotSort), [blocks, hotSort, posts, reports]);
+  const advicePosts = useMemo(() => getCommunityPosts("advice"), [blocks, posts, reports]);
   const datingPosts = useMemo(() => getDatingPosts("dating"), [blocks, posts, reports]);
   const meetingPosts = useMemo(() => getDatingPosts("meeting"), [blocks, posts, reports]);
-  const currentSchool = getCurrentSchool();
 
   const feedItems = useMemo(() => {
-    const all = [...hotPosts, ...datingPosts, ...meetingPosts];
+    const all = [...advicePosts, ...hotPosts, ...datingPosts, ...meetingPosts];
     return [...all].sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt));
-  }, [datingPosts, hotPosts, meetingPosts]);
+  }, [advicePosts, datingPosts, hotPosts, meetingPosts]);
 
   const filteredItems = useMemo(() => {
     if (activeFilter === "all") return feedItems;
+    if (activeFilter === "advice") return advicePosts;
     if (activeFilter === "hot") return hotPosts;
     if (activeFilter === "dating") return datingPosts;
     return meetingPosts;
-  }, [activeFilter, datingPosts, feedItems, hotPosts, meetingPosts]);
+  }, [activeFilter, advicePosts, datingPosts, feedItems, hotPosts, meetingPosts]);
   const feedSlots = useMemo(() => injectInlineAdSlots(filteredItems), [filteredItems]);
 
   const detailPost = useMemo(
@@ -256,6 +261,7 @@ export function CommunityPage({
 
   const counts = {
     all: feedItems.length,
+    advice: advicePosts.length,
     hot: hotPosts.length,
     dating: datingPosts.length,
     meeting: meetingPosts.length,
@@ -284,6 +290,7 @@ export function CommunityPage({
   const form = useForm<CommunityFormValues>({
     resolver: zodResolver(communitySchema),
     defaultValues: {
+      subcategory: activeFilter === "hot" ? "hot" : "advice",
       title: "",
       content: "",
       imageUrl: "",
@@ -308,9 +315,9 @@ export function CommunityPage({
     }
 
     const localPost: Post = {
-      id: `community-hot-local-${feedItems.length + 1}`,
+      id: `community-${values.subcategory}-local-${feedItems.length + 1}`,
       category: "community",
-      subcategory: "hot",
+      subcategory: values.subcategory,
       authorId: currentUser.id,
       schoolId: currentUser.schoolId,
       visibilityLevel: values.visibilityLevel as VisibilityLevel,
@@ -319,7 +326,7 @@ export function CommunityPage({
       createdAt,
       likes: 0,
       commentCount: 0,
-      tags: ["19+", "익명"],
+      tags: values.subcategory === "hot" ? ["19+", "익명"] : ["고민상담", "익명"],
       imageUrl: values.imageUrl || undefined,
     };
 
@@ -329,18 +336,18 @@ export function CommunityPage({
           try {
             await createPost({
               category: "community",
-              subcategory: "hot",
+              subcategory: values.subcategory,
               schoolId: currentUser.schoolId,
               visibilityLevel: values.visibilityLevel,
               title: values.title,
               content: values.content,
               imageUrl: values.imageUrl || undefined,
-              tags: ["19+", "익명"],
+              tags: values.subcategory === "hot" ? ["19+", "익명"] : ["고민상담", "익명"],
             });
             await refresh();
             setComposerOpen(false);
             form.reset();
-            setActiveFilter("hot");
+            setActiveFilter(values.subcategory);
           } catch (error) {
             await deleteImageByPublicUrl(values.imageUrl);
             form.setError("root", {
@@ -356,7 +363,7 @@ export function CommunityPage({
 
     setComposerOpen(false);
     form.reset();
-    setActiveFilter("hot");
+    setActiveFilter(values.subcategory);
   });
 
   return (
@@ -373,9 +380,13 @@ export function CommunityPage({
             <Sparkles className="h-5 w-5 text-amber-200" />
           </div>
           <div className="space-y-2">
-            <p className="text-[26px] font-semibold tracking-tight">연애, 미팅, 19금 익명 토크</p>
+            <p className="text-[26px] font-semibold tracking-tight">고민상담, 연애, 미팅, 19금 익명 토크</p>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
+            <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
+              <p className="text-[11px] text-white/70">고민상담</p>
+              <p className="mt-1 text-sm font-semibold">{counts.advice}개</p>
+            </div>
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
               <p className="text-[11px] text-white/70">19금</p>
               <p className="mt-1 text-sm font-semibold">{counts.hot}개</p>
@@ -618,17 +629,49 @@ export function CommunityPage({
           }
 
           setComposerOpen(true);
+          form.setValue("subcategory", activeFilter === "hot" ? "hot" : "advice", {
+            shouldValidate: true,
+          });
         }}
-        label="19금 글쓰기"
+        label={activeFilter === "hot" ? "19금 글쓰기" : "고민상담 글쓰기"}
       />
 
       <Dialog open={composerOpen} onOpenChange={setComposerOpen}>
         <DialogContent className="max-h-[88vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>19금 글쓰기</DialogTitle>
-            <DialogDescription>성인 익명 토크 카테고리에 올라가는 글입니다.</DialogDescription>
+            <DialogTitle>글쓰기</DialogTitle>
+            <DialogDescription>카테고리를 고르고 익명 글을 등록할 수 있습니다.</DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={onSubmit}>
+            <div className="space-y-2">
+              <Label>카테고리</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("subcategory") === "advice" ? "default" : "outline"}
+                  onClick={() =>
+                    form.setValue("subcategory", "advice", {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  고민상담
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("subcategory") === "hot" ? "default" : "outline"}
+                  onClick={() =>
+                    form.setValue("subcategory", "hot", {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  19금
+                </Button>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="title">제목</Label>
               <Input id="title" {...form.register("title")} />
