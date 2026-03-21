@@ -27,7 +27,7 @@ export function PostAuthorRow({
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 items-start gap-3">
-        <Avatar className="h-10 w-10">
+        <Avatar className="mt-0.5 h-10 w-10 shrink-0">
           <AvatarFallback
             className={cn(
               "text-sm font-semibold",
@@ -39,7 +39,7 @@ export function PostAuthorRow({
         </Avatar>
         <div className="min-w-0 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-semibold text-foreground">
+            <p className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
               {identity.label}
             </p>
             <TrustScoreBadge score={identity.trustScore} />
@@ -57,7 +57,7 @@ export function PostAuthorRow({
           </div>
         </div>
       </div>
-      {trailing}
+      {trailing ? <div className="shrink-0">{trailing}</div> : null}
     </div>
   );
 }

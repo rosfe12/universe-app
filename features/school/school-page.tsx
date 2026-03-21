@@ -124,10 +124,6 @@ export function SchoolPage({
   const initialTab: SchoolTab = isSchoolTab(tabParam) ? tabParam : "lectures";
   const {
     loading,
-    lectures: runtimeLectures,
-    lectureReviews,
-    tradePosts: runtimeTradePosts,
-    posts,
     currentUser: runtimeUser,
     isAuthenticated,
     source,
@@ -146,17 +142,13 @@ export function SchoolPage({
     setActiveTab(isSchoolTab(tabParam) ? tabParam : "lectures");
   }, [tabParam]);
 
-  const lectures = useMemo(() => getLectureSummaries().slice(0, 6), [runtimeLectures, lectureReviews]);
-  const tradeItems = useMemo(() => getTradePosts().slice(0, 6), [runtimeTradePosts]);
-  const clubPosts = useMemo(() => getCommunityPosts("club").slice(0, 6), [posts]);
-  const foodPosts = useMemo(() => getCommunityPosts("food").slice(0, 6), [posts]);
-  const freshmanZonePosts = useMemo(
-    () =>
-      getCommunityPosts("freshman")
-        .filter((post) => post.schoolId === (currentUser.schoolId ?? currentSchool?.id))
-        .slice(0, 8),
-    [currentSchool?.id, posts],
-  );
+  const lectures = getLectureSummaries().slice(0, 6);
+  const tradeItems = getTradePosts().slice(0, 6);
+  const clubPosts = getCommunityPosts("club").slice(0, 6);
+  const foodPosts = getCommunityPosts("food").slice(0, 6);
+  const freshmanZonePosts = getCommunityPosts("freshman")
+    .filter((post) => post.schoolId === (currentUser.schoolId ?? currentSchool?.id))
+    .slice(0, 8);
   const freshmanComposeEnabled =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteFreshmanZone(currentUser);
   const freshmanCommentEnabled = freshmanComposeEnabled;
@@ -207,7 +199,7 @@ export function SchoolPage({
       {loading ? <LoadingState /> : null}
 
       <Card className="overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(34,197,94,0.18),_transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,253,244,0.92))]">
-        <CardContent className="space-y-5 py-6">
+        <CardContent className="space-y-6 py-6">
           <div className="flex items-center justify-between gap-3">
             <Badge variant="secondary" className="bg-white/85 text-foreground">
               우리 학교 중심
@@ -215,21 +207,21 @@ export function SchoolPage({
             <School className="h-5 w-5 text-primary" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-[28px] font-semibold tracking-tight text-slate-950">{schoolName}</h2>
+            <h2 className="text-[30px] font-semibold tracking-tight text-slate-950 text-balance">{schoolName}</h2>
             <p className="text-sm leading-6 text-slate-600">
               강의 정보, 수강신청 교환, 동아리, 맛집까지 학교에서 자주 찾는 메뉴를 모았습니다.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3.5">
             {SCHOOL_SECTIONS.map((section) => (
-              <Link key={section.value} href={`/school?tab=${section.value}`}>
+              <Link key={section.value} href={`/school?tab=${section.value}`} className="block">
                 <Card className="h-full border-white/80 bg-white/86 shadow-none transition-transform hover:-translate-y-0.5">
-                  <CardContent className="flex min-h-[112px] items-center gap-3 px-4 py-4">
+                  <CardContent className="flex min-h-[144px] flex-col items-start justify-between gap-4 px-4 py-[18px]">
                     <div className="shrink-0 rounded-[20px] bg-primary/10 p-3 text-primary">
                       <section.icon className="h-5 w-5" />
                     </div>
-                    <div className="min-w-0">
-                      <p className="break-keep text-[17px] font-semibold leading-6 text-slate-950">
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-balance text-[17px] font-semibold leading-6 text-slate-950">
                         {section.title}
                       </p>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">우리 학교 전용</p>
@@ -248,7 +240,7 @@ export function SchoolPage({
             <TabsTrigger
               key={section.value}
               value={section.value}
-              className="h-11 shrink-0 px-4 text-[13px] font-semibold"
+              className="h-11 shrink-0 whitespace-nowrap px-4 text-[13px] font-semibold"
             >
               {section.label}
             </TabsTrigger>

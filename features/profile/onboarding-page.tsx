@@ -293,27 +293,32 @@ export function OnboardingPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             {["로그인", "유형 선택", "학교 선택", "메일 인증"].map((step, index) => (
               <div
                 key={step}
-                className={`rounded-2xl border px-2 py-3 text-center text-[11px] font-semibold leading-tight sm:px-3 sm:text-sm ${
+                className={`rounded-[22px] border px-3 py-3.5 text-left ${
                   index < 4 ? "border-primary/20 bg-primary/10 text-primary" : "bg-secondary"
                 }`}
               >
-                <span className="block whitespace-nowrap">{step}</span>
+                <span className="block text-[11px] font-semibold tracking-[0.16em] text-primary/70">
+                  STEP {index + 1}
+                </span>
+                <span className="mt-1.5 block text-sm font-semibold leading-5 text-balance text-foreground">
+                  {step}
+                </span>
               </div>
             ))}
           </div>
 
           <Card className="border-dashed bg-secondary/60 shadow-none">
-            <CardContent className="flex items-center gap-3 py-4">
-              <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+            <CardContent className="flex items-start gap-3 py-4">
+              <div className="rounded-full bg-emerald-100 p-2.5 text-emerald-700">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
-              <div>
+              <div className="space-y-1">
                 <p className="font-semibold">익명 구조 유지</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm leading-6 text-muted-foreground">
                   내부적으로만 계정을 식별하고 화면에는 익명 정보만 노출됩니다.
                 </p>
               </div>
@@ -321,13 +326,13 @@ export function OnboardingPage() {
           </Card>
 
           <Card className="border-white/80 bg-[linear-gradient(135deg,#f8faff_0%,#ffffff_100%)] shadow-none">
-            <CardContent className="flex items-center gap-3 py-4">
-              <div className="rounded-full bg-primary/10 p-2 text-primary">
+            <CardContent className="flex items-start gap-3 py-4">
+              <div className="rounded-full bg-primary/10 p-2.5 text-primary">
                 <TypeGuideIcon className="h-4 w-4" />
               </div>
-              <div>
+              <div className="space-y-1">
                 <p className="font-semibold">{typeGuide.title}</p>
-                <p className="text-sm text-muted-foreground">{typeGuide.description}</p>
+                <p className="text-sm leading-6 text-muted-foreground">{typeGuide.description}</p>
               </div>
             </CardContent>
           </Card>

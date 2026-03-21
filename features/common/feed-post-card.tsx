@@ -58,8 +58,10 @@ export function FeedPostCard({
             </Badge>
           ) : null}
         </div>
-        <div className="space-y-2 rounded-[26px] border border-slate-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbff_100%)] px-4 py-4">
-          <h3 className="text-[19px] font-bold leading-7 tracking-tight text-slate-950">{post.title}</h3>
+        <div className="space-y-2.5 rounded-[26px] border border-slate-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbff_100%)] px-4 py-[18px]">
+          <h3 className="text-balance text-[20px] font-bold leading-7 tracking-tight text-slate-950">
+            {post.title}
+          </h3>
           <p className="line-clamp-2 text-[14px] leading-6 text-muted-foreground">{post.content}</p>
         </div>
       </div>
@@ -99,7 +101,7 @@ export function FeedPostCard({
           </div>
         ) : null}
         <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700">
               <Heart className="h-4 w-4" />
               {post.likes}

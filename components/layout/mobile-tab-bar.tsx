@@ -32,7 +32,7 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.55rem)] left-1/2 z-30 w-[calc(100%-1.4rem)] max-w-[398px] -translate-x-1/2 rounded-[34px] border border-white/90 bg-white/92 px-2 py-2 shadow-[0_30px_80px_-34px_rgba(79,70,229,0.38)] backdrop-blur-xl">
+    <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+0.65rem)] left-1/2 z-30 w-[calc(100%-1.4rem)] max-w-[404px] -translate-x-1/2 rounded-[36px] border border-white/90 bg-white/92 px-2.5 py-2.5 shadow-[0_30px_80px_-34px_rgba(79,70,229,0.38)] backdrop-blur-xl">
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-white/85" />
       <ul className="grid grid-cols-5 gap-1">
         {tabs.map((tab) => {
@@ -44,7 +44,7 @@ export function MobileTabBar() {
               <Link
                 href={tab.href}
                 className={cn(
-                  "group flex flex-col items-center gap-1 rounded-[22px] px-1.5 py-2.5 text-[10.5px] font-semibold text-muted-foreground transition-all",
+                  "group flex min-w-0 flex-col items-center gap-1.5 rounded-[22px] px-1.5 py-2 text-[10.5px] font-semibold leading-none text-muted-foreground transition-all",
                   active && "text-primary",
                 )}
               >
@@ -57,7 +57,7 @@ export function MobileTabBar() {
                 >
                   <Icon className="h-4 w-4" />
                 </span>
-                <span className={cn("transition-colors", active && "text-primary")}>
+                <span className={cn("truncate text-center leading-none transition-colors", active && "text-primary")}>
                   {tab.label}
                 </span>
               </Link>

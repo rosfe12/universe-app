@@ -40,6 +40,10 @@
     min-height: 100%;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family:
@@ -54,6 +58,16 @@
       linear-gradient(180deg, rgba(245, 247, 255, 0.95) 0%, rgba(255, 255, 255, 1) 42%);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
   }
 
   ::selection {
