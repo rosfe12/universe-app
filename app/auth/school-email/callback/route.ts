@@ -141,6 +141,9 @@ export async function GET(request: Request) {
       .from("student_verification_requests")
       .update({
         status: "verified",
+        delivery_status: "sent",
+        delivery_error: null,
+        delivered_at: now,
         verified_at: now,
       })
       .eq("id", verificationRequest.id),

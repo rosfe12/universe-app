@@ -26,6 +26,10 @@ async function listVerificationRequests(admin: ReturnType<typeof createAdminSupa
       school_email,
       verification_user_id,
       status,
+      delivery_method,
+      delivery_status,
+      delivery_error,
+      delivered_at,
       next_path,
       requested_at,
       verified_at,
@@ -63,6 +67,18 @@ async function listVerificationRequests(admin: ReturnType<typeof createAdminSupa
         ? String(row.verification_user_id)
         : undefined,
       status: row.status,
+      deliveryMethod:
+        row.delivery_method === "app_smtp" || row.delivery_method === "supabase_auth"
+          ? row.delivery_method
+          : "pending",
+      deliveryStatus:
+        row.delivery_status === "sent" ||
+        row.delivery_status === "failed" ||
+        row.delivery_status === "rate_limited"
+          ? row.delivery_status
+          : "pending",
+      deliveryError: row.delivery_error ? String(row.delivery_error) : undefined,
+      deliveredAt: row.delivered_at ? String(row.delivered_at) : undefined,
       nextPath: String(row.next_path ?? "/home"),
       requestedAt: String(row.requested_at),
       verifiedAt: row.verified_at ? String(row.verified_at) : undefined,

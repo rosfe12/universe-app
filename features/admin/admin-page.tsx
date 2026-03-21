@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ShieldAlert, ShieldMinus, TriangleAlert, UserRoundX } from "lucide-react";
+import { MailCheck, RefreshCcw, ShieldAlert, ShieldMinus, TriangleAlert, UserRoundX } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -221,6 +221,9 @@ export function AdminPage({
   const pendingVerificationCount = verificationItems.filter(
     (item) => item.status === "pending",
   ).length;
+  const failedVerificationCount = verificationItems.filter(
+    (item) => item.deliveryStatus === "failed",
+  ).length;
 
   useEffect(() => {
     let active = true;
@@ -426,10 +429,31 @@ export function AdminPage({
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-sky-950">학교 메일 인증 대기</p>
                 <p className="text-sm text-sky-900/70">
-                  현재 확인이 필요한 요청 {pendingVerificationCount}건
+                  현재 확인이 필요한 요청 {pendingVerificationCount}건 · 발송 실패 {failedVerificationCount}건
                 </p>
               </div>
-              <Badge variant="secondary">{verificationItems.length}건</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">{verificationItems.length}건</Badge>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={verificationLoading}
+                  onClick={() => {
+                    void refresh();
+                    setVerificationLoading(true);
+                    void loadAdminVerificationRequests().then((result) => {
+                      setVerificationItems(result.items);
+                      setCanManageVerifications(result.canManage);
+                      setVerificationError(result.error ?? "");
+                      setVerificationLoading(false);
+                    });
+                  }}
+                >
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  새로고침
+                </Button>
+              </div>
             </CardContent>
           </Card>
           {verificationItems.length === 0 ? (
@@ -766,6 +790,9 @@ function VerificationRequestCard({
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline">{item.schoolEmail}</Badge>
+          <Badge variant={getDeliveryStatusVariant(item.deliveryStatus)}>
+            {getDeliveryStatusLabel(item.deliveryMethod, item.deliveryStatus)}
+          </Badge>
           <TrustScoreBadge score={item.trustScore} />
           <Badge variant="secondary">신고 {item.reportCount}건</Badge>
           <Badge variant="secondary">경고 {item.warningCount}회</Badge>
@@ -773,6 +800,17 @@ function VerificationRequestCard({
         <p className="text-sm text-muted-foreground">
           요청 {item.requestedAt.slice(0, 16)} · 만료 {item.expiresAt.slice(0, 16)}
         </p>
+        {item.deliveryError ? (
+          <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+            발송 오류 · {item.deliveryError}
+          </div>
+        ) : null}
+        {item.deliveredAt ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <MailCheck className="h-3.5 w-3.5" />
+            {item.deliveredAt.slice(0, 16)} 발송 완료
+          </div>
+        ) : null}
       </CardHeader>
       {canManage ? (
         <CardContent className="flex flex-wrap gap-2">
@@ -875,5 +913,31 @@ function getVerificationStatusVariant(status: StudentVerificationRequest["status
   if (status === "verified") return "success";
   if (status === "pending") return "warning";
   if (status === "expired") return "danger";
+  return "outline";
+}
+
+function getDeliveryStatusLabel(
+  deliveryMethod: StudentVerificationRequest["deliveryMethod"],
+  deliveryStatus: StudentVerificationRequest["deliveryStatus"],
+) {
+  const methodLabel =
+    deliveryMethod === "app_smtp"
+      ? "앱 SMTP"
+      : deliveryMethod === "supabase_auth"
+        ? "Supabase 메일"
+        : "발송 대기";
+
+  if (deliveryStatus === "sent") return `${methodLabel} 발송 완료`;
+  if (deliveryStatus === "failed") return `${methodLabel} 발송 실패`;
+  if (deliveryStatus === "rate_limited") return `${methodLabel} 잠시 대기`;
+  return methodLabel;
+}
+
+function getDeliveryStatusVariant(
+  status: StudentVerificationRequest["deliveryStatus"],
+) {
+  if (status === "sent") return "success";
+  if (status === "failed") return "danger";
+  if (status === "rate_limited") return "warning";
   return "outline";
 }

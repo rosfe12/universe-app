@@ -54,6 +54,29 @@ function buildVerificationUrl(origin: string, requestId: string, tokenHash: stri
   return callbackUrl.toString();
 }
 
+async function updateDeliveryState(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  requestId: string,
+  input: {
+    deliveryMethod: "pending" | "app_smtp" | "supabase_auth";
+    deliveryStatus: "pending" | "sent" | "failed" | "rate_limited";
+    deliveryError?: string | null;
+    deliveredAt?: string | null;
+    verificationUserId?: string | null;
+  },
+) {
+  await admin
+    .from("student_verification_requests")
+    .update({
+      delivery_method: input.deliveryMethod,
+      delivery_status: input.deliveryStatus,
+      delivery_error: input.deliveryError ?? null,
+      delivered_at: input.deliveredAt ?? null,
+      verification_user_id: input.verificationUserId ?? undefined,
+    })
+    .eq("id", requestId);
+}
+
 async function findVerificationAuthUserIdByEmail(
   admin: ReturnType<typeof createAdminSupabaseClient>,
   email: string,
@@ -311,6 +334,8 @@ export async function POST(request: Request) {
         school_id: input.schoolId,
         school_email: normalizedSchoolEmail,
         status: "pending",
+        delivery_method: "pending",
+        delivery_status: "pending",
         next_path: nextPath,
       })
       .select("id")
@@ -325,6 +350,20 @@ export async function POST(request: Request) {
 
     verificationRequestId = verificationRequest.id;
   }
+
+  await admin
+    .from("student_verification_requests")
+    .update({
+      status: "pending",
+      next_path: nextPath,
+      requested_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      delivery_method: "pending",
+      delivery_status: "pending",
+      delivery_error: null,
+      delivered_at: null,
+    })
+    .eq("id", verificationRequestId);
 
   const origin = resolveAuthSiteUrl(new URL(request.url).origin);
 
@@ -352,6 +391,11 @@ export async function POST(request: Request) {
     });
 
     if (linkError || !linkData?.properties?.hashed_token || !linkData.user?.id) {
+      await updateDeliveryState(admin, verificationRequestId, {
+        deliveryMethod: "app_smtp",
+        deliveryStatus: "failed",
+        deliveryError: linkError?.message ?? "학교 메일 인증 링크를 생성할 수 없습니다.",
+      });
       return NextResponse.json(
         { error: linkError?.message ?? "학교 메일 인증 링크를 생성할 수 없습니다." },
         { status: 500 },
@@ -372,6 +416,14 @@ export async function POST(request: Request) {
       });
     } catch (deliveryError) {
       await admin.auth.admin.deleteUser(linkData.user.id).catch(() => null);
+      await updateDeliveryState(admin, verificationRequestId, {
+        deliveryMethod: "app_smtp",
+        deliveryStatus: "failed",
+        deliveryError:
+          deliveryError instanceof Error
+            ? deliveryError.message
+            : "학교 메일 발송에 실패했습니다.",
+      });
 
       return NextResponse.json(
         {
@@ -384,10 +436,13 @@ export async function POST(request: Request) {
       );
     }
 
-    await admin
-      .from("student_verification_requests")
-      .update({ verification_user_id: linkData.user.id })
-      .eq("id", verificationRequestId);
+    await updateDeliveryState(admin, verificationRequestId, {
+      deliveryMethod: "app_smtp",
+      deliveryStatus: "sent",
+      deliveryError: null,
+      deliveredAt: new Date().toISOString(),
+      verificationUserId: linkData.user.id,
+    });
 
     return NextResponse.json({ ok: true, pending: true, deliveryMode: "app_smtp" });
   }
@@ -417,6 +472,11 @@ export async function POST(request: Request) {
 
   if (otpError) {
     if (isRateLimitError(otpError.message)) {
+      await updateDeliveryState(admin, verificationRequestId, {
+        deliveryMethod: "supabase_auth",
+        deliveryStatus: "rate_limited",
+        deliveryError: otpError.message,
+      });
       return NextResponse.json({
         ok: true,
         pending: true,
@@ -425,6 +485,11 @@ export async function POST(request: Request) {
     }
 
     if (isEmailDeliverySetupError(otpError.message)) {
+      await updateDeliveryState(admin, verificationRequestId, {
+        deliveryMethod: "supabase_auth",
+        deliveryStatus: "failed",
+        deliveryError: otpError.message,
+      });
       return NextResponse.json(
         {
           error:
@@ -433,6 +498,12 @@ export async function POST(request: Request) {
         { status: 503 },
       );
     }
+
+    await updateDeliveryState(admin, verificationRequestId, {
+      deliveryMethod: "supabase_auth",
+      deliveryStatus: "failed",
+      deliveryError: otpError.message,
+    });
 
     return NextResponse.json(
       { error: otpError.message },
@@ -447,13 +518,23 @@ export async function POST(request: Request) {
   );
 
   if (verificationUserId) {
-    await admin
-      .from("student_verification_requests")
-      .update({ verification_user_id: verificationUserId })
-      .eq("id", verificationRequestId);
+    await updateDeliveryState(admin, verificationRequestId, {
+      deliveryMethod: "supabase_auth",
+      deliveryStatus: "sent",
+      deliveryError: null,
+      deliveredAt: new Date().toISOString(),
+      verificationUserId,
+    });
+  } else {
+    await updateDeliveryState(admin, verificationRequestId, {
+      deliveryMethod: "supabase_auth",
+      deliveryStatus: "sent",
+      deliveryError: null,
+      deliveredAt: new Date().toISOString(),
+    });
   }
 
-  return NextResponse.json({ ok: true, pending: true });
+  return NextResponse.json({ ok: true, pending: true, deliveryMode: "supabase_auth" });
   } catch (error) {
     logServerEvent("error", "student_verification_request_failed", {
       message: error instanceof Error ? error.message : "unknown",

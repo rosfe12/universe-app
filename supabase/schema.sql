@@ -203,6 +203,10 @@ create table if not exists public.student_verification_requests (
   school_email citext not null,
   verification_user_id uuid,
   status public.verification_request_status not null default 'pending',
+  delivery_method text not null default 'pending',
+  delivery_status text not null default 'pending',
+  delivery_error text,
+  delivered_at timestamptz,
   next_path text not null default '/home',
   requested_at timestamptz not null default timezone('utc', now()),
   verified_at timestamptz,
@@ -211,6 +215,14 @@ create table if not exists public.student_verification_requests (
 
 alter table public.student_verification_requests
   add column if not exists verification_user_id uuid;
+alter table public.student_verification_requests
+  add column if not exists delivery_method text not null default 'pending';
+alter table public.student_verification_requests
+  add column if not exists delivery_status text not null default 'pending';
+alter table public.student_verification_requests
+  add column if not exists delivery_error text;
+alter table public.student_verification_requests
+  add column if not exists delivered_at timestamptz;
 
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),

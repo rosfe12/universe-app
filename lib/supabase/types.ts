@@ -106,6 +106,10 @@ type StudentVerificationRequestRow = {
   school_email: string;
   verification_user_id: string | null;
   status: VerificationRequestStatus;
+  delivery_method: "pending" | "app_smtp" | "supabase_auth";
+  delivery_status: "pending" | "sent" | "failed" | "rate_limited";
+  delivery_error: string | null;
+  delivered_at: string | null;
   next_path: string;
   requested_at: string;
   verified_at: string | null;
@@ -119,6 +123,10 @@ type StudentVerificationRequestInsert = {
   school_email: string;
   verification_user_id?: string | null;
   status?: VerificationRequestStatus;
+  delivery_method?: "pending" | "app_smtp" | "supabase_auth";
+  delivery_status?: "pending" | "sent" | "failed" | "rate_limited";
+  delivery_error?: string | null;
+  delivered_at?: string | null;
   next_path?: string;
   requested_at?: string;
   verified_at?: string | null;

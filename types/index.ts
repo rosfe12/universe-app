@@ -213,6 +213,10 @@ export interface StudentVerificationRequest {
   schoolEmail: string;
   verificationUserId?: string;
   status: VerificationRequestStatus;
+  deliveryMethod: "pending" | "app_smtp" | "supabase_auth";
+  deliveryStatus: "pending" | "sent" | "failed" | "rate_limited";
+  deliveryError?: string;
+  deliveredAt?: string;
   nextPath: string;
   requestedAt: string;
   verifiedAt?: string;

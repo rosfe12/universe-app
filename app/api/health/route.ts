@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { hasAppSmtpConfig } from "@/lib/env";
+import { verifyAppSmtpConnection } from "@/lib/email/server-mailer";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { logServerEvent } from "@/lib/ops";
 
@@ -18,10 +20,17 @@ export async function GET() {
       throw schoolsError ?? bucketError ?? new Error("health check failed");
     }
 
+    let mail = "supabase_auth_fallback";
+    if (hasAppSmtpConfig()) {
+      await verifyAppSmtpConnection();
+      mail = "app_smtp_ready";
+    }
+
     return NextResponse.json({
       ok: true,
       database: "ready",
       storage: mediaBucket?.name === "media" ? "ready" : "missing",
+      mail,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

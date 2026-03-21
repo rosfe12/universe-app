@@ -89,6 +89,10 @@ export function OnboardingPage() {
   const selectedUserType = form.watch("userType");
   const schoolEmailValue = form.watch("schoolEmail");
   const normalizedSchoolEmailValue = normalizeEmail(schoolEmailValue);
+  const canRequestCollegeVerification =
+    selectedUserType === "college" &&
+    Boolean(selectedSchool?.id) &&
+    hasSchoolEmailDomain(normalizedSchoolEmailValue, selectedSchool?.domain);
   const verificationPreview = getStudentVerificationBadge({
     userType: selectedUserType,
     studentVerificationStatus:
@@ -270,15 +274,15 @@ export function OnboardingPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-4 gap-2">
             {["로그인", "유형 선택", "학교 선택", "메일 인증"].map((step, index) => (
               <div
                 key={step}
-                className={`rounded-2xl border px-3 py-3 text-center text-sm font-semibold ${
+                className={`rounded-2xl border px-2 py-3 text-center text-[11px] font-semibold leading-tight sm:px-3 sm:text-sm ${
                   index < 4 ? "border-primary/20 bg-primary/10 text-primary" : "bg-secondary"
                 }`}
               >
-                <span className="block break-keep">{step}</span>
+                <span className="block whitespace-nowrap">{step}</span>
               </div>
             ))}
           </div>
@@ -375,12 +379,23 @@ export function OnboardingPage() {
                 <div className="rounded-[22px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm">
                   <p className="font-medium text-foreground">{verificationPreview.label}</p>
                   <p className="mt-1 text-muted-foreground">
-                    저장 후 학교 메일로 인증 링크를 보내고, 확인이 끝나면 대학생 권한이 열립니다.
+                    학교 메일로 인증 링크를 보내고, 확인이 끝나면 대학생 권한이 열립니다.
                   </p>
                 </div>
-                <Button type="submit" className="w-full">
-                  학교 메일 인증 요청
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={!canRequestCollegeVerification || pending}
+                >
+                  {verificationPreview.status === "pending"
+                    ? "학교 메일 인증 다시 요청"
+                    : "학교 메일 인증 요청"}
                 </Button>
+                {!canRequestCollegeVerification ? (
+                  <p className="text-xs text-muted-foreground">
+                    학교 선택과 학교 메일 형식이 맞아야 인증 요청을 보낼 수 있습니다.
+                  </p>
+                ) : null}
               </div>
             ) : null}
             <div className="grid grid-cols-2 gap-3">
@@ -401,9 +416,11 @@ export function OnboardingPage() {
                 {...form.register("bio")}
               />
             </div>
-            <Button type="submit" className="w-full">
-              {form.watch("userType") === "college" ? "저장하고 인증 진행" : "프로필 저장"}
-            </Button>
+            {form.watch("userType") !== "college" ? (
+              <Button type="submit" className="w-full">
+                프로필 저장
+              </Button>
+            ) : null}
           </form>
         </CardContent>
       </Card>
