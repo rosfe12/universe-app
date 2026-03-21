@@ -22,6 +22,8 @@ import {
   signInWithSupabase,
   signUpWithSupabase,
 } from "@/lib/supabase/app-data";
+import { shouldShowTestAccounts } from "@/lib/env";
+import { AppFooterLinks } from "@/components/layout/app-footer-links";
 
 const loginSchema = z.object({
   email: z.string().email("이메일 형식이 필요합니다."),
@@ -41,11 +43,12 @@ export function LoginPage() {
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const googleSignInEnabled = isGoogleSignInEnabled();
+  const showTestAccounts = shouldShowTestAccounts();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "jiyoon@konkuk.ac.kr",
-      password: "univers123",
+      email: showTestAccounts ? "jiyoon@konkuk.ac.kr" : "",
+      password: showTestAccounts ? "univers123" : "",
     },
   });
 
@@ -205,16 +208,21 @@ export function LoginPage() {
               </Button>
             </div>
           </form>
-          <div className="space-y-2 rounded-[24px] bg-secondary/70 p-4 text-sm">
-            <p className="font-semibold">데모 계정</p>
-            <p>기본 데모: `jiyoon@konkuk.ac.kr` / `univers123`</p>
-            {googleSignInEnabled ? (
-              <p>구글 로그인은 계정 생성용이며, 대학생 권한은 학교 메일 인증 후 열립니다.</p>
-            ) : null}
-            <p>Supabase 미설정 시 데모 모드로 바로 진입합니다.</p>
-          </div>
+          {showTestAccounts ? (
+            <div className="space-y-2 rounded-[24px] bg-secondary/70 p-4 text-sm">
+              <p className="font-semibold">테스트 계정</p>
+              <p>기본 계정: `jiyoon@konkuk.ac.kr` / `univers123`</p>
+              {googleSignInEnabled ? (
+                <p>구글 로그인은 계정 생성용이며, 대학생 권한은 학교 메일 인증 후 열립니다.</p>
+              ) : null}
+              <p>로그인 후 온보딩에서 학교와 유저 유형을 설정할 수 있습니다.</p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
+      <div className="mt-5">
+        <AppFooterLinks />
+      </div>
     </div>
   );
 }

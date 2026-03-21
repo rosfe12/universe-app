@@ -231,7 +231,14 @@ export interface AdminAuditLog {
   id: string;
   adminUserId: string;
   action: string;
-  targetType: "verification_request" | "report";
+  targetType:
+    | "verification_request"
+    | "report"
+    | "user"
+    | "post"
+    | "comment"
+    | "review"
+    | "profile";
   targetId?: string;
   summary: string;
   metadata?: Record<string, unknown>;

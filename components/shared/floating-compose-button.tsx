@@ -18,7 +18,7 @@ export function FloatingComposeButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] right-4 z-20 w-auto shadow-soft md:right-[calc(50%-215px+1rem)]"
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+7.4rem)] right-4 z-40 w-auto rounded-full px-5 shadow-[0_24px_48px_-22px_rgba(99,102,241,0.7)] md:right-[calc(50%-215px+1rem)]"
     >
       <Plus className="h-4 w-4" />
       {label}

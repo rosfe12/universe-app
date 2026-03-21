@@ -738,10 +738,10 @@ export function getAutoHiddenContent() {
   const profiles = getState().datingProfiles
     .filter((profile) => isHiddenDatingProfile(profile))
     .map((profile) => ({
-      targetType: "user" as const,
-      id: profile.userId,
+      targetType: "profile" as const,
+      id: profile.id,
       title: `${getAnonymousHandle(profile.userId)} 프로필`,
-      reportCount: profile.reportCount ?? getUserReportCount(profile.userId),
+      reportCount: profile.reportCount ?? getReportCount("profile", profile.id),
       authorId: profile.userId,
     }));
 

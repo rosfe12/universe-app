@@ -21,7 +21,6 @@ import {
   createReportRecord,
 } from "@/lib/supabase/app-data";
 import {
-  currentUser,
   getAdmissionQuestion,
   getSchoolName,
   isRepeatedlyReportedUser,
@@ -35,7 +34,14 @@ export function AdmissionDetailPage({
   questionId: string;
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, source, isAuthenticated, refresh, setSnapshot } = useAppRuntime(initialSnapshot);
+  const {
+    currentUser,
+    loading,
+    source,
+    isAuthenticated,
+    refresh,
+    setSnapshot,
+  } = useAppRuntime(initialSnapshot);
   const question = getAdmissionQuestion(questionId);
 
   if (!question) {
@@ -48,7 +54,7 @@ export function AdmissionDetailPage({
   return (
     <AppShell
       title="입시 질문 상세"
-      subtitle="구조화된 입시 질문과 답변 채택 흐름"
+      subtitle="입시 질문과 답변을 한눈에 확인해보세요"
       topAction={
         <Button asChild size="icon" variant="ghost">
           <Link href="/admission" aria-label="뒤로">

@@ -49,6 +49,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 NEXT_PUBLIC_AUTH_SITE_URL=http://127.0.0.1:3000
 NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false
+NEXT_PUBLIC_SHOW_TEST_ACCOUNTS=false
+NEXT_PUBLIC_SUPPORT_EMAIL=support@your-domain.com
+NEXT_PUBLIC_SUPPORT_URL=https://your-domain.com/support
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_DB_URL=postgresql://postgres:password@db.your-project-ref.supabase.co:5432/postgres
 SUPABASE_MIGRATION_DB_URL=postgresql://postgres.project-ref:password@aws-0-your-region.pooler.supabase.com:5432/postgres
@@ -82,6 +85,8 @@ npm run verify:deploy-config
 - 앱 SMTP(`SUPABASE_SMTP_*`)가 있으면 학교 메일 인증은 앱 서버가 직접 발송합니다.
 - 앱 SMTP가 없으면 Supabase Auth 메일 발송 경로로 fallback 됩니다.
 - `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`일 때만 구글 로그인 버튼이 노출됩니다.
+- `NEXT_PUBLIC_SHOW_TEST_ACCOUNTS=true`일 때만 로그인 화면에 테스트 계정 안내를 노출합니다.
+- 푸터와 문의 페이지는 `NEXT_PUBLIC_SUPPORT_EMAIL`, `NEXT_PUBLIC_SUPPORT_URL` 값을 사용합니다.
 - Google 로그인을 켜는 경우에만 아래 값을 대시보드에 입력합니다.
   - Site URL: `https://your-domain.com`
   - Redirect URLs
@@ -93,6 +98,12 @@ npm run verify:deploy-config
     - `http://127.0.0.1:3000/auth/school-email/callback`
   - Google Cloud Authorized JavaScript origins: 앱 도메인 origin
   - Google Cloud Authorized redirect URI: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+
+운영 헬스 체크:
+
+```bash
+curl https://your-domain.com/api/health
+```
 
 학교 메일 인증 템플릿:
 

@@ -6,6 +6,7 @@ import {
   listAdminAuditLogs,
   requireAdminUser,
 } from "@/app/api/admin/_utils";
+import { logServerEvent } from "@/lib/ops";
 import type { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -90,6 +91,9 @@ export async function GET(request: Request) {
     const requests = await listVerificationRequests(admin);
     return NextResponse.json({ requests });
   } catch (error) {
+    logServerEvent("error", "admin_verification_request_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "관리자 요청을 처리할 수 없습니다." },
       { status: 403 },

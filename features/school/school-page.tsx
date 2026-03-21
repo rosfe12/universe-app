@@ -47,7 +47,6 @@ import { validatePostSubmission } from "@/lib/moderation";
 import { canAccessSchoolFeatures, canWriteFreshmanZone } from "@/lib/permissions";
 import { addPostToSnapshot } from "@/lib/runtime-mutations";
 import {
-  currentUser,
   getCommunityPosts,
   getCurrentSchool,
   getLectureSummaries,
@@ -70,37 +69,43 @@ type SchoolTab = "lectures" | "trade" | "club" | "food" | "freshman";
 const SCHOOL_SECTIONS = [
   {
     value: "lectures",
-    label: "강의 정보",
+    label: "강의",
+    title: "강의 정보",
     icon: BookOpen,
     href: "/lectures",
   },
   {
     value: "trade",
-    label: "수강신청 교환",
+    label: "수강신청",
+    title: "수강신청 교환",
     icon: Repeat2,
     href: "/lectures?view=trade",
   },
   {
     value: "club",
     label: "동아리",
+    title: "동아리",
     icon: Users,
     href: "/school?tab=club",
   },
   {
     value: "food",
     label: "맛집",
+    title: "맛집",
     icon: UtensilsCrossed,
     href: "/school?tab=food",
   },
   {
     value: "freshman",
     label: "새내기존",
+    title: "새내기존",
     icon: Sparkles,
     href: "/school?tab=freshman",
   },
 ] as const satisfies ReadonlyArray<{
   value: SchoolTab;
   label: string;
+  title: string;
   icon: typeof BookOpen;
   href: string;
 }>;
@@ -123,11 +128,13 @@ export function SchoolPage({
     lectureReviews,
     tradePosts: runtimeTradePosts,
     posts,
+    currentUser: runtimeUser,
     isAuthenticated,
     source,
     refresh,
     setSnapshot,
   } = useAppRuntime(initialSnapshot);
+  const currentUser = runtimeUser;
   const [activeTab, setActiveTab] = useState<SchoolTab>(initialTab);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -210,20 +217,22 @@ export function SchoolPage({
           <div className="space-y-2">
             <h2 className="text-[28px] font-semibold tracking-tight text-slate-950">{schoolName}</h2>
             <p className="text-sm leading-6 text-slate-600">
-              강의 정보, 수강신청 교환, 동아리, 맛집까지 학교 안에서 반복 사용되는 흐름만 모았습니다.
+              강의 정보, 수강신청 교환, 동아리, 맛집까지 학교에서 자주 찾는 메뉴를 모았습니다.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {SCHOOL_SECTIONS.map((section) => (
               <Link key={section.value} href={`/school?tab=${section.value}`}>
                 <Card className="h-full border-white/80 bg-white/86 shadow-none transition-transform hover:-translate-y-0.5">
-                  <CardContent className="flex items-center gap-3 py-4">
-                    <div className="rounded-[20px] bg-primary/10 p-3 text-primary">
+                  <CardContent className="flex min-h-[112px] items-center gap-3 px-4 py-4">
+                    <div className="shrink-0 rounded-[20px] bg-primary/10 p-3 text-primary">
                       <section.icon className="h-5 w-5" />
                     </div>
-                    <div>
-                      <p className="font-semibold">{section.label}</p>
-                      <p className="text-xs text-muted-foreground">우리 학교 전용 흐름</p>
+                    <div className="min-w-0">
+                      <p className="break-keep text-[17px] font-semibold leading-6 text-slate-950">
+                        {section.title}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">우리 학교 전용</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -234,9 +243,13 @@ export function SchoolPage({
       </Card>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SchoolTab)} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="flex w-full justify-start gap-2 overflow-x-auto rounded-[28px] bg-secondary/75 p-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {SCHOOL_SECTIONS.map((section) => (
-            <TabsTrigger key={section.value} value={section.value}>
+            <TabsTrigger
+              key={section.value}
+              value={section.value}
+              className="h-11 shrink-0 px-4 text-[13px] font-semibold"
+            >
               {section.label}
             </TabsTrigger>
           ))}
@@ -312,7 +325,7 @@ export function SchoolPage({
                 <div className="space-y-1">
                   <p className="font-semibold">대학생 계정은 새내기존을 읽기 전용으로 볼 수 있습니다</p>
                   <p className="text-sm text-muted-foreground">
-                    예비입학생 질문 흐름을 참고하고 필요할 때만 읽어보세요.
+                    예비입학생 글을 읽고 학교 분위기를 먼저 살펴보세요.
                   </p>
                 </div>
                 <Badge variant="outline">읽기 전용</Badge>

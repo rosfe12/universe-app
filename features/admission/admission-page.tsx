@@ -47,7 +47,6 @@ import {
   addReportToSnapshot,
 } from "@/lib/runtime-mutations";
 import {
-  currentUser,
   getAdmissionQuestions,
   getCurrentSchool,
   getSchoolName,
@@ -89,11 +88,13 @@ export function AdmissionPage({
     posts,
     reports,
     blocks,
+    currentUser: runtimeUser,
     source,
     isAuthenticated,
     refresh,
     setSnapshot,
   } = useAppRuntime(initialSnapshot);
+  const currentUser = runtimeUser;
   const [open, setOpen] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("");

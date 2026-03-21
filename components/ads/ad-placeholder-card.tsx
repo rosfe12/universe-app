@@ -14,15 +14,15 @@ const AD_COPY: Record<
 > = {
   feedInline: {
     title: "광고 슬롯 준비 중",
-    description: "게시글 흐름을 해치지 않는 인라인 광고 자리입니다.",
+    description: "이 위치에 제휴 광고가 표시됩니다.",
   },
   hotGalleryFooter: {
     title: "핫갤 하단 제휴 슬롯",
-    description: "추후 스폰서 콘텐츠를 자연스럽게 연결할 수 있는 자리입니다.",
+    description: "핫갤 하단에 제휴 광고가 표시됩니다.",
   },
   lectureDetailFooter: {
     title: "강의 상세 하단 제휴 슬롯",
-    description: "강의평 열람 흐름 끝에만 노출되는 광고 자리입니다.",
+    description: "강의 상세 하단에 제휴 광고가 표시됩니다.",
   },
 };
 

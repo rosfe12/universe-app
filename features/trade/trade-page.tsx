@@ -45,7 +45,6 @@ import {
   addTradePostToSnapshot,
 } from "@/lib/runtime-mutations";
 import {
-  currentUser,
   getBlockedContentCount,
   getCurrentSchool,
   getHiddenTradePostCount,
@@ -89,8 +88,18 @@ export function TradePage({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { loading, tradePosts, reports, blocks, source, isAuthenticated, refresh, setSnapshot } =
-    useAppRuntime(initialSnapshot);
+  const {
+    loading,
+    tradePosts,
+    reports,
+    blocks,
+    currentUser: runtimeUser,
+    source,
+    isAuthenticated,
+    refresh,
+    setSnapshot,
+  } = useAppRuntime(initialSnapshot);
+  const currentUser = runtimeUser;
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [tradeItems, setTradeItems] = useState(getTradePosts());

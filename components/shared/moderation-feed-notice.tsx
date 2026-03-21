@@ -60,7 +60,7 @@ export function ModerationFeedNotice({
         {hiddenCount > 0 || blockedCount > 0 ? (
           <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
             <ShieldAlert className="h-3.5 w-3.5 text-primary" />
-            운영 방어 로직이 적용된 데모 화면입니다.
+            신고 누적 또는 차단된 콘텐츠는 피드에서 우선 숨김 처리됩니다.
           </div>
         ) : null}
       </CardContent>

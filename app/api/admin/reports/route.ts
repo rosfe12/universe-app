@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { insertAdminAuditLog, listAdminAuditLogs, requireAdminUser } from "@/app/api/admin/_utils";
+import { logServerEvent } from "@/lib/ops";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,9 @@ export async function PATCH(request: Request) {
     const auditLogs = await listAdminAuditLogs(admin).catch(() => []);
     return NextResponse.json({ ok: true, auditLogs });
   } catch (error) {
+    logServerEvent("error", "admin_report_update_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "신고 상태를 변경할 수 없습니다." },
       { status: 403 },

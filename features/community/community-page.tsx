@@ -44,7 +44,6 @@ import {
   addReportToSnapshot,
 } from "@/lib/runtime-mutations";
 import {
-  currentUser,
   getCurrentSchool,
   getDatingPosts,
   getHotScore,
@@ -207,11 +206,13 @@ export function CommunityPage({
     posts,
     reports,
     blocks,
+    currentUser: runtimeUser,
     source,
     isAuthenticated,
     refresh,
     setSnapshot,
   } = useAppRuntime(initialSnapshot);
+  const currentUser = runtimeUser;
   const [activeFilter, setActiveFilter] = useState<SharedFilter>(
     isSharedFilter(filterParam) ? filterParam : "all",
   );
@@ -453,7 +454,7 @@ export function CommunityPage({
         {filteredItems.length === 0 ? (
           <EmptyState
             title="표시할 글이 없습니다"
-            description="다른 카테고리를 보거나 새 글을 올려 흐름을 시작해보세요."
+            description="다른 카테고리를 둘러보거나 새 글이 올라오기를 기다려보세요."
           />
         ) : (
           feedSlots.map((slot) => {

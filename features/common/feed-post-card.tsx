@@ -53,18 +53,18 @@ export function FeedPostCard({
             {badge.label}
           </Badge>
           {post.subcategory === "hot" ? (
-            <Badge variant="danger" className="bg-rose-500 text-white shadow-[0_12px_24px_-16px_rgba(244,63,94,0.85)]">
+            <Badge variant="danger" className="bg-[linear-gradient(135deg,#f43f5e_0%,#fb7185_100%)] text-white shadow-[0_16px_30px_-18px_rgba(244,63,94,0.82)]">
               HOT
             </Badge>
           ) : null}
         </div>
-        <div className="space-y-2 rounded-[24px] border border-black/5 bg-white/70 px-4 py-4">
-          <h3 className="text-[18px] font-semibold leading-7 tracking-tight">{post.title}</h3>
-          <p className="line-clamp-3 text-[14px] leading-6 text-muted-foreground">{post.content}</p>
+        <div className="space-y-2 rounded-[26px] border border-slate-200/70 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbff_100%)] px-4 py-4">
+          <h3 className="text-[19px] font-bold leading-7 tracking-tight text-slate-950">{post.title}</h3>
+          <p className="line-clamp-2 text-[14px] leading-6 text-muted-foreground">{post.content}</p>
         </div>
       </div>
       {post.imageUrl ? (
-        <div className="overflow-hidden rounded-[24px] border border-black/5">
+        <div className="overflow-hidden rounded-[24px] border border-slate-200/70">
           <Image
             src={post.imageUrl}
             alt={post.title}
@@ -78,7 +78,7 @@ export function FeedPostCard({
   );
 
   return (
-    <Card className="group overflow-hidden border-white/80 bg-[linear-gradient(180deg,#fffefe_0%,#fffaf5_100%)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_22px_48px_-30px_rgba(15,23,42,0.35)]">
+    <Card className="group overflow-hidden border-white/85 bg-[linear-gradient(180deg,#ffffff_0%,#fbfbff_100%)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_28px_56px_-34px_rgba(79,70,229,0.24)]">
       <CardHeader className="space-y-4 pb-4">
         <PostAuthorRow
           authorId={post.authorId}
@@ -87,11 +87,11 @@ export function FeedPostCard({
         />
         {href ? <Link href={href}>{content}</Link> : content}
       </CardHeader>
-      <CardContent className="space-y-4 border-t border-border/60 pt-4">
+      <CardContent className="space-y-4 border-t border-border/70 pt-4">
         {post.tags?.length ? (
           <div className="flex flex-wrap gap-2">
             {post.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="bg-white/80">
+              <Badge key={tag} variant="secondary" className="bg-secondary/80">
                 <Tags className="mr-1 h-3 w-3" />
                 {tag}
               </Badge>
@@ -100,11 +100,11 @@ export function FeedPostCard({
         ) : null}
         <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700">
               <Heart className="h-4 w-4" />
               {post.likes}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
               <MessageCircle className="h-4 w-4" />
               {post.commentCount}
             </span>

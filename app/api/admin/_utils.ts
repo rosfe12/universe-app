@@ -73,7 +73,14 @@ export async function insertAdminAuditLog(
   input: {
     adminUserId: string;
     action: string;
-    targetType: "verification_request" | "report";
+    targetType:
+      | "verification_request"
+      | "report"
+      | "user"
+      | "post"
+      | "comment"
+      | "review"
+      | "profile";
     targetId?: string | null;
     summary: string;
     metadata?: Record<string, unknown>;
@@ -108,7 +115,15 @@ export async function listAdminAuditLogs(
       adminUserId: String(row.admin_user_id),
       action: String(row.action),
       targetType:
-        row.target_type === "verification_request" ? "verification_request" : "report",
+        row.target_type === "verification_request" ||
+        row.target_type === "report" ||
+        row.target_type === "user" ||
+        row.target_type === "post" ||
+        row.target_type === "comment" ||
+        row.target_type === "review" ||
+        row.target_type === "profile"
+          ? row.target_type
+          : "report",
       targetId: row.target_id ? String(row.target_id) : undefined,
       summary: String(row.summary),
       metadata:

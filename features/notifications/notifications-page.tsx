@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { currentUser, getNotifications } from "@/lib/mock-queries";
+import { getNotifications } from "@/lib/mock-queries";
 import { formatRelativeLabel } from "@/lib/utils";
 import type { AppRuntimeSnapshot } from "@/types";
 
@@ -18,7 +18,7 @@ export function NotificationsPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, isAuthenticated } = useAppRuntime(initialSnapshot);
+  const { currentUser, loading, isAuthenticated } = useAppRuntime(initialSnapshot);
   const [tab, setTab] = useState("all");
   const items = getNotifications(currentUser.id);
   const filtered =

@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { currentUser, getCurrentSchool, getLectureSummaries, getTradePosts } from "@/lib/mock-queries";
+import { getCurrentSchool, getLectureSummaries, getTradePosts } from "@/lib/mock-queries";
 import { canAccessSchoolFeatures } from "@/lib/permissions";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import type { AppRuntimeSnapshot } from "@/types";
@@ -43,8 +43,10 @@ export function LecturesPage({
     lectures: runtimeLectures,
     lectureReviews,
     tradePosts: runtimeTradePosts,
+    currentUser: runtimeUser,
     isAuthenticated,
   } = useAppRuntime(initialSnapshot);
+  const currentUser = runtimeUser;
   const [activeView, setActiveView] = useState<LectureView>(initialView);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);

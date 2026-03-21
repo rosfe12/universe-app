@@ -1,0 +1,127 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import {
+  insertAdminAuditLog,
+  listAdminAuditLogs,
+  requireAdminUser,
+} from "@/app/api/admin/_utils";
+import { logServerEvent } from "@/lib/ops";
+
+export const runtime = "nodejs";
+
+const moderatedTargetTypeSchema = z.enum(["post", "comment", "review", "profile"]);
+
+const patchSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("warn_user"),
+    userId: z.string().uuid(),
+  }),
+  z.object({
+    action: z.literal("restore_content"),
+    targetType: moderatedTargetTypeSchema,
+    targetId: z.string().uuid(),
+  }),
+  z.object({
+    action: z.literal("confirm_content"),
+    targetType: moderatedTargetTypeSchema,
+    targetId: z.string().uuid(),
+  }),
+]);
+
+export async function PATCH(request: Request) {
+  try {
+    const { admin, user } = await requireAdminUser(request);
+    const parsed = patchSchema.safeParse(await request.json().catch(() => null));
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    }
+
+    if (parsed.data.action === "warn_user") {
+      const { userId } = parsed.data;
+      const { data: targetUser, error: targetUserError } = await admin
+        .from("users")
+        .select("id, warning_count, is_restricted")
+        .eq("id", userId)
+        .single();
+
+      if (targetUserError || !targetUser) {
+        return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
+      }
+
+      const nextWarningCount = (targetUser.warning_count ?? 0) + 1;
+      const nextRestricted = Boolean(targetUser.is_restricted) || nextWarningCount >= 3;
+
+      const { error: updateUserError } = await admin
+        .from("users")
+        .update({
+          warning_count: nextWarningCount,
+          is_restricted: nextRestricted,
+        })
+        .eq("id", userId);
+
+      if (updateUserError) {
+        return NextResponse.json({ error: updateUserError.message }, { status: 500 });
+      }
+
+      await insertAdminAuditLog(admin, {
+        adminUserId: user.id,
+        action: "user_warned",
+        targetType: "user",
+        targetId: userId,
+        summary: `사용자 경고를 ${nextWarningCount}회로 올렸습니다.`,
+        metadata: {
+          userId,
+          warningCount: nextWarningCount,
+          restricted: nextRestricted,
+        },
+      }).catch(() => null);
+    } else {
+      const { targetType, targetId } = parsed.data;
+      const nextStatus = parsed.data.action === "restore_content" ? "dismissed" : "confirmed";
+      const statusFilter =
+        parsed.data.action === "restore_content"
+          ? ["pending", "reviewing", "confirmed"]
+          : ["pending", "reviewing"];
+
+      const { error: reportUpdateError } = await admin
+        .from("reports")
+        .update({ status: nextStatus })
+        .eq("target_type", targetType)
+        .eq("target_id", targetId)
+        .in("status", statusFilter);
+
+      if (reportUpdateError) {
+        return NextResponse.json({ error: reportUpdateError.message }, { status: 500 });
+      }
+
+      await insertAdminAuditLog(admin, {
+        adminUserId: user.id,
+        action: parsed.data.action,
+        targetType,
+        targetId,
+        summary:
+          parsed.data.action === "restore_content"
+            ? "자동 숨김 콘텐츠를 다시 노출했습니다."
+            : "자동 숨김 콘텐츠를 유지 처리했습니다.",
+        metadata: {
+          targetType,
+          targetId,
+          reportStatus: nextStatus,
+        },
+      }).catch(() => null);
+    }
+
+    const auditLogs = await listAdminAuditLogs(admin).catch(() => []);
+    return NextResponse.json({ ok: true, auditLogs });
+  } catch (error) {
+    logServerEvent("error", "admin_moderation_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "관리자 작업을 처리할 수 없습니다." },
+      { status: 403 },
+    );
+  }
+}

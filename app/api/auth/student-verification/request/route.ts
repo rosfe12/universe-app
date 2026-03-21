@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { hasAppSmtpConfig, publicEnv, resolveAuthSiteUrl } from "@/lib/env";
 import { sendStudentVerificationEmail } from "@/lib/email/server-mailer";
+import { logServerEvent } from "@/lib/ops";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -77,6 +78,7 @@ async function findVerificationAuthUserIdByEmail(
 }
 
 export async function POST(request: Request) {
+  try {
   if (!publicEnv.NEXT_PUBLIC_SUPABASE_URL || !publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return NextResponse.json(
       { error: "Supabase 설정이 필요합니다." },
@@ -466,4 +468,13 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ ok: true, pending: true });
+  } catch (error) {
+    logServerEvent("error", "student_verification_request_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "학교 메일 인증 요청에 실패했습니다." },
+      { status: 500 },
+    );
+  }
 }

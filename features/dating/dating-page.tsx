@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { createDatingPost } from "@/app/actions/content-actions";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
@@ -42,7 +43,6 @@ import {
   addReportToSnapshot,
 } from "@/lib/runtime-mutations";
 import {
-  currentUser,
   getDatingPosts,
   getDatingProfileByUserId,
   getPublicIdentitySummary,
@@ -53,14 +53,12 @@ import { canAccessDating } from "@/lib/permissions";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import {
   createBlockRecord,
-  createPostRecord,
   createReportRecord,
   getAuthFlowHref,
   hasCompletedOnboarding,
-  upsertDatingProfileRecord,
 } from "@/lib/supabase/app-data";
 import { deleteImageByPublicUrl } from "@/lib/supabase/storage";
-import type { Post } from "@/types";
+import type { AppRuntimeSnapshot, Post } from "@/types";
 
 const datingSchema = z.object({
   title: z.string().min(3),
@@ -72,7 +70,11 @@ const datingSchema = z.object({
 
 type DatingFormValues = z.infer<typeof datingSchema>;
 
-export function DatingPage() {
+export function DatingPage({
+  initialSnapshot,
+}: {
+  initialSnapshot?: AppRuntimeSnapshot;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const {
@@ -81,14 +83,17 @@ export function DatingPage() {
     reports,
     blocks,
     datingProfiles,
+    currentUser: runtimeUser,
     source,
     isAuthenticated,
     refresh,
     setSnapshot,
-  } = useAppRuntime();
+  } = useAppRuntime(initialSnapshot);
+  const currentUser = runtimeUser;
   const [open, setOpen] = useState(false);
   const [detailPost, setDetailPost] = useState<Post | null>(null);
   const [items, setItems] = useState(getDatingPosts());
+  const [isSubmitting, startSubmitTransition] = useTransition();
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessDating(currentUser);
 
@@ -165,38 +170,29 @@ export function DatingPage() {
     };
 
     if (source === "supabase" && isAuthenticated) {
-      const profileResult = await upsertDatingProfileRecord({
-        ...localProfile,
+      startSubmitTransition(() => {
+        void (async () => {
+          try {
+            await createDatingPost({
+              title: values.title,
+              content: values.content,
+              vibeTag: values.vibeTag,
+              photoUrl: values.photoUrl || undefined,
+              visibilityLevel: values.visibilityLevel,
+              subcategory: "dating",
+            });
+            await refresh();
+            setOpen(false);
+            form.reset();
+          } catch (error) {
+            await deleteImageByPublicUrl(values.photoUrl);
+            form.setError("root", {
+              message: error instanceof Error ? error.message : "미팅 글 등록에 실패했습니다.",
+            });
+          }
+        })();
       });
-
-      if (profileResult.error) {
-        await deleteImageByPublicUrl(values.photoUrl);
-        form.setError("root", {
-          message: profileResult.error.message,
-        });
-        return;
-      }
-
-      const result = await createPostRecord({
-        authorId: currentUser.id,
-        schoolId: currentUser.schoolId,
-        category: "dating",
-        subcategory: "dating",
-        visibilityLevel: values.visibilityLevel,
-        title: values.title,
-        content: values.content,
-        imageUrl: values.photoUrl || undefined,
-        tags: [values.vibeTag, "새 글"],
-      });
-
-      if (!result.error) {
-        await refresh();
-      } else {
-        form.setError("root", {
-          message: result.error.message,
-        });
-        return;
-      }
+      return;
     } else {
       setItems((current) => [localPost, ...current]);
       setSnapshot((current) => ({
@@ -338,7 +334,7 @@ export function DatingPage() {
         {items.length === 0 ? (
           <EmptyState
             title="아직 올라온 글이 없습니다"
-            description="가볍게 한 줄만 적어도 바로 데모 흐름을 확인할 수 있습니다."
+            description="가볍게 한 줄 소개만 적어도 이야기를 시작할 수 있어요."
           />
         ) : null}
         {items.map((post) => (
@@ -509,8 +505,8 @@ export function DatingPage() {
             {form.formState.errors.root?.message ? (
               <p className="text-sm text-rose-600">{form.formState.errors.root.message}</p>
             ) : null}
-            <Button type="submit" className="w-full">
-              등록하기
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "등록 중" : "등록하기"}
             </Button>
           </form>
         </DialogContent>

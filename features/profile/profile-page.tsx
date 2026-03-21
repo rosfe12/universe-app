@@ -26,7 +26,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
   getAnonymousHandle,
-  currentUser,
   getBlocks,
   getDatingProfileByUserId,
   getPublicIdentitySummary,
@@ -45,11 +44,24 @@ import {
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
 import { getStudentVerificationBadge } from "@/lib/user-identity";
+import type { AppRuntimeSnapshot } from "@/types";
 
-export function ProfilePage() {
+export function ProfilePage({
+  initialSnapshot,
+}: {
+  initialSnapshot?: AppRuntimeSnapshot;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loading, source, isAuthenticated, refresh, setSnapshot } = useAppRuntime();
+  const {
+    currentUser: runtimeUser,
+    loading,
+    source,
+    isAuthenticated,
+    refresh,
+    setSnapshot,
+  } = useAppRuntime(initialSnapshot);
+  const currentUser = runtimeUser;
   const profile = getDatingProfileByUserId(currentUser.id);
   const blockedUsers = getBlocks();
   const unreadNotifications = getNotifications().filter((item) => !item.isRead);
@@ -283,8 +295,8 @@ export function ProfilePage() {
           {[
             {
               icon: GraduationCap,
-              title: "학교 인증 흐름",
-              description: "학교 이메일 / 재학정보 제출 UI를 별도 온보딩으로 분리",
+              title: "학교 인증",
+              description: "학교 이메일과 재학정보를 확인합니다",
               href: "/onboarding",
             },
             {

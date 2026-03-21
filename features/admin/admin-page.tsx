@@ -29,7 +29,7 @@ import {
   getReportTargetUserId,
 } from "@/lib/mock-queries";
 import { REPORT_REASON_LABELS, REPORT_STATUS_LABELS } from "@/lib/constants";
-import type { AdminAuditLog, StudentVerificationRequest } from "@/types";
+import type { AdminAuditLog, AppRuntimeSnapshot, StudentVerificationRequest } from "@/types";
 
 async function loadAdminVerificationRequests() {
   const response = await fetch("/api/admin/verification-requests", {
@@ -152,8 +152,49 @@ async function updateAdminReportStatus(
   };
 }
 
-export function AdminPage() {
-  const { loading, reports, setSnapshot } = useAppRuntime();
+async function updateAdminModerationAction(
+  input:
+    | {
+        action: "warn_user";
+        userId: string;
+      }
+    | {
+        action: "restore_content" | "confirm_content";
+        targetType: "post" | "comment" | "review" | "profile";
+        targetId: string;
+      },
+) {
+  const response = await fetch("/api/admin/moderation", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { ok?: boolean; auditLogs?: AdminAuditLog[]; error?: string }
+    | null;
+
+  if (!response.ok) {
+    return {
+      auditLogs: [] as AdminAuditLog[],
+      error: payload?.error ?? "관리자 작업을 처리하지 못했습니다.",
+    };
+  }
+
+  return {
+    auditLogs: payload?.auditLogs ?? [],
+    error: "",
+  };
+}
+
+export function AdminPage({
+  initialSnapshot,
+}: {
+  initialSnapshot?: AppRuntimeSnapshot;
+}) {
+  const { loading, refresh, reports, setSnapshot, source } = useAppRuntime(initialSnapshot);
   const summary = useMemo(() => getAdminSummary(), [reports]);
   const reportItems = useMemo(() => getReports(), [reports]);
   const autoHiddenItems = useMemo(() => getAutoHiddenContent(), [reports]);
@@ -166,6 +207,9 @@ export function AdminPage() {
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState("");
+  const [verificationPendingId, setVerificationPendingId] = useState<string | null>(null);
+  const [reportPendingId, setReportPendingId] = useState<string | null>(null);
+  const [moderationPendingKey, setModerationPendingKey] = useState<string | null>(null);
   const pendingVerificationCount = verificationItems.filter(
     (item) => item.status === "pending",
   ).length;
@@ -225,20 +269,82 @@ export function AdminPage() {
     action: "approve" | "reject",
   ) {
     setVerificationError("");
-    const result = await updateAdminVerificationRequest(requestId, action);
-    setVerificationItems(result.items);
-    setCanManageVerifications(result.canManage);
-    setVerificationError(result.error ?? "");
-    if (result.auditLogs.length > 0) {
-      setAuditLogs(result.auditLogs);
-      setAuditError("");
+    setVerificationPendingId(requestId);
+    try {
+      const result = await updateAdminVerificationRequest(requestId, action);
+      setVerificationItems(result.items);
+      setCanManageVerifications(result.canManage);
+      setVerificationError(result.error ?? "");
+      if (result.auditLogs.length > 0) {
+        setAuditLogs(result.auditLogs);
+        setAuditError("");
+      }
+      if (!result.error) {
+        await refresh();
+      }
+    } finally {
+      setVerificationPendingId(null);
+    }
+  }
+
+  async function mutateReportStatus(
+    reportId: string,
+    status: "pending" | "reviewing" | "confirmed" | "dismissed",
+  ) {
+    setAuditError("");
+    setReportPendingId(reportId);
+    try {
+      const result = await updateAdminReportStatus(reportId, status);
+      if (result.error) {
+        setAuditError(result.error);
+        return;
+      }
+      if (result.auditLogs.length > 0) {
+        setAuditLogs(result.auditLogs);
+        setAuditError("");
+      }
+      await refresh();
+    } finally {
+      setReportPendingId(null);
+    }
+  }
+
+  async function mutateModerationAction(
+    input:
+      | { action: "warn_user"; userId: string }
+      | {
+          action: "restore_content" | "confirm_content";
+          targetType: "post" | "comment" | "review" | "profile";
+          targetId: string;
+        },
+  ) {
+    setAuditError("");
+    const pendingKey =
+      input.action === "warn_user"
+        ? `warn:${input.userId}`
+        : `${input.action}:${input.targetType}:${input.targetId}`;
+    setModerationPendingKey(pendingKey);
+
+    try {
+      const result = await updateAdminModerationAction(input);
+      if (result.error) {
+        setAuditError(result.error);
+        return;
+      }
+      if (result.auditLogs.length > 0) {
+        setAuditLogs(result.auditLogs);
+        setAuditError("");
+      }
+      await refresh();
+    } finally {
+      setModerationPendingKey(null);
     }
   }
 
   return (
     <AppShell
       title="관리자"
-      subtitle="신고, 자동 숨김, 저신뢰 사용자 흐름을 한 번에 보는 운영 MVP"
+      subtitle="신고, 숨김, 사용자 상태를 한 곳에서 관리합니다"
       showTabs={false}
     >
       {loading ? <LoadingState /> : null}
@@ -300,7 +406,13 @@ export function AdminPage() {
               key={item.id}
               item={item}
               canManage={canManageVerifications}
+              pendingAction={verificationPendingId === item.id ? "pending" : undefined}
               onApprove={() => {
+                if (source === "supabase") {
+                  void mutateVerificationRequest(item.id, "approve");
+                  return;
+                }
+
                 setVerificationItems((current) =>
                   current.map((request) =>
                     request.id === item.id
@@ -313,9 +425,13 @@ export function AdminPage() {
                       : request,
                   ),
                 );
-                void mutateVerificationRequest(item.id, "approve");
               }}
               onReject={() => {
+                if (source === "supabase") {
+                  void mutateVerificationRequest(item.id, "reject");
+                  return;
+                }
+
                 setVerificationItems((current) =>
                   current.map((request) =>
                     request.id === item.id
@@ -328,7 +444,6 @@ export function AdminPage() {
                       : request,
                   ),
                 );
-                void mutateVerificationRequest(item.id, "reject");
               }}
             />
           ))}
@@ -373,15 +488,11 @@ export function AdminPage() {
                       key={status}
                       size="sm"
                       variant={item.status === status ? "default" : "outline"}
+                      disabled={reportPendingId === item.id}
                       onClick={async () => {
-                        const result = await updateAdminReportStatus(item.id, status);
-                        if (result.error) {
-                          setAuditError(result.error);
+                        if (source === "supabase") {
+                          await mutateReportStatus(item.id, status);
                           return;
-                        }
-                        if (result.auditLogs.length > 0) {
-                          setAuditLogs(result.auditLogs);
-                          setAuditError("");
                         }
 
                         setSnapshot((snapshot) =>
@@ -396,9 +507,18 @@ export function AdminPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() =>
-                        setSnapshot((snapshot) => warnUserInSnapshot(snapshot, targetUserId))
-                      }
+                      disabled={moderationPendingKey === `warn:${targetUserId}`}
+                      onClick={() => {
+                        if (source === "supabase") {
+                          void mutateModerationAction({
+                            action: "warn_user",
+                            userId: targetUserId,
+                          });
+                          return;
+                        }
+
+                        setSnapshot((snapshot) => warnUserInSnapshot(snapshot, targetUserId));
+                      }}
                     >
                       경고 상태 표시
                     </Button>
@@ -462,30 +582,59 @@ export function AdminPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
+                  disabled={moderationPendingKey === `restore_content:${item.targetType}:${item.id}`}
+                  onClick={() => {
+                    if (source === "supabase") {
+                      void mutateModerationAction({
+                        action: "restore_content",
+                        targetType: item.targetType,
+                        targetId: item.id,
+                      });
+                      return;
+                    }
+
                     setSnapshot((snapshot) =>
                       dismissReportsForTargetInSnapshot(snapshot, item.targetType, item.id),
-                    )
-                  }
+                    );
+                  }}
                 >
                   숨김 해제
                 </Button>
                 <Button
                   size="sm"
-                  onClick={() =>
+                  disabled={moderationPendingKey === `confirm_content:${item.targetType}:${item.id}`}
+                  onClick={() => {
+                    if (source === "supabase") {
+                      void mutateModerationAction({
+                        action: "confirm_content",
+                        targetType: item.targetType,
+                        targetId: item.id,
+                      });
+                      return;
+                    }
+
                     setSnapshot((snapshot) =>
                       confirmReportsForTargetInSnapshot(snapshot, item.targetType, item.id),
-                    )
-                  }
+                    );
+                  }}
                 >
                   유지
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    setSnapshot((snapshot) => warnUserInSnapshot(snapshot, item.authorId))
-                  }
+                  disabled={moderationPendingKey === `warn:${item.authorId}`}
+                  onClick={() => {
+                    if (source === "supabase") {
+                      void mutateModerationAction({
+                        action: "warn_user",
+                        userId: item.authorId,
+                      });
+                      return;
+                    }
+
+                    setSnapshot((snapshot) => warnUserInSnapshot(snapshot, item.authorId));
+                  }}
                 >
                   경고 상태 표시
                 </Button>
@@ -502,7 +651,18 @@ export function AdminPage() {
               subtitle={`신고 ${user.reportCount ?? 0}건 · 경고 ${user.warningCount ?? 0}회`}
               trustScore={user.trustScore}
               restricted={Boolean(user.isRestricted)}
-              onWarn={() => setSnapshot((snapshot) => warnUserInSnapshot(snapshot, user.id))}
+              warningPending={moderationPendingKey === `warn:${user.id}`}
+              onWarn={() => {
+                if (source === "supabase") {
+                  void mutateModerationAction({
+                    action: "warn_user",
+                    userId: user.id,
+                  });
+                  return;
+                }
+
+                setSnapshot((snapshot) => warnUserInSnapshot(snapshot, user.id));
+              }}
             />
           ))}
         </TabsContent>
@@ -515,7 +675,18 @@ export function AdminPage() {
               subtitle={`낮은 신뢰도 사용자 · 신고 ${user.reportCount ?? 0}건`}
               trustScore={user.trustScore}
               restricted={Boolean(user.isRestricted)}
-              onWarn={() => setSnapshot((snapshot) => warnUserInSnapshot(snapshot, user.id))}
+              warningPending={moderationPendingKey === `warn:${user.id}`}
+              onWarn={() => {
+                if (source === "supabase") {
+                  void mutateModerationAction({
+                    action: "warn_user",
+                    userId: user.id,
+                  });
+                  return;
+                }
+
+                setSnapshot((snapshot) => warnUserInSnapshot(snapshot, user.id));
+              }}
             />
           ))}
         </TabsContent>
@@ -527,11 +698,13 @@ export function AdminPage() {
 function VerificationRequestCard({
   item,
   canManage,
+  pendingAction,
   onApprove,
   onReject,
 }: {
   item: StudentVerificationRequest;
   canManage: boolean;
+  pendingAction?: "pending";
   onApprove: () => void;
   onReject: () => void;
 }) {
@@ -566,7 +739,7 @@ function VerificationRequestCard({
           <Button
             size="sm"
             onClick={onApprove}
-            disabled={item.status === "verified"}
+            disabled={item.status === "verified" || pendingAction === "pending"}
           >
             승인
           </Button>
@@ -574,7 +747,7 @@ function VerificationRequestCard({
             size="sm"
             variant="outline"
             onClick={onReject}
-            disabled={item.status !== "pending"}
+            disabled={item.status !== "pending" || pendingAction === "pending"}
           >
             반려
           </Button>
@@ -611,12 +784,14 @@ function UserModerationCard({
   subtitle,
   trustScore,
   restricted,
+  warningPending,
   onWarn,
 }: {
   title: string;
   subtitle: string;
   trustScore: number;
   restricted: boolean;
+  warningPending?: boolean;
   onWarn: () => void;
 }) {
   return (
@@ -630,7 +805,7 @@ function UserModerationCard({
             {restricted ? <Badge variant="danger">restricted</Badge> : null}
           </div>
         </div>
-        <Button size="sm" variant="outline" onClick={onWarn}>
+        <Button size="sm" variant="outline" onClick={onWarn} disabled={warningPending}>
           경고 상태 표시
         </Button>
       </CardContent>

@@ -9,15 +9,19 @@ import type { AppRuntimeSnapshot } from "@/types";
 
 export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
   const seedSnapshot = initialSnapshot ?? getRuntimeSnapshot();
-
-  if (initialSnapshot) {
-    setRuntimeSnapshot(initialSnapshot);
-  }
-
   const [snapshot, setSnapshot] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
   const [loading, setLoading] = useState(
     !initialSnapshot && seedSnapshot.source === "mock",
   );
+
+  useEffect(() => {
+    if (!initialSnapshot) {
+      return;
+    }
+
+    setSnapshot(initialSnapshot);
+    setRuntimeSnapshot(initialSnapshot);
+  }, [initialSnapshot]);
 
   useEffect(() => {
     setRuntimeSnapshot(snapshot);
@@ -26,34 +30,39 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
   useEffect(() => {
     let active = true;
 
-    async function bootstrap() {
-      setLoading(true);
+    async function bootstrap(showLoading: boolean) {
+      if (showLoading) {
+        setLoading(true);
+      }
       const nextSnapshot = await loadClientRuntimeSnapshot();
       if (!active) return;
       setSnapshot(nextSnapshot);
       setLoading(false);
     }
 
-    if (initialSnapshot) {
-      setLoading(false);
-    } else {
-      bootstrap();
-    }
-
     if (!isSupabaseEnabled()) {
+      if (initialSnapshot) {
+        setLoading(false);
+      } else {
+        void bootstrap(true);
+      }
       return () => {
         active = false;
       };
+    }
+
+    if (initialSnapshot) {
+      setLoading(false);
+      void bootstrap(false);
+    } else {
+      void bootstrap(true);
     }
 
     const supabase = createClient();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async () => {
-      const nextSnapshot = await loadClientRuntimeSnapshot();
-      if (!active) return;
-      setSnapshot(nextSnapshot);
-      setLoading(false);
+      await bootstrap(false);
     });
 
     return () => {
@@ -63,6 +72,7 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
   }, [initialSnapshot]);
 
   return {
+    snapshot,
     ...snapshot,
     loading,
     setSnapshot,

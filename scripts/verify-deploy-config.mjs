@@ -17,6 +17,10 @@ function resolveAppUrl() {
     process.env.SUPABASE_AUTH_SITE_URL ||
     process.env.NEXT_PUBLIC_AUTH_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined) ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
     "http://127.0.0.1:3000"
   ).replace(/\/+$/, "");
 }
@@ -80,6 +84,9 @@ async function main() {
   const appUrl = resolveAppUrl();
   const redirectUrls = resolveRedirectUrls();
   const googleEnabled = parseFlag(process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED);
+  const isLocalAppUrl = /^https?:\/\/(127\.0\.0\.1|localhost)/.test(appUrl);
+  const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "";
+  const supportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL || "";
 
   console.log("App URL");
   console.log(appUrl);
@@ -102,7 +109,24 @@ async function main() {
   }
   console.log("");
 
+  console.log("Support");
+  console.log(`- email: ${supportEmail || "missing"}`);
+  console.log(`- url: ${supportUrl || "missing"}`);
+  console.log("");
+
   await verifySmtp();
+
+  if (process.env.VERCEL === "1" && isLocalAppUrl) {
+    throw new Error("Vercel 환경에서 App URL이 로컬 주소로 설정되어 있습니다.");
+  }
+
+  if (!isLocalAppUrl && (!supportEmail || supportEmail.includes("your-domain.com"))) {
+    throw new Error("NEXT_PUBLIC_SUPPORT_EMAIL 운영값이 필요합니다.");
+  }
+
+  if (!isLocalAppUrl && (!supportUrl || supportUrl.includes("your-domain.com"))) {
+    throw new Error("NEXT_PUBLIC_SUPPORT_URL 운영값이 필요합니다.");
+  }
 }
 
 main().catch((error) => {

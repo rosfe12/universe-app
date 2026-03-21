@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 42 60% 98%;
-    --foreground: 222 47% 11%;
+    --background: 240 33% 99%;
+    --foreground: 229 30% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 229 30% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 143 46% 27%;
+    --popover-foreground: 229 30% 15%;
+    --primary: 244 82% 65%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 90 35% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 80 18% 95%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 98 34% 92%;
-    --accent-foreground: 222 47% 11%;
+    --secondary: 240 29% 96%;
+    --secondary-foreground: 229 30% 15%;
+    --muted: 240 20% 96%;
+    --muted-foreground: 226 15% 45%;
+    --accent: 252 55% 95%;
+    --accent-foreground: 229 30% 15%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 95 16% 88%;
-    --input: 95 16% 88%;
-    --ring: 143 46% 27%;
+    --border: 240 24% 91%;
+    --input: 240 24% 91%;
+    --ring: 244 82% 65%;
     --radius: 1.5rem;
-    --chart-1: 143 46% 27%;
-    --chart-2: 159 64% 42%;
-    --chart-3: 25 95% 53%;
+    --chart-1: 244 82% 65%;
+    --chart-2: 262 83% 67%;
+    --chart-3: 216 92% 60%;
     --chart-4: 338 83% 60%;
-    --chart-5: 262 83% 58%;
+    --chart-5: 199 89% 48%;
   }
 
   * {
@@ -49,10 +49,15 @@
       "Noto Sans KR",
       sans-serif;
     background-image:
-      radial-gradient(circle at top, rgba(34, 197, 94, 0.15), transparent 32%),
-      linear-gradient(180deg, rgba(249, 245, 230, 0.8) 0%, rgba(255, 255, 255, 1) 45%);
+      radial-gradient(circle at top, rgba(99, 102, 241, 0.16), transparent 32%),
+      radial-gradient(circle at 85% 8%, rgba(168, 85, 247, 0.1), transparent 24%),
+      linear-gradient(180deg, rgba(245, 247, 255, 0.95) 0%, rgba(255, 255, 255, 1) 42%);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.16);
   }
 }
 

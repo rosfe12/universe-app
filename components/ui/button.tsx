@@ -10,12 +10,12 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[0_18px_36px_-22px_rgba(21,128,61,0.85)] hover:brightness-[0.98]",
+          "bg-[linear-gradient(135deg,#6366f1_0%,#8b5cf6_100%)] text-primary-foreground shadow-[0_22px_44px_-22px_rgba(99,102,241,0.72)] hover:shadow-[0_26px_50px_-22px_rgba(99,102,241,0.82)]",
         secondary:
-          "bg-secondary/90 text-secondary-foreground hover:bg-secondary",
+          "bg-secondary/95 text-secondary-foreground shadow-[0_12px_26px_-18px_rgba(15,23,42,0.2)] hover:bg-secondary",
         outline:
-          "border-border bg-background/90 hover:bg-accent hover:text-accent-foreground",
-        ghost: "bg-transparent hover:bg-accent hover:text-accent-foreground",
+          "border-border bg-background/95 shadow-[0_10px_20px_-18px_rgba(15,23,42,0.2)] hover:bg-accent hover:text-accent-foreground",
+        ghost: "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground",
         destructive:
           "bg-destructive text-destructive-foreground shadow-[0_14px_28px_-18px_rgba(225,29,72,0.8)] hover:brightness-[0.98]",
       },
@@ -23,7 +23,7 @@ const buttonVariants = cva(
         default: "h-11 px-5",
         sm: "h-9 px-4 text-xs",
         lg: "h-12 px-6",
-        icon: "h-11 w-11 rounded-[18px]",
+        icon: "h-11 w-11 rounded-[20px]",
       },
     },
     defaultVariants: {

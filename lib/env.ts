@@ -6,6 +6,9 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   NEXT_PUBLIC_AUTH_SITE_URL: z.string().url().optional(),
   NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z.string().optional(),
+  NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: z.string().optional(),
+  NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().optional(),
+  NEXT_PUBLIC_SUPPORT_URL: z.string().url().optional(),
 });
 
 const serverEnvSchema = publicEnvSchema.extend({
@@ -26,6 +29,9 @@ export const publicEnv = publicEnvSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_AUTH_SITE_URL: process.env.NEXT_PUBLIC_AUTH_SITE_URL,
   NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+  NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: process.env.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS,
+  NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
+  NEXT_PUBLIC_SUPPORT_URL: process.env.NEXT_PUBLIC_SUPPORT_URL,
 });
 
 export const serverEnv = serverEnvSchema.parse({
@@ -34,6 +40,9 @@ export const serverEnv = serverEnvSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_AUTH_SITE_URL: process.env.NEXT_PUBLIC_AUTH_SITE_URL,
   NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+  NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: process.env.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS,
+  NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
+  NEXT_PUBLIC_SUPPORT_URL: process.env.NEXT_PUBLIC_SUPPORT_URL,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   SUPABASE_AUTH_SITE_URL: process.env.SUPABASE_AUTH_SITE_URL,
   SUPABASE_AUTH_ADDITIONAL_REDIRECT_URLS: process.env.SUPABASE_AUTH_ADDITIONAL_REDIRECT_URLS,
@@ -54,7 +63,13 @@ export function hasPublicSupabaseEnv() {
 }
 
 export function resolveAppUrl(fallback?: string) {
-  return publicEnv.NEXT_PUBLIC_APP_URL ?? fallback ?? "http://127.0.0.1:3000";
+  return (
+    publicEnv.NEXT_PUBLIC_APP_URL ??
+    process.env.VERCEL_PROJECT_PRODUCTION_URL?.replace(/^/, "https://") ??
+    process.env.VERCEL_URL?.replace(/^/, "https://") ??
+    fallback ??
+    "http://127.0.0.1:3000"
+  );
 }
 
 export function resolveAuthSiteUrl(fallback?: string) {
@@ -92,6 +107,18 @@ function parseFlag(value?: string | null) {
 
 export function isGoogleAuthEnabled() {
   return parseFlag(publicEnv.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED);
+}
+
+export function shouldShowTestAccounts() {
+  return parseFlag(publicEnv.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS);
+}
+
+export function getSupportEmail() {
+  return publicEnv.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@univers.app";
+}
+
+export function getSupportUrl() {
+  return publicEnv.NEXT_PUBLIC_SUPPORT_URL ?? "/support";
 }
 
 export function hasAppSmtpConfig() {

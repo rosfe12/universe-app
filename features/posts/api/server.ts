@@ -15,3 +15,15 @@ export async function getAdmissionPageSnapshot() {
 export async function getAdmissionDetailSnapshot() {
   return loadServerRuntimeSnapshot();
 }
+
+export async function getDatingPageSnapshot() {
+  return loadServerRuntimeSnapshot();
+}
+
+export async function getProfilePageSnapshot() {
+  return loadServerRuntimeSnapshot();
+}
+
+export async function getAdminPageSnapshot() {
+  return loadServerRuntimeSnapshot();
+}

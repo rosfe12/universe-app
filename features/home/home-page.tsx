@@ -8,12 +8,10 @@ import {
   Flame,
   Heart,
   MessageCircle,
-  Repeat2,
-  School,
   Sparkles,
   ThumbsUp,
-  UtensilsCrossed,
   Users,
+  UtensilsCrossed,
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -24,96 +22,77 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { FeedPostCard } from "@/features/common/feed-post-card";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
-import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
-  getAdmissionQuestions,
   getCommunityPosts,
   getCurrentSchool,
   getDatingPosts,
   getHotGalleryPosts,
   getLectureSummaries,
   getPublicIdentitySummary,
-  getTradePosts,
 } from "@/lib/mock-queries";
 import { cn, formatRelativeLabel } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post } from "@/types";
 
-const SCHOOL_PREVIEW_SECTIONS = [
-  {
-    key: "lectures",
-    title: "강의 정보",
-    href: "/school?tab=lectures",
-    icon: BookOpen,
-    tone: "bg-emerald-50 text-emerald-700",
-  },
-  {
-    key: "trade",
-    title: "수강신청 교환",
-    href: "/school?tab=trade",
-    icon: Repeat2,
-    tone: "bg-sky-50 text-sky-700",
-  },
-  {
-    key: "club",
-    title: "동아리",
-    href: "/school?tab=club",
-    icon: Users,
-    tone: "bg-amber-50 text-amber-700",
-  },
-  {
-    key: "food",
-    title: "맛집",
-    href: "/school?tab=food",
-    icon: UtensilsCrossed,
-    tone: "bg-rose-50 text-rose-700",
-  },
-] as const;
-
 function FeaturedHotCard({ post, schoolName }: { post: Post; schoolName: string }) {
   return (
     <Link href="/community?filter=hot">
-      <Card className="group overflow-hidden border-white/80 bg-[linear-gradient(135deg,#171717_0%,#1f2937_58%,#f97316_130%)] text-white transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_28px_60px_-28px_rgba(15,23,42,0.45)]">
-        <CardContent className="space-y-5 py-5">
+      <Card className="group overflow-hidden border-white/85 bg-[linear-gradient(140deg,#1e1b4b_0%,#4338ca_45%,#7c3aed_100%)] text-white transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_38px_88px_-38px_rgba(79,70,229,0.68)]">
+        <CardContent className="space-y-6 py-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="danger" className="bg-rose-500 text-white shadow-[0_10px_25px_-14px_rgba(244,63,94,0.85)]">
+              <Badge className="border-white/10 bg-white/15 text-white">오늘 핫한 글</Badge>
+              <Badge variant="danger" className="bg-[linear-gradient(135deg,#f43f5e_0%,#fb7185_100%)] text-white shadow-[0_14px_30px_-16px_rgba(244,63,94,0.84)]">
                 HOT
               </Badge>
-              <Badge className="border-white/10 bg-white/15 text-white">실시간 인기글</Badge>
               <span className="text-xs text-white/75">{formatRelativeLabel(post.createdAt)}</span>
             </div>
-            <Flame className="h-5 w-5 text-orange-300" />
+            <div className="rounded-full bg-white/12 p-2 backdrop-blur">
+              <Flame className="h-5 w-5 text-violet-100" />
+            </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-[1.35fr,0.95fr]">
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-200/90">
-                  {schoolName}에서 지금 제일 뜨는 이야기
-                </p>
-                <p className="line-clamp-3 text-[24px] font-semibold leading-8 tracking-tight">
+          <div className="grid gap-4 sm:grid-cols-[1.2fr,0.8fr]">
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <p className="line-clamp-3 text-[31px] font-bold leading-9 tracking-tight">
                   {post.title}
                 </p>
-                <p className="line-clamp-3 text-sm leading-6 text-white/78">{post.content}</p>
+                <p className="line-clamp-3 text-[15px] leading-7 text-white/78">{post.content}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
+                  <p className="text-[11px] text-white/60">댓글</p>
+                  <div className="mt-2 flex items-end gap-2">
+                    <span className="text-[32px] font-bold leading-none">{post.commentCount}</span>
+                    <MessageCircle className="mb-1 h-5 w-5 text-violet-100" />
+                  </div>
+                </div>
+                <div className="rounded-[24px] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
+                  <p className="text-[11px] text-white/60">좋아요</p>
+                  <div className="mt-2 flex items-end gap-2">
+                    <span className="text-[32px] font-bold leading-none">{post.likes}</span>
+                    <ThumbsUp className="mb-1 h-5 w-5 text-violet-100" />
+                  </div>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-2 text-sm font-semibold">
-                  <ThumbsUp className="h-4 w-4 text-orange-200" />
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-2 text-sm font-semibold backdrop-blur">
+                  <ThumbsUp className="h-4 w-4 text-violet-100" />
                   {post.likes}
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-2 text-sm font-semibold">
-                  <MessageCircle className="h-4 w-4 text-orange-200" />
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-2 text-sm font-semibold backdrop-blur">
+                  <MessageCircle className="h-4 w-4 text-violet-100" />
                   댓글 {post.commentCount}
                 </div>
               </div>
-              <div className="inline-flex items-center gap-1 text-sm font-semibold text-orange-200">
+              <div className="inline-flex items-center gap-3 rounded-full bg-white px-4 py-3 text-sm font-semibold text-indigo-700 shadow-[0_20px_44px_-28px_rgba(255,255,255,0.8)]">
                 지금 들어가서 보기
                 <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </div>
             </div>
 
-            <div className="relative min-h-[220px] overflow-hidden rounded-[26px] border border-white/12 bg-white/10">
+            <div className="relative min-h-[280px] overflow-hidden rounded-[32px] border border-white/12 bg-white/10">
               {post.imageUrl ? (
                 <Image
                   src={post.imageUrl}
@@ -122,35 +101,16 @@ function FeaturedHotCard({ post, schoolName }: { post: Post; schoolName: string 
                   className="object-cover"
                 />
               ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(251,191,36,0.36),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02))]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(196,181,253,0.4),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02))]" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 space-y-1 p-4">
                 <div className="inline-flex items-center gap-1 rounded-full bg-black/35 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
-                  <Sparkles className="h-3.5 w-3.5 text-orange-200" />
-                  지금 커뮤니티 메인
+                  <Sparkles className="h-3.5 w-3.5 text-violet-100" />
+                  핫갤 메인
                 </div>
-                <p className="line-clamp-2 text-sm font-medium text-white/92">
-                  반응이 빠르게 붙는 핫갤 글을 가장 먼저 보여줍니다.
-                </p>
+                <p className="line-clamp-2 text-sm font-medium text-white/92">{schoolName}</p>
               </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-[20px] border border-white/12 bg-white/10 px-4 py-3">
-              <p className="text-[11px] text-white/65">좋아요</p>
-              <p className="mt-1 text-base font-semibold">{post.likes}</p>
-            </div>
-            <div className="rounded-[20px] border border-white/12 bg-white/10 px-4 py-3">
-              <p className="text-[11px] text-white/65">댓글</p>
-              <p className="mt-1 text-base font-semibold">{post.commentCount}</p>
-            </div>
-            <div className="rounded-[20px] border border-white/12 bg-white/10 px-4 py-3">
-              <p className="text-[11px] text-white/65">태그</p>
-              <p className="mt-1 line-clamp-1 text-sm font-semibold">
-                {post.tags?.[0] ?? "실시간"}
-              </p>
             </div>
           </div>
         </CardContent>
@@ -162,10 +122,10 @@ function FeaturedHotCard({ post, schoolName }: { post: Post; schoolName: string 
 function HotCard({ post }: { post: Post }) {
   return (
     <Link href="/community?filter=hot">
-      <Card className="group h-full overflow-hidden border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fff7f3_100%)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_24px_46px_-30px_rgba(15,23,42,0.35)]">
+      <Card className="group h-full overflow-hidden border-white/85 bg-[linear-gradient(180deg,#ffffff_0%,#f7f7ff_100%)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_28px_54px_-34px_rgba(79,70,229,0.26)]">
         <CardContent className="space-y-4 py-5">
           {post.imageUrl ? (
-            <div className="relative overflow-hidden rounded-[22px] border border-rose-100 bg-rose-50">
+            <div className="relative overflow-hidden rounded-[24px] border border-indigo-100 bg-indigo-50">
               <Image
                 src={post.imageUrl}
                 alt={post.title}
@@ -177,20 +137,22 @@ function HotCard({ post }: { post: Post }) {
           ) : null}
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="danger" className="font-semibold">HOT</Badge>
+              <Badge variant="danger" className="bg-[linear-gradient(135deg,#f43f5e_0%,#fb7185_100%)] font-semibold text-white">HOT</Badge>
               <span className="text-xs font-medium text-muted-foreground">
                 {formatRelativeLabel(post.createdAt)}
               </span>
             </div>
-            <p className="line-clamp-2 text-[18px] font-semibold leading-7 tracking-tight">{post.title}</p>
-            <p className="line-clamp-3 text-[14px] leading-6 text-muted-foreground">{post.content}</p>
+            <p className="line-clamp-2 text-[20px] font-bold leading-7 tracking-tight">{post.title}</p>
+            <p className="line-clamp-2 text-[14px] leading-6 text-muted-foreground">{post.content}</p>
           </div>
           <div className="grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
-            <div className="rounded-[18px] bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
-              좋아요 {post.likes}
+            <div className="rounded-[20px] bg-violet-50 px-3 py-3 text-sm font-semibold text-violet-700">
+              <p className="text-[11px] text-violet-500">좋아요</p>
+              <p className="mt-1 text-lg font-bold">{post.likes}</p>
             </div>
-            <div className="rounded-[18px] bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
-              댓글 {post.commentCount}
+            <div className="rounded-[20px] bg-indigo-50 px-3 py-3 text-sm font-semibold text-indigo-700">
+              <p className="text-[11px] text-indigo-500">댓글</p>
+              <p className="mt-1 text-lg font-bold">{post.commentCount}</p>
             </div>
           </div>
         </CardContent>
@@ -208,10 +170,40 @@ function SharedDatingCard({ post }: { post: Post }) {
       <Card className={cn(
         "overflow-hidden border-white/80 transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_24px_46px_-30px_rgba(15,23,42,0.35)]",
         post.subcategory === "meeting"
-          ? "bg-[linear-gradient(135deg,#fff8e7_0%,#ffffff_58%,#fde68a_130%)]"
-          : "bg-[linear-gradient(135deg,#fff1f2_0%,#ffffff_58%,#fbcfe8_130%)]",
+          ? "bg-[linear-gradient(135deg,#f8f7ff_0%,#ffffff_58%,#ede9fe_130%)]"
+          : "bg-[linear-gradient(135deg,#fff7fb_0%,#ffffff_58%,#f5d0fe_130%)]",
       )}>
         <CardContent className="space-y-4 py-5">
+          {post.imageUrl ? (
+            <div className="relative overflow-hidden rounded-[26px] border border-white/80">
+              <Image
+                src={post.imageUrl}
+                alt={post.title}
+                width={1200}
+                height={720}
+                className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            </div>
+          ) : (
+            <div className={cn(
+              "rounded-[26px] border border-white/80 px-5 py-5",
+              post.subcategory === "meeting"
+                ? "bg-[linear-gradient(135deg,#ede9fe_0%,#ffffff_100%)]"
+                : "bg-[linear-gradient(135deg,#fdf2f8_0%,#ffffff_100%)]",
+            )}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-500">
+                    프로필 카드
+                  </p>
+                  <p className="mt-2 text-lg font-bold text-foreground">{identity.label}</p>
+                </div>
+                <div className="rounded-full bg-white p-3 shadow-sm">
+                  <Heart className="h-5 w-5 text-violet-500" />
+                </div>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Badge
@@ -223,63 +215,32 @@ function SharedDatingCard({ post }: { post: Post }) {
               <span className="text-xs text-muted-foreground">{formatRelativeLabel(post.createdAt)}</span>
             </div>
             <div className="rounded-full bg-white/90 p-2 shadow-sm">
-              <Heart className="h-4 w-4 text-rose-500" />
+              <Heart className="h-4 w-4 text-violet-500" />
             </div>
           </div>
           <div className="space-y-3">
-            <p className="line-clamp-2 text-[18px] font-semibold leading-7 tracking-tight">{post.title}</p>
+            <p className="line-clamp-2 text-[20px] font-bold leading-7 tracking-tight">{post.title}</p>
             <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{post.content}</p>
             <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-[18px] bg-white/80 px-3 py-2">
+              <div className="rounded-[18px] bg-white/80 px-3 py-3">
                 <p className="text-[11px] text-muted-foreground">반응</p>
-                <p className="mt-1 text-sm font-semibold">{post.likes}개</p>
+                <p className="mt-1 text-lg font-bold">{post.likes}개</p>
               </div>
-              <div className="rounded-[18px] bg-white/80 px-3 py-2">
+              <div className="rounded-[18px] bg-white/80 px-3 py-3">
                 <p className="text-[11px] text-muted-foreground">댓글</p>
-                <p className="mt-1 text-sm font-semibold">{post.commentCount}개</p>
+                <p className="mt-1 text-lg font-bold">{post.commentCount}개</p>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-3">
-            <p className="text-sm font-medium text-foreground/85">{identity.label}</p>
-            <TrustScoreBadge score={identity.trustScore} />
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
-
-function MiniCampusCard({
-  title,
-  description,
-  href,
-  icon: Icon,
-  badge,
-}: {
-  title: string;
-  description: string;
-  href: string;
-  icon: typeof BookOpen;
-  badge: string;
-}) {
-  return (
-    <Link href={href}>
-      <Card className="h-full overflow-hidden border-white/80 bg-white/92 transition-transform hover:-translate-y-0.5">
-        <CardContent className="space-y-3 py-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="rounded-[18px] bg-primary/10 p-3 text-primary">
-              <Icon className="h-5 w-5" />
+          <div className="space-y-3 border-t border-border/70 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium text-foreground/85">{identity.label}</p>
+              <TrustScoreBadge score={identity.trustScore} />
             </div>
-            <Badge variant="outline">{badge}</Badge>
-          </div>
-          <div className="space-y-1">
-            <p className="font-semibold">{title}</p>
-            <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground">{description}</p>
-          </div>
-          <div className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
-            바로 보기
-            <ArrowUpRight className="h-4 w-4" />
+            <div className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#6366f1_0%,#8b5cf6_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_22px_44px_-24px_rgba(99,102,241,0.62)]">
+              지금 참여하기
+              <ArrowUpRight className="h-4 w-4" />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -292,16 +253,18 @@ export function HomePage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, lectureReviews, tradePosts } = useAppRuntime(initialSnapshot);
+  const { loading } = useAppRuntime(initialSnapshot);
   const currentSchool = getCurrentSchool();
   const schoolName = currentSchool?.name ?? "건국대학교";
   const hotPosts = getHotGalleryPosts().slice(0, 5);
   const heroHotPost = hotPosts[0];
   const secondaryHotPosts = hotPosts.slice(1, 5);
+  const freshmanPosts = getCommunityPosts("freshman")
+    .filter((post) => !currentSchool?.id || post.schoolId === currentSchool.id)
+    .slice(0, 4);
   const datingPosts = [...getDatingPosts("meeting"), ...getDatingPosts("dating")]
     .sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt))
-    .slice(0, 4);
-  const admissionPosts = getAdmissionQuestions().slice(0, 4);
+    .slice(0, 3);
   const lectureHighlights = getLectureSummaries().slice(0, 3);
   const campusLifePosts = [
     ...getCommunityPosts("club").slice(0, 2),
@@ -310,63 +273,22 @@ export function HomePage({
   ]
     .sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, 4);
-  const tradeHighlights = getTradePosts().slice(0, 2);
-  const latestStream = [...hotPosts, ...campusLifePosts, ...admissionPosts, ...datingPosts]
-    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-    .slice(0, 5);
-
-  const schoolPreview = {
-    lectures: getLectureSummaries().slice(0, 1)[0],
-    trade: getTradePosts().slice(0, 1)[0],
-    club: getCommunityPosts("club").slice(0, 1)[0],
-    food: getCommunityPosts("food").slice(0, 1)[0],
-  };
+  const hasFreshmanPosts = freshmanPosts.length > 0;
+  const hasLectureHighlights = lectureHighlights.length > 0;
+  const hasCampusLifePosts = campusLifePosts.length > 0;
+  const hasDatingPosts = datingPosts.length > 0;
 
   return (
     <AppShell
       title="홈"
-      subtitle={`${schoolName} 안팎에서 지금 제일 반응 좋은 콘텐츠를 먼저 보여줍니다`}
+      subtitle={`${schoolName}에서 지금 많이 보는 글과 학교 정보를 한눈에 확인해보세요`}
     >
       {loading ? <LoadingState /> : null}
-
-      <Card className="overflow-hidden bg-[linear-gradient(135deg,#121826_0%,#1b4332_48%,#f59e0b_145%)] text-white">
-        <CardContent className="space-y-4 py-5">
-          <div className="flex items-center justify-between gap-3">
-            <Badge className="border-white/10 bg-white/15 text-white">유니버스 라이브</Badge>
-            <School className="h-5 w-5 text-amber-200" />
-          </div>
-          <div className="space-y-2">
-            <p className="text-[28px] font-semibold tracking-tight">첫 화면에서 바로 스크롤이 시작되는 캠퍼스 홈</p>
-            <p className="text-sm leading-6 text-white/80">
-              핫갤, 강의, 미팅이 자연스럽게 이어져서 앱이 살아 있는 느낌이 들도록 구성했습니다.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[22px] border border-white/15 bg-white/10 px-4 py-3">
-              <p className="text-[11px] text-white/70">핫갤 흐름</p>
-              <p className="mt-1 text-base font-semibold">{hotPosts.length}개 바로 탐색</p>
-            </div>
-            <div className="rounded-[22px] border border-white/15 bg-white/10 px-4 py-3">
-              <p className="text-[11px] text-white/70">강의 정보</p>
-              <p className="mt-1 text-base font-semibold">리뷰 {lectureReviews.length}개</p>
-            </div>
-            <div className="rounded-[22px] border border-white/15 bg-white/10 px-4 py-3">
-              <p className="text-[11px] text-white/70">관계형 콘텐츠</p>
-              <p className="mt-1 text-base font-semibold">연애/미팅 {datingPosts.length}개</p>
-            </div>
-            <div className="rounded-[22px] border border-white/15 bg-white/10 px-4 py-3">
-              <p className="text-[11px] text-white/70">우리학교 교환</p>
-              <p className="mt-1 text-base font-semibold">매칭 글 {tradePosts.length}개</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {heroHotPost ? (
         <section className="space-y-3">
           <SectionHeader
             title="🔥 지금 제일 뜨는 핫갤"
-            description="첫 방문에 가장 재밌는 글부터 보이도록 크게 배치했습니다"
             href="/community?filter=hot"
           />
           <FeaturedHotCard post={heroHotPost} schoolName={schoolName} />
@@ -380,147 +302,186 @@ export function HomePage({
 
       <section className="space-y-3">
         <SectionHeader
-          title="💘 미팅 / 연애"
-          description="지금 반응 붙는 관계형 글을 눈에 띄게 보여줍니다"
-          href="/community?filter=meeting"
+          title={`🌱 ${schoolName.replace("대학교", "대")} 새내기존`}
+          href="/school?tab=freshman"
         />
-        <div className="space-y-3">
-          {datingPosts.map((post) => (
-            <SharedDatingCard key={post.id} post={post} />
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeader
-          title="✨ 지금 이어보는 흐름"
-          description="핫갤, 학교 생활, 입시 글이 끊기지 않고 이어집니다"
-          href="/community"
-        />
-        <div className="space-y-3">
-          {latestStream.slice(0, 3).map((post) => (
-            <FeedPostCard
-              key={post.id}
-              post={post}
-              href={
-                post.category === "admission"
-                  ? `/admission/${post.id}`
-                  : post.category === "dating"
-                    ? `/community?filter=${post.subcategory ?? "dating"}`
-                    : post.subcategory === "hot"
-                      ? "/community?filter=hot"
-                      : "/school"
-              }
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeader
-          title="📚 강의 꿀정보"
-          description="평균 점수와 핵심 후기만 봐도 강의 성격이 바로 들어오게 정리했습니다"
-          href="/lectures"
-        />
-        <div className="space-y-3">
-          {lectureHighlights.map((lecture) => (
-            <LectureSummaryCard key={lecture.id} lecture={lecture} href={`/lectures/${lecture.id}`} />
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeader title="🏫 우리학교 미리보기" href="/school" />
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            {SCHOOL_PREVIEW_SECTIONS.map((section) => {
-              const preview =
-                section.key === "lectures"
-                  ? schoolPreview.lectures?.courseName
-                  : section.key === "trade"
-                    ? schoolPreview.trade?.note
-                    : section.key === "club"
-                      ? schoolPreview.club?.title
-                      : schoolPreview.food?.title;
-
-              return (
-                <MiniCampusCard
-                  key={section.key}
-                  title={section.title}
-                  description={preview ?? `${section.title} 바로 보기`}
-                  href={section.href}
-                  icon={section.icon}
-                  badge={section.key === "trade" ? "실시간" : "추천"}
-                />
-              );
-            })}
-          </div>
+        <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f3fbf4_0%,#ffffff_58%,#ecfccb_130%)]">
+          <CardContent className="space-y-3 py-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                <Sparkles className="h-3.5 w-3.5" />
+                우리학교 새내기
+              </div>
+              <Badge className="border-emerald-200 bg-white/90 text-emerald-700">
+                글 {freshmanPosts.length}개
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+        {hasFreshmanPosts ? (
           <div className="space-y-3">
-            {tradeHighlights.map((tradePost) => (
-              <TradePostCard key={tradePost.id} tradePost={tradePost} />
+            {freshmanPosts.map((post) => (
+              <FeedPostCard key={post.id} post={post} href="/school?tab=freshman" />
             ))}
           </div>
-        </div>
+        ) : (
+          <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_100%)]">
+            <CardContent className="space-y-3 py-5">
+              <p className="text-base font-semibold text-foreground">새내기존 첫 글을 기다리고 있어요</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                우리학교 예비입학생 글이 올라오면 여기에서 바로 확인할 수 있어요.
+              </p>
+              <Link
+                href="/school?tab=freshman"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
+              >
+                새내기존 바로 보기
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader
+          title="📚 강의 정보"
+          href="/lectures"
+        />
+        <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#eef2ff_0%,#ffffff_56%,#f5f3ff_100%)]">
+          <CardContent className="space-y-4 py-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500">
+                  강의 한눈에
+                </p>
+                <p className="mt-2 text-lg font-bold text-foreground">많이 보는 강의평을 먼저 모아봤어요</p>
+              </div>
+              <div className="rounded-[22px] bg-white px-4 py-3 text-right shadow-[0_20px_44px_-28px_rgba(99,102,241,0.35)]">
+                <p className="text-[11px] text-muted-foreground">강의 수</p>
+                <p className="mt-1 text-2xl font-bold text-indigo-600">{lectureHighlights.length}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="default">
+                <BookOpen className="mr-1 h-3.5 w-3.5" />
+                꿀강 요약
+              </Badge>
+              <Badge variant="outline">평균 점수</Badge>
+              <Badge variant="outline">후기 밀도</Badge>
+            </div>
+          </CardContent>
+        </Card>
+        {hasLectureHighlights ? (
+          <div className="space-y-3">
+            {lectureHighlights.map((lecture) => (
+              <LectureSummaryCard key={lecture.id} lecture={lecture} href={`/lectures/${lecture.id}`} />
+            ))}
+          </div>
+        ) : (
+          <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_100%)]">
+            <CardContent className="space-y-3 py-5">
+              <p className="text-base font-semibold text-foreground">강의 정보가 곧 채워집니다</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                강의 페이지에서 최신 리뷰와 평균 점수를 먼저 확인해보세요.
+              </p>
+              <Link
+                href="/lectures"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
+              >
+                강의 페이지 보기
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       <section className="space-y-3">
         <SectionHeader
           title="💬 캠퍼스 생활"
-          description="동아리, 번개, 맛집 글이 끊기지 않게 이어집니다"
           href="/school"
         />
-        {campusLifePosts.map((post) => (
-          <FeedPostCard key={post.id} post={post} href="/school" />
-        ))}
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeader title="🎯 입시" href="/admission" />
-        {admissionPosts.map((post) => (
-          <FeedPostCard key={post.id} post={post} href={`/admission/${post.id}`} />
-        ))}
+        <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_56%,#fff1f2_100%)]">
+          <CardContent className="space-y-4 py-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">
+                  캠퍼스 믹스
+                </p>
+                <p className="mt-2 text-lg font-bold text-foreground">학교 안 소식을 한 번에 모아봤어요</p>
+              </div>
+              <div className="rounded-[22px] bg-white px-4 py-3 text-right shadow-[0_20px_44px_-28px_rgba(251,146,60,0.28)]">
+                <p className="text-[11px] text-muted-foreground">게시글</p>
+                <p className="mt-1 text-2xl font-bold text-orange-500">{campusLifePosts.length}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="warning">
+                <Users className="mr-1 h-3.5 w-3.5" />
+                동아리
+              </Badge>
+              <Badge variant="outline">
+                <UtensilsCrossed className="mr-1 h-3.5 w-3.5" />
+                맛집
+              </Badge>
+              <Badge variant="outline">모임</Badge>
+            </div>
+          </CardContent>
+        </Card>
+        {hasCampusLifePosts ? (
+          <div className="space-y-3">
+            {campusLifePosts.map((post) => (
+              <FeedPostCard key={post.id} post={post} href="/school" />
+            ))}
+          </div>
+        ) : (
+          <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#fffaf5_0%,#ffffff_100%)]">
+            <CardContent className="space-y-3 py-5">
+              <p className="text-base font-semibold text-foreground">학교 생활 글이 곧 이어집니다</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                동아리, 맛집, 모임 글이 올라오면 여기에서 바로 볼 수 있어요.
+              </p>
+              <Link
+                href="/school"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
+              >
+                우리학교 둘러보기
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       <section className="space-y-3">
         <SectionHeader
-          title="✨ 최근 올라온 흐름"
-          description="핫갤, 입시, 학교 생활 글을 시간순으로 이어서 봅니다"
-          href="/community"
+          title="💘 연애 / 미팅"
+          href="/community?filter=meeting"
         />
-        <div className="space-y-3">
-          {latestStream.map((post) => (
-            <FeedPostCard
-              key={post.id}
-              post={post}
-              href={
-                post.category === "admission"
-                  ? `/admission/${post.id}`
-                  : post.category === "dating"
-                    ? "/community?filter=dating"
-                    : post.subcategory === "hot"
-                      ? "/community?filter=hot"
-                      : "/school"
-              }
-            />
-          ))}
-        </div>
-        <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f3f9f4_0%,#ffffff_62%,#fff6e7_100%)]">
-          <CardContent className="flex items-center justify-between gap-3 py-5">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-primary">
-                <Sparkles className="h-4 w-4" />
-                <span className="text-sm font-semibold">스크롤이 끊기지 않게 구성했습니다</span>
-              </div>
-              <p className="text-[13px] leading-5 text-muted-foreground">
-                핫갤에서 시작해 강의, 우리학교, 연애까지 자연스럽게 탐색할 수 있습니다.
+        {hasDatingPosts ? (
+          <div className="space-y-3">
+            {datingPosts.map((post) => (
+              <SharedDatingCard key={post.id} post={post} />
+            ))}
+          </div>
+        ) : (
+          <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#faf5ff_0%,#ffffff_100%)]">
+            <CardContent className="space-y-3 py-5">
+              <p className="text-base font-semibold text-foreground">미팅 글이 올라오면 여기서 바로 보여줘요</p>
+              <p className="text-sm leading-6 text-muted-foreground">
+                새 글이 올라오면 홈 하단에서 바로 확인할 수 있어요.
               </p>
-            </div>
-            <Link href="/community" className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
-              더 탐색하기
-              <ArrowUpRight className="h-4 w-4" />
-            </Link>
-          </CardContent>
-        </Card>
+              <Link
+                href="/community?filter=meeting"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
+              >
+                미팅 / 연애 보기
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </CardContent>
+          </Card>
+        )}
       </section>
     </AppShell>
   );

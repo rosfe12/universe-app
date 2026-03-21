@@ -82,6 +82,15 @@ const datingProfileSchema = z.object({
   isVisible: z.boolean().default(true),
 });
 
+const datingPostSchema = z.object({
+  title: z.string().trim().min(3).max(120),
+  content: z.string().trim().min(6).max(5000),
+  vibeTag: z.string().trim().min(2).max(40),
+  photoUrl: z.string().url().optional(),
+  visibilityLevel: visibilitySchema.default("profile"),
+  subcategory: z.enum(["dating", "meeting"]).default("dating"),
+});
+
 const reportContentSchema = z.object({
   targetType: z.enum(["post", "comment", "review", "profile", "user"]),
   targetId: z.string().uuid(),
@@ -589,6 +598,80 @@ export async function createDatingProfile(input: z.input<typeof datingProfileSch
 
   revalidateFeed(["/community", "/dating"]);
   return data;
+}
+
+export async function createDatingPost(input: z.input<typeof datingPostSchema>) {
+  const values = datingPostSchema.parse(input);
+  const { supabase, authUser, profile } = await requireCurrentUser();
+  requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
+
+  if (!profile.school_id) {
+    throw new Error("학교 정보가 필요합니다.");
+  }
+
+  await guardPostSubmission(supabase, authUser.id, {
+    category: "dating",
+    subcategory: values.subcategory,
+    title: values.title,
+    content: values.content,
+    schoolId: profile.school_id,
+    visibilityLevel: values.visibilityLevel,
+    imageUrl: values.photoUrl,
+    tags: [values.vibeTag, "새 글"],
+  });
+
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .insert({
+      author_id: authUser.id,
+      category: "dating",
+      subcategory: values.subcategory,
+      title: values.title,
+      content: values.content,
+      school_id: profile.school_id,
+      scope: "global",
+      visibility_level: values.visibilityLevel,
+      image_url: values.photoUrl ?? null,
+      metadata: {
+        tags: [values.vibeTag, "새 글"],
+      },
+    })
+    .select("*")
+    .single();
+
+  if (postError || !post) {
+    throw new Error(postError?.message ?? "미팅 글 작성에 실패했습니다.");
+  }
+
+  const { data: datingProfile, error: profileError } = await supabase
+    .from("dating_profiles")
+    .upsert(
+      {
+        user_id: authUser.id,
+        school_id: profile.school_id,
+        department: profile.department ?? null,
+        grade: profile.grade ?? 1,
+        intro: values.content,
+        vibe_tag: values.vibeTag,
+        photo_url: values.photoUrl ?? null,
+        visibility_level: values.visibilityLevel,
+        is_visible: true,
+      },
+      { onConflict: "user_id" },
+    )
+    .select("*")
+    .single();
+
+  if (profileError || !datingProfile) {
+    await supabase.from("posts").delete().eq("id", post.id);
+    throw new Error(profileError?.message ?? "프로필 저장에 실패했습니다.");
+  }
+
+  revalidateFeed(["/home", "/community", "/dating"]);
+  return {
+    post,
+    datingProfile,
+  };
 }
 
 export async function reportContent(input: z.input<typeof reportContentSchema>) {

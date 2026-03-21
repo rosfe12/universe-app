@@ -32,7 +32,7 @@ import {
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import { getDefaultVisibilityLevel } from "@/lib/user-identity";
-import { currentUser, getCommentsByPostId, isRepeatedlyReportedUser } from "@/lib/mock-queries";
+import { getCommentsByPostId, isRepeatedlyReportedUser } from "@/lib/mock-queries";
 import { formatRelativeLabel } from "@/lib/utils";
 import type { VisibilityLevel } from "@/types";
 
@@ -67,6 +67,7 @@ export function CommentThread({
     refresh,
     setSnapshot,
   } = useAppRuntime();
+  const currentUser = runtimeUser;
   const pathname = usePathname();
   const threadComments = useMemo(
     () => getCommentsByPostId(postId),
@@ -206,7 +207,7 @@ export function CommentThread({
       {!loading && threadComments.length === 0 ? (
         <Card className="border-dashed border-white/80 bg-white/80">
           <CardContent className="py-6 text-center text-sm text-muted-foreground">
-            첫 댓글을 남겨 흐름을 이어보세요.
+            첫 댓글을 남겨보세요.
           </CardContent>
         </Card>
       ) : null}

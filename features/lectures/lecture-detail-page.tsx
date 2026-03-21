@@ -54,7 +54,6 @@ import {
 } from "@/lib/runtime-mutations";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import {
-  currentUser,
   getLectureById,
   getLectureReviews,
   getSchoolName,
@@ -101,12 +100,14 @@ export function LectureDetailPage({
     lectureReviews: runtimeLectureReviews,
     reports,
     blocks,
+    currentUser: runtimeUser,
     loading,
     source,
     isAuthenticated,
     refresh,
     setSnapshot,
   } = useAppRuntime(initialSnapshot);
+  const currentUser = runtimeUser;
   const lecture = getLectureById(lectureId);
   const [open, setOpen] = useState(false);
   const [reviews, setReviews] = useState(getLectureReviews(lectureId));
@@ -314,7 +315,7 @@ export function LectureDetailPage({
   return (
     <AppShell
       title="강의 상세"
-      subtitle={`${getSchoolName(lecture.schoolId)} 구조화 강의평 데모`}
+      subtitle={`${getSchoolName(lecture.schoolId)} 강의평`}
       topAction={
         <Button asChild size="icon" variant="ghost">
           <Link href="/lectures" aria-label="뒤로">
@@ -356,7 +357,7 @@ export function LectureDetailPage({
       <section className="space-y-3">
         <SectionHeader
           title="항목별 통계"
-          description="재학생들이 자주 보는 핵심 포인트를 바로 보여줍니다"
+          description="리뷰를 바탕으로 많이 보는 항목을 정리했어요"
         />
         <div className="grid grid-cols-2 gap-3">
           <StatTile label="쉬움 비율" value={`${summary.easyRate}%`} />
@@ -543,7 +544,7 @@ export function LectureDetailPage({
           <DialogHeader>
             <DialogTitle>강의평 작성</DialogTitle>
             <DialogDescription>
-              구조화 필드로 입력하고 바로 데모 화면에 반영됩니다.
+              강의 정보를 빠르게 남길 수 있도록 항목별로 작성해보세요.
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={onSubmit}>
