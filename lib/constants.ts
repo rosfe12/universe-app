@@ -113,6 +113,5 @@ export const MAIN_TABS = [
   { href: "/community", label: "커뮤니티" },
   { href: "/school", label: "우리학교" },
   { href: "/admission", label: "입시" },
-  { href: "/career", label: "취업" },
   { href: "/profile", label: "마이" },
 ] as const;

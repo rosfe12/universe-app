@@ -36,14 +36,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { createPost } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { injectInlineAdSlots, isAdPlacementEnabled } from "@/lib/ads";
+import { CAREER_BOARD_LABELS } from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
-import { canAccessSchoolFeatures, canWriteCommunity } from "@/lib/permissions";
+import { canAccessSchoolFeatures, canWriteCareer, canWriteCommunity } from "@/lib/permissions";
 import {
   addBlockToSnapshot,
   addPostToSnapshot,
   addReportToSnapshot,
 } from "@/lib/runtime-mutations";
 import {
+  type CareerBoardKind,
+  getCareerBoardKind,
+  getCareerPosts,
   getCommunityPosts,
   getDatingPosts,
   getHotScore,
@@ -65,7 +69,7 @@ import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/
 import { deleteImageByPublicUrl } from "@/lib/supabase/storage";
 
 const communitySchema = z.object({
-  subcategory: z.enum(["advice", "hot"]),
+  board: z.enum(["advice", "hot", "careerInfo", "jobPosting"]),
   title: z.string().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().min(10, "본문을 10자 이상 입력해주세요."),
   imageUrl: z.string().url().optional().or(z.literal("")),
@@ -73,7 +77,7 @@ const communitySchema = z.object({
 });
 
 type CommunityFormValues = z.infer<typeof communitySchema>;
-type SharedFilter = "all" | "advice" | "hot" | "dating" | "meeting";
+type SharedFilter = "all" | "advice" | "hot" | "dating" | "meeting" | "career";
 
 const FILTERS: Array<{
   value: SharedFilter;
@@ -85,6 +89,7 @@ const FILTERS: Array<{
   { value: "hot", label: "핫갤", icon: Flame },
   { value: "dating", label: "연애", icon: Heart },
   { value: "meeting", label: "미팅", icon: Users2 },
+  { value: "career", label: "취업", icon: Sparkles },
 ] as const;
 
 function isSharedFilter(value: string | null): value is SharedFilter {
@@ -92,6 +97,9 @@ function isSharedFilter(value: string | null): value is SharedFilter {
 }
 
 function getCardVariant(post: Post): BadgeProps["variant"] {
+  const careerBoard = getCareerBoardKind(post);
+  if (careerBoard === "jobPosting") return "warning";
+  if (careerBoard === "careerInfo") return "secondary";
   if (post.subcategory === "hot") return "danger";
   if (post.subcategory === "advice") return "outline";
   if (post.subcategory === "meeting") return "warning";
@@ -99,10 +107,26 @@ function getCardVariant(post: Post): BadgeProps["variant"] {
 }
 
 function getCardLabel(post: Post) {
+  const careerBoard = getCareerBoardKind(post);
+  if (careerBoard) return CAREER_BOARD_LABELS[careerBoard];
   if (post.subcategory === "advice") return "고민상담";
   if (post.subcategory === "hot") return "핫갤";
   if (post.subcategory === "meeting") return "미팅";
   return "연애";
+}
+
+function getDefaultBoard(filter: SharedFilter): CommunityFormValues["board"] {
+  if (filter === "hot") return "hot";
+  if (filter === "career") return "careerInfo";
+  return "advice";
+}
+
+function getComposeLabel(filter: SharedFilter) {
+  if (filter === "hot") return "핫갤 글쓰기";
+  if (filter === "dating") return "연애 글쓰기";
+  if (filter === "meeting") return "미팅 글쓰기";
+  if (filter === "career") return "취업 글쓰기";
+  return "고민상담 글쓰기";
 }
 
 function SharedFeedCard({
@@ -224,8 +248,6 @@ export function CommunityPage({
   const [composerOpen, setComposerOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
-  const canCompose =
-    isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCommunity(currentUser);
   const canAccessCommunity =
     !isAuthenticated ||
     !hasCompletedOnboarding(currentUser) ||
@@ -239,19 +261,21 @@ export function CommunityPage({
   const advicePosts = useMemo(() => getCommunityPosts("advice"), [blocks, posts, reports]);
   const datingPosts = useMemo(() => getDatingPosts("dating"), [blocks, posts, reports]);
   const meetingPosts = useMemo(() => getDatingPosts("meeting"), [blocks, posts, reports]);
+  const careerPosts = useMemo(() => getCareerPosts(), [blocks, posts, reports]);
 
   const feedItems = useMemo(() => {
-    const all = [...advicePosts, ...hotPosts, ...datingPosts, ...meetingPosts];
+    const all = [...advicePosts, ...hotPosts, ...datingPosts, ...meetingPosts, ...careerPosts];
     return [...all].sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt));
-  }, [advicePosts, datingPosts, hotPosts, meetingPosts]);
+  }, [advicePosts, careerPosts, datingPosts, hotPosts, meetingPosts]);
 
   const filteredItems = useMemo(() => {
     if (activeFilter === "all") return feedItems;
     if (activeFilter === "advice") return advicePosts;
     if (activeFilter === "hot") return hotPosts;
     if (activeFilter === "dating") return datingPosts;
+    if (activeFilter === "career") return careerPosts;
     return meetingPosts;
-  }, [activeFilter, advicePosts, datingPosts, feedItems, hotPosts, meetingPosts]);
+  }, [activeFilter, advicePosts, careerPosts, datingPosts, feedItems, hotPosts, meetingPosts]);
   const feedSlots = useMemo(() => injectInlineAdSlots(filteredItems), [filteredItems]);
 
   const detailPost = useMemo(
@@ -265,7 +289,15 @@ export function CommunityPage({
     hot: hotPosts.length,
     dating: datingPosts.length,
     meeting: meetingPosts.length,
+    career: careerPosts.length,
   };
+
+  const canComposeCommunity =
+    isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCommunity(currentUser);
+  const canComposeCareer =
+    isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCareer(currentUser);
+  const canCompose =
+    activeFilter === "career" ? canComposeCareer : canComposeCommunity;
 
   if (!loading && !canAccessCommunity) {
     return (
@@ -290,7 +322,7 @@ export function CommunityPage({
   const form = useForm<CommunityFormValues>({
     resolver: zodResolver(communitySchema),
     defaultValues: {
-      subcategory: activeFilter === "hot" ? "hot" : "advice",
+      board: getDefaultBoard(activeFilter),
       title: "",
       content: "",
       imageUrl: "",
@@ -314,10 +346,22 @@ export function CommunityPage({
       return;
     }
 
+    const isCareerBoard = values.board === "careerInfo" || values.board === "jobPosting";
+    const communityBoard =
+      values.board === "advice" || values.board === "hot" ? values.board : undefined;
+    const tags = isCareerBoard
+      ? [
+          CAREER_BOARD_LABELS[values.board as CareerBoardKind],
+          values.board === "careerInfo" ? "합격루틴" : "인턴",
+        ]
+      : values.board === "hot"
+        ? ["19+", "익명"]
+        : ["고민상담", "익명"];
+
     const localPost: Post = {
-      id: `community-${values.subcategory}-local-${feedItems.length + 1}`,
+      id: `community-${values.board}-local-${feedItems.length + 1}`,
       category: "community",
-      subcategory: values.subcategory,
+      subcategory: communityBoard,
       authorId: currentUser.id,
       schoolId: currentUser.schoolId,
       visibilityLevel: values.visibilityLevel as VisibilityLevel,
@@ -326,7 +370,7 @@ export function CommunityPage({
       createdAt,
       likes: 0,
       commentCount: 0,
-      tags: values.subcategory === "hot" ? ["19+", "익명"] : ["고민상담", "익명"],
+      tags,
       imageUrl: values.imageUrl || undefined,
     };
 
@@ -336,18 +380,18 @@ export function CommunityPage({
           try {
             await createPost({
               category: "community",
-              subcategory: values.subcategory,
+              subcategory: communityBoard,
               schoolId: currentUser.schoolId,
               visibilityLevel: values.visibilityLevel,
               title: values.title,
               content: values.content,
               imageUrl: values.imageUrl || undefined,
-              tags: values.subcategory === "hot" ? ["19+", "익명"] : ["고민상담", "익명"],
+              tags,
             });
             await refresh();
             setComposerOpen(false);
             form.reset();
-            setActiveFilter(values.subcategory);
+            setActiveFilter(isCareerBoard ? "career" : values.board === "hot" ? "hot" : "advice");
           } catch (error) {
             await deleteImageByPublicUrl(values.imageUrl);
             form.setError("root", {
@@ -363,7 +407,7 @@ export function CommunityPage({
 
     setComposerOpen(false);
     form.reset();
-    setActiveFilter(values.subcategory);
+    setActiveFilter(isCareerBoard ? "career" : values.board === "hot" ? "hot" : "advice");
   });
 
   return (
@@ -382,7 +426,7 @@ export function CommunityPage({
           <div className="space-y-2">
             <p className="text-[26px] font-semibold tracking-tight">고민상담, 연애, 미팅, 핫갤 익명 토크</p>
           </div>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-5 gap-3">
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
               <p className="text-[11px] text-white/70">고민상담</p>
               <p className="mt-1 text-sm font-semibold">{counts.advice}개</p>
@@ -398,6 +442,10 @@ export function CommunityPage({
             <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
               <p className="text-[11px] text-white/70">미팅</p>
               <p className="mt-1 text-sm font-semibold">{counts.meeting}개</p>
+            </div>
+            <div className="rounded-[22px] border border-white/20 bg-white/10 px-3 py-3 backdrop-blur">
+              <p className="text-[11px] text-white/70">취업</p>
+              <p className="mt-1 text-sm font-semibold">{counts.career}개</p>
             </div>
           </div>
         </CardContent>
@@ -617,6 +665,11 @@ export function CommunityPage({
 
       <FloatingComposeButton
         onClick={() => {
+          if (activeFilter === "dating" || activeFilter === "meeting") {
+            router.push("/dating");
+            return;
+          }
+
           if (!canCompose) {
             router.push(
               getAuthFlowHref({
@@ -629,11 +682,11 @@ export function CommunityPage({
           }
 
           setComposerOpen(true);
-          form.setValue("subcategory", activeFilter === "hot" ? "hot" : "advice", {
+          form.setValue("board", getDefaultBoard(activeFilter), {
             shouldValidate: true,
           });
         }}
-        label={activeFilter === "hot" ? "핫갤 글쓰기" : "고민상담 글쓰기"}
+        label={getComposeLabel(activeFilter)}
       />
 
       <Dialog open={composerOpen} onOpenChange={setComposerOpen}>
@@ -645,13 +698,13 @@ export function CommunityPage({
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <Label>카테고리</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   size="sm"
-                  variant={form.watch("subcategory") === "advice" ? "default" : "outline"}
+                  variant={form.watch("board") === "advice" ? "default" : "outline"}
                   onClick={() =>
-                    form.setValue("subcategory", "advice", {
+                    form.setValue("board", "advice", {
                       shouldValidate: true,
                     })
                   }
@@ -661,14 +714,38 @@ export function CommunityPage({
                 <Button
                   type="button"
                   size="sm"
-                  variant={form.watch("subcategory") === "hot" ? "default" : "outline"}
+                  variant={form.watch("board") === "hot" ? "default" : "outline"}
                   onClick={() =>
-                    form.setValue("subcategory", "hot", {
+                    form.setValue("board", "hot", {
                       shouldValidate: true,
                     })
                   }
                 >
                   핫갤
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("board") === "careerInfo" ? "default" : "outline"}
+                  onClick={() =>
+                    form.setValue("board", "careerInfo", {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  취업정보
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("board") === "jobPosting" ? "default" : "outline"}
+                  onClick={() =>
+                    form.setValue("board", "jobPosting", {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  채용공고
                 </Button>
               </div>
             </div>

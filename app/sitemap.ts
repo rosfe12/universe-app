@@ -7,7 +7,6 @@ const routes = [
   "/admission",
   "/school",
   "/community",
-  "/career",
   "/lectures",
   "/profile",
   "/support",
