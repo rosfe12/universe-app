@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ShieldAlert, ShieldMinus, TriangleAlert, UserRoundX } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { LoadingState } from "@/components/shared/loading-state";
 import { TrustScoreBadge } from "@/components/shared/trust-score-badge";
 import { Badge } from "@/components/ui/badge";
@@ -347,13 +347,19 @@ export function AdminPage({
       showTabs={false}
     >
       {!loading && !isAuthenticated ? (
-        <AccountRequiredCard
-          isAuthenticated={false}
-          user={null}
-          nextPath="/admin"
-          title="관리자 로그인 필요"
-          description="관리자 화면은 로그인 후 접근할 수 있습니다."
-        />
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">관리자 로그인 필요</p>
+              <p className="text-sm text-muted-foreground">
+                관리자 화면은 로그인 후 접근할 수 있습니다.
+              </p>
+            </div>
+            <Button asChild className="min-w-[180px]">
+              <Link href="/login?next=%2Fadmin">로그인하기</Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : null}
       {!loading && isAuthenticated && adminDenied ? (
         <Card className="border-dashed border-white/80 bg-white/92">
