@@ -4,6 +4,7 @@ import type {
   User,
   VisibilityLevel,
 } from "@/types";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 
 const SCHOOL_CODE_OVERRIDES: Record<string, string> = {
   건국대학교: "KU",
@@ -77,18 +78,34 @@ export function getDefaultVisibilityLevel(user?: Pick<User, "userType" | "school
 }
 
 export function getStudentVerificationStatus(
-  user?: Pick<User, "userType" | "studentVerificationStatus" | "verified"> | null,
+  user?:
+    | Pick<User, "userType" | "studentVerificationStatus" | "verified">
+    | ({ email?: User["email"] } & Pick<
+        User,
+        "userType" | "studentVerificationStatus" | "verified"
+      >)
+    | null,
 ): StudentVerificationStatus {
   if (!user) return "none";
+  const email = "email" in user ? user.email : undefined;
+  if (isMasterAdminEmail(email)) return "verified";
   if (user.userType !== "college") return "none";
   if (user.studentVerificationStatus) return user.studentVerificationStatus;
   return user.verified ? "verified" : "unverified";
 }
 
 export function isVerifiedStudent(
-  user?: Pick<User, "id" | "userType" | "schoolId" | "studentVerificationStatus" | "verified"> | null,
+  user?:
+    | Pick<User, "id" | "userType" | "schoolId" | "studentVerificationStatus" | "verified">
+    | ({ email?: User["email"] } & Pick<
+        User,
+        "id" | "userType" | "schoolId" | "studentVerificationStatus" | "verified"
+      >)
+    | null,
 ) {
   if (!user || user.id === "guest-user") return false;
+  const email = "email" in user ? user.email : undefined;
+  if (isMasterAdminEmail(email)) return true;
   return (
     user.userType === "college" &&
     Boolean(user.schoolId) &&
@@ -97,7 +114,13 @@ export function isVerifiedStudent(
 }
 
 export function getStudentVerificationBadge(
-  user?: Pick<User, "userType" | "studentVerificationStatus" | "verified"> | null,
+  user?:
+    | Pick<User, "userType" | "studentVerificationStatus" | "verified">
+    | ({ email?: User["email"] } & Pick<
+        User,
+        "userType" | "studentVerificationStatus" | "verified"
+      >)
+    | null,
 ) {
   const status = getStudentVerificationStatus(user);
 

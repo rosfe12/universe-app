@@ -363,8 +363,10 @@ export function isSupabaseEnabled() {
   return hasPublicSupabaseEnv();
 }
 
-export function hasCompletedOnboarding(user?: Pick<User, "schoolId"> | null) {
-  return Boolean(user?.schoolId);
+export function hasCompletedOnboarding(
+  user?: { schoolId?: User["schoolId"]; email?: User["email"] } | null,
+) {
+  return Boolean(user?.schoolId) || isMasterAdminEmail(user?.email);
 }
 
 export function getAuthFlowHref({
@@ -382,7 +384,7 @@ export function getAuthFlowHref({
     return `/login?next=${encodedNextPath}`;
   }
 
-  if (nextPath.startsWith("/admin") && isMasterAdminEmail(user?.email)) {
+  if (isMasterAdminEmail(user?.email)) {
     return nextPath;
   }
 

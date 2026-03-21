@@ -352,11 +352,6 @@ export async function POST(request: Request) {
     });
 
     if (linkError || !linkData?.properties?.hashed_token || !linkData.user?.id) {
-      await admin
-        .from("student_verification_requests")
-        .update({ status: "cancelled" })
-        .eq("id", verificationRequestId);
-
       return NextResponse.json(
         { error: linkError?.message ?? "학교 메일 인증 링크를 생성할 수 없습니다." },
         { status: 500 },
@@ -377,10 +372,6 @@ export async function POST(request: Request) {
       });
     } catch (deliveryError) {
       await admin.auth.admin.deleteUser(linkData.user.id).catch(() => null);
-      await admin
-        .from("student_verification_requests")
-        .update({ status: "cancelled" })
-        .eq("id", verificationRequestId);
 
       return NextResponse.json(
         {
@@ -432,11 +423,6 @@ export async function POST(request: Request) {
         rateLimited: true,
       });
     }
-
-    await admin
-      .from("student_verification_requests")
-      .update({ status: "cancelled" })
-      .eq("id", verificationRequestId);
 
     if (isEmailDeliverySetupError(otpError.message)) {
       return NextResponse.json(
