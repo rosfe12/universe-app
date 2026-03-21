@@ -224,6 +224,66 @@ export const users: User[] = [
       "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80",
   },
   {
+    id: "user-yeji",
+    email: "yeji@ewha.ac.kr",
+    name: "서예지",
+    userType: "college",
+    schoolId: "school-ewha",
+    department: "경영학과",
+    grade: 2,
+    verified: true,
+    trustScore: 71,
+    createdAt: at(13, "18:10:00"),
+    bio: "이화 공지와 진로 프로그램 요약을 자주 올립니다.",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&q=80",
+  },
+  {
+    id: "user-junseo",
+    email: "junseo@uos.ac.kr",
+    name: "박준서",
+    userType: "college",
+    schoolId: "school-uos",
+    department: "행정학과",
+    grade: 3,
+    verified: true,
+    trustScore: 68,
+    createdAt: at(13, "19:20:00"),
+    bio: "서울시립대 학사/입학 공지 정리 글을 주로 봅니다.",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80",
+  },
+  {
+    id: "user-eunsol",
+    email: "eunsol@hanyang.ac.kr",
+    name: "최은솔",
+    userType: "college",
+    schoolId: "school-hanyang",
+    department: "산업공학과",
+    grade: 3,
+    verified: true,
+    trustScore: 73,
+    createdAt: at(13, "20:05:00"),
+    bio: "한양대 프로그램과 실무형 공지를 요약합니다.",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=240&q=80",
+  },
+  {
+    id: "user-taemin",
+    email: "taemin@skku.edu",
+    name: "김태민",
+    userType: "college",
+    schoolId: "school-skku",
+    department: "글로벌경영학과",
+    grade: 4,
+    verified: true,
+    trustScore: 75,
+    createdAt: at(13, "20:45:00"),
+    bio: "성균관대 채용/조교 공지 정리를 종종 올립니다.",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80",
+  },
+  {
     id: "user-sua",
     email: "sua@student.hs.kr",
     name: "이다솜",
@@ -652,6 +712,85 @@ const careerSeeds = [
   ["jobPosting", "대외활동형 에디터 모집, 콘텐츠 써본 사람 추천", "에디터 경험 없어도 학교 커뮤니티나 개인 블로그 운영 경험 있으면 지원 가능해 보입니다. 마감이 빨라서 미리 자소서 준비하면 좋겠어요.", 14, "user-chaeeun", "에디터"],
 ] as const;
 
+const referenceAdmissionPosts: SeedPost[] = [
+  {
+    id: "admission-ref-1",
+    category: "admission",
+    authorId: "user-hs-sujin",
+    schoolId: "school-uos",
+    title: "[공식] 서울시립대 2026 입학 프로그램 공지 먼저 본 사람 있어요?",
+    content:
+      "서울시립대 공식 공지에서 2026학년도 스쿨어택 프로그램을 운영한다고 안내했고, 입학처 홈페이지와 인스타그램 공지를 함께 확인하라고 적혀 있었습니다. 설명회형 프로그램 먼저 보는 게 좋을지 궁금해서 정리해둡니다.\n출처: https://cis.uos.ac.kr/korColumn/view.do?identified=anonymous&list_id=about02&menuid=2000001009005000000&seq=801&sort=1",
+    createdAt: at(21, "09:10:00"),
+    likes: 18,
+    tags: ["공식자료", "서울시립대", "입학처"],
+    meta: {
+      region: "서울",
+      track: "문과",
+      scoreType: "학생부종합 준비",
+      interestUniversity: "서울시립대학교",
+      interestDepartment: "행정학과",
+    },
+  },
+  {
+    id: "admission-ref-2",
+    category: "admission",
+    authorId: "user-hajin",
+    schoolId: "school-ewha",
+    title: "[공식] 이화여대 모집요강 PDF에서 체크해야 할 부분 뭐부터 보나요?",
+    content:
+      "이화여대 입학처 PDF 공지 기준으로 전형별 제출서류와 수학기간 예외사항이 상세하게 정리돼 있었습니다. 재외국민 전형 자료지만 서류 안내 방식이 꽤 촘촘해서 다른 전형 준비할 때도 참고가 되더라고요.\n출처: https://admission.ewha.ac.kr/upload/GUIDES/202507040947372XK33M.pdf",
+    createdAt: at(21, "10:25:00"),
+    likes: 16,
+    tags: ["공식자료", "이화여대", "모집요강"],
+    meta: {
+      region: "서울",
+      track: "문과",
+      scoreType: "내신 2.3",
+      interestUniversity: "이화여자대학교",
+      interestDepartment: "경영학과",
+    },
+  },
+  {
+    id: "admission-ref-3",
+    category: "admission",
+    authorId: "user-hs-minseo",
+    schoolId: "school-cau",
+    title: "[공식] 중앙대 신입생 학사가이드 보니 다빈치인재개발센터가 같이 보이네요",
+    content:
+      "중앙대 공식 학사가이드 자료를 보다 보니 신입생용 안내 안에 다빈치인재개발센터, 추천채용, 취업지원 안내까지 같이 정리돼 있었습니다. 입학 직후부터 취업지원 연결되는 구조인지 재학생 체감이 궁금합니다.\n출처: https://nursing.cau.ac.kr/images//main/AcademicGuideforNewStudentsforClassof2023.pdf",
+    createdAt: at(21, "11:40:00"),
+    likes: 14,
+    tags: ["공식자료", "중앙대", "학사가이드"],
+    meta: {
+      region: "서울",
+      track: "문과",
+      scoreType: "내신 2.8",
+      interestUniversity: "중앙대학교",
+      interestDepartment: "경영경제대학",
+    },
+  },
+  {
+    id: "admission-ref-4",
+    category: "admission",
+    authorId: "user-sua",
+    schoolId: "school-sejong",
+    title: "[공식] 세종대 새로배움터 공지 보신 분, 신입생 때 어디부터 챙기셨어요?",
+    content:
+      "세종대 공식 공지에서 새로배움터 개최 안내를 올리면서 수강신청, 특별강연, 신입생 대학생활 안내를 같이 묶어서 소개했습니다. 합격 직후에는 이런 오리엔테이션형 자료가 실제로 제일 도움이 되는지 궁금합니다.\n출처: https://www.sejong.ac.kr/kor/intro/notice1.do%3B44007?article.offset=0&articleLimit=10&articleNo=802890&mode=view",
+    createdAt: at(21, "13:00:00"),
+    likes: 13,
+    tags: ["공식자료", "세종대", "새로배움터"],
+    meta: {
+      region: "서울",
+      track: "문과",
+      scoreType: "내신 2.9",
+      interestUniversity: "세종대학교",
+      interestDepartment: "호텔관광경영학과",
+    },
+  },
+];
+
 const admissionPosts: SeedPost[] = admissionSeeds.map((seed, index) => ({
   id: `admission-${index + 1}`,
   category: "admission",
@@ -726,6 +865,129 @@ const careerPosts: SeedPost[] = careerSeeds.map((seed, index) => ({
   tags: [seed[0] === "careerInfo" ? "취업정보" : "채용공고", seed[5], "취업"],
   imageUrl: campusImages[(index + 2) % campusImages.length],
 }));
+
+const referenceCommunityPosts: SeedPost[] = [
+  {
+    id: "community-ref-1",
+    category: "community",
+    subcategory: "freshman",
+    authorId: "user-fresh-yerin",
+    schoolId: BASE_SCHOOL_ID,
+    title: "[공식] 건국대 오리엔테이션 공지 먼저 뜬 곳 체크해봤어요",
+    content:
+      "건국대 공식 공지에서 학기 시작 전 오리엔테이션을 학생회관과 해봉부동산학관에서 나눠 진행한 사례가 있었습니다. 새내기 일정도 보통 공간과 안내 채널이 따로 열리니 공지 게시판을 자주 보는 게 안전해 보여요.\n출처: https://www.konkuk.ac.kr/bbs/ciss/1486/1167956/artclView.do",
+    createdAt: at(21, "08:20:00"),
+    likes: 19,
+    tags: ["새내기존", "공식자료", "오리엔테이션"],
+  },
+  {
+    id: "community-ref-2",
+    category: "community",
+    subcategory: "freshman",
+    authorId: "user-yujin",
+    schoolId: "school-sejong",
+    title: "[공식] 세종대 새로배움터에서 수강신청이랑 대학생활 안내 같이 한다네요",
+    content:
+      "세종대 공식 공지 기준으로 새로배움터에서 수강신청, 신입생 대학생활 안내, 특별강연이 한 번에 묶여 있었습니다. 세종대 예비입학생이면 오티만 기다리기보다 공지에서 학사 흐름 먼저 보는 게 좋아 보여요.\n출처: https://www.sejong.ac.kr/kor/intro/notice1.do%3B44007?article.offset=0&articleLimit=10&articleNo=802890&mode=view",
+    createdAt: at(21, "09:45:00"),
+    likes: 17,
+    tags: ["새내기존", "공식자료", "수강신청"],
+  },
+  {
+    id: "community-ref-3",
+    category: "community",
+    subcategory: "freshman",
+    authorId: "user-yeji",
+    schoolId: "school-ewha",
+    title: "[공식] 이화 신입생 진로 설계 부스가 생각보다 크네요",
+    content:
+      "이화 공식 공지 자료를 보니 신입생 대상 미래설계 행사에서 진로탐색, 취창업, 학교생활 부스를 총 37개 운영했다고 안내했습니다. 새내기 때부터 학교생활이랑 진로 정보 같이 보는 구조가 괜찮아 보여요.\n출처: https://fashion.ewha.ac.kr/convergence/info/notice.do?articleNo=132356&attachNo=101916&mode=download",
+    createdAt: at(21, "11:10:00"),
+    likes: 15,
+    tags: ["새내기존", "공식자료", "학교생활"],
+  },
+  {
+    id: "community-ref-4",
+    category: "community",
+    subcategory: "freshman",
+    authorId: "user-eunsol",
+    schoolId: "school-hanyang",
+    title: "[공식] 한양대는 신입생 우선수강신청 도우미 지원을 따로 받았어요",
+    content:
+      "한양대 공식 자료를 보면 연간 지원계획 안에 신입생 우선수강신청과 도우미 지원 안내가 따로 들어가 있었습니다. 학기 시작 직전에는 학교 공식 PDF 먼저 보는 습관이 정말 중요해 보여요.\n출처: https://site.hanyang.ac.kr/documents/portlet_file_entry/11085153/2025%EB%85%84%EB%8F%84%2B%EC%97%B0%EA%B0%84%2B%EC%A7%80%EC%9B%90%EA%B3%84%ED%9A%8D%2B%EC%9D%BC%EC%A0%95%ED%91%9Cto%2B%EA%B2%8C%EC%8B%9C%ED%8C%90%2B%EA%B3%B5%EC%A7%80_20250106.pdf/62e17c5b-62ed-1f37-9183-840f73b1c0d9?download=true&status=0",
+    createdAt: at(21, "12:15:00"),
+    likes: 16,
+    tags: ["새내기존", "공식자료", "우선수강신청"],
+  },
+];
+
+const referenceCareerPosts: SeedPost[] = [
+  {
+    id: "career-ref-1",
+    category: "community",
+    authorId: "user-dohyun",
+    schoolId: "school-cau",
+    title: "[공식] 중앙대 학사가이드에 추천채용, 다빈치인재개발센터가 같이 정리돼 있어요",
+    content:
+      "중앙대 공식 신입생 학사가이드에서 다빈치인재개발센터, 추천채용, 진로설계 안내가 함께 소개됐습니다. 입학 직후부터 취업지원센터를 먼저 체크하는 게 생각보다 중요해 보여요.\n출처: https://nursing.cau.ac.kr/images//main/AcademicGuideforNewStudentsforClassof2023.pdf",
+    createdAt: at(21, "14:10:00"),
+    likes: 22,
+    tags: ["취업정보", "중앙대", "진로설계"],
+    imageUrl: campusImages[1],
+  },
+  {
+    id: "career-ref-2",
+    category: "community",
+    authorId: "user-yeji",
+    schoolId: "school-ewha",
+    title: "[공식] 이화 경력개발센터 자료 보니 신입생 때부터 직무 탐색 부스가 꽤 촘촘하네요",
+    content:
+      "이화 공식 공지 기준으로 신입생 대상 행사에 경력개발센터 프로그램, EWHACQ, E-Quest, 인턴십, 고시반, 창업 정보까지 같이 배치됐습니다. 진로 탐색을 입학 직후부터 해보려는 분들 참고용으로 남깁니다.\n출처: https://fashion.ewha.ac.kr/convergence/info/notice.do?articleNo=132356&attachNo=101916&mode=download",
+    createdAt: at(21, "14:55:00"),
+    likes: 20,
+    tags: ["취업정보", "이화여대", "경력개발센터"],
+    imageUrl: campusImages[2],
+  },
+  {
+    id: "career-ref-3",
+    category: "community",
+    authorId: "user-eunsol",
+    schoolId: "school-hanyang",
+    title: "[공식] 한양대 HY Tech & Startup Fair는 창업·기술 쪽 취업 감 잡기 좋아 보여요",
+    content:
+      "한양대 산학협력단 공식 페이지에서 HY Tech & Startup Fair를 운영하고 있고, 기술창업과 산학협력 흐름을 함께 소개하고 있습니다. 스타트업/산학 커리어에 관심 있으면 학교 공지부터 보는 편이 빠릅니다.\n출처: https://techfair.hanyang.ac.kr/page/introduce01.php",
+    createdAt: at(21, "15:30:00"),
+    likes: 18,
+    tags: ["취업정보", "한양대", "스타트업"],
+    imageUrl: campusImages[3],
+  },
+  {
+    id: "career-ref-4",
+    category: "community",
+    authorId: "user-taemin",
+    schoolId: "school-skku",
+    title: "[공식] 성균관대 공지에 행정조교 모집 글이 꾸준히 올라와요",
+    content:
+      "성균관대 공식 공지에서 경제대학 퀀트응용경제학과 행정조교 모집을 확인했습니다. 학교 공지 게시판에 조교·단기근로 형태 공고가 계속 올라오니 교내 일경험 찾는 분들은 주기적으로 체크해보세요.\n출처: https://www.skku.edu/skku/mobile/notice.do%3BHOMEPAGE_JSESSIONID%3DSCkS4VzcsOuTogmMrrC9Y-Nls3RK9woWuEaKKAHnpqsELNSU3aQp%21-1906863225?article.offset=10&articleLimit=10&articleNo=114978&mode=view&srSearchVal=%EB%8C%80%ED%95%99%EC%9B%90",
+    createdAt: at(21, "16:10:00"),
+    likes: 17,
+    tags: ["채용공고", "성균관대", "행정조교"],
+    imageUrl: campusImages[4],
+  },
+  {
+    id: "career-ref-5",
+    category: "community",
+    authorId: "user-taemin",
+    schoolId: "school-skku",
+    title: "[공식] 성균관대 공지에서 인권센터 행정조교 모집도 확인됩니다",
+    content:
+      "성균관대 공식 공지 목록에서 인권센터 행정조교 모집 같은 학내 공고가 확인됩니다. 교내 채용은 공지 리스트를 검색어로 모아보는 편이 훨씬 빠르더라고요.\n출처: https://www.skku.edu/skku/mobile/notice.do%3BHOMEPAGE_JSESSIONID%3DSCkS4VzcsOuTogmMrrC9Y-Nls3RK9woWuEaKKAHnpqsELNSU3aQp%21-1906863225?article.offset=40&articleLimit=10&mode=list&srSearchVal=%EB%8C%80%ED%95%99%EC%9B%90",
+    createdAt: at(21, "17:05:00"),
+    likes: 15,
+    tags: ["채용공고", "성균관대", "교내채용"],
+    imageUrl: campusImages[5],
+  },
+];
 
 let commentId = 1;
 const nextCommentId = () => `comment-${commentId++}`;
@@ -804,20 +1066,94 @@ const careerComments: Comment[] = careerPosts.slice(0, 8).map((post, index) => (
   createdAt: at(19 - Math.floor(index / 2), "20:40:00"),
 }));
 
+const referenceComments: Comment[] = [
+  {
+    id: nextCommentId(),
+    postId: "admission-ref-1",
+    authorId: "user-junseo",
+    content: "서울시립대는 입학처 행사 공지랑 모집요강 공지가 따로 올라오는 편이라 둘 다 보는 게 안전합니다.",
+    accepted: false,
+    createdAt: at(21, "10:05:00"),
+  },
+  {
+    id: nextCommentId(),
+    postId: "admission-ref-2",
+    authorId: "user-yeji",
+    content: "이화 입학처 PDF는 서류 예외 조항이 자세해서 전형 준비할 때 처음부터 같이 보는 편이 좋았어요.",
+    accepted: false,
+    createdAt: at(21, "11:00:00"),
+  },
+  {
+    id: nextCommentId(),
+    postId: "admission-ref-3",
+    authorId: "user-dohyun",
+    content: "중앙대는 입학 후 진로지원까지 한 자료에 묶여 있어서 학과 선택할 때 의외로 참고가 됩니다.",
+    accepted: false,
+    createdAt: at(21, "12:00:00"),
+  },
+  {
+    id: nextCommentId(),
+    postId: "community-ref-2",
+    authorId: "user-yujin",
+    content: "세종대는 새로배움터 공지에 수강신청이 같이 묶여 있어서 예비입학생 때부터 보는 편이 좋습니다.",
+    accepted: false,
+    createdAt: at(21, "10:20:00"),
+  },
+  {
+    id: nextCommentId(),
+    postId: "community-ref-4",
+    authorId: "user-eunsol",
+    content: "우선수강신청 안내는 학기 시작 직전 다시 확인하는 게 좋아요. 공지 PDF가 제일 정확합니다.",
+    accepted: false,
+    createdAt: at(21, "12:40:00"),
+  },
+  {
+    id: nextCommentId(),
+    postId: "career-ref-1",
+    authorId: "user-minjae",
+    content: "진로센터나 추천채용 링크는 입학 직후에 저장해두면 학년 올라갈수록 꽤 도움 됩니다.",
+    accepted: false,
+    createdAt: at(21, "15:00:00"),
+  },
+  {
+    id: nextCommentId(),
+    postId: "career-ref-3",
+    authorId: "user-sohee",
+    content: "기술창업 관심 있으면 학교 산학협력단 페이지를 생각보다 자주 보게 되더라고요.",
+    accepted: false,
+    createdAt: at(21, "16:00:00"),
+  },
+  {
+    id: nextCommentId(),
+    postId: "career-ref-4",
+    authorId: "user-chaeeun",
+    content: "교내 조교 공고는 마감이 빠른 편이라 관심 있으면 키워드 검색 저장해두는 게 편합니다.",
+    accepted: false,
+    createdAt: at(21, "16:45:00"),
+  },
+];
+
 export const comments: Comment[] = [
   ...admissionComments,
   ...communityComments,
   ...freshmanZoneComments,
   ...datingComments,
   ...careerComments,
+  ...referenceComments,
 ];
 
-export const posts: Post[] = [...admissionPosts, ...communityPosts, ...datingPosts, ...careerPosts].map(
-  (post) => ({
-    ...post,
-    commentCount: comments.filter((comment) => comment.postId === post.id).length,
-  }),
-);
+export const posts: Post[] = [
+  ...admissionPosts,
+  ...referenceAdmissionPosts,
+  ...communityPosts,
+  ...referenceCommunityPosts,
+  ...datingPosts,
+  ...careerPosts,
+  ...referenceCareerPosts,
+].map((post) => ({
+  ...post,
+  commentCount: comments.filter((comment) => comment.postId === post.id).length,
+}));
 
 export const tradePosts: TradePost[] = [
   {
