@@ -69,6 +69,10 @@ export function getDefaultVisibilityLevel(user?: Pick<User, "userType" | "school
     return user.schoolId ? "schoolDepartment" : "anonymous";
   }
 
+  if (user.userType === "freshman") {
+    return user.schoolId ? "school" : "anonymous";
+  }
+
   return user.schoolId ? "school" : "anonymous";
 }
 

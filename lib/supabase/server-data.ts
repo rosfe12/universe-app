@@ -43,6 +43,7 @@ function createSupabaseFallbackSnapshot(issue?: string): AppRuntimeSnapshot {
 }
 
 const toUserType = (value?: string | null): UserType => {
+  if (value === "freshman") return "freshman";
   if (value === "high_school" || value === "highschool") return "highSchool";
   return "college";
 };

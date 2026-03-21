@@ -37,7 +37,7 @@ import {
 } from "@/lib/user-identity";
 
 const onboardingSchema = z.object({
-  userType: z.enum(["college", "highSchool"]),
+  userType: z.enum(["college", "highSchool", "freshman"]),
   schoolId: z.string().min(1),
   schoolEmail: z.string().email("학교 메일 형식이 필요합니다.").optional().or(z.literal("")),
   department: z.string().optional(),
@@ -319,6 +319,7 @@ export function OnboardingPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="college">대학생</SelectItem>
+                      <SelectItem value="freshman">예비입학생</SelectItem>
                       <SelectItem value="highSchool">고등학생</SelectItem>
                     </SelectContent>
                   </Select>

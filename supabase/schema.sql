@@ -4,7 +4,7 @@ create extension if not exists citext;
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'user_type') then
-    create type public.user_type as enum ('student', 'highschool');
+    create type public.user_type as enum ('student', 'highschool', 'freshman');
   end if;
   if not exists (select 1 from pg_type where typname = 'content_scope') then
     create type public.content_scope as enum ('school', 'global');
@@ -13,7 +13,7 @@ begin
     create type public.post_category as enum ('admission', 'community', 'dating');
   end if;
   if not exists (select 1 from pg_type where typname = 'post_subcategory') then
-    create type public.post_subcategory as enum ('club', 'meetup', 'food', 'hot', 'dating', 'meeting');
+    create type public.post_subcategory as enum ('club', 'meetup', 'food', 'hot', 'freshman', 'dating', 'meeting');
   end if;
   if not exists (select 1 from pg_type where typname = 'visibility_level') then
     create type public.visibility_level as enum ('anonymous', 'school', 'schoolDepartment', 'profile');
@@ -63,6 +63,22 @@ begin
   if not exists (select 1 from pg_type where typname = 'app_role') then
     create type public.app_role as enum ('admin', 'moderator');
   end if;
+end
+$$;
+
+do $$
+begin
+  alter type public.user_type add value if not exists 'freshman';
+exception
+  when duplicate_object then null;
+end
+$$;
+
+do $$
+begin
+  alter type public.post_subcategory add value if not exists 'freshman';
+exception
+  when duplicate_object then null;
 end
 $$;
 
@@ -144,7 +160,7 @@ alter table public.users
 
 update public.users
 set user_type = 'highschool'
-where user_type::text not in ('student', 'highschool');
+where user_type::text not in ('student', 'highschool', 'freshman');
 
 update public.users
 set school_email = lower(email::text)::citext
@@ -398,6 +414,7 @@ begin
   if new.default_visibility_level is null then
     new.default_visibility_level := case
       when new.user_type = 'student' and new.school_id is not null then 'schoolDepartment'::public.visibility_level
+      when new.user_type = 'freshman' and new.school_id is not null then 'school'::public.visibility_level
       when new.user_type = 'highschool' and new.school_id is not null then 'school'::public.visibility_level
       else 'anonymous'::public.visibility_level
     end;
@@ -1039,6 +1056,14 @@ with check (
     scope = 'global'
     or school_id = public.current_user_school_id()
   )
+  and (
+    subcategory is distinct from 'freshman'
+    or (
+      public.current_user_type() = 'freshman'
+      and scope = 'school'
+      and school_id = public.current_user_school_id()
+    )
+  )
 );
 
 drop policy if exists "posts update own" on public.posts;
@@ -1075,6 +1100,16 @@ with check (
   auth.uid() = author_id
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
   and public.can_read_post_by_id(post_id)
+  and not exists (
+    select 1
+    from public.posts
+    where posts.id = comments.post_id
+      and posts.subcategory = 'freshman'
+      and (
+        public.current_user_type() <> 'freshman'
+        or posts.school_id is distinct from public.current_user_school_id()
+      )
+  )
 );
 
 drop policy if exists "comments update own" on public.comments;

@@ -46,9 +46,15 @@ type CommentFormValues = z.infer<typeof commentSchema>;
 export function CommentThread({
   postId,
   allowAccept = false,
+  canCommentOverride,
+  accountRequiredTitle,
+  accountRequiredDescription,
 }: {
   postId: string;
   allowAccept?: boolean;
+  canCommentOverride?: boolean;
+  accountRequiredTitle?: string;
+  accountRequiredDescription?: string;
 }) {
   const {
     comments,
@@ -67,7 +73,8 @@ export function CommentThread({
     [blocks, comments, postId, reports],
   );
   const [isSubmitting, startSubmitTransition] = useTransition();
-  const canComment = isAuthenticated && hasCompletedOnboarding(runtimeUser);
+  const canComment =
+    canCommentOverride ?? (isAuthenticated && hasCompletedOnboarding(runtimeUser));
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
@@ -181,8 +188,14 @@ export function CommentThread({
               isAuthenticated={isAuthenticated}
               user={runtimeUser}
               nextPath={pathname}
-              title={isAuthenticated ? "학교 정보 설정 후 댓글을 남길 수 있습니다" : "로그인 후 댓글을 남길 수 있습니다"}
-              description={isAuthenticated ? "온보딩을 마치면 바로 댓글을 작성할 수 있습니다." : "읽기는 자유롭게, 댓글은 계정 로그인 후 이용할 수 있습니다."}
+              title={
+                accountRequiredTitle ??
+                (isAuthenticated ? "학교 정보 설정 후 댓글을 남길 수 있습니다" : "로그인 후 댓글을 남길 수 있습니다")
+              }
+              description={
+                accountRequiredDescription ??
+                (isAuthenticated ? "온보딩을 마치면 바로 댓글을 작성할 수 있습니다." : "읽기는 자유롭게, 댓글은 계정 로그인 후 이용할 수 있습니다.")
+              }
             />
           )}
         </CardContent>

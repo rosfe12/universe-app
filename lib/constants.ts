@@ -15,6 +15,7 @@ import type {
 export const USER_TYPE_LABELS: Record<UserType, string> = {
   college: "대학생",
   highSchool: "고등학생",
+  freshman: "예비입학생",
 };
 
 export const TRADE_STATUS_LABELS: Record<TradeStatus, string> = {
@@ -82,6 +83,7 @@ export const COMMUNITY_CATEGORY_LABELS = {
   meetup: "모임 / 번개",
   food: "맛집",
   hot: "핫갤",
+  freshman: "새내기존",
   dating: "연애",
   meeting: "미팅",
 } as const;

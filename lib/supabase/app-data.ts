@@ -38,11 +38,13 @@ import type {
 } from "@/types";
 
 const toUserType = (value?: string | null): UserType => {
+  if (value === "freshman") return "freshman";
   if (value === "high_school" || value === "highschool") return "highSchool";
   return "college";
 };
 
 const fromUserType = (value: UserType) => {
+  if (value === "freshman") return "freshman";
   if (value === "highSchool") return "highschool";
   return "student";
 };

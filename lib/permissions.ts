@@ -18,7 +18,7 @@ export function canWriteLectureReview(user: User) {
 }
 
 export function canAccessSchoolFeatures(user: User) {
-  return isSignedInUser(user) && user.userType === "college";
+  return isSignedInUser(user) && (user.userType === "college" || user.userType === "freshman");
 }
 
 export function canAccessTrade(user: User) {
@@ -30,5 +30,9 @@ export function canAccessDating(user: User) {
 }
 
 export function canWriteCommunity(user: User) {
-  return canAccessSchoolFeatures(user);
+  return isSignedInUser(user) && user.userType === "college";
+}
+
+export function canWriteFreshmanZone(user: User) {
+  return isSignedInUser(user) && user.userType === "freshman" && Boolean(user.schoolId);
 }

@@ -18,6 +18,8 @@ function getPostBadge(post: Post) {
       variant:
         post.subcategory === "hot"
           ? ("danger" as const)
+          : post.subcategory === "freshman"
+            ? ("success" as const)
           : post.subcategory === "meeting"
             ? ("warning" as const)
             : ("secondary" as const),

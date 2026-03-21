@@ -14,7 +14,7 @@ type SupabaseTable<Row, Insert, Update = Partial<Insert>> = {
 };
 
 type VisibilityLevel = "anonymous" | "school" | "schoolDepartment" | "profile";
-type UserType = "student" | "highschool";
+type UserType = "student" | "highschool" | "freshman";
 type StudentVerificationStatus = "none" | "unverified" | "pending" | "verified" | "rejected";
 type VerificationRequestStatus = "pending" | "verified" | "expired" | "cancelled";
 type ReportStatus = "pending" | "reviewed" | "reviewing" | "confirmed" | "dismissed";
@@ -129,7 +129,7 @@ type PostRow = {
   id: string;
   author_id: string;
   category: "admission" | "community" | "dating";
-  subcategory: "club" | "meetup" | "food" | "hot" | "dating" | "meeting" | null;
+  subcategory: "club" | "meetup" | "food" | "hot" | "freshman" | "dating" | "meeting" | null;
   title: string;
   content: string;
   school_id: string | null;
@@ -149,7 +149,7 @@ type PostInsert = {
   id?: string;
   author_id: string;
   category: "admission" | "community" | "dating";
-  subcategory?: "club" | "meetup" | "food" | "hot" | "dating" | "meeting" | null;
+  subcategory?: "club" | "meetup" | "food" | "hot" | "freshman" | "dating" | "meeting" | null;
   title: string;
   content: string;
   school_id?: string | null;

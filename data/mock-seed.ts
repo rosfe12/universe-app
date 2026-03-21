@@ -252,6 +252,36 @@ export const users: User[] = [
     avatarUrl:
       "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80",
   },
+  {
+    id: "user-fresh-yerin",
+    email: "yerin.pre@univers.app",
+    name: "김예린",
+    userType: "freshman",
+    schoolId: BASE_SCHOOL_ID,
+    department: "경영학과",
+    grade: 1,
+    verified: false,
+    trustScore: 61,
+    createdAt: at(17, "09:20:00"),
+    bio: "합격 직후 오티랑 기숙사 정보 제일 궁금해요.",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&q=80",
+  },
+  {
+    id: "user-fresh-joon",
+    email: "joon.pre@univers.app",
+    name: "박준",
+    userType: "freshman",
+    schoolId: BASE_SCHOOL_ID,
+    department: "컴퓨터공학부",
+    grade: 1,
+    verified: false,
+    trustScore: 58,
+    createdAt: at(17, "10:15:00"),
+    bio: "시간표, 새내기 OT, 수강신청 감 잡는 중입니다.",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80",
+  },
 ];
 
 export const lectures: Lecture[] = [
@@ -554,6 +584,10 @@ const communitySeeds = [
   ["hot", "핫갤) 건대입구 2번 출구 쪽 신규 카페 벌써 사람 많아요", "오픈한 지 얼마 안 됐는데도 좌석감이 괜찮아서 빠르게 퍼지는 느낌입니다. 디저트는 무난, 좌석은 꽤 좋아요.", 44, "user-arin"],
   ["hot", "핫갤) 중문 쪽 벚꽃 라인 이번 주말이 제일 예쁠 듯", "강의 끝나고 산책하는 사람 많던데 사진 찍기 좋은 시간대는 오후 5시쯤이 제일 예쁜 것 같습니다.", 41, "user-chaeeun"],
   ["hot", "핫갤) 시험기간 도서관 체감 좌석 경쟁 작년보다 빡센데요", "특히 오후 2시 이후는 거의 자리 찾기 힘들어요. 다들 대체 공부 장소 하나씩은 알아두는 분위기입니다.", 54, "user-somin"],
+  ["freshman", "새내기 OT 때 다들 어느 정도 꾸미고 가나요?", "첫 만남이라 너무 힘주긴 싫은데 너무 편하게 가도 튈까 봐 고민입니다. 건대 오티 분위기 아는 예비입학생 있나요?", 21, "user-fresh-yerin"],
+  ["freshman", "기숙사 신청 전에 꼭 알아둘 팁 있으면 공유해주세요", "합격 직후라 서류 챙기는 중인데 일정이 생각보다 촘촘하네요. 실수하기 쉬운 포인트 알려주면 도움 될 것 같아요.", 18, "user-fresh-joon"],
+  ["freshman", "새내기 시간표는 공강 길게 만드는 편이 나을까요?", "아직 수강신청 감이 없어서요. 이동 시간이나 학교 적응 생각하면 어떤 패턴이 괜찮은지 궁금합니다.", 16, "user-fresh-yerin"],
+  ["freshman", "입학 전에 단톡방에서 먼저 친해지는 분위기인가요?", "너무 빠르게 친목하는 건 조금 부담스러운데 다들 어느 정도 텐션으로 시작하는지 궁금합니다.", 15, "user-fresh-joon"],
 ] as const;
 
 const datingSeeds = [
@@ -672,6 +706,21 @@ const communityComments: Comment[] = communityPosts.slice(0, 14).map((post, inde
   createdAt: at(19 - Math.floor(index / 3), "18:10:00"),
 }));
 
+const freshmanZoneComments: Comment[] = communityPosts
+  .filter((post) => post.subcategory === "freshman")
+  .slice(0, 4)
+  .map((post, index) => ({
+    id: nextCommentId(),
+    postId: post.id,
+    authorId: index % 2 === 0 ? "user-fresh-joon" : "user-fresh-yerin",
+    content:
+      index % 2 === 0
+        ? "저도 그 부분 궁금했어요. 분위기 너무 과하게 안 가도 된다는 얘기를 많이 들었습니다."
+        : "입학처 일정이랑 기숙사 공지를 같이 체크하면 생각보다 덜 헷갈리더라고요.",
+    accepted: false,
+    createdAt: at(19 - index, "21:10:00"),
+  }));
+
 const datingComments: Comment[] = datingPosts.slice(0, 8).map((post, index) => ({
   id: nextCommentId(),
   postId: post.id,
@@ -687,6 +736,7 @@ const datingComments: Comment[] = datingPosts.slice(0, 8).map((post, index) => (
 export const comments: Comment[] = [
   ...admissionComments,
   ...communityComments,
+  ...freshmanZoneComments,
   ...datingComments,
 ];
 

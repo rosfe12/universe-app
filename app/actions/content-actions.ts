@@ -25,7 +25,7 @@ const reportReasonSchema = z.enum([
 const postSchema = z.object({
   category: z.enum(["admission", "community", "dating"]),
   subcategory: z
-    .enum(["club", "meetup", "food", "hot", "dating", "meeting"])
+    .enum(["club", "meetup", "food", "hot", "freshman", "dating", "meeting"])
     .optional(),
   title: z.string().trim().min(1).max(120),
   content: z.string().trim().min(1).max(5000),
@@ -95,7 +95,7 @@ const blockUserSchema = z.object({
 
 type CurrentProfile = {
   id: string;
-  user_type: "student" | "highschool";
+  user_type: "student" | "highschool" | "freshman";
   school_id: string | null;
   department: string | null;
   grade: number | null;
@@ -386,6 +386,11 @@ export async function createPost(input: z.input<typeof postSchema>) {
   if (values.category === "dating") {
     requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
   }
+  if (values.subcategory === "freshman") {
+    if (profile.user_type !== "freshman" || !profile.school_id) {
+      throw new Error("새내기존 글쓰기는 같은 학교 예비입학생만 사용할 수 있습니다.");
+    }
+  }
   await guardPostSubmission(supabase, authUser.id, values);
   const schoolId = values.schoolId ?? profile.school_id ?? null;
   const scope = inferScope(values);
@@ -433,6 +438,27 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 
   if (profile.user_type === "highschool" && post.category !== "admission") {
     throw new Error("고등학생은 입시 게시판에만 댓글을 남길 수 있습니다.");
+  }
+  if (post.category === "community") {
+    const { data: postDetail, error: postDetailError } = await supabase
+      .from("posts")
+      .select("school_id, subcategory")
+      .eq("id", values.postId)
+      .single();
+
+    if (postDetailError || !postDetail) {
+      throw new Error("댓글을 남길 글을 찾을 수 없습니다.");
+    }
+
+    if (postDetail.subcategory === "freshman") {
+      if (
+        profile.user_type !== "freshman" ||
+        !profile.school_id ||
+        postDetail.school_id !== profile.school_id
+      ) {
+        throw new Error("새내기존 댓글은 같은 학교 예비입학생만 작성할 수 있습니다.");
+      }
+    }
   }
 
   await guardCommentSubmission(supabase, authUser.id, values);

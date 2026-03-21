@@ -18,6 +18,8 @@ with seeded_auth_users as (
       ('d4444444-4444-4444-8444-444444444444'::uuid, 'dohyun@cau.ac.kr', '정도현'),
       ('e5555555-5555-4555-8555-555555555555'::uuid, 'hayoon@example.com', '유하윤'),
       ('f6666666-6666-4666-8666-666666666666'::uuid, 'sujin.hs@example.com', '박수진'),
+      ('18888888-8888-4888-8888-888888888888'::uuid, 'yerin.pre@example.com', '김예린'),
+      ('19999999-9999-4999-8999-999999999999'::uuid, 'joon.pre@example.com', '박준'),
       ('77777777-7777-4777-8777-777777777777'::uuid, 'qa.verification@example.com', 'QA Verification')
   ) as t(id, email, full_name)
 )
@@ -157,6 +159,36 @@ with seeded_profiles as (
         false,
         'school'::public.visibility_level,
         '건국대 생활권과 학과 분위기를 함께 보고 있습니다.'
+      ),
+      (
+        '18888888-8888-4888-8888-888888888888'::uuid,
+        'yerin.pre@example.com',
+        'freshman'::public.user_type,
+        '11111111-1111-4111-8111-111111111111'::uuid,
+        '경영학과',
+        1,
+        null,
+        'none'::public.student_verification_status,
+        'KU_익명_31',
+        53,
+        false,
+        'school'::public.visibility_level,
+        '합격 직후 오티와 기숙사 정보를 먼저 보고 있습니다.'
+      ),
+      (
+        '19999999-9999-4999-8999-999999999999'::uuid,
+        'joon.pre@example.com',
+        'freshman'::public.user_type,
+        '11111111-1111-4111-8111-111111111111'::uuid,
+        '컴퓨터공학과',
+        1,
+        null,
+        'none'::public.student_verification_status,
+        'KU_익명_42',
+        49,
+        false,
+        'school'::public.visibility_level,
+        '수강신청 감과 새내기 단톡 분위기를 먼저 익히는 중입니다.'
       ),
       (
         '77777777-7777-4777-8777-777777777777'::uuid,
@@ -306,7 +338,11 @@ with seeded_posts as (
       ('41111111-1111-4111-8111-111111111121'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, 'community'::public.post_category, 'food'::public.post_subcategory, '화양동 국밥집 새벽까지 하네요', '야작 끝나고 가기 좋은 국밥집 찾았어요. 혼밥하기 편하고 가격도 무난합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 14, 'schoolDepartment'::public.visibility_level, '{"tags":["맛집","국밥"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111122'::uuid, 'b2222222-2222-4222-8222-222222222222'::uuid, 'community'::public.post_category, 'meetup'::public.post_subcategory, '아차산 일출 번개 갈 사람', '주말 새벽에 아차산 일출 보고 건대 쪽 브런치까지 가볍게 다녀올 분들 구합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 9, 'schoolDepartment'::public.visibility_level, '{"tags":["번개","아차산"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111123'::uuid, 'c3333333-3333-4333-8333-333333333333'::uuid, 'community'::public.post_category, 'club'::public.post_subcategory, '축제 부스 같이 할 사람 모집', '브랜드 굿즈 판매 부스 같이 준비할 팀원 구해요. 디자인 가능하면 더 좋습니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 11, 'schoolDepartment'::public.visibility_level, '{"tags":["동아리","축제"]}'::jsonb),
-      ('41111111-1111-4111-8111-111111111124'::uuid, 'd4444444-4444-4444-8444-444444444444'::uuid, 'community'::public.post_category, 'food'::public.post_subcategory, '중앙대 후문 떡볶이집 원정 올 사람', '학교끼리 맛집 교류 느낌으로 중앙대 후문 떡볶이집 같이 가실 분 구합니다.', '22222222-2222-4222-8222-222222222222'::uuid, 'school'::public.content_scope, 6, 'schoolDepartment'::public.visibility_level, '{"tags":["맛집","학교교류"]}'::jsonb)
+      ('41111111-1111-4111-8111-111111111124'::uuid, 'd4444444-4444-4444-8444-444444444444'::uuid, 'community'::public.post_category, 'food'::public.post_subcategory, '중앙대 후문 떡볶이집 원정 올 사람', '학교끼리 맛집 교류 느낌으로 중앙대 후문 떡볶이집 같이 가실 분 구합니다.', '22222222-2222-4222-8222-222222222222'::uuid, 'school'::public.content_scope, 6, 'schoolDepartment'::public.visibility_level, '{"tags":["맛집","학교교류"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111125'::uuid, '18888888-8888-4888-8888-888888888888'::uuid, 'community'::public.post_category, 'freshman'::public.post_subcategory, '새내기 OT 때 다들 어느 정도 꾸미고 가나요?', '첫 만남이라 너무 힘주긴 싫은데 너무 편하게 가도 튈까 봐 고민입니다. 건대 오티 분위기 아는 예비입학생 있나요?', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 12, 'school'::public.visibility_level, '{"tags":["새내기존","OT"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111126'::uuid, '19999999-9999-4999-8999-999999999999'::uuid, 'community'::public.post_category, 'freshman'::public.post_subcategory, '기숙사 신청 전에 꼭 알아둘 팁 있으면 공유해주세요', '합격 직후라 서류 챙기는 중인데 일정이 생각보다 촘촘하네요. 실수하기 쉬운 포인트 알려주면 도움 될 것 같아요.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 10, 'school'::public.visibility_level, '{"tags":["새내기존","기숙사"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111127'::uuid, '18888888-8888-4888-8888-888888888888'::uuid, 'community'::public.post_category, 'freshman'::public.post_subcategory, '새내기 시간표는 공강 길게 만드는 편이 나을까요?', '아직 수강신청 감이 없어서요. 이동 시간이나 학교 적응 생각하면 어떤 패턴이 괜찮은지 궁금합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 9, 'school'::public.visibility_level, '{"tags":["새내기존","시간표"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111128'::uuid, '19999999-9999-4999-8999-999999999999'::uuid, 'community'::public.post_category, 'freshman'::public.post_subcategory, '입학 전에 단톡방에서 먼저 친해지는 분위기인가요?', '너무 빠르게 친목하는 건 조금 부담스러운데 다들 어느 정도 텐션으로 시작하는지 궁금합니다.', '11111111-1111-4111-8111-111111111111'::uuid, 'school'::public.content_scope, 8, 'school'::public.visibility_level, '{"tags":["새내기존","단톡방"]}'::jsonb)
   ) as t(id, author_id, category, subcategory, title, content, school_id, scope, like_count, visibility_level, metadata)
 )
 insert into public.posts (
@@ -359,7 +395,11 @@ with seeded_comments as (
       ('51111111-1111-4111-8111-111111111217'::uuid, '41111111-1111-4111-8111-111111111121'::uuid, 'b2222222-2222-4222-8222-222222222222'::uuid, '국밥집이면 시험기간 새벽에 진짜 유용합니다. 다음에 같이 가요.', false, 'schoolDepartment'::public.visibility_level),
       ('51111111-1111-4111-8111-111111111218'::uuid, '41111111-1111-4111-8111-111111111122'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, '일출 코스 난이도 높지 않으면 참여하고 싶어요. 모이는 시간 알려주세요.', false, 'schoolDepartment'::public.visibility_level),
       ('51111111-1111-4111-8111-111111111219'::uuid, '41111111-1111-4111-8111-111111111123'::uuid, 'b2222222-2222-4222-8222-222222222222'::uuid, '디자인 툴은 피그마 정도 다룰 수 있는데 축제 굿즈 기획 같이 해보고 싶습니다.', false, 'schoolDepartment'::public.visibility_level),
-      ('51111111-1111-4111-8111-111111111220'::uuid, '41111111-1111-4111-8111-111111111124'::uuid, 'c3333333-3333-4333-8333-333333333333'::uuid, '중앙대 후문 떡볶이집 궁금했는데 주말이면 시간 맞출 수 있어요.', false, 'schoolDepartment'::public.visibility_level)
+      ('51111111-1111-4111-8111-111111111220'::uuid, '41111111-1111-4111-8111-111111111124'::uuid, 'c3333333-3333-4333-8333-333333333333'::uuid, '중앙대 후문 떡볶이집 궁금했는데 주말이면 시간 맞출 수 있어요.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111221'::uuid, '41111111-1111-4111-8111-111111111125'::uuid, '19999999-9999-4999-8999-999999999999'::uuid, '저도 너무 꾸민 느낌은 부담이라 깔끔한 캐주얼 정도로 생각 중이에요.', false, 'school'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111222'::uuid, '41111111-1111-4111-8111-111111111126'::uuid, '18888888-8888-4888-8888-888888888888'::uuid, '기숙사 일정은 입학처 공지랑 같이 보면 덜 헷갈리더라고요. 신청 마감만 특히 조심하세요.', false, 'school'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111223'::uuid, '41111111-1111-4111-8111-111111111127'::uuid, '19999999-9999-4999-8999-999999999999'::uuid, '처음 학기는 공강 너무 길기보다 이동 동선 편한 쪽이 적응하기 쉬운 것 같아요.', false, 'school'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111224'::uuid, '41111111-1111-4111-8111-111111111128'::uuid, '18888888-8888-4888-8888-888888888888'::uuid, '단톡은 먼저 보는 편인데 너무 빠르게 친목 강요하는 분위기는 아니라고 들었습니다.', false, 'school'::public.visibility_level)
   ) as t(id, post_id, author_id, content, accepted, visibility_level)
 )
 insert into public.comments (

@@ -39,6 +39,10 @@ try {
     const sql = fs.readFileSync(file, "utf8");
 
     console.log(`Applying ${relativeFile}...`);
+    if (relativeFile === "supabase/schema.sql") {
+      await client.query("alter type public.user_type add value if not exists 'freshman';");
+      await client.query("alter type public.post_subcategory add value if not exists 'freshman';");
+    }
     await client.query(sql);
   }
 

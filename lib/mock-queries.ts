@@ -55,6 +55,7 @@ const getState = () => getRuntimeSnapshot();
 const ANONYMOUS_GLYPH: Record<User["userType"], string> = {
   college: "익",
   highSchool: "입",
+  freshman: "새",
 };
 
 const ANONYMOUS_AVATAR_TONES = [
