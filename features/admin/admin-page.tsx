@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ShieldAlert, ShieldMinus, TriangleAlert, UserRoundX } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { LoadingState } from "@/components/shared/loading-state";
 import { TrustScoreBadge } from "@/components/shared/trust-score-badge";
 import { Badge } from "@/components/ui/badge";
@@ -194,12 +195,18 @@ export function AdminPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, refresh, reports, setSnapshot, source } = useAppRuntime(initialSnapshot);
-  const summary = useMemo(() => getAdminSummary(), [reports]);
-  const reportItems = useMemo(() => getReports(), [reports]);
-  const autoHiddenItems = useMemo(() => getAutoHiddenContent(), [reports]);
-  const reportedUsers = useMemo(() => getReportedUsersForAdmin(), [reports]);
-  const lowTrustUsers = useMemo(() => getLowTrustUsers(), [reports]);
+  const {
+    loading,
+    refresh,
+    setSnapshot,
+    source,
+    isAuthenticated,
+  } = useAppRuntime(initialSnapshot);
+  const summary = useMemo(() => getAdminSummary(), []);
+  const reportItems = useMemo(() => getReports(), []);
+  const autoHiddenItems = useMemo(() => getAutoHiddenContent(), []);
+  const reportedUsers = useMemo(() => getReportedUsersForAdmin(), []);
+  const lowTrustUsers = useMemo(() => getLowTrustUsers(), []);
   const [verificationItems, setVerificationItems] = useState<StudentVerificationRequest[]>([]);
   const [canManageVerifications, setCanManageVerifications] = useState(false);
   const [verificationLoading, setVerificationLoading] = useState(false);
@@ -210,13 +217,13 @@ export function AdminPage({
   const [verificationPendingId, setVerificationPendingId] = useState<string | null>(null);
   const [reportPendingId, setReportPendingId] = useState<string | null>(null);
   const [moderationPendingKey, setModerationPendingKey] = useState<string | null>(null);
+  const [adminDenied, setAdminDenied] = useState(false);
   const pendingVerificationCount = verificationItems.filter(
     (item) => item.status === "pending",
   ).length;
 
   useEffect(() => {
     let active = true;
-    let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
     async function loadVerificationRequests() {
       setVerificationLoading(true);
@@ -232,12 +239,7 @@ export function AdminPage({
       setCanManageVerifications(result.canManage);
       setVerificationError(result.error ?? "");
       setVerificationLoading(false);
-
-      if (!result.canManage) {
-        retryTimer = setTimeout(() => {
-          void loadVerificationRequests();
-        }, 400);
-      }
+      setAdminDenied(source === "supabase" && !result.canManage);
     }
 
     async function refreshAuditLogs() {
@@ -258,11 +260,8 @@ export function AdminPage({
 
     return () => {
       active = false;
-      if (retryTimer) {
-        clearTimeout(retryTimer);
-      }
     };
-  }, []);
+  }, [source]);
 
   async function mutateVerificationRequest(
     requestId: string,
@@ -347,6 +346,39 @@ export function AdminPage({
       subtitle="신고, 숨김, 사용자 상태를 한 곳에서 관리합니다"
       showTabs={false}
     >
+      {!loading && !isAuthenticated ? (
+        <AccountRequiredCard
+          isAuthenticated={false}
+          user={null}
+          nextPath="/admin"
+          title="관리자 로그인 필요"
+          description="관리자 화면은 로그인 후 접근할 수 있습니다."
+        />
+      ) : null}
+      {!loading && isAuthenticated && adminDenied ? (
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">관리자 권한이 필요합니다</p>
+              <p className="text-sm text-muted-foreground">
+                현재 계정은 관리자 작업 권한이 없습니다.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setAdminDenied(false);
+                void refresh();
+              }}
+            >
+              다시 확인
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+      {!loading && (!isAuthenticated || adminDenied) ? null : (
+        <>
       {loading ? <LoadingState /> : null}
       <div className="grid grid-cols-2 gap-3">
         <SummaryCard label="전체 신고" value={`${summary.total}건`} icon={ShieldAlert} />
@@ -691,6 +723,8 @@ export function AdminPage({
           ))}
         </TabsContent>
       </Tabs>
+        </>
+      )}
     </AppShell>
   );
 }
