@@ -20,37 +20,34 @@ export function AppShell({
   topAction?: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(55,48,163,0.18),_transparent_28%),radial-gradient(circle_at_18%_0%,_rgba(79,70,229,0.14),_transparent_24%),radial-gradient(circle_at_82%_8%,_rgba(124,58,237,0.14),_transparent_24%),linear-gradient(180deg,#f4f6ff_0%,#ffffff_48%)] md:px-4 md:py-5">
-      <div className="mx-auto flex min-h-screen max-w-[440px] flex-col overflow-hidden bg-background/96 md:min-h-[calc(100vh-2.5rem)] md:rounded-[48px] md:border md:border-white/85 md:shadow-[0_34px_96px_-44px_rgba(55,48,163,0.34)]">
-        <div className="flex justify-center pt-3.5">
-          <div className="h-1.5 w-20 rounded-full bg-slate-900/8" />
-        </div>
-        <header className="sticky top-0 z-20 border-b border-white/85 bg-background/92 px-6 pb-5 pt-5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/84">
+    <div className="min-h-screen bg-white md:px-4 md:py-5">
+      <div className="mx-auto flex min-h-screen max-w-[440px] flex-col bg-white md:min-h-[calc(100vh-2.5rem)] md:rounded-[32px] md:border md:border-gray-100">
+        <header className="sticky top-0 z-20 border-b border-gray-100 bg-white/95 px-4 pb-4 pt-4 backdrop-blur supports-[backdrop-filter]:bg-white/90">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              <p className="text-[11px] font-semibold tracking-tight text-indigo-600">
                 유니버스
               </p>
-              <h1 className="mt-1 text-[25px] font-bold tracking-tight text-balance">{title}</h1>
+              <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-balance text-gray-900">{title}</h1>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {topAction}
-              <Button asChild size="icon" variant="secondary" className="border border-white/70 bg-white/92">
+              <Button asChild size="icon" variant="ghost">
                 <Link href="/notifications" aria-label="알림">
                   <Bell className="h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="icon" variant="secondary" aria-label="검색" className="border border-white/70 bg-white/92">
+              <Button size="icon" variant="ghost" aria-label="검색">
                 <Search className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </header>
-        <main className="flex-1 space-y-7 px-6 pb-[calc(env(safe-area-inset-bottom)+10rem)] pt-6">
+        <main className="flex-1 space-y-6 px-4 pb-[calc(env(safe-area-inset-bottom)+7.5rem)] pt-5">
           <RuntimeSetupNotice />
           {children}
         </main>
-        <div className="px-6 pb-4">
+        <div className="px-4 pb-4">
           <AppFooterLinks />
         </div>
         {showTabs ? <MobileTabBar /> : null}

@@ -8,12 +8,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
+import { FeedList } from "@/components/shared/feed-list";
+import { LegendAnswerTag } from "@/components/shared/legend-answer-tag";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { acceptAdmissionAnswer, createComment } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
@@ -157,29 +158,26 @@ export function CommentThread({
 
   return (
     <div className="space-y-4">
-      <Card className="overflow-hidden border-white/80 bg-white/94">
-        <CardContent className="space-y-4 py-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <div className="rounded-full bg-primary/10 p-2 text-primary">
-                  <MessageCircle className="h-4 w-4" />
-                </div>
-                <h3 className="font-semibold">댓글 {threadComments.length}</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {allowAccept ? "전설의 선배님 답변은 조금 더 먼저 보여줍니다." : "최신 댓글부터 바로 이어서 볼 수 있습니다."}
-              </p>
+      <div className="space-y-4 border-b border-gray-100 pb-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-gray-500" />
+              <h3 className="text-sm font-semibold text-gray-900">댓글 {threadComments.length}</h3>
             </div>
-            <Badge variant="secondary">{allowAccept ? "신뢰도 반영" : "최신순"}</Badge>
+            <p className="text-sm text-gray-500">
+              {allowAccept ? "신뢰도 높은 답변이 먼저 보입니다." : "최신 댓글부터 이어서 볼 수 있습니다."}
+            </p>
           </div>
+          <span className="text-xs text-gray-400">{allowAccept ? "신뢰도 반영" : "최신순"}</span>
+        </div>
           {canComment ? (
             <form className="space-y-3" onSubmit={onSubmit}>
-              <div className="rounded-[22px] border border-white/80 bg-secondary/40 p-3">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
                 <Textarea
                   rows={2}
                   placeholder={allowAccept ? "질문에 바로 답변을 남겨보세요" : "댓글을 입력하세요"}
-                  className="min-h-[88px] resize-none border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                  className="min-h-[88px] resize-none border-0 bg-transparent px-1 text-sm leading-6 shadow-none focus-visible:ring-0"
                   {...form.register("content")}
                 />
               </div>
@@ -204,10 +202,7 @@ export function CommentThread({
               </div>
             </form>
           ) : isReliabilityBlocked ? (
-            <div className="rounded-[24px] border border-rose-200 bg-rose-50/80 px-4 py-5">
-              <div className="flex items-center gap-2">
-                <Badge variant="danger">🚫 활동 제한</Badge>
-              </div>
+            <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-4">
               <p className="mt-3 text-sm font-semibold text-rose-700">
                 현재 계정은 글쓰기와 댓글 작성이 잠시 제한됩니다
               </p>
@@ -231,17 +226,16 @@ export function CommentThread({
               ctaLabel={isAuthenticated ? "프로필 설정 이어가기" : "로그인하고 댓글 쓰기"}
             />
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {loading && threadComments.length === 0 ? <LoadingStateBlock /> : null}
 
       {!loading && threadComments.length === 0 ? (
-        <Card className="border-dashed border-white/80 bg-white/80">
-          <CardContent className="space-y-4 py-6 text-center">
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
+          <div className="space-y-4">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-foreground">아직 첫 댓글이 없습니다</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm font-semibold text-gray-900">아직 첫 댓글이 없습니다</p>
+              <p className="text-sm text-gray-500">
                 {allowAccept
                   ? "답변을 남겨 질문 흐름을 먼저 열어보세요."
                   : "가볍게 첫 반응을 남기면 대화가 바로 시작됩니다."}
@@ -252,13 +246,14 @@ export function CommentThread({
                 {allowAccept ? "첫 답변 남기기" : "첫 댓글 남기기"}
               </Button>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : null}
 
-      {sortedComments.map((comment) => (
-        <Card key={comment.id} className="overflow-hidden border-white/80 bg-white/92">
-          <CardContent className="space-y-3 py-5">
+      {sortedComments.length > 0 ? (
+        <FeedList>
+          {sortedComments.map((comment) => (
+            <div key={comment.id} className="space-y-3 px-4 py-4">
             <PostAuthorRow
               authorId={comment.authorId}
               createdAt={comment.createdAt}
@@ -266,18 +261,14 @@ export function CommentThread({
             />
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                {comment.accepted ? <Badge variant="success">채택됨</Badge> : null}
+                {comment.accepted ? <span className="text-xs text-emerald-600">채택됨</span> : null}
                 {allowAccept && isLegendarySenior(getAuthorTrustScore(comment.authorId)) ? (
-                  <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700">
-                    🦴 전설의 선배님
-                  </Badge>
+                  <LegendAnswerTag />
                 ) : null}
               </div>
-              <div className="rounded-[20px] bg-secondary/55 px-4 py-3">
-                <p className="text-sm leading-6">{comment.content}</p>
-              </div>
+              <p className="text-sm leading-6 text-gray-700">{comment.content}</p>
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-400">
                   {formatRelativeLabel(comment.createdAt)}
                 </p>
                 {allowAccept ? (
@@ -353,9 +344,10 @@ export function CommentThread({
                 }}
               />
             </div>
-          </CardContent>
-        </Card>
-      ))}
+            </div>
+          ))}
+        </FeedList>
+      ) : null}
     </div>
   );
 }
@@ -366,8 +358,7 @@ function getAuthorTrustScore(authorId: string) {
 
 function LoadingStateBlock() {
   return (
-    <Card className="overflow-hidden border-white/80 bg-white/92">
-      <CardContent className="space-y-4 py-5">
+    <div className="space-y-4 rounded-2xl border border-gray-100 bg-white px-4 py-5">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
           <div className="flex-1 space-y-2">
@@ -379,7 +370,6 @@ function LoadingStateBlock() {
           <div className="h-4 animate-pulse rounded-full bg-muted" />
           <div className="h-4 w-10/12 animate-pulse rounded-full bg-muted" />
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

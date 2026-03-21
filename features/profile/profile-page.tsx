@@ -14,10 +14,11 @@ import {
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
+import { MyPageLevelSection } from "@/components/shared/my-page-level-section";
 import { LoadingState } from "@/components/shared/loading-state";
+import { ProfileCard } from "@/components/shared/profile-card";
 import { SectionHeader } from "@/components/shared/section-header";
-import { StatChip } from "@/components/shared/stat-chip";
-import { TrustScoreBadge } from "@/components/shared/trust-score-badge";
+import { UserLevelText } from "@/components/shared/user-level-text";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,7 @@ import {
   signOutFromSupabase,
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
-import { getStudentVerificationBadge, getUserLevelProgress } from "@/lib/user-identity";
+import { getStudentVerificationBadge } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot } from "@/types";
 
 export function ProfilePage({
@@ -74,7 +75,6 @@ export function ProfilePage({
     getUserVisibilityLevel(currentUser.id, currentUser.defaultVisibilityLevel),
   );
   const verificationBadge = getStudentVerificationBadge(currentUser);
-  const levelProgress = getUserLevelProgress(currentUser.trustScore);
   const schoolVerified = searchParams.get("schoolVerified") === "1";
   const verificationPending = searchParams.get("verification") === "pending";
   const [settings, setSettings] = useState({
@@ -114,94 +114,50 @@ export function ProfilePage({
   return (
     <AppShell
       title="마이"
-      subtitle="내 활동, 알림, 신뢰도를 한 번에 관리합니다"
     >
       {loading ? <LoadingState /> : null}
-      <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <Badge variant="outline" className="w-fit">
-                자동 생성 닉네임
-              </Badge>
-              <p className="text-xl font-semibold">{getAnonymousHandle(currentUser.id)}</p>
-              <p className="text-sm text-muted-foreground">{identity.label}</p>
-              <TrustScoreBadge score={currentUser.trustScore} />
-            </div>
-            <Badge
-              variant={
-                verificationBadge.tone === "positive"
-                  ? "success"
-                  : verificationBadge.tone === "warning"
-                    ? "warning"
-                    : "outline"
-              }
-            >
-              {verificationBadge.label}
-            </Badge>
+      <section className="space-y-4 border-b border-gray-100 pb-5">
+        <ProfileCard
+          title={getAnonymousHandle(currentUser.id)}
+          subtitle={identity.label}
+          score={currentUser.trustScore}
+          description="익명성과 신뢰를 함께 유지하는 기본 프로필"
+        />
+        <div className="grid grid-cols-3 gap-3 border-t border-gray-100 pt-4">
+          <div className="space-y-1">
+            <p className="text-xs text-gray-400">현재 상태</p>
+            <UserLevelText score={currentUser.trustScore} className="ml-0 text-sm font-medium" />
           </div>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-3">
-          <StatChip label="현재 등급" value={levelProgress.currentLevel.label} tone="primary" />
-          <StatChip label="학교 인증" value={verificationBadge.shortLabel} tone={verificationBadge.tone} />
-          <StatChip label="읽지 않은 알림" value={`${unreadNotifications.length}건`} tone="warning" />
-        </CardContent>
-      </Card>
+          <div className="space-y-1">
+            <p className="text-xs text-gray-400">학교 인증</p>
+            <p className="text-sm font-medium text-gray-900">{verificationBadge.shortLabel}</p>
+          </div>
+          <div className="space-y-1 text-right">
+            <p className="text-xs text-gray-400">읽지 않은 알림</p>
+            <p className="text-sm font-medium text-gray-900">{unreadNotifications.length}건</p>
+          </div>
+        </div>
+        <MyPageLevelSection score={currentUser.trustScore} />
+      </section>
 
-      <Card>
-        <CardContent className="space-y-4 py-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-2">
-              <p className="text-sm font-semibold">캠퍼스 진화론</p>
-              <TrustScoreBadge score={currentUser.trustScore} className="text-sm" />
-              <p className="text-sm leading-6 text-muted-foreground">
-                {levelProgress.currentLevel.description}
-              </p>
-            </div>
-            <div className="rounded-[22px] bg-secondary/65 px-4 py-3 text-right">
-              <p className="text-xs text-muted-foreground">다음 단계</p>
-              <p className="mt-1 text-sm font-semibold">
-                {levelProgress.nextLevel
-                  ? `${levelProgress.nextLevel.icon} ${levelProgress.nextLevel.label}`
-                  : "최고 등급"}
-              </p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="h-3 overflow-hidden rounded-full bg-secondary/70">
-              <div
-                className="h-full rounded-full bg-[linear-gradient(135deg,#4f46e5_0%,#8b5cf6_100%)] transition-all"
-                style={{ width: `${levelProgress.progressPercent}%` }}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {levelProgress.nextLevel
-                ? `${levelProgress.nextLevel.label}까지 ${levelProgress.remaining}점 남음`
-                : "현재 최고 등급입니다."}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="space-y-2 py-5">
+      <section className="space-y-2 border-b border-gray-100 pb-5">
           {schoolVerified ? (
-            <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               학교 메일 인증이 완료되었습니다. 대학생 전용 기능이 바로 열립니다.
             </div>
           ) : null}
           {verificationPending ? (
-            <div className="rounded-[22px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
               학교 메일로 인증 링크를 보냈습니다. 받은 메일에서 인증을 마치면 권한이 열립니다.
             </div>
           ) : null}
-          <p className="text-sm font-semibold">학생 인증 상태</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm font-semibold text-gray-900">학생 인증 상태</p>
+          <p className="text-sm text-gray-500">
             {currentUser.schoolEmail
               ? `인증 대상 메일: ${currentUser.schoolEmail}`
               : "학교 메일이 아직 등록되지 않았습니다."}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             강의평, 수강신청 매칭, 미팅 기능은 학교 메일 인증이 끝나면 바로 열립니다.
           </p>
           {verificationBadge.status !== "verified" ? (
@@ -214,8 +170,7 @@ export function ProfilePage({
               학교 메일 다시 인증
             </Button>
           ) : null}
-        </CardContent>
-      </Card>
+      </section>
 
       <section className="space-y-3">
         <SectionHeader title="내 활동 요약" description="반복 사용 지표를 바로 확인" />
@@ -396,7 +351,7 @@ export function ProfilePage({
               <p className="text-sm">
                 {profile.department} · {profile.grade}학년
               </p>
-              <TrustScoreBadge score={currentUser.trustScore} />
+              <UserLevelText score={currentUser.trustScore} className="ml-0" />
             </CardContent>
           </Card>
         </section>

@@ -4,16 +4,16 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+  "inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-[linear-gradient(135deg,rgba(79,70,229,0.14),rgba(124,58,237,0.14))] text-primary",
-        secondary: "border-transparent bg-[linear-gradient(180deg,rgba(238,242,255,0.96),rgba(233,236,255,0.96))] text-secondary-foreground",
-        outline: "border-border/90 bg-white/92 text-foreground",
-        success: "border-transparent bg-emerald-500/14 text-emerald-700",
-        warning: "border-transparent bg-amber-500/14 text-amber-700",
-        danger: "border-transparent bg-rose-500/14 text-rose-700",
+        default: "border-transparent bg-indigo-50 text-indigo-600",
+        secondary: "border-transparent bg-gray-100 text-gray-600",
+        outline: "border-border bg-white text-foreground",
+        success: "border-transparent bg-emerald-50 text-emerald-700",
+        warning: "border-transparent bg-amber-50 text-amber-700",
+        danger: "border-transparent bg-rose-50 text-rose-600",
       },
     },
     defaultVariants: {

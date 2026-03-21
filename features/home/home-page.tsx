@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { FeedList } from "@/components/shared/feed-list";
 import { LoadingState } from "@/components/shared/loading-state";
 import { SectionHeader } from "@/components/shared/section-header";
 import { TrustScoreBadge } from "@/components/shared/trust-score-badge";
@@ -182,11 +183,11 @@ export function HomePage({
           </CardContent>
         </Card>
         {hasCampusLifePosts ? (
-          <div className="space-y-3">
+          <FeedList>
             {campusLifePosts.map((post) => (
               <FeedPostCard key={post.id} post={post} href="/community" />
             ))}
-          </div>
+          </FeedList>
         ) : (
           <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#fffaf5_0%,#ffffff_100%)]">
             <CardContent className="space-y-3 py-5">
@@ -222,11 +223,11 @@ export function HomePage({
           </CardContent>
         </Card>
         {hasFreshmanPosts ? (
-          <div className="space-y-3">
+          <FeedList>
             {freshmanPosts.map((post) => (
               <FeedPostCard key={post.id} post={post} href="/school?tab=freshman" />
             ))}
-          </div>
+          </FeedList>
         ) : (
           <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_100%)]">
             <CardContent className="space-y-3 py-5">

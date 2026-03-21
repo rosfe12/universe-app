@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Info } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { getNextUserLevel, getUserLevel } from "@/lib/user-identity";
+
+import { UserLevelText } from "./user-level-text";
 
 export function TrustScoreBadge({
   score,
@@ -27,19 +28,7 @@ export function TrustScoreBadge({
   const level = getUserLevel(score);
   const nextLevel = getNextUserLevel(score);
 
-  const badge = (
-    <Badge
-      variant="outline"
-      className={cn(
-        "gap-1.5 px-2.5 py-1 text-[11px] font-semibold",
-        level.badgeClassName,
-        className,
-      )}
-    >
-      <span aria-hidden>{level.icon}</span>
-      <span>{level.label}</span>
-    </Badge>
-  );
+  const badge = <UserLevelText score={score} className={cn("ml-0", className)} />;
 
   if (!interactive) {
     return badge;
@@ -56,25 +45,19 @@ export function TrustScoreBadge({
         {badge}
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-sm rounded-[28px]">
+        <DialogContent className="max-w-sm rounded-2xl">
           <DialogHeader className="space-y-3">
             <div className="flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className={cn("gap-1.5 px-3 py-1.5 text-sm font-semibold", level.badgeClassName)}
-              >
-                <span aria-hidden>{level.icon}</span>
-                <span>{level.label}</span>
-              </Badge>
+              <UserLevelText score={score} className="ml-0 text-sm font-medium" />
             </div>
-            <DialogTitle className="text-left text-lg leading-7">캠퍼스 진화론 등급</DialogTitle>
-            <DialogDescription className="text-left text-sm leading-6 text-muted-foreground">
+            <DialogTitle className="text-left text-lg leading-7 text-gray-900">캠퍼스 진화론 등급</DialogTitle>
+            <DialogDescription className="text-left text-sm leading-6 text-gray-500">
               {level.description}
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-[22px] bg-secondary/55 px-4 py-4 text-sm text-muted-foreground">
+          <div className="rounded-2xl bg-gray-50 px-4 py-4 text-sm text-gray-500">
             <div className="flex items-start gap-2">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
               <p>
                 점수는 내부 계산에만 사용되고, 화면에는 등급만 참고 정보로 노출됩니다.
                 {nextLevel ? ` 다음 단계는 ${nextLevel.icon} ${nextLevel.label}입니다.` : " 현재 최고 등급입니다."}

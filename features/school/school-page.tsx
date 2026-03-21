@@ -20,6 +20,7 @@ import {
 import { createPost } from "@/app/actions/content-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FeedList } from "@/components/shared/feed-list";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { LoadingState } from "@/components/shared/loading-state";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -372,22 +373,11 @@ export function SchoolPage({
               description="오티, 기숙사, 시간표처럼 입학 전에 궁금한 내용을 가장 먼저 올려보세요."
             />
           ) : (
-            <div className="space-y-3">
+            <FeedList>
               {freshmanZonePosts.map((post) => (
-                <div key={post.id} className="space-y-3">
-                  <FeedPostCard post={post} onOpen={() => setDetailPostId(post.id)} />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setDetailPostId(post.id)}
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    상세 보기
-                  </Button>
-                </div>
+                <FeedPostCard key={post.id} post={post} onOpen={() => setDetailPostId(post.id)} />
               ))}
-            </div>
+            </FeedList>
           )}
         </div>
 
@@ -407,11 +397,11 @@ export function SchoolPage({
               href="/admission"
             />
           ) : (
-            <div className="space-y-3">
+            <FeedList>
               {admissionPosts.map((post) => (
                 <FeedPostCard key={post.id} post={post} href={`/admission/${post.id}`} />
               ))}
-            </div>
+            </FeedList>
           )}
         </div>
       </section>

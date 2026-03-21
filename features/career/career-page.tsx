@@ -11,6 +11,7 @@ import { createPost } from "@/app/actions/content-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FeedList } from "@/components/shared/feed-list";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -273,66 +274,72 @@ export function CareerPage({
           />
         ) : null}
 
-        {visiblePosts.map((post) => (
-          <div key={post.id} className="space-y-3">
-            <FeedPostCard
-              post={post}
-              onOpen={() => setDetailPostId(post.id)}
-              showActions
-              onReport={async ({ reason, memo }) => {
-                if (source === "supabase" && isAuthenticated) {
-                  await createReportRecord({
-                    reporterId: currentUser.id,
-                    targetType: "post",
-                    targetId: post.id,
-                    reason,
-                    memo,
-                  });
-                  await refresh();
-                  return;
-                }
+        {visiblePosts.length > 0 ? (
+          <FeedList>
+            {visiblePosts.map((post) => (
+              <div key={post.id}>
+                <FeedPostCard
+                  post={post}
+                  onOpen={() => setDetailPostId(post.id)}
+                  showActions
+                  onReport={async ({ reason, memo }) => {
+                    if (source === "supabase" && isAuthenticated) {
+                      await createReportRecord({
+                        reporterId: currentUser.id,
+                        targetType: "post",
+                        targetId: post.id,
+                        reason,
+                        memo,
+                      });
+                      await refresh();
+                      return;
+                    }
 
-                setSnapshot((current) =>
-                  addReportToSnapshot(current, {
-                    targetType: "post",
-                    targetId: post.id,
-                    reporterId: currentUser.id,
-                    reason: reason ?? "other",
-                    memo,
-                  }),
-                );
-              }}
-              onBlock={async () => {
-                if (source === "supabase" && isAuthenticated) {
-                  await createBlockRecord({
-                    blockerId: currentUser.id,
-                    blockedUserId: post.authorId,
-                  });
-                  await refresh();
-                  return;
-                }
+                    setSnapshot((current) =>
+                      addReportToSnapshot(current, {
+                        targetType: "post",
+                        targetId: post.id,
+                        reporterId: currentUser.id,
+                        reason: reason ?? "other",
+                        memo,
+                      }),
+                    );
+                  }}
+                  onBlock={async () => {
+                    if (source === "supabase" && isAuthenticated) {
+                      await createBlockRecord({
+                        blockerId: currentUser.id,
+                        blockedUserId: post.authorId,
+                      });
+                      await refresh();
+                      return;
+                    }
 
-                setSnapshot((current) =>
-                  addBlockToSnapshot(current, {
-                    blockerId: currentUser.id,
-                    blockedUserId: post.authorId,
-                  }),
-                );
-              }}
-            />
-            <div className="flex items-center justify-between gap-3 rounded-[22px] border border-white/85 bg-white/92 px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">
-                  {getLatestCommentPreview(post.id)?.content ?? "첫 댓글이 아직 없습니다."}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">댓글 {post.commentCount}개</p>
+                    setSnapshot((current) =>
+                      addBlockToSnapshot(current, {
+                        blockerId: currentUser.id,
+                        blockedUserId: post.authorId,
+                      }),
+                    );
+                  }}
+                />
+                <div className="border-b border-gray-100 px-4 py-3 last:border-b-0">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-700">
+                        {getLatestCommentPreview(post.id)?.content ?? "첫 댓글이 아직 없습니다."}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">댓글 {post.commentCount}개</p>
+                    </div>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setDetailPostId(post.id)}>
+                      상세 보기
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <Button type="button" size="sm" onClick={() => setDetailPostId(post.id)}>
-                상세 보기
-              </Button>
-            </div>
-          </div>
-        ))}
+            ))}
+          </FeedList>
+        ) : null}
       </div>
 
       <Dialog open={composerOpen} onOpenChange={setComposerOpen}>

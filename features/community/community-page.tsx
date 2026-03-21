@@ -20,6 +20,7 @@ import {
 import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FeedList } from "@/components/shared/feed-list";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
@@ -174,66 +175,57 @@ function SharedFeedCard({
   repeatedlyReported: boolean;
 }) {
   return (
-    <Card className="overflow-hidden border-white/80 bg-white/92 transition-transform hover:-translate-y-0.5">
-      <CardHeader className="space-y-4">
+    <article className="border-b border-gray-100 last:border-b-0">
+      <div className="space-y-3 px-4 py-4 transition-colors duration-150 hover:bg-gray-50">
         <PostAuthorRow
           authorId={post.authorId}
           createdAt={post.createdAt}
           visibilityLevel={post.visibilityLevel}
-          trailing={<Badge variant={getCardVariant(post)}>{getCardLabel(post)}</Badge>}
+          trailing={<span className="text-xs text-gray-400">{getCardLabel(post)}</span>}
         />
         <button
           type="button"
           onClick={onOpen}
           className="block w-full space-y-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
-          <div className="flex flex-wrap items-center gap-2">
-            {post.subcategory === "hot" ? <Badge variant="danger">19+</Badge> : null}
-            {post.subcategory === "hot" && hotScore ? (
-              <Badge variant="outline">반응 {hotScore}</Badge>
-            ) : null}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+            {post.subcategory === "hot" ? <span className="text-rose-500">19+</span> : null}
+            {post.subcategory === "hot" && hotScore ? <span>반응 {hotScore}</span> : null}
           </div>
-          <CardTitle className="text-[19px] leading-7 tracking-tight">{post.title}</CardTitle>
-          <CardDescription className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+          <CardTitle className="text-base font-semibold leading-6 text-gray-900">{post.title}</CardTitle>
+          <CardDescription className="line-clamp-2 text-sm leading-6 text-gray-500">
             {post.content}
           </CardDescription>
         </button>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-0">
+      </div>
+      <div className="space-y-3 px-4 pb-4">
         {post.imageUrl ? (
           <button
             type="button"
             onClick={onOpen}
-            className="block w-full overflow-hidden rounded-[22px] border border-white/70 bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            className="block w-full overflow-hidden rounded-xl border border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <Image
               src={post.imageUrl}
               alt={post.title}
               width={1200}
               height={900}
-              className="h-52 w-full object-cover"
+              className="h-44 w-full object-cover"
             />
           </button>
         ) : null}
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/70 px-3 py-1.5 font-medium">
-            반응 {post.likes}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/70 px-3 py-1.5 font-medium">
-            <MessageCircle className="h-3.5 w-3.5" />
-            댓글 {post.commentCount}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary/70 px-3 py-1.5 font-medium">
-            {formatRelativeLabel(post.createdAt)}
-          </span>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+          <span>반응 {post.likes}</span>
+          <span>댓글 {post.commentCount}</span>
+          <span>{formatRelativeLabel(post.createdAt)}</span>
         </div>
         {latestComment ? (
           <button
             type="button"
             onClick={onOpen}
-            className="block w-full rounded-[18px] border border-white/75 bg-secondary/70 px-4 py-3 text-left text-sm text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            className="block w-full rounded-xl bg-gray-50 px-4 py-3 text-left text-sm text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
-            <span className="inline-flex items-center gap-1 font-medium text-foreground">
+            <span className="inline-flex items-center gap-1 font-medium text-gray-700">
               <MessageCircle className="h-4 w-4" />
               최근 댓글
             </span>
@@ -254,8 +246,8 @@ function SharedFeedCard({
             onBlock={async () => onBlock()}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }
 
@@ -518,10 +510,10 @@ export function CommunityPage({
               </button>
             ))}
           </div>
-          <Card className="border-white/80 bg-white/90 shadow-none">
+          <Card className="shadow-none">
             <CardContent className="flex items-center justify-between gap-3 py-4">
               <div>
-                <p className="text-sm font-semibold">정렬</p>
+                <p className="text-sm font-semibold text-gray-900">정렬</p>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -553,16 +545,21 @@ export function CommunityPage({
             description="다른 카테고리를 둘러보거나 새 글이 올라오기를 기다려보세요."
           />
         ) : (
-          feedSlots.map((slot) => {
+          <FeedList>
+            {feedSlots.map((slot) => {
             if (slot.kind === "ad") {
-              return <AdPlaceholderCard key={slot.id} placement={slot.placement} />;
+              return (
+                <div key={slot.id} className="border-b border-gray-100 last:border-b-0 px-4 py-4">
+                  <AdPlaceholderCard placement={slot.placement} />
+                </div>
+              );
             }
 
             const post = slot.item;
 
-            return (
-              <SharedFeedCard
-                key={post.id}
+              return (
+                <SharedFeedCard
+                  key={post.id}
                 post={post}
                 hotScore={post.subcategory === "hot" ? getHotScore(post) : undefined}
                 latestComment={getLatestCommentPreview(post.id)?.content}
@@ -608,9 +605,10 @@ export function CommunityPage({
                     }),
                   );
                 }}
-              />
-            );
-          })
+                />
+              );
+            })}
+          </FeedList>
         )}
       </section>
 
