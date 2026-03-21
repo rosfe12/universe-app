@@ -1525,40 +1525,97 @@ const communityComments: Comment[] = communityPosts.slice(0, 14).map((post, inde
   createdAt: at(19 - Math.floor(index / 3), "18:10:00"),
 }));
 
+const getAdviceComment = (post: SeedPost) => {
+  if (post.title.includes("휴학")) {
+    return "휴학계 넣기 전에 이번 학기에서 제일 버거운 지점 하나만 적어보면 결정이 훨씬 쉬워졌어요. 상담 한 번 받아보는 것도 꽤 도움 됩니다.";
+  }
+
+  if (post.title.includes("과 친구")) {
+    return "예전처럼 다시 붙으려 하기보다 수업 끝나고 밥 한 번만 먼저 제안해보는 편이 덜 어색했습니다. 그 정도만 해도 분위기가 조금 풀리더라고요.";
+  }
+
+  if (post.title.includes("인턴 불합격")) {
+    return "불합격 메일 본 날엔 지원서 다시 열지 말고 하루 쉬고, 다음 날 공고 하나만 다시 보는 루틴이 저는 제일 효과 있었습니다.";
+  }
+
+  if (post.title.includes("생활비")) {
+    return "식비, 카페, 교통비만 먼저 주간 한도로 끊어두면 체감이 빨리 옵니다. 처음부터 전부 세분화하면 오래 못 가더라고요.";
+  }
+
+  if (post.title.includes("팀플")) {
+    return "다음 학기는 팀플 비중이랑 중간 피드백 방식부터 보고 넣으니 스트레스가 훨씬 줄었습니다. 수강후기 먼저 보는 걸 추천해요.";
+  }
+
+  if (post.title.includes("취업 준비")) {
+    return "직무 하나만 먼저 정하고 자소서 재료 정리부터 시작하는 게 제일 현실적이었습니다. 포트폴리오는 그다음에 붙여도 안 늦더라고요.";
+  }
+
+  return "한 번에 다 풀려고 하기보다 다음 한 단계만 정해도 숨통이 좀 트이더라고요.";
+};
+
 const adviceComments: Comment[] = advicePosts.map((post, index) => ({
   id: nextCommentId(),
   postId: post.id,
   authorId: collegeReviewerIds[(index + 2) % collegeReviewerIds.length],
-  content:
-    index % 3 === 0
-      ? "바로 결정하기보다 한 주 정도 루틴과 감정 패턴을 적어보면 기준이 좀 선명해지더라고요."
-      : index % 3 === 1
-        ? "저는 비슷한 상황에서 학교 안 사람 한 명보다 바깥 루틴부터 정리하는 게 더 도움이 됐습니다."
-        : "완전히 해결하려 하기보다 다음 한 단계만 정하는 식으로 쪼개면 부담이 훨씬 줄었습니다.",
+  content: getAdviceComment(post),
   accepted: false,
   createdAt: at(21, `22:${10 + index * 4}:00`),
 }));
+
+const getFreeComment = (post: SeedPost) => {
+  if (post.title.includes("의외였던 점")) {
+    return "저도 혼자 있는 시간이 더 편해진 쪽이었어요. 학교에서 혼밥하는 부담이 생각보다 빨리 사라지더라고요.";
+  }
+
+  if (post.title.includes("플레이리스트")) {
+    return "등하교용이면 너무 잔잔한 곡보다 리듬 있는 인디 쪽이 오래 듣기 좋더라고요. 전 혁오나 실리카겔 자주 듣습니다.";
+  }
+
+  if (post.title.includes("팀플 끝난 날")) {
+    return "저는 무조건 바로 귀가파인데 주변은 끝나고 밥 약속 잡는 쪽이 더 많더라고요. 진짜 케바케인 것 같아요.";
+  }
+
+  if (post.title.includes("학기 목표")) {
+    return "결석 0번 좋네요. 전 이번 학기 목표를 과제 안 미루기로 잡았는데 이런 글 보니까 조금 정신 듭니다.";
+  }
+
+  return "이런 가벼운 글이 오히려 자주 들어오게 되는 것 같아요.";
+};
 
 const freeComments: Comment[] = freePosts.map((post, index) => ({
   id: nextCommentId(),
   postId: post.id,
   authorId: collegeReviewerIds[(index + 1) % collegeReviewerIds.length],
-  content:
-    index % 2 === 0
-      ? "이런 가벼운 주제 글이 오히려 자주 들어오게 되는 것 같아요. 저도 비슷하게 느꼈습니다."
-      : "생각보다 다들 비슷한 루틴이 있어서 공감되네요. 이런 글 더 자주 올라오면 좋겠습니다.",
+  content: getFreeComment(post),
   accepted: false,
   createdAt: at(21, `22:${36 + index * 3}:00`),
 }));
+
+const getAskComment = (post: SeedPost) => {
+  if (post.title.includes("공강")) {
+    return "공강 2시간이면 도서관 짧게 갔다가 카페 한 군데 들르는 루틴이 제일 무난했어요. 멀리 나가면 돌아오기 애매하더라고요.";
+  }
+
+  if (post.title.includes("에어팟")) {
+    return "한쪽만 중고로 구하거나 교체 비용 먼저 확인해보세요. 그냥 버티면 생각보다 오래 불편합니다.";
+  }
+
+  if (post.title.includes("전공 책")) {
+    return "전공 핵심 과목만 새 책 사고 나머지는 중고부터 찾는 편입니다. 판본 차이만 확인하면 큰 문제 없었어요.";
+  }
+
+  if (post.title.includes("조별과제")) {
+    return "첫 모임은 카톡으로 역할, 마감, 회의 주기까지만 정해도 대부분 괜찮았습니다. 대면은 일정 안 맞을 때만 추가했어요.";
+  }
+
+  return "댓글 조금만 모여도 실제로 바로 써먹을 팁이 꽤 나오더라고요.";
+};
 
 const askComments: Comment[] = askPosts.map((post, index) => ({
   id: nextCommentId(),
   postId: post.id,
   authorId: collegeReviewerIds[(index + 3) % collegeReviewerIds.length],
-  content:
-    index % 2 === 0
-      ? "저는 이런 건 최대한 학교 안에서 먼저 해결하려고 해요. 생각보다 공강이나 교재 루틴 공유해주는 사람이 많더라고요."
-      : "비슷한 경험 있었는데 다들 방법이 조금씩 다르네요. 댓글 모이면 참고하기 좋을 것 같아요.",
+  content: getAskComment(post),
   accepted: false,
   createdAt: at(21, `23:${10 + index * 3}:00`),
 }));
@@ -1590,14 +1647,47 @@ const datingComments: Comment[] = datingPosts.slice(0, 8).map((post, index) => (
   createdAt: at(20 - Math.floor(index / 2), "22:00:00"),
 }));
 
+const getCareerComment = (post: SeedPost) => {
+  if (post.title.includes("자소서")) {
+    return "공통 경험 먼저 정리해두는 방식 공감합니다. 문항별 키워드만 따로 바꿔도 훨씬 빨랐어요.";
+  }
+
+  if (post.title.includes("금융권 인턴 면접")) {
+    return "금융권은 왜 이 업권인지까지 같이 묻는 경우가 많아서 최근 산업 뉴스 두세 개 정리해두면 답변이 훨씬 안정적이었습니다.";
+  }
+
+  if (post.title.includes("GitHub보다 먼저")) {
+    return "깃허브 링크보다 문제 정의랑 맡은 역할을 먼저 보여주는 쪽이 확실히 반응이 좋더라고요. 시연 영상 있으면 더 좋았습니다.";
+  }
+
+  if (post.title.includes("예비입학생")) {
+    return "직무 이름이랑 채용공고 포맷부터 익숙해지는 데 도움이 되더라고요. 입학 전에 가볍게 읽어보는 것만으로도 좋았습니다.";
+  }
+
+  if (post.title.includes("커피챗")) {
+    return "질문을 두세 개로 줄이는 방식 공감합니다. 장문 메일보다는 짧은 소개가 답장률이 높았어요.";
+  }
+
+  if (post.title.includes("창업지원단")) {
+    return "교내 인턴이면 수업 병행 가능한 시간대가 핵심이라 근무 요일만 확실해도 지원 판단이 훨씬 쉬울 것 같아요.";
+  }
+
+  if (post.title.includes("브랜드 마케팅")) {
+    return "브랜드 운영 경험이 없어도 학교 계정이나 개인 채널 관리 경험 정리해두면 꽤 어필되더라고요.";
+  }
+
+  if (post.title.includes("SW 아카데미")) {
+    return "오픈 트랙이면 저학년이나 예비입학생도 진입 장벽이 낮아서 좋네요. 과제 난도만 미리 알면 더 좋겠습니다.";
+  }
+
+  return "실제로 준비해본 사람이 남긴 포인트라 참고하기 좋네요. 다음엔 지원 과정 후기도 같이 있으면 더 도움 될 것 같아요.";
+};
+
 const careerComments: Comment[] = careerPosts.slice(0, 8).map((post, index) => ({
   id: nextCommentId(),
   postId: post.id,
   authorId: collegeReviewerIds[(index + 4) % collegeReviewerIds.length],
-  content:
-    post.tags?.includes("채용공고")
-      ? "지원 조건이 꽤 명확하네요. 준비 서류나 포트폴리오 팁 있으면 더 공유 부탁드려요."
-      : "실제로 부딪혀본 내용이라 도움 됩니다. 다음엔 면접 질문 정리도 같이 올려주면 좋겠어요.",
+  content: getCareerComment(post),
   accepted: false,
   createdAt: at(19 - Math.floor(index / 2), "20:40:00"),
 }));
