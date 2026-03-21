@@ -58,7 +58,15 @@ with seeded_auth_users as (
       ('2a111111-1111-4111-8111-111111111111'::uuid, 'yeji@ewha.ac.kr', '서예지'),
       ('2b222222-2222-4222-8222-222222222222'::uuid, 'junseo@uos.ac.kr', '박준서'),
       ('2c333333-3333-4333-8333-333333333333'::uuid, 'eunsol@hanyang.ac.kr', '최은솔'),
-      ('2d444444-4444-4444-8444-444444444444'::uuid, 'taemin@skku.edu', '김태민')
+      ('2d444444-4444-4444-8444-444444444444'::uuid, 'taemin@skku.edu', '김태민'),
+      ('2e111111-1111-4111-8111-111111111111'::uuid, 'nari@snu.ac.kr', '강나리'),
+      ('2f222222-2222-4222-8222-222222222222'::uuid, 'hyobin@korea.ac.kr', '정효빈'),
+      ('3a333333-3333-4333-8333-333333333333'::uuid, 'yonji@yonsei.ac.kr', '이연지'),
+      ('3b444444-4444-4444-8444-444444444444'::uuid, 'danbi@hufs.ac.kr', '윤단비'),
+      ('3c555555-5555-4555-8555-555555555555'::uuid, 'jieun@sookmyung.ac.kr', '손지은'),
+      ('3d666666-6666-4666-8666-666666666666'::uuid, 'jaeho@ssu.ac.kr', '한재호'),
+      ('3e777777-7777-4777-8777-777777777777'::uuid, 'yubin@seoultech.ac.kr', '오유빈'),
+      ('3f888888-8888-4888-8888-888888888888'::uuid, 'sejin@hongik.ac.kr', '김세진')
   ) as t(id, email, full_name)
 )
 insert into auth.users (
@@ -302,6 +310,126 @@ with seeded_profiles as (
         true,
         'schoolDepartment'::public.visibility_level,
         '성균관대 채용과 조교 공지 요약을 자주 남깁니다.'
+      ),
+      (
+        '2e111111-1111-4111-8111-111111111111'::uuid,
+        'nari@snu.ac.kr',
+        'student'::public.user_type,
+        'aaaaaaa8-aaaa-4aaa-8aaa-aaaaaaaaaaa8'::uuid,
+        '경제학부',
+        2,
+        'nari@snu.ac.kr',
+        'verified'::public.student_verification_status,
+        'SNU_익명_09',
+        74,
+        true,
+        'schoolDepartment'::public.visibility_level,
+        '서울대 교과과정과 신입생 이수 규정을 자주 정리합니다.'
+      ),
+      (
+        '2f222222-2222-4222-8222-222222222222'::uuid,
+        'hyobin@korea.ac.kr',
+        'student'::public.user_type,
+        '44444444-4444-4444-8444-444444444444'::uuid,
+        '미디어학부',
+        2,
+        'hyobin@korea.ac.kr',
+        'verified'::public.student_verification_status,
+        'KOREA_익명_08',
+        72,
+        true,
+        'schoolDepartment'::public.visibility_level,
+        '고려대 OT와 학교 적응 공지를 요약해서 보는 편입니다.'
+      ),
+      (
+        '3a333333-3333-4333-8333-333333333333'::uuid,
+        'yonji@yonsei.ac.kr',
+        'student'::public.user_type,
+        'bbbbbbb7-bbbb-4bbb-8bbb-bbbbbbbbbbb7'::uuid,
+        '교육학과',
+        3,
+        'yonji@yonsei.ac.kr',
+        'verified'::public.student_verification_status,
+        'YS_익명_16',
+        73,
+        true,
+        'schoolDepartment'::public.visibility_level,
+        '연세 전공안내서와 대학생활 자료를 주기적으로 확인합니다.'
+      ),
+      (
+        '3b444444-4444-4444-8444-444444444444'::uuid,
+        'danbi@hufs.ac.kr',
+        'student'::public.user_type,
+        'bbbbbbb9-bbbb-4bbb-8bbb-bbbbbbbbbbb9'::uuid,
+        '국제통상학과',
+        2,
+        'danbi@hufs.ac.kr',
+        'verified'::public.student_verification_status,
+        'HUFS_익명_22',
+        69,
+        true,
+        'schoolDepartment'::public.visibility_level,
+        '외대 안전가이드와 대학일자리플러스센터 공지를 챙겨봅니다.'
+      ),
+      (
+        '3c555555-5555-4555-8555-555555555555'::uuid,
+        'jieun@sookmyung.ac.kr',
+        'student'::public.user_type,
+        'bbbbbbb5-bbbb-4bbb-8bbb-bbbbbbbbbbb5'::uuid,
+        '문화관광학전공',
+        3,
+        'jieun@sookmyung.ac.kr',
+        'verified'::public.student_verification_status,
+        'SMWU_익명_31',
+        70,
+        true,
+        'schoolDepartment'::public.visibility_level,
+        '숙명 생활 편의시설과 학생식당 위치 정보를 자주 공유합니다.'
+      ),
+      (
+        '3d666666-6666-4666-8666-666666666666'::uuid,
+        'jaeho@ssu.ac.kr',
+        'student'::public.user_type,
+        'bbbbbbb6-bbbb-4bbb-8bbb-bbbbbbbbbbb6'::uuid,
+        '소프트웨어학부',
+        4,
+        'jaeho@ssu.ac.kr',
+        'verified'::public.student_verification_status,
+        'SSU_익명_27',
+        72,
+        true,
+        'schoolDepartment'::public.visibility_level,
+        '숭실 입학처 브로슈어와 진로취업센터 자료를 정리합니다.'
+      ),
+      (
+        '3e777777-7777-4777-8777-777777777777'::uuid,
+        'yubin@seoultech.ac.kr',
+        'student'::public.user_type,
+        'aaaaaaa6-aaaa-4aaa-8aaa-aaaaaaaaaaa6'::uuid,
+        '기계시스템디자인공학과',
+        3,
+        'yubin@seoultech.ac.kr',
+        'verified'::public.student_verification_status,
+        'ST_익명_14',
+        71,
+        true,
+        'schoolDepartment'::public.visibility_level,
+        '서울과기대 현장실습과 취업진로본부 공지를 먼저 체크합니다.'
+      ),
+      (
+        '3f888888-8888-4888-8888-888888888888'::uuid,
+        'sejin@hongik.ac.kr',
+        'student'::public.user_type,
+        'ccccccc3-cccc-4ccc-8ccc-ccccccccccc3'::uuid,
+        '시각디자인과',
+        2,
+        'sejin@hongik.ac.kr',
+        'verified'::public.student_verification_status,
+        'HI_익명_29',
+        68,
+        true,
+        'schoolDepartment'::public.visibility_level,
+        '홍익대 학생활동, 동아리, 창업기관 소개 페이지를 자주 봅니다.'
       )
   ) as t(
     id,
@@ -458,7 +586,20 @@ with seeded_posts as (
       ('41111111-1111-4111-8111-111111111143'::uuid, '2a111111-1111-4111-8111-111111111111'::uuid, 'community'::public.post_category, null, '[공식] 이화 경력개발센터 자료 보니 신입생 때부터 직무 탐색 부스가 꽤 촘촘하네요', '이화 공식 공지 기준으로 신입생 대상 행사에 경력개발센터 프로그램, EWHACQ, E-Quest, 인턴십, 고시반, 창업 정보까지 같이 배치됐습니다. 진로 탐색을 입학 직후부터 해보려는 분들 참고용으로 남깁니다. 출처: https://fashion.ewha.ac.kr/convergence/info/notice.do?articleNo=132356&attachNo=101916&mode=download', 'bbbbbbb8-bbbb-4bbb-8bbb-bbbbbbbbbbb8'::uuid, 'global'::public.content_scope, 20, 'schoolDepartment'::public.visibility_level, '{"tags":["취업정보","이화여대","경력개발센터"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111144'::uuid, '2c333333-3333-4333-8333-333333333333'::uuid, 'community'::public.post_category, null, '[공식] 한양대 HY Tech & Startup Fair는 창업·기술 쪽 취업 감 잡기 좋아 보여요', '한양대 산학협력단 공식 페이지에서 HY Tech & Startup Fair를 운영하고 있고, 기술창업과 산학협력 흐름을 함께 소개하고 있습니다. 스타트업/산학 커리어에 관심 있으면 학교 공지부터 보는 편이 빠릅니다. 출처: https://techfair.hanyang.ac.kr/page/introduce01.php', 'ccccccc2-cccc-4ccc-8ccc-ccccccccccc2'::uuid, 'global'::public.content_scope, 18, 'schoolDepartment'::public.visibility_level, '{"tags":["취업정보","한양대","스타트업"]}'::jsonb),
       ('41111111-1111-4111-8111-111111111145'::uuid, '2d444444-4444-4444-8444-444444444444'::uuid, 'community'::public.post_category, null, '[공식] 성균관대 공지에 행정조교 모집 글이 꾸준히 올라와요', '성균관대 공식 공지에서 경제대학 퀀트응용경제학과 행정조교 모집을 확인했습니다. 학교 공지 게시판에 조교·단기근로 형태 공고가 계속 올라오니 교내 일경험 찾는 분들은 주기적으로 체크해보세요. 출처: https://www.skku.edu/skku/mobile/notice.do%3BHOMEPAGE_JSESSIONID%3DSCkS4VzcsOuTogmMrrC9Y-Nls3RK9woWuEaKKAHnpqsELNSU3aQp%21-1906863225?article.offset=10&articleLimit=10&articleNo=114978&mode=view&srSearchVal=%EB%8C%80%ED%95%99%EC%9B%90', 'bbbbbbb2-bbbb-4bbb-8bbb-bbbbbbbbbbb2'::uuid, 'global'::public.content_scope, 17, 'schoolDepartment'::public.visibility_level, '{"tags":["채용공고","성균관대","행정조교"]}'::jsonb),
-      ('41111111-1111-4111-8111-111111111146'::uuid, '2d444444-4444-4444-8444-444444444444'::uuid, 'community'::public.post_category, null, '[공식] 성균관대 공지에서 인권센터 행정조교 모집도 확인됩니다', '성균관대 공식 공지 목록에서 인권센터 행정조교 모집 같은 학내 공고가 확인됩니다. 교내 채용은 공지 리스트를 검색어로 모아보는 편이 훨씬 빠르더라고요. 출처: https://www.skku.edu/skku/mobile/notice.do%3BHOMEPAGE_JSESSIONID%3DSCkS4VzcsOuTogmMrrC9Y-Nls3RK9woWuEaKKAHnpqsELNSU3aQp%21-1906863225?article.offset=40&articleLimit=10&mode=list&srSearchVal=%EB%8C%80%ED%95%99%EC%9B%90', 'bbbbbbb2-bbbb-4bbb-8bbb-bbbbbbbbbbb2'::uuid, 'global'::public.content_scope, 15, 'schoolDepartment'::public.visibility_level, '{"tags":["채용공고","성균관대","교내채용"]}'::jsonb)
+      ('41111111-1111-4111-8111-111111111146'::uuid, '2d444444-4444-4444-8444-444444444444'::uuid, 'community'::public.post_category, null, '[공식] 성균관대 공지에서 인권센터 행정조교 모집도 확인됩니다', '성균관대 공식 공지 목록에서 인권센터 행정조교 모집 같은 학내 공고가 확인됩니다. 교내 채용은 공지 리스트를 검색어로 모아보는 편이 훨씬 빠르더라고요. 출처: https://www.skku.edu/skku/mobile/notice.do%3BHOMEPAGE_JSESSIONID%3DSCkS4VzcsOuTogmMrrC9Y-Nls3RK9woWuEaKKAHnpqsELNSU3aQp%21-1906863225?article.offset=40&articleLimit=10&mode=list&srSearchVal=%EB%8C%80%ED%95%99%EC%9B%90', 'bbbbbbb2-bbbb-4bbb-8bbb-bbbbbbbbbbb2'::uuid, 'global'::public.content_scope, 15, 'schoolDepartment'::public.visibility_level, '{"tags":["채용공고","성균관대","교내채용"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111147'::uuid, 'f6666666-6666-4666-8666-666666666666'::uuid, 'admission'::public.post_category, null, '[공식] 서울대 교과과정 해설 PDF 먼저 보면 학과 감이 더 잘 오네요', '서울대 공식 교과과정 해설 PDF를 보니 신입생세미나, 대학영어, 학과별 기초 이수 규정이 한 파일에 정리돼 있었습니다. 전형 정보만 보다가 실제 커리큘럼까지 같이 보니 학과 선택 감이 훨씬 빨리 오더라고요. 출처: https://www.snu.ac.kr/webdata/uploads/kor/file/2023/02/Explanation_kor_2022.pdf', 'aaaaaaa8-aaaa-4aaa-8aaa-aaaaaaaaaaa8'::uuid, 'school'::public.content_scope, 21, 'school'::public.visibility_level, '{"region":"서울","track":"이과","scoreType":"학생부종합 준비","interestUniversity":"서울대학교","interestDepartment":"경제학부","tags":["공식자료","서울대","교과과정"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111148'::uuid, 'e5555555-5555-4555-8555-555555555555'::uuid, 'admission'::public.post_category, null, '[공식] 숭실대 입학처 S-STAR 브로슈어가 학과·취업 흐름까지 정리돼 있어요', '숭실대 입학처 브로슈어를 보니 학과 소개뿐 아니라 캠퍼스 핫플레이스, 취업 밀착 프로그램, 창업 지원까지 같이 정리돼 있었습니다. 지원 학과를 고를 때 학교 생활과 취업 분위기를 한 번에 보기 좋았습니다. 출처: https://iphak.ssu.ac.kr/upload/SSU%281%29_191011155918.pdf', 'bbbbbbb6-bbbb-4bbb-8bbb-bbbbbbbbbbb6'::uuid, 'school'::public.content_scope, 19, 'school'::public.visibility_level, '{"region":"서울","track":"이과","scoreType":"내신 2.6","interestUniversity":"숭실대학교","interestDepartment":"소프트웨어학부","tags":["공식자료","숭실대","입학처"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111149'::uuid, 'f6666666-6666-4666-8666-666666666666'::uuid, 'admission'::public.post_category, null, '[공식] 연세 전공안내서 보니까 대학생활·글로벌 프로그램 설명이 한 번에 정리돼 있네요', '연세대 공식 전공안내서에서 전공 소개뿐 아니라 대학생활, 글로벌 프로그램, 진로 탐색 흐름이 같이 정리돼 있었습니다. 학과 설명만 보는 것보다 학교 안에서 어떤 경험을 할 수 있는지 먼저 잡기에 좋았습니다. 출처: https://admission.yonsei.ac.kr/seoul/admission/html/data/major/2026/yonsei_allways_251028.pdf', 'bbbbbbb7-bbbb-4bbb-8bbb-bbbbbbbbbbb7'::uuid, 'school'::public.content_scope, 18, 'school'::public.visibility_level, '{"region":"서울","track":"문과","scoreType":"내신 2.4","interestUniversity":"연세대학교","interestDepartment":"교육학과","tags":["공식자료","연세대","전공안내서"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111150'::uuid, '2f222222-2222-4222-8222-222222222222'::uuid, 'community'::public.post_category, 'freshman'::public.post_subcategory, '[공식] 고려대 문과대 OT 자료 첨부 공지면 신입생 일정 파악이 빨라요', '고려대 문과대 공식 공지에 신입생 OT 자료가 첨부돼 있어서 아주홀 위치, 학사 일정, 첫 학기 체크포인트를 한 번에 볼 수 있었습니다. 새내기 때는 학과 단위 OT 자료를 먼저 챙기는 게 확실히 빠르더라고요. 출처: https://libart.korea.ac.kr/libart/notice/notice.do%3Bjsessionid%3DVgrhltRS1h5rMQpv4X1XQmSFFNlX0dfppJWYn8Fnh9s82vCGfXrR%21207209210?article.offset=100&articleLimit=10&articleNo=341956&mode=view', '44444444-4444-4444-8444-444444444444'::uuid, 'school'::public.content_scope, 18, 'school'::public.visibility_level, '{"tags":["새내기존","공식자료","OT"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111151'::uuid, '3b444444-4444-4444-8444-444444444444'::uuid, 'community'::public.post_category, 'freshman'::public.post_subcategory, '[공식] 한국외대 서울캠퍼스 OT 안전가이드에 필수 체크포인트가 다 있네요', '한국외대 서울캠퍼스 공식 안전가이드 PDF에 OT 운영 원칙, 안전수칙, 성희롱 예방, 비용 징수 금지 같은 기본선이 명확하게 정리돼 있었습니다. 새내기존에서도 이런 체크리스트를 먼저 공유해두면 도움 될 것 같아요. 출처: https://safety.hufs.ac.kr/sites/hufssafety/download/safety_seoul.pdf', 'bbbbbbb9-bbbb-4bbb-8bbb-bbbbbbbbbbb9'::uuid, 'school'::public.content_scope, 17, 'school'::public.visibility_level, '{"tags":["새내기존","공식자료","안전가이드"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111152'::uuid, '3f888888-8888-4888-8888-888888888888'::uuid, 'community'::public.post_category, 'club'::public.post_subcategory, '[공식] 홍익대 총동아리연합회 소개 페이지에서 중앙동아리 규모가 한눈에 보여요', '홍익대 공식 학생활동 페이지를 보니 서울캠퍼스 중앙동아리 수와 분과 구성이 자세히 정리돼 있었습니다. 동아리 찾을 때 커뮤니티 후기만 보기보다 학교 공식 소개를 먼저 보면 결이 빨리 잡혀요. 출처: https://www.hongik.ac.kr/kr/life/seoul-society.do', 'ccccccc3-cccc-4ccc-8ccc-ccccccccccc3'::uuid, 'school'::public.content_scope, 16, 'school'::public.visibility_level, '{"tags":["동아리","공식자료","중앙동아리"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111153'::uuid, '3a333333-3333-4333-8333-333333333333'::uuid, 'community'::public.post_category, 'freshman'::public.post_subcategory, '[공식] 연세 전공안내서에 대학생활·글로벌 프로그램 흐름이 같이 정리돼 있어요', '연세대 공식 전공안내서 안에 전공 소개뿐 아니라 대학생활, 해외교환, 진로 탐색, 학업 적응 정보가 같이 묶여 있었습니다. 입학 전에는 학과별 커리큘럼과 학교생활 지원 구조를 함께 보는 데 유용했습니다. 출처: https://admission.yonsei.ac.kr/seoul/admission/html/data/major/2026/yonsei_allways_251028.pdf', 'bbbbbbb7-bbbb-4bbb-8bbb-bbbbbbbbbbb7'::uuid, 'school'::public.content_scope, 18, 'school'::public.visibility_level, '{"tags":["새내기존","공식자료","대학생활"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111154'::uuid, '3c555555-5555-4555-8555-555555555555'::uuid, 'community'::public.post_category, 'food'::public.post_subcategory, '[공식] 숙명 캠퍼스 안내 PDF에 학생식당 위치가 한 번에 정리돼 있어요', '숙명여대 공식 캠퍼스 안내 PDF를 보니 건물별 편의시설과 함께 미소찬 학생식당 위치가 같이 정리돼 있었습니다. 새 학기엔 식당 위치부터 익혀두면 이동 동선 잡기가 훨씬 편하더라고요. 출처: https://ulearning.sookmyung.ac.kr/sites/sookmyungkr/down/201410_MAP.pdf', 'bbbbbbb5-bbbb-4bbb-8bbb-bbbbbbbbbbb5'::uuid, 'school'::public.content_scope, 17, 'school'::public.visibility_level, '{"tags":["맛집","공식자료","학생식당"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111155'::uuid, '3f888888-8888-4888-8888-888888888888'::uuid, 'community'::public.post_category, 'freshman'::public.post_subcategory, '[공식] 홍익 총학생회 소개 페이지에 신입생 OT랑 대동제 흐름이 같이 보여요', '홍익대 공식 총학생회 소개 페이지를 보니 연간 학생자치 일정 안에 신입생 오리엔테이션과 대동제 흐름이 같이 정리돼 있었습니다. 새내기 때는 학생회와 동아리 일정 구조를 먼저 보는 게 적응에 도움 되더라고요. 출처: https://www.hongik.ac.kr/kr/life/seoul-intro-student-council.do', 'ccccccc3-cccc-4ccc-8ccc-ccccccccccc3'::uuid, 'school'::public.content_scope, 15, 'school'::public.visibility_level, '{"tags":["새내기존","공식자료","학생회"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111156'::uuid, '3e777777-7777-4777-8777-777777777777'::uuid, 'community'::public.post_category, null, '[공식] 서울과기대 취업진로본부는 현장실습까지 한 번에 연결해주네요', '서울과기대 공식 조직도 상세 페이지를 보니 취업진로본부가 취업지원 프로그램뿐 아니라 단기·장기 현장실습까지 함께 운영하고 있었습니다. 취업정보 찾을 때 본부 소개 페이지부터 보는 게 생각보다 빠릅니다. 출처: https://seoultech.ac.kr/intro/uvstat/orga/detail/alljob', 'aaaaaaa6-aaaa-4aaa-8aaa-aaaaaaaaaaa6'::uuid, 'global'::public.content_scope, 21, 'schoolDepartment'::public.visibility_level, '{"tags":["취업정보","서울과기대","현장실습"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111157'::uuid, '3d666666-6666-4666-8666-666666666666'::uuid, 'community'::public.post_category, null, '[공식] 숭실대 진로취업센터는 재학생·졸업생·지역청년까지 같이 지원하네요', '숭실대 진로취업센터 소개 페이지를 보니 재학생뿐 아니라 졸업생과 지역 청년까지 열린 허브 역할을 한다고 명시돼 있었습니다. 학교 안 취업지원 범위가 넓어서 저학년 때부터 자주 보는 편이 좋아 보여요. 출처: https://job.ssu.ac.kr/service/introduce/introduce.do', 'bbbbbbb6-bbbb-4bbb-8bbb-bbbbbbbbbbb6'::uuid, 'global'::public.content_scope, 19, 'schoolDepartment'::public.visibility_level, '{"tags":["취업정보","숭실대","진로취업센터"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111158'::uuid, '3f888888-8888-4888-8888-888888888888'::uuid, 'community'::public.post_category, null, '[공식] 홍익 HIVE는 창업교육·멘토링·팀빌딩까지 학교 안에서 이어지네요', '홍익대 공식 학생활동 페이지를 보니 HIVE가 창업 기초 교육, 팀 빌딩, 멘토링, 네트워킹을 꾸준히 운영하고 있었습니다. 취업 탭에서도 창업 쪽 진로를 보는 사람이라면 학교 안 자원을 먼저 확인할 만합니다. 출처: https://www.hongik.ac.kr/kr/life/seoul-hive.do', 'ccccccc3-cccc-4ccc-8ccc-ccccccccccc3'::uuid, 'global'::public.content_scope, 18, 'schoolDepartment'::public.visibility_level, '{"tags":["취업정보","홍익대","창업"]}'::jsonb),
+      ('41111111-1111-4111-8111-111111111159'::uuid, '3b444444-4444-4444-8444-444444444444'::uuid, 'community'::public.post_category, null, '[공식] 한국외대 대학일자리플러스센터가 고용노동부 평가 우수 3회를 받았다고 공지됐어요', '한국외대 공식 메인 공지에서 대학일자리플러스센터가 고용노동부 연차 성과평가에서 우수 등급을 3회 달성했다고 안내했습니다. 취업지원 체계가 실제로 잘 굴러가는 학교인지 볼 때 이런 공식 지표가 꽤 참고됩니다. 출처: https://www.hufs.ac.kr/hufs/index.do', 'bbbbbbb9-bbbb-4bbb-8bbb-bbbbbbbbbbb9'::uuid, 'global'::public.content_scope, 17, 'schoolDepartment'::public.visibility_level, '{"tags":["취업정보","한국외대","대학일자리플러스센터"]}'::jsonb)
   ) as t(id, author_id, category, subcategory, title, content, school_id, scope, like_count, visibility_level, metadata)
 )
 insert into public.posts (
@@ -531,7 +672,20 @@ with seeded_comments as (
       ('51111111-1111-4111-8111-111111111237'::uuid, '41111111-1111-4111-8111-111111111143'::uuid, 'c3333333-3333-4333-8333-333333333333'::uuid, '신입생 행사 안에 진로 탐색 부스가 같이 들어가면 학교 적응할 때 확실히 편하더라고요.', false, 'schoolDepartment'::public.visibility_level),
       ('51111111-1111-4111-8111-111111111238'::uuid, '41111111-1111-4111-8111-111111111144'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, '기술창업 관심 있으면 산학협력단 공지부터 보는 게 제일 빠르다는 데 동의합니다.', false, 'schoolDepartment'::public.visibility_level),
       ('51111111-1111-4111-8111-111111111239'::uuid, '41111111-1111-4111-8111-111111111145'::uuid, '2d444444-4444-4444-8444-444444444444'::uuid, '교내 조교 공고는 마감이 빠른 편이라 관심 있으면 키워드 검색 저장해두는 게 편합니다.', false, 'schoolDepartment'::public.visibility_level),
-      ('51111111-1111-4111-8111-111111111240'::uuid, '41111111-1111-4111-8111-111111111146'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, '교내 채용은 과사무실이나 센터 단위 공지가 흩어져 있어서 학교 공지 검색이 생각보다 중요합니다.', false, 'schoolDepartment'::public.visibility_level)
+      ('51111111-1111-4111-8111-111111111240'::uuid, '41111111-1111-4111-8111-111111111146'::uuid, 'a1111111-1111-4111-8111-111111111111'::uuid, '교내 채용은 과사무실이나 센터 단위 공지가 흩어져 있어서 학교 공지 검색이 생각보다 중요합니다.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111241'::uuid, '41111111-1111-4111-8111-111111111147'::uuid, '2e111111-1111-4111-8111-111111111111'::uuid, '서울대는 전형만 보지 말고 교양 이수 규정도 같이 보는 게 좋습니다. 입학 뒤 시간표 감이 빨리 잡혀요.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111242'::uuid, '41111111-1111-4111-8111-111111111148'::uuid, '3d666666-6666-4666-8666-666666666666'::uuid, '숭실 브로슈어는 학과 소개와 취업 프로그램이 같이 정리돼 있어서 지원 학과 고를 때 꽤 도움이 됩니다.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111243'::uuid, '41111111-1111-4111-8111-111111111149'::uuid, '3a333333-3333-4333-8333-333333333333'::uuid, '연세 전공안내서는 대학생활 정보가 같이 들어 있어서 학과 분위기와 학교 경험을 같이 보기 좋습니다.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111244'::uuid, '41111111-1111-4111-8111-111111111150'::uuid, '2f222222-2222-4222-8222-222222222222'::uuid, 'OT 자료에 들어 있는 학사 일정표는 캘린더에 먼저 넣어두면 신입생 때 덜 헷갈립니다.', false, 'school'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111245'::uuid, '41111111-1111-4111-8111-111111111151'::uuid, '3b444444-4444-4444-8444-444444444444'::uuid, '외대 OT 가이드는 안전수칙이 꽤 자세해서 과 단위 행사 보기 전에 한 번 읽어두는 편이 좋아요.', false, 'school'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111246'::uuid, '41111111-1111-4111-8111-111111111152'::uuid, '3f888888-8888-4888-8888-888888888888'::uuid, '홍익은 중앙동아리 분과가 다양해서 공식 소개 페이지 먼저 보고 커뮤니티 후기 붙여서 보는 편이 좋습니다.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111247'::uuid, '41111111-1111-4111-8111-111111111153'::uuid, '3a333333-3333-4333-8333-333333333333'::uuid, '글로벌 프로그램과 학과 커리큘럼이 같이 정리돼 있어서 새내기 때 학교 자원을 한눈에 보기 편합니다.', false, 'school'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111248'::uuid, '41111111-1111-4111-8111-111111111154'::uuid, '3c555555-5555-4555-8555-555555555555'::uuid, '학생식당이나 편의시설 위치를 먼저 익혀두면 첫 주 동선이 훨씬 편해집니다.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111249'::uuid, '41111111-1111-4111-8111-111111111155'::uuid, '3f888888-8888-4888-8888-888888888888'::uuid, '총학생회 소개 페이지에 연간 일정이 같이 보여서 대동제나 OT 흐름 잡기 좋습니다.', false, 'school'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111250'::uuid, '41111111-1111-4111-8111-111111111156'::uuid, '3e777777-7777-4777-8777-777777777777'::uuid, '서울과기대는 현장실습과 취업지원이 본부 단위로 묶여 있어서 공지 챙기기가 편한 편입니다.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111251'::uuid, '41111111-1111-4111-8111-111111111157'::uuid, '3d666666-6666-4666-8666-666666666666'::uuid, '숭실 진로취업센터는 저학년 상담도 열려 있어서 첫 학기부터 계정 만들어두는 걸 추천합니다.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111252'::uuid, '41111111-1111-4111-8111-111111111158'::uuid, '3f888888-8888-4888-8888-888888888888'::uuid, '홍익은 창업 쪽도 학교 안 자원이 잘 정리돼 있어서 취업 탭에서 같이 보는 게 맞는 것 같아요.', false, 'schoolDepartment'::public.visibility_level),
+      ('51111111-1111-4111-8111-111111111253'::uuid, '41111111-1111-4111-8111-111111111159'::uuid, '3b444444-4444-4444-8444-444444444444'::uuid, '외대는 대학일자리플러스센터 공지가 메인에도 자주 떠서 학교 지원 체감이 괜찮은 편입니다.', false, 'schoolDepartment'::public.visibility_level)
   ) as t(id, post_id, author_id, content, accepted, visibility_level)
 )
 insert into public.comments (
