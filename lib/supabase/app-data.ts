@@ -3,6 +3,7 @@
 import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
 import { getMockRuntimeSnapshot, guestUser } from "@/lib/runtime-state";
 import {
@@ -372,13 +373,17 @@ export function getAuthFlowHref({
   nextPath = "/home",
 }: {
   isAuthenticated: boolean;
-  user?: Pick<User, "schoolId"> | null;
+  user?: { schoolId?: User["schoolId"]; email?: User["email"] } | null;
   nextPath?: string;
 }) {
   const encodedNextPath = encodeURIComponent(nextPath);
 
   if (!isAuthenticated) {
     return `/login?next=${encodedNextPath}`;
+  }
+
+  if (nextPath.startsWith("/admin") && isMasterAdminEmail(user?.email)) {
+    return nextPath;
   }
 
   if (!hasCompletedOnboarding(user)) {
