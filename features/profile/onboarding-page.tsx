@@ -270,15 +270,15 @@ export function OnboardingPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-4 gap-3">
-            {["로그인", "유형 선택", "학교 선택", "학교 메일"].map((step, index) => (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {["로그인", "유형 선택", "학교 선택", "메일 인증"].map((step, index) => (
               <div
                 key={step}
-                className={`rounded-2xl border px-3 py-3 text-center text-sm ${
+                className={`rounded-2xl border px-3 py-3 text-center text-sm font-semibold ${
                   index < 4 ? "border-primary/20 bg-primary/10 text-primary" : "bg-secondary"
                 }`}
               >
-                {step}
+                <span className="block break-keep">{step}</span>
               </div>
             ))}
           </div>
@@ -378,20 +378,23 @@ export function OnboardingPage() {
                     저장 후 학교 메일로 인증 링크를 보내고, 확인이 끝나면 대학생 권한이 열립니다.
                   </p>
                 </div>
+                <Button type="submit" className="w-full">
+                  학교 메일 인증 요청
+                </Button>
               </div>
             ) : null}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>학과 선택 입력</Label>
+                <Label>학과</Label>
                 <Input placeholder="예: 경영학과" {...form.register("department")} />
               </div>
               <div className="space-y-2">
-                <Label>학년 선택 입력</Label>
+                <Label>학년</Label>
                 <Input placeholder="예: 3" {...form.register("grade")} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>한줄 소개 선택 입력</Label>
+              <Label>한줄 소개</Label>
               <Textarea
                 rows={3}
                 placeholder="예: 강의평과 입시 질문을 자주 봅니다."
@@ -399,7 +402,7 @@ export function OnboardingPage() {
               />
             </div>
             <Button type="submit" className="w-full">
-              시작하기
+              {form.watch("userType") === "college" ? "저장하고 인증 진행" : "프로필 저장"}
             </Button>
           </form>
         </CardContent>
