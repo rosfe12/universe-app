@@ -711,7 +711,7 @@ export function CommunityPage({
                   />
                 </CardContent>
               </Card>
-              <CommentThread postId={detailPost.id} />
+              <CommentThread postId={detailPost.id} initialSnapshot={initialSnapshot} />
             </>
           ) : null}
         </DialogContent>

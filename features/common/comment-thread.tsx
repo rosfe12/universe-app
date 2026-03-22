@@ -44,7 +44,7 @@ import {
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
 import { formatRelativeLabel } from "@/lib/utils";
-import type { VisibilityLevel } from "@/types";
+import type { AppRuntimeSnapshot, VisibilityLevel } from "@/types";
 
 const commentSchema = z.object({
   content: z.string().min(2, "댓글을 입력해주세요."),
@@ -59,12 +59,14 @@ export function CommentThread({
   canCommentOverride,
   accountRequiredTitle,
   accountRequiredDescription,
+  initialSnapshot,
 }: {
   postId: string;
   allowAccept?: boolean;
   canCommentOverride?: boolean;
   accountRequiredTitle?: string;
   accountRequiredDescription?: string;
+  initialSnapshot?: AppRuntimeSnapshot;
 }) {
   const {
     comments,
@@ -76,7 +78,7 @@ export function CommentThread({
     source,
     refresh,
     setSnapshot,
-  } = useAppRuntime();
+  } = useAppRuntime(initialSnapshot);
   const currentUser = runtimeUser;
   const pathname = usePathname();
   const isReliabilityBlocked = isAuthenticated && isReliabilityRestricted(currentUser.trustScore);

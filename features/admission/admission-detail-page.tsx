@@ -159,7 +159,7 @@ export function AdmissionDetailPage({
         </CardContent>
       </Card>
 
-      <CommentThread postId={question.id} allowAccept />
+      <CommentThread postId={question.id} allowAccept initialSnapshot={initialSnapshot} />
     </AppShell>
   );
 }

@@ -941,6 +941,7 @@ export function SchoolPage({
               </Card>
               <CommentThread
                 postId={detailPost.id}
+                initialSnapshot={snapshot}
                 canCommentOverride={
                   detailPost.subcategory === "freshman"
                     ? freshmanCommentEnabled
