@@ -3,6 +3,7 @@ import { createClient, type EmailOtpType } from "@supabase/supabase-js";
 
 import { publicEnv, resolveAuthSiteUrl } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { verifyStudentVerificationToken } from "@/lib/student-verification-token";
 
 export const runtime = "nodejs";
 
@@ -33,10 +34,11 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const requestId = requestUrl.searchParams.get("request_id");
   const tokenHash = requestUrl.searchParams.get("token_hash");
+  const testToken = requestUrl.searchParams.get("test_token");
   const type = requestUrl.searchParams.get("type");
   const errorCode = requestUrl.searchParams.get("error_code");
 
-  if (errorCode || !requestId || !tokenHash || !type) {
+  if (errorCode || !requestId || (!testToken && (!tokenHash || !type))) {
     return NextResponse.redirect(
       buildLoginRedirect(request, "/profile", "schoolVerificationFailed"),
     );
@@ -88,35 +90,58 @@ export async function GET(request: Request) {
     );
   }
 
-  const authClient = createClient(
-    publicEnv.NEXT_PUBLIC_SUPABASE_URL,
-    publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        detectSessionInUrl: false,
-      },
-    },
-  );
+  let verifiedEmail = "";
+  let verificationUserId: string | null = verificationRequest.verification_user_id ?? null;
 
-  const { data: otpData, error: otpError } = await authClient.auth.verifyOtp({
-    token_hash: tokenHash,
-    type: type as EmailOtpType,
-  });
-
-  if (otpError || !otpData.user?.email) {
-    await admin
-      .from("student_verification_requests")
-      .update({ status: "expired" })
-      .eq("id", verificationRequest.id);
-
-    return NextResponse.redirect(
-      buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationFailed"), "schoolVerificationFailed"),
+  if (testToken) {
+    const isValidTestToken = verifyStudentVerificationToken(
+      verificationRequest.id,
+      verificationRequest.user_id,
+      verificationRequest.school_email,
+      testToken,
     );
+
+    if (!isValidTestToken) {
+      return NextResponse.redirect(
+        buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationFailed"), "schoolVerificationFailed"),
+      );
+    }
+
+    verifiedEmail = verificationRequest.school_email.trim().toLowerCase();
+    verificationUserId = verificationRequest.user_id;
+  } else {
+    const authClient = createClient(
+      publicEnv.NEXT_PUBLIC_SUPABASE_URL,
+      publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false,
+        },
+      },
+    );
+
+    const { data: otpData, error: otpError } = await authClient.auth.verifyOtp({
+      token_hash: tokenHash!,
+      type: type as EmailOtpType,
+    });
+
+    if (otpError || !otpData.user?.email) {
+      await admin
+        .from("student_verification_requests")
+        .update({ status: "expired" })
+        .eq("id", verificationRequest.id);
+
+      return NextResponse.redirect(
+        buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationFailed"), "schoolVerificationFailed"),
+      );
+    }
+
+    verifiedEmail = otpData.user.email.trim().toLowerCase();
+    verificationUserId = verificationUserId ?? otpData.user.id;
   }
 
-  const verifiedEmail = otpData.user.email.trim().toLowerCase();
   const targetEmail = verificationRequest.school_email.trim().toLowerCase();
 
   if (verifiedEmail !== targetEmail) {
@@ -155,10 +180,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const verificationUserId =
-    verificationRequest.verification_user_id ?? otpData.user.id;
-
-  if (verificationUserId !== verificationRequest.user_id) {
+  if (verificationUserId && verificationUserId !== verificationRequest.user_id) {
     await admin.auth.admin.deleteUser(verificationUserId).catch(() => null);
   }
 
