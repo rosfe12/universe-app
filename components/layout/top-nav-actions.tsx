@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { MessagesSquare, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Dialog,
@@ -16,6 +16,31 @@ import { Button } from "@/components/ui/button";
 import { getCareerBoardKind } from "@/lib/mock-queries";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { cn } from "@/lib/utils";
+
+function getSearchScore(input: {
+  title: string;
+  body?: string;
+  meta?: string;
+  query: string;
+}) {
+  const query = input.query.trim().toLowerCase();
+  if (!query) return 0;
+
+  const title = input.title.toLowerCase();
+  const body = (input.body ?? "").toLowerCase();
+  const meta = (input.meta ?? "").toLowerCase();
+
+  let score = 0;
+
+  if (title === query) score += 160;
+  if (title.startsWith(query)) score += 120;
+  if (title.includes(query)) score += 80;
+  if (meta.startsWith(query)) score += 48;
+  if (meta.includes(query)) score += 28;
+  if (body.includes(query)) score += 20;
+
+  return score;
+}
 
 function getCommunityFilter(postId: string) {
   const snapshot = getRuntimeSnapshot();
@@ -54,39 +79,68 @@ export function TopNavActions() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+    }
+  }, [open]);
+
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
     const postItems = snapshot.posts
-      .filter((post) => {
-        if (!normalized) return false;
-        return (
-          post.title.toLowerCase().includes(normalized) ||
-          post.content.toLowerCase().includes(normalized)
-        );
+      .map((post) => {
+        const meta =
+          post.category === "admission" ? "입시" : post.category === "dating" ? "연애/미팅" : "커뮤니티";
+
+        return {
+          id: post.id,
+          title: post.title,
+          meta,
+          href: getPostHref(post.id),
+          score: getSearchScore({
+            title: post.title,
+            body: post.content,
+            meta,
+            query: normalized,
+          }),
+        };
       })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
       .slice(0, 6)
       .map((post) => ({
         id: `post-${post.id}`,
         title: post.title,
-        meta: post.category === "admission" ? "입시" : post.category === "dating" ? "연애/미팅" : "커뮤니티",
-        href: getPostHref(post.id),
+        meta: post.meta,
+        href: post.href,
       }));
 
     const lectureItems = snapshot.lectures
-      .filter((lecture) => {
-        if (!normalized) return false;
-        return (
-          lecture.courseName.toLowerCase().includes(normalized) ||
-          lecture.professor.toLowerCase().includes(normalized)
-        );
+      .map((lecture) => {
+        const meta = `${lecture.professor} · ${lecture.department} · 강의정보`;
+
+        return {
+          id: `lecture-${lecture.id}`,
+          title: lecture.courseName,
+          meta,
+          href: `/lectures/${lecture.id}`,
+          score: getSearchScore({
+            title: lecture.courseName,
+            body: lecture.dayTime,
+            meta,
+            query: normalized,
+          }),
+        };
       })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
       .slice(0, 4)
       .map((lecture) => ({
         id: `lecture-${lecture.id}`,
-        title: lecture.courseName,
-        meta: `${lecture.professor} · 강의정보`,
-        href: `/lectures/${lecture.id}`,
+        title: lecture.title,
+        meta: lecture.meta,
+        href: lecture.href,
       }));
 
     if (normalized) {
@@ -125,8 +179,8 @@ export function TopNavActions() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto rounded-[24px] p-5">
-          <DialogHeader className="space-y-1">
+        <DialogContent className="top-[calc(env(safe-area-inset-top)+0.75rem)] w-[calc(100%-1rem)] max-w-[440px] -translate-x-1/2 translate-y-0 gap-3 rounded-[24px] border border-white/80 p-4 sm:w-[calc(100%-2rem)] md:top-1/2 md:w-full md:-translate-y-1/2">
+          <DialogHeader className="space-y-1 pr-8">
             <DialogTitle>검색</DialogTitle>
             <DialogDescription>게시글과 강의정보를 바로 찾을 수 있습니다.</DialogDescription>
           </DialogHeader>
@@ -137,7 +191,7 @@ export function TopNavActions() {
               placeholder="제목, 내용, 강의명, 교수명 검색"
               autoFocus
             />
-            <div className="overflow-hidden rounded-2xl border border-gray-100">
+            <div className="max-h-[min(58vh,420px)] overflow-y-auto overscroll-contain rounded-2xl border border-gray-100">
               {searchResults.length > 0 ? (
                 <div className="divide-y divide-gray-100">
                   {searchResults.map((item) => (
