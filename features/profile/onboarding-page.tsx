@@ -208,12 +208,15 @@ export function OnboardingPage() {
     };
   }, [isAuthenticated]);
 
-  const onSubmit = form.handleSubmit(async (values) => {
+  const saveProfile = async (
+    values: OnboardingFormValues,
+    options?: { requestVerification?: boolean },
+  ) => {
     setErrorMessage("");
 
     if (!isSupabaseEnabled()) {
       router.push(nextPath);
-      return;
+      return false;
     }
 
     setPending(true);
@@ -230,7 +233,7 @@ export function OnboardingPage() {
       form.setError("schoolEmail", {
         message: "학교 메일 형식을 확인해주세요.",
       });
-      return;
+      return false;
     }
 
     const result = await upsertUserProfile({
@@ -253,9 +256,7 @@ export function OnboardingPage() {
         keepsVerifiedStudentState
           ? "verified"
           : values.userType === "student"
-          ? normalizedSchoolEmail
-            ? "pending"
-            : "unverified"
+            ? "unverified"
           : "none",
       verified: keepsVerifiedStudentState,
       bio: values.bio?.trim() || undefined,
@@ -268,10 +269,10 @@ export function OnboardingPage() {
     if (result.error) {
       setPending(false);
       setErrorMessage(result.error.message);
-      return;
+      return false;
     }
 
-    if (values.userType === "student" && !keepsVerifiedStudentState) {
+    if (options?.requestVerification && values.userType === "student" && !keepsVerifiedStudentState) {
       const verificationResult = await requestStudentVerificationEmail({
         schoolId: values.schoolId,
         schoolEmail: normalizedSchoolEmail,
@@ -282,7 +283,7 @@ export function OnboardingPage() {
 
       if (verificationResult.error) {
         setErrorMessage(verificationResult.error.message);
-        return;
+        return false;
       }
 
       await refresh();
@@ -290,12 +291,21 @@ export function OnboardingPage() {
         ? appendSearchParam(nextPath, "schoolVerified", "1")
         : appendSearchParam(nextPath, "verification", "pending");
       router.push(redirectTarget);
-      return;
+      return true;
     }
 
     await refresh();
     setPending(false);
     router.push(nextPath);
+    return true;
+  };
+
+  const onSubmit = form.handleSubmit(async (values) => {
+    await saveProfile(values);
+  });
+
+  const onRequestVerification = form.handleSubmit(async (values) => {
+    await saveProfile(values, { requestVerification: true });
   });
 
   if (!isAuthenticated && !loading) {
@@ -530,9 +540,10 @@ export function OnboardingPage() {
                   </p>
                 </div>
                 <Button
-                  type="submit"
+                  type="button"
                   className="w-full"
                   disabled={!canRequestCollegeVerification || pending}
+                  onClick={() => void onRequestVerification()}
                 >
                   {isMatchingPendingState
                     ? "학교 메일 인증 다시 요청"
