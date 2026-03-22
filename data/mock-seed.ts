@@ -1265,6 +1265,117 @@ const askPosts: SeedPost[] = [
   },
 ];
 
+const ASK_TOPIC_BLUEPRINTS = [
+  {
+    key: "commute",
+    tags: ["무물", "통학"],
+    title: (schoolName: string) => `무물) ${schoolName} 통학러는 1교시 있는 날 어떻게 버텨요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 기준으로 1교시가 연속으로 잡히는 날이 있는데, 전날부터 컨디션 관리하는 팁이 궁금합니다. 통학 시간이 길면 아침 루틴을 어떻게 잡는지 무물합니다.`,
+  },
+  {
+    key: "lunch",
+    tags: ["무물", "학생식당"],
+    title: (schoolName: string) => `무물) ${schoolName} 학생식당은 몇 시쯤 가야 덜 붐비나요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 점심시간마다 줄 서는 시간이 꽤 길더라고요. 다들 학생식당이나 교내 카페를 언제 가는 편인지, 붐비는 시간 피하는 루틴 있으면 공유 부탁해요.`,
+  },
+  {
+    key: "laptop",
+    tags: ["무물", "기기"],
+    title: (schoolName: string) => `무물) ${schoolName} 다니면 노트북은 결국 매일 들고 다니게 되나요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 강의실 이동이 많은 편이라 노트북을 매일 챙겨야 할지 고민입니다. 태블릿만으로 버티는 사람도 있는지, 과제 많은 수업은 어느 정도까지 가능한지 궁금해요.`,
+  },
+  {
+    key: "library",
+    tags: ["무물", "도서관"],
+    title: (schoolName: string) => `무물) ${schoolName} 도서관 자리 잡으려면 몇 시쯤 가는 편이에요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 시험기간만 되면 도서관 자리 경쟁이 치열하다고 들어서요. 평소에도 인기 많은 구역이 있는지, 다들 어느 시간대에 가는지 궁금합니다.`,
+  },
+  {
+    key: "groupwork",
+    tags: ["무물", "조별과제"],
+    title: (schoolName: string) => `무물) ${schoolName} 팀플 조장은 보통 먼저 손드는 편인가요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 전공 수업 팀플이 슬슬 시작되는데, 조장 맡는 분위기가 궁금해요. 무조건 먼저 나서는 게 편한지, 역할만 빨리 정하면 무난한지 실제 경험 듣고 싶습니다.`,
+  },
+  {
+    key: "otlook",
+    tags: ["무물", "새내기"],
+    title: (schoolName: string) => `무물) ${schoolName} OT나 개강 첫 주에는 다들 어느 정도 꾸미고 가요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 처음 만나는 자리라 너무 편하게 가도 되나 고민됩니다. 새내기 때 너무 힘줘서 간 사람이 많은지, 오히려 편한 복장이 더 많은지 궁금해요.`,
+  },
+  {
+    key: "club",
+    tags: ["무물", "동아리"],
+    title: (schoolName: string) => `무물) ${schoolName} 동아리는 첫 학기에 바로 들어가는 편인가요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 새내기 때 동아리를 바로 정하는 게 좋은지, 한 달 정도 학교 분위기 보고 들어가는 게 좋은지 고민입니다. 너무 빨리 들어가서 후회한 경험도 있는지 듣고 싶어요.`,
+  },
+  {
+    key: "festival",
+    tags: ["무물", "축제"],
+    title: (schoolName: string) => `무물) ${schoolName} 축제는 첫날 가는 게 재밌나요 마지막 날이 재밌나요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 축제 라인업 발표되면 항상 어느 날 갈지 고민됩니다. 첫날 분위기가 좋은지, 마지막 날이 더 사람 많고 재밌는지 경험담 부탁해요.`,
+  },
+  {
+    key: "elective",
+    tags: ["무물", "교양"],
+    title: (schoolName: string) => `무물) ${schoolName} 교양은 꿀강 위주로 담는 편인가요 흥미 위주로 담는 편인가요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 시간표 짜다 보니 꿀강 평점 좋은 과목과 진짜 듣고 싶은 과목이 갈립니다. 학점 관리 우선으로 가는지, 흥미 과목도 한두 개는 꼭 넣는지 궁금해요.`,
+  },
+  {
+    key: "parttime",
+    tags: ["무물", "알바"],
+    title: (schoolName: string) => `무물) ${schoolName} 다니면서 주중 알바 병행하면 힘든 편인가요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 이번 학기에 주중 알바를 병행할지 고민 중입니다. 통학이나 팀플까지 있으면 주중 알바가 너무 빡센지, 주말만 하는 게 나은지 궁금합니다.`,
+  },
+  {
+    key: "ipad",
+    tags: ["무물", "필기"],
+    title: (schoolName: string) => `무물) ${schoolName}에서는 아이패드 필기가 많은 편인가요 종이 노트도 아직 많나요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 수업 스타일이 과마다 다르겠지만, 실제로 아이패드 필기가 얼마나 많은지 감이 안 옵니다. 종이 노트로도 충분한 과목이 많은지 궁금해요.`,
+  },
+  {
+    key: "shuttle",
+    tags: ["무물", "캠퍼스생활"],
+    title: (schoolName: string) => `무물) ${schoolName} 캠퍼스에서 건물 사이 이동 빡센 편인가요?`,
+    content: (schoolName: string) =>
+      `${schoolName} 시간표 짤 때 연강 사이 건물 이동이 얼마나 빡센지 알고 싶어요. 언덕이나 거리 때문에 사실상 10분 쉬는 시간에 뛰어야 하는지 궁금합니다.`,
+  },
+] as const;
+
+const generatedAskPosts: SeedPost[] = schools.flatMap((school, schoolIndex) =>
+  Array.from({ length: 3 }, (_, offset) => {
+    const blueprint =
+      ASK_TOPIC_BLUEPRINTS[(schoolIndex * 3 + offset) % ASK_TOPIC_BLUEPRINTS.length];
+
+    return {
+      id: `community-ask-${school.id}-${blueprint.key}`,
+      category: "community",
+      subcategory: "ask",
+      authorId: collegeReviewerIds[(schoolIndex + offset) % collegeReviewerIds.length],
+      schoolId: school.id,
+      title: blueprint.title(school.name),
+      content: blueprint.content(school.name),
+      createdAt: new Date(
+        Date.UTC(2026, 2, 18, 9, 0, 0) + (schoolIndex * 3 + offset) * 47 * 60 * 1000,
+      ).toISOString(),
+      likes: 11 + ((schoolIndex + offset) % 13),
+      tags: [...blueprint.tags, school.name],
+    };
+  }),
+);
+
+const allAskPosts: SeedPost[] = [...askPosts, ...generatedAskPosts];
+
 const datingPosts: SeedPost[] = datingSeeds.map((seed, index) => ({
   id: `dating-${index + 1}`,
   category: "dating",
@@ -2031,7 +2142,7 @@ const baseSchoolSeedPosts = [
   ...communityPosts,
   ...advicePosts,
   ...freePosts,
-  ...askPosts,
+  ...allAskPosts,
   ...referenceCommunityPosts,
   ...datingPosts,
   ...careerPosts,
@@ -2168,16 +2279,60 @@ const getAskComment = (post: SeedPost) => {
     return "첫 모임은 카톡으로 역할, 마감, 회의 주기까지만 정해도 대부분 괜찮았습니다. 대면은 일정 안 맞을 때만 추가했어요.";
   }
 
+  if (post.title.includes("통학")) {
+    return "전날 가방이랑 옷 미리 챙겨두고 아침엔 무조건 간단히 먹고 나갑니다. 1교시는 루틴이 제일 중요했어요.";
+  }
+
+  if (post.title.includes("학생식당")) {
+    return "보통 정시 직전이나 점심 피크 지나고 가면 훨씬 수월했습니다. 인기 메뉴 있는 날은 더 일찍 가는 편이에요.";
+  }
+
+  if (post.title.includes("노트북")) {
+    return "발표나 팀플 수업 있는 날만 챙기고, 나머지는 태블릿으로 버티는 사람이 생각보다 많았습니다.";
+  }
+
+  if (post.title.includes("도서관")) {
+    return "시험기간엔 오전에 먼저 가는 쪽이 안전했고, 평소엔 저녁 시간대가 오히려 한산한 날도 있었습니다.";
+  }
+
+  if (post.title.includes("OT") || post.title.includes("개강 첫 주")) {
+    return "막상 가보면 다들 생각보다 편하게 입고 옵니다. 너무 힘주는 것보다 단정한 쪽이 무난했어요.";
+  }
+
+  if (post.title.includes("동아리")) {
+    return "한두 번 구경해보고 들어가는 게 덜 후회했습니다. 첫 학기에 바로 정착 안 해도 괜찮았어요.";
+  }
+
+  if (post.title.includes("축제")) {
+    return "라인업 따라 다르지만 둘째 날이나 마지막 날이 제일 분위기 좋다는 얘기를 많이 들었습니다.";
+  }
+
+  if (post.title.includes("교양")) {
+    return "저는 흥미 과목 하나, 부담 적은 과목 하나 섞는 편이었습니다. 꿀강만 넣으면 생각보다 질리더라고요.";
+  }
+
+  if (post.title.includes("알바")) {
+    return "통학 길면 주중 알바는 생각보다 체력 소모가 큽니다. 첫 학기는 주말이나 짧은 고정 스케줄이 낫더라고요.";
+  }
+
+  if (post.title.includes("아이패드")) {
+    return "PDF 필기 많은 수업은 확실히 편하고, 계산이나 암기 과목은 종이 노트 쓰는 사람도 여전히 많았습니다.";
+  }
+
+  if (post.title.includes("건물 사이 이동")) {
+    return "연강이면 건물 위치를 꼭 보고 짜는 게 좋았습니다. 생각보다 10분 쉬는 시간에 빠듯한 조합이 있더라고요.";
+  }
+
   return "댓글 조금만 모여도 실제로 바로 써먹을 팁이 꽤 나오더라고요.";
 };
 
-const askComments: Comment[] = askPosts.map((post, index) => ({
+const askComments: Comment[] = allAskPosts.map((post, index) => ({
   id: nextCommentId(),
   postId: post.id,
   authorId: collegeReviewerIds[(index + 3) % collegeReviewerIds.length],
   content: getAskComment(post),
   accepted: false,
-  createdAt: at(21, `23:${10 + index * 3}:00`),
+  createdAt: new Date(Date.UTC(2026, 2, 22, 10, 0, 0) + index * 31 * 60 * 1000).toISOString(),
 }));
 
 const freshmanZoneComments: Comment[] = communityPosts
@@ -2508,7 +2663,7 @@ export const posts: Post[] = [
   ...communityPosts,
   ...advicePosts,
   ...freePosts,
-  ...askPosts,
+  ...allAskPosts,
   ...referenceCommunityPosts,
   ...datingPosts,
   ...careerPosts,
