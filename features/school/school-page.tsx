@@ -59,6 +59,7 @@ import {
   getCommentsByPostId,
   getCommunityPosts,
   getCurrentSchool,
+  getLectureReviews,
   getLectureSummaries,
   getTradePosts,
 } from "@/lib/mock-queries";
@@ -111,6 +112,15 @@ const SECTION_VALUES: SchoolSection[] = [
   "freshman",
   "admission",
 ];
+const RECENT_ACTIVITY_DAYS = 14;
+
+function isRecentActivity(createdAt: string, days = RECENT_ACTIVITY_DAYS) {
+  return Date.now() - new Date(createdAt).getTime() <= days * 24 * 60 * 60 * 1000;
+}
+
+function formatRecentCount(count: number) {
+  return `+${count}`;
+}
 
 function isSchoolSection(value: string | null): value is SchoolSection {
   return Boolean(value && SECTION_VALUES.includes(value as SchoolSection));
@@ -180,6 +190,13 @@ export function SchoolPage({
   const admissionPosts = getAdmissionQuestions()
     .filter((post) => matchesSchoolAdmission(post, schoolId, schoolName))
     .slice(0, 4);
+  const recentSchoolBoardCount = schoolBoardPosts.filter((post) => isRecentActivity(post.createdAt)).length;
+  const recentFreshmanCount = freshmanZonePosts.filter((post) => isRecentActivity(post.createdAt)).length;
+  const recentAdmissionCount = admissionPosts.filter((post) => isRecentActivity(post.createdAt)).length;
+  const recentLectureCount = lectures.reduce(
+    (count, lecture) => count + getLectureReviews(lecture.id).filter((review) => isRecentActivity(review.createdAt)).length,
+    0,
+  );
   const schoolBoardWriteEnabled =
     isAuthenticated &&
     hasCompletedOnboarding(currentUser) &&
@@ -393,18 +410,18 @@ export function SchoolPage({
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
                 <p className="text-[11px] text-muted-foreground">학교 글</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">{schoolBoardPosts.length}</p>
+                <p className="mt-1 text-[18px] font-semibold text-foreground">{formatRecentCount(recentSchoolBoardCount)}</p>
               </div>
               <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
                 <p className="text-[11px] text-muted-foreground">{isApplicantMode ? "입시 질문" : "새내기 글"}</p>
                 <p className="mt-1 text-[18px] font-semibold text-foreground">
-                  {isApplicantMode ? admissionPosts.length : freshmanZonePosts.length}
+                  {formatRecentCount(isApplicantMode ? recentAdmissionCount : recentFreshmanCount)}
                 </p>
               </div>
               <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
                 <p className="text-[11px] text-muted-foreground">{isApplicantMode ? "새내기 글" : "강의"}</p>
                 <p className="mt-1 text-[18px] font-semibold text-foreground">
-                  {isApplicantMode ? freshmanZonePosts.length : lectures.length}
+                  {formatRecentCount(isApplicantMode ? recentFreshmanCount : recentLectureCount)}
                 </p>
               </div>
             </div>
