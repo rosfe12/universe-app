@@ -291,7 +291,7 @@ export function ProfilePage({
               icon: GraduationCap,
               title: "학교 인증",
               description: "학교 이메일과 재학정보를 확인합니다",
-              href: "/onboarding",
+              href: "/onboarding?next=%2Fprofile&mode=verification",
             },
             {
               icon: BadgeCheck,
