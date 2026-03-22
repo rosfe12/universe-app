@@ -58,13 +58,13 @@ export function FeedPostCard({
   const badge = getPostBadge(post);
   const content = (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span>{badge.label}</span>
         {post.subcategory === "hot" ? <span className="text-rose-500">19+</span> : null}
       </div>
       <div className="space-y-2">
-        <h3 className="text-base font-semibold leading-6 text-gray-900">{post.title}</h3>
-        <p className="line-clamp-2 text-sm leading-6 text-gray-500">{post.content}</p>
+        <h3 className="text-base font-semibold leading-6 text-foreground">{post.title}</h3>
+        <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{post.content}</p>
       </div>
     </div>
   );
@@ -92,7 +92,7 @@ export function FeedPostCard({
           visibilityLevel={post.visibilityLevel}
         />
         {interactiveContent}
-        <div className="flex items-center justify-between gap-3 text-sm text-gray-500">
+        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1">
               <Eye className="h-4 w-4" />

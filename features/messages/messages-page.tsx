@@ -116,16 +116,16 @@ function ThreadLink({
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-semibold text-gray-900">{thread.title}</p>
+          <p className="truncate text-sm font-semibold text-foreground">{thread.title}</p>
           {thread.unread ? <span className="h-2 w-2 rounded-full bg-indigo-500" /> : null}
         </div>
         {thread.sectionLabel ? (
-          <p className="mt-1 truncate text-xs text-gray-400">{thread.sectionLabel}</p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{thread.sectionLabel}</p>
         ) : null}
-        <p className="mt-1 line-clamp-2 text-sm leading-6 text-gray-500">{thread.preview}</p>
+        <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">{thread.preview}</p>
       </div>
       <div className="shrink-0 text-right">
-        <span className="block text-xs text-gray-400">{thread.time}</span>
+        <span className="block text-xs text-muted-foreground">{thread.time}</span>
         {thread.unreadCount && thread.unreadCount > 0 ? (
           <span className="mt-2 inline-flex min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
             {thread.unreadCount}

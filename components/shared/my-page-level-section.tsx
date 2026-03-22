@@ -23,12 +23,12 @@ export function MyPageLevelSection({ score }: { score: number }) {
   return (
     <section className="space-y-5 border-b border-gray-100 pb-5">
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-gray-900">현재 등급</p>
+        <p className="text-sm font-semibold text-foreground">현재 등급</p>
         <div className="flex items-center gap-1.5">
           <UserLevelText score={score} className="ml-0 text-sm font-medium" />
           <span
             title={progress.currentLevel.description}
-            className="inline-flex h-4 w-4 items-center justify-center text-gray-400"
+            className="inline-flex h-4 w-4 items-center justify-center text-muted-foreground"
           >
             <Info className="h-3.5 w-3.5" />
           </span>
@@ -41,7 +41,7 @@ export function MyPageLevelSection({ score }: { score: number }) {
             style={{ width: `${progress.progressPercent}%` }}
           />
         </div>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {progress.nextLevel
             ? `다음 등급까지 ${progress.remaining}점 남음`
             : "현재 최고 등급입니다"}
@@ -51,15 +51,15 @@ export function MyPageLevelSection({ score }: { score: number }) {
         <Button
           type="button"
           variant="ghost"
-          className="flex h-auto w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-gray-900 hover:bg-gray-50"
+          className="flex h-auto w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-foreground hover:bg-gray-50"
           onClick={() => setIsGuideOpen((current) => !current)}
         >
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-gray-900">등급 안내와 올리는 방법</p>
-            <p className="text-sm text-gray-500">응애 새내기부터 정제된 석유까지 한 번에 확인</p>
+            <p className="text-sm font-semibold text-foreground">등급 안내와 올리는 방법</p>
+            <p className="text-sm text-muted-foreground">응애 새내기부터 정제된 석유까지 한 번에 확인</p>
           </div>
           <ChevronDown
-            className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-150 ${
+            className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-150 ${
               isGuideOpen ? "rotate-180" : ""
             }`}
           />
@@ -68,8 +68,8 @@ export function MyPageLevelSection({ score }: { score: number }) {
           <div className="space-y-4 border-t border-gray-100 px-4 py-4">
             <div className="space-y-3 rounded-2xl bg-gray-50 px-4 py-4">
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-gray-900">등급 안내</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm font-semibold text-foreground">등급 안내</p>
+                <p className="text-sm text-muted-foreground">
                   점수는 보이지 않고, 활동 흐름에 따라 등급만 자연스럽게 바뀝니다.
                 </p>
               </div>
@@ -80,12 +80,12 @@ export function MyPageLevelSection({ score }: { score: number }) {
                     className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-foreground">
                         {level.icon} {level.label}
                       </p>
-                      <p className="mt-0.5 text-xs leading-5 text-gray-500">{level.description}</p>
+                      <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{level.description}</p>
                     </div>
-                    <p className="shrink-0 text-[11px] text-gray-400">
+                    <p className="shrink-0 text-[11px] text-muted-foreground">
                       {level.maxScore === null
                         ? `${level.minScore}+`
                         : level.level === 0
@@ -98,8 +98,8 @@ export function MyPageLevelSection({ score }: { score: number }) {
             </div>
             <div className="space-y-3 rounded-2xl border border-gray-100 px-4 py-4">
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-gray-900">등급 올리는 방법</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm font-semibold text-foreground">등급 올리는 방법</p>
+                <p className="text-sm text-muted-foreground">
                   꾸준히 글을 남기고, 댓글과 강의평처럼 도움이 되는 활동을 쌓으면 자연스럽게 올라갑니다.
                 </p>
               </div>
@@ -109,8 +109,8 @@ export function MyPageLevelSection({ score }: { score: number }) {
                     key={item.label}
                     className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2"
                   >
-                    <span className="text-sm text-gray-600">{item.label}</span>
-                    <span className="text-sm font-medium text-gray-900">{item.value}</span>
+                    <span className="text-sm text-muted-foreground">{item.label}</span>
+                    <span className="text-sm font-medium text-foreground">{item.value}</span>
                   </div>
                 ))}
               </div>

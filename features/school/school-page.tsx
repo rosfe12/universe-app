@@ -290,7 +290,7 @@ export function SchoolPage({
   if (!loading && !isAuthenticated) {
     return (
       <AppShell title="우리학교">
-        <Card className="border-dashed border-white/80 bg-white/92">
+        <Card className="border-dashed border-border bg-card">
           <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
             <div className="space-y-1">
               <p className="font-semibold">로그인 후 우리학교가 열립니다</p>
@@ -309,7 +309,7 @@ export function SchoolPage({
   if (!loading && isAuthenticated && !hasCompletedOnboarding(currentUser)) {
     return (
       <AppShell title="우리학교">
-        <Card className="border-dashed border-white/80 bg-white/92">
+        <Card className="border-dashed border-border bg-card">
           <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
             <div className="space-y-1">
               <p className="font-semibold">학교를 먼저 선택해주세요</p>
@@ -326,7 +326,7 @@ export function SchoolPage({
   if (!loading && isAuthenticated && (!schoolId || !currentSchool)) {
     return (
       <AppShell title={isApplicantMode ? "지망학교" : "우리학교"}>
-        <Card className="border-dashed border-white/80 bg-white/92">
+        <Card className="border-dashed border-border bg-card">
           <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
             <div className="space-y-1">
               <p className="font-semibold">학교를 선택하면 학교 전용 공간이 열립니다</p>
@@ -344,29 +344,30 @@ export function SchoolPage({
     <AppShell title={isApplicantMode ? "지망학교" : "우리학교"}>
       {loading ? <LoadingState /> : null}
 
-      <Card className="overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,255,0.94))]">
-        <CardContent className="space-y-6 py-6">
+      <Card className="relative overflow-hidden border-border bg-card">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.16),_transparent_36%)] opacity-90 dark:opacity-35" />
+        <CardContent className="relative z-10 space-y-6 py-6">
           <div className="flex items-center justify-between gap-3">
-            <Badge variant={isApplicantMode ? "warning" : "secondary"} className="bg-white/85 text-foreground">
+            <Badge variant={isApplicantMode ? "warning" : "secondary"} className="border-border bg-background/80 text-foreground">
               {isApplicantMode ? "지망학교 모드" : "캠퍼스 라이브"}
             </Badge>
             <School className="h-5 w-5 text-primary" />
           </div>
 
           <div className="space-y-3">
-            <h2 className="text-[30px] font-semibold tracking-tight text-slate-950 text-balance">
+            <h2 className="text-[30px] font-semibold tracking-tight text-foreground text-balance">
               {schoolName}
             </h2>
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-[20px] border border-white/80 bg-white/90 px-4 py-3">
+              <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
                 <p className="text-[11px] text-muted-foreground">새내기 글</p>
                 <p className="mt-1 text-[18px] font-semibold text-foreground">{freshmanZonePosts.length}</p>
               </div>
-              <div className="rounded-[20px] border border-white/80 bg-white/90 px-4 py-3">
+              <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
                 <p className="text-[11px] text-muted-foreground">입시 질문</p>
                 <p className="mt-1 text-[18px] font-semibold text-foreground">{admissionPosts.length}</p>
               </div>
-              <div className="rounded-[20px] border border-white/80 bg-white/90 px-4 py-3">
+              <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
                 <p className="text-[11px] text-muted-foreground">강의</p>
                 <p className="mt-1 text-[18px] font-semibold text-foreground">{lectures.length}</p>
               </div>
@@ -416,7 +417,7 @@ export function SchoolPage({
                 className={
                   highlightSection === tool.key
                     ? "border-primary/30 bg-primary/5 shadow-[0_20px_46px_-32px_rgba(99,102,241,0.38)]"
-                    : "border-white/85 bg-white/94 shadow-none"
+                    : "border-border bg-card shadow-none"
                 }
               >
                 <CardContent className="flex min-h-[118px] flex-col items-start justify-between gap-3 py-5">
@@ -424,7 +425,7 @@ export function SchoolPage({
                     <tool.icon className="h-5 w-5" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[17px] font-semibold leading-6 text-slate-950">{tool.label}</p>
+                    <p className="text-[17px] font-semibold leading-6 text-foreground">{tool.label}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -572,7 +573,7 @@ export function SchoolPage({
                   className={
                     highlightSection === (post.boardLabel === "동아리" ? "club" : "food")
                       ? "h-full border-primary/25 bg-primary/5"
-                      : "h-full border-white/85 bg-white/94"
+                      : "h-full border-border bg-card"
                   }
                 >
                   <CardContent className="space-y-4 py-5">
@@ -587,7 +588,7 @@ export function SchoolPage({
                       )}
                     </div>
                     <div className="space-y-2">
-                      <p className="text-[18px] font-semibold leading-7 text-slate-950 line-clamp-2">
+                      <p className="text-[18px] font-semibold leading-7 text-foreground line-clamp-2">
                         {post.title}
                       </p>
                       <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
