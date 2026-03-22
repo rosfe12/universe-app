@@ -49,8 +49,8 @@ type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
 const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
 
-const hasSchoolEmailDomain = (email: string, domain?: string) =>
-  Boolean(email && domain && email.endsWith(`@${domain.toLowerCase()}`));
+const isAcademicSchoolEmail = (email: string) =>
+  /@([^.@]+\.)*ac\.kr$/i.test(email);
 
 export function OnboardingPage() {
   const router = useRouter();
@@ -103,7 +103,16 @@ export function OnboardingPage() {
   const canRequestCollegeVerification =
     selectedUserType === "student" &&
     Boolean(selectedSchool?.id) &&
-    hasSchoolEmailDomain(normalizedSchoolEmailValue, selectedSchool?.domain);
+    Boolean(normalizedSchoolEmailValue);
+  const verificationInputHint = !selectedSchool?.id
+    ? "학교를 먼저 선택해주세요."
+    : !normalizedSchoolEmailValue
+      ? "학교 메일을 입력한 뒤 인증 요청을 눌러주세요."
+      : !isAcademicSchoolEmail(normalizedSchoolEmailValue)
+        ? "학교 메일은 ac.kr 주소만 사용할 수 있습니다."
+        : isMatchingPendingState
+          ? "이미 요청한 메일이 있다면 다시 요청해 새 메일을 받을 수 있습니다."
+          : "인증 메일은 버튼을 눌렀을 때만 발송됩니다.";
   const verificationPreview = getStudentVerificationBadge({
     userType: selectedUserType,
     studentVerificationStatus:
@@ -217,13 +226,10 @@ export function OnboardingPage() {
       currentUser.schoolId === values.schoolId &&
       normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmail;
 
-    if (
-      values.userType === "student" &&
-      !hasSchoolEmailDomain(normalizedSchoolEmail, selectedSchool?.domain)
-    ) {
+    if (values.userType === "student" && !isAcademicSchoolEmail(normalizedSchoolEmail)) {
       setPending(false);
       form.setError("schoolEmail", {
-        message: `${selectedSchool?.domain ?? "학교"} 메일만 학생 인증에 사용할 수 있습니다.`,
+        message: "학교 메일은 ac.kr 주소만 학생 인증에 사용할 수 있습니다.",
       });
       return;
     }
@@ -506,7 +512,7 @@ export function OnboardingPage() {
               <div className="space-y-2">
                 <Label>학교 메일</Label>
                 <Input
-                  placeholder={selectedSchool ? `예: your-id@${selectedSchool.domain}` : "학교 메일"}
+                  placeholder="예: your-id@university.ac.kr"
                   disabled={pending}
                   {...form.register("schoolEmail")}
                 />
@@ -521,7 +527,7 @@ export function OnboardingPage() {
                 <div className="rounded-[22px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm">
                   <p className="font-medium text-foreground">{verificationPreview.label}</p>
                   <p className="mt-1 text-muted-foreground">
-                    학교 메일을 입력한 뒤 아래 버튼을 눌러 인증 요청을 보내면 대학생 권한이 열립니다.
+                    학교 메일을 입력하고 인증 요청을 누르면 대학생 권한이 열립니다.
                   </p>
                 </div>
                 <Button
@@ -533,11 +539,7 @@ export function OnboardingPage() {
                     ? "학교 메일 인증 다시 요청"
                     : "학교 메일 인증 요청"}
                 </Button>
-                {!canRequestCollegeVerification ? (
-                  <p className="text-xs text-muted-foreground">
-                    학교 선택과 학교 메일 형식이 맞아야 인증 요청을 보낼 수 있습니다.
-                  </p>
-                ) : null}
+                <p className="text-xs text-muted-foreground">{verificationInputHint}</p>
                 <p className="text-xs text-muted-foreground">
                   인증 메일을 누르면 바로 대학생 권한으로 전환됩니다.
                 </p>

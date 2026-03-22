@@ -24,6 +24,10 @@ function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
+function isAcademicSchoolEmail(value: string) {
+  return /@([^.@]+\.)*ac\.kr$/i.test(value);
+}
+
 function sanitizeNextPath(value?: string | null) {
   if (!value || !value.startsWith("/")) {
     return "/home";
@@ -179,9 +183,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!normalizedSchoolEmail.endsWith(`@${school.domain.toLowerCase()}`)) {
+  if (!isAcademicSchoolEmail(normalizedSchoolEmail)) {
     return NextResponse.json(
-      { error: `${school.domain} 메일만 인증에 사용할 수 있습니다.` },
+      { error: "학교 메일은 ac.kr 주소만 인증에 사용할 수 있습니다." },
       { status: 400 },
     );
   }
