@@ -9,7 +9,9 @@ import { z } from "zod";
 import {
   BriefcaseBusiness,
   CircleHelp,
+  Eye,
   Flame,
+  Heart,
   MessageCircle,
   Newspaper,
   Sparkles,
@@ -196,9 +198,18 @@ function SharedFeedCard({
       </div>
       <div className="space-y-3 px-4 pb-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-          <span>조회수 {getPostViewCount(post)}</span>
-          <span>좋아요 {post.likes}</span>
-          <span>댓글 {post.commentCount}</span>
+          <span className="inline-flex items-center gap-1">
+            <Eye className="h-4 w-4" />
+            {getPostViewCount(post)}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Heart className="h-4 w-4" />
+            {post.likes}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <MessageCircle className="h-4 w-4" />
+            {post.commentCount}
+          </span>
           <span>{formatRelativeLabel(post.createdAt)}</span>
         </div>
         {latestComment ? (

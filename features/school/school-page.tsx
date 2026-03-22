@@ -8,7 +8,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   BookOpen,
+  Eye,
   GraduationCap,
+  Heart,
+  MessageCircle,
   Repeat2,
   School,
   Sparkles,
@@ -549,9 +552,18 @@ export function SchoolPage({
                       </p>
                     </div>
                     <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                      <span>조회수 {getPostViewCount(post)}</span>
-                      <span>좋아요 {post.likes}</span>
-                      <span>댓글 {getCommentsByPostId(post.id).length}</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Eye className="h-3.5 w-3.5" />
+                        {getPostViewCount(post)}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Heart className="h-3.5 w-3.5" />
+                        {post.likes}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        {getCommentsByPostId(post.id).length}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { BriefcaseBusiness, Building2, FileText } from "lucide-react";
+import { BriefcaseBusiness, Building2, FileText, MessageCircle } from "lucide-react";
 
 import { createPost } from "@/app/actions/content-actions";
 import { AppShell } from "@/components/layout/app-shell";
@@ -312,7 +312,10 @@ export function CareerPage({
                       <p className="text-sm font-medium text-gray-700">
                         {getLatestCommentPreview(post.id)?.content ?? "첫 댓글이 아직 없습니다."}
                       </p>
-                      <p className="mt-1 text-xs text-gray-400">댓글 {post.commentCount}개</p>
+                      <p className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        {post.commentCount}
+                      </p>
                     </div>
                     <Button type="button" size="sm" variant="outline" onClick={() => setDetailPostId(post.id)}>
                       상세 보기

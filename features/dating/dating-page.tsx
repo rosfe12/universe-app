@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShieldCheck, Users } from "lucide-react";
+import { Eye, Heart, MessageCircle, ShieldCheck, Users } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
@@ -437,9 +437,18 @@ export function DatingPage({
               </div>
               <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-4">
-                  <span>조회수 {getPostViewCount(post)}</span>
-                  <span>좋아요 {post.likes}</span>
-                  <span>댓글 {post.commentCount}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Eye className="h-4 w-4" />
+                    {getPostViewCount(post)}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Heart className="h-4 w-4" />
+                    {post.likes}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <MessageCircle className="h-4 w-4" />
+                    {post.commentCount}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="ghost" onClick={() => setDetailPost(post)}>

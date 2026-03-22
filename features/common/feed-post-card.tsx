@@ -96,15 +96,15 @@ export function FeedPostCard({
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1">
               <Eye className="h-4 w-4" />
-              조회수 {getPostViewCount(post)}
+              {getPostViewCount(post)}
             </span>
             <span className="inline-flex items-center gap-1">
               <Heart className="h-4 w-4" />
-              좋아요 {post.likes}
+              {post.likes}
             </span>
             <span className="inline-flex items-center gap-1">
               <MessageCircle className="h-4 w-4" />
-              댓글 {post.commentCount}
+              {post.commentCount}
             </span>
           </div>
           {showActions ? (
