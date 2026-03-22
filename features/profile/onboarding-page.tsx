@@ -9,7 +9,6 @@ import { CheckCircle2, GraduationCap, School2, Sparkles } from "lucide-react";
 
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { ErrorState } from "@/components/shared/error-state";
-import { LoadingState } from "@/components/shared/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -359,7 +358,6 @@ export function OnboardingPage() {
           ) : null}
 
           <form className="space-y-4" onSubmit={onSubmit}>
-            {pending || loading ? <LoadingState /> : null}
             {errorMessage ? (
               <ErrorState title="온보딩 저장 실패" description={errorMessage} />
             ) : null}
@@ -412,6 +410,7 @@ export function OnboardingPage() {
                 value={schoolQuery}
                 onChange={(event) => setSchoolQuery(event.target.value)}
                 placeholder="학교 검색"
+                disabled={pending}
               />
               <Controller
                 control={form.control}
@@ -430,6 +429,7 @@ export function OnboardingPage() {
                               ? "bg-primary/10 font-medium text-primary"
                               : "border-b border-gray-100 text-foreground last:border-b-0 hover:bg-gray-50"
                           }`}
+                          disabled={pending}
                           onClick={() => field.onChange(school.id)}
                         >
                           <span>{school.name}</span>
@@ -456,6 +456,7 @@ export function OnboardingPage() {
                 <Label>학교 메일</Label>
                 <Input
                   placeholder={selectedSchool ? `예: your-id@${selectedSchool.domain}` : "학교 메일"}
+                  disabled={pending}
                   {...form.register("schoolEmail")}
                 />
                 {form.formState.errors.schoolEmail ? (
@@ -494,11 +495,11 @@ export function OnboardingPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>학과</Label>
-                <Input placeholder="예: 경영학과" {...form.register("department")} />
+                <Input placeholder="예: 경영학과" disabled={pending} {...form.register("department")} />
               </div>
               <div className="space-y-2">
                 <Label>학년</Label>
-                <Input placeholder="예: 3" {...form.register("grade")} />
+                <Input placeholder="예: 3" disabled={pending} {...form.register("grade")} />
               </div>
             </div>
             <div className="space-y-2">
@@ -506,6 +507,7 @@ export function OnboardingPage() {
               <Textarea
                 rows={3}
                 placeholder="예: 강의평과 입시 질문을 자주 봅니다."
+                disabled={pending}
                 {...form.register("bio")}
               />
             </div>
