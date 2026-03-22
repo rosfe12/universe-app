@@ -51,6 +51,7 @@ import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   getStandardVisibilityLevel,
   getStudentVerificationBadge,
+  getSchoolShortName,
 } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot } from "@/types";
 
@@ -66,6 +67,7 @@ export function ProfilePage({
     loading,
     source,
     isAuthenticated,
+    schools,
     refresh,
     setSnapshot,
   } = useAppRuntime(initialSnapshot, "profile");
@@ -85,6 +87,12 @@ export function ProfilePage({
   const schoolVerified = searchParams.get("schoolVerified") === "1";
   const verificationPending = searchParams.get("verification") === "pending";
   const canAccessAdmin = isMasterAdminEmail(currentUser.email);
+  const adminPreviewSchool = schools.find((school) => school.id === currentUser.schoolId) ?? null;
+  const adminAffiliationLabel = canAccessAdmin
+    ? adminPreviewSchool
+      ? `관리자(${getSchoolShortName(adminPreviewSchool.name)})`
+      : "관리자"
+    : identity.label;
   const [settings, setSettings] = useState({
     comment: true,
     answer: true,
@@ -136,7 +144,7 @@ export function ProfilePage({
       <section className="space-y-4 border-b border-gray-100 pb-5">
         <ProfileCard
           title={getAnonymousHandle(currentUser.id)}
-          subtitle={identity.label}
+          subtitle={adminAffiliationLabel}
           score={currentUser.trustScore}
           description="익명성과 신뢰를 함께 유지하는 기본 프로필"
         />
@@ -146,8 +154,10 @@ export function ProfilePage({
             <UserLevelText score={currentUser.trustScore} className="ml-0 text-sm font-medium" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-gray-400">학교 인증</p>
-            <p className="text-sm font-medium text-gray-900">{verificationBadge.shortLabel}</p>
+            <p className="text-xs text-gray-400">{canAccessAdmin ? "운영 권한" : "학교 인증"}</p>
+            <p className="text-sm font-medium text-gray-900">
+              {canAccessAdmin ? adminAffiliationLabel : verificationBadge.shortLabel}
+            </p>
           </div>
           <div className="space-y-1 text-right">
             <p className="text-xs text-gray-400">읽지 않은 알림</p>
@@ -202,6 +212,22 @@ export function ProfilePage({
         )}
       </section>
 
+      {canAccessAdmin ? (
+        <section className="space-y-2 border-b border-gray-100 pb-5">
+          <p className="text-sm font-semibold text-gray-900">관리자 계정</p>
+          <p className="text-sm text-gray-500">
+            학교 인증 대신 학교 미리보기와 운영 권한을 사용합니다.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="outline" onClick={() => router.push("/school")}>
+              학교 선택하기
+            </Button>
+            <Button type="button" onClick={() => router.push("/admin")}>
+              관리자 페이지
+            </Button>
+          </div>
+        </section>
+      ) : (
       <section className="space-y-2 border-b border-gray-100 pb-5">
           {schoolVerified ? (
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -233,6 +259,7 @@ export function ProfilePage({
             </Button>
           ) : null}
       </section>
+      )}
 
       <section className="space-y-3">
         <SectionHeader title="내 활동 요약" description="반복 사용 지표를 바로 확인" />
@@ -298,7 +325,7 @@ export function ProfilePage({
               }}
             />
             <div className="rounded-[22px] bg-secondary/60 p-4 text-sm text-muted-foreground">
-              현재 기본 공개 메타: {identity.label}
+              현재 기본 공개 메타: {adminAffiliationLabel}
             </div>
           </CardContent>
         </Card>
@@ -354,9 +381,11 @@ export function ProfilePage({
           {[
             {
               icon: GraduationCap,
-              title: "학교 인증",
-              description: "학교 이메일과 재학정보를 확인합니다",
-              href: "/onboarding?next=%2Fprofile&mode=verification",
+              title: canAccessAdmin ? "학교 선택 / 미리보기" : "학교 인증",
+              description: canAccessAdmin
+                ? "관리자 기준으로 학교 콘텐츠를 전환합니다"
+                : "학교 이메일과 재학정보를 확인합니다",
+              href: canAccessAdmin ? "/school" : "/onboarding?next=%2Fprofile&mode=verification",
             },
             {
               icon: BadgeCheck,

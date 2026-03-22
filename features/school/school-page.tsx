@@ -11,6 +11,8 @@ import {
   Eye,
   GraduationCap,
   Heart,
+  ChevronDown,
+  Check,
   MessageCircle,
   Repeat2,
   School,
@@ -72,7 +74,11 @@ import {
   getTradePosts,
 } from "@/lib/mock-queries";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
-import { getAuthFlowHref, hasCompletedOnboarding } from "@/lib/supabase/app-data";
+import {
+  getAuthFlowHref,
+  hasCompletedOnboarding,
+  upsertUserProfile,
+} from "@/lib/supabase/app-data";
 import {
   getSchoolShortName,
   getStandardVisibilityLevel,
@@ -175,44 +181,55 @@ export function SchoolPage({
   const [admissionComposerOpen, setAdmissionComposerOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
+  const [isSwitchingSchool, startSchoolSwitchTransition] = useTransition();
+  const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
+  const [schoolPickerQuery, setSchoolPickerQuery] = useState("");
   const userSchoolId = currentUser.schoolId;
   const canPreviewAllSchools = isAuthenticated && isMasterAdminEmail(currentUser.email);
   const availableSchools = useMemo(
     () => [...snapshot.schools].sort((a, b) => a.name.localeCompare(b.name, "ko")),
     [snapshot.schools],
   );
-  const requestedSchoolId = searchParams.get("school");
   const currentSchool =
     availableSchools.find((school) => school.id === userSchoolId) ?? null;
-  const activeSchool =
-    canPreviewAllSchools && requestedSchoolId
-      ? availableSchools.find((school) => school.id === requestedSchoolId) ?? currentSchool
-      : currentSchool;
+  const activeSchool = currentSchool;
+  const isAdminDashboardMode = canPreviewAllSchools && !activeSchool;
   const schoolId = activeSchool?.id;
-  const schoolName = activeSchool?.name ?? "우리학교";
+  const schoolName = activeSchool?.name ?? (isAdminDashboardMode ? "관리자" : "우리학교");
   const schoolShortName = getSchoolShortName(schoolName);
   const isApplicantMode = currentUser.userType === "applicant";
+  const filteredAvailableSchools = useMemo(() => {
+    const normalizedQuery = schoolPickerQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return availableSchools;
+    }
+
+    return availableSchools.filter((school) =>
+      school.name.toLowerCase().includes(normalizedQuery),
+    );
+  }, [availableSchools, schoolPickerQuery]);
 
   const lectures = getLectureSummaries()
-    .filter((lecture) => !schoolId || lecture.schoolId === schoolId)
+    .filter((lecture) => schoolId && lecture.schoolId === schoolId)
     .slice(0, 4);
   const tradeItems = getTradePosts()
-    .filter((tradePost) => !schoolId || tradePost.schoolId === schoolId)
+    .filter((tradePost) => schoolId && tradePost.schoolId === schoolId)
     .slice(0, 3);
   const schoolBoardPosts = getCommunityPosts("school")
-    .filter((post) => !schoolId || post.schoolId === schoolId)
+    .filter((post) => schoolId && post.schoolId === schoolId)
     .slice(0, 6);
   const clubPosts = getCommunityPosts("club")
-    .filter((post) => !schoolId || post.schoolId === schoolId)
+    .filter((post) => schoolId && post.schoolId === schoolId)
     .slice(0, 5);
   const foodPosts = getCommunityPosts("food")
-    .filter((post) => !schoolId || post.schoolId === schoolId)
+    .filter((post) => schoolId && post.schoolId === schoolId)
     .slice(0, 5);
   const freshmanZonePosts = getCommunityPosts("freshman")
-    .filter((post) => !schoolId || post.schoolId === schoolId)
+    .filter((post) => schoolId && post.schoolId === schoolId)
     .slice(0, 4);
   const admissionPosts = getAdmissionQuestions()
-    .filter((post) => matchesSchoolAdmission(post, schoolId, schoolName))
+    .filter((post) => schoolId && matchesSchoolAdmission(post, schoolId, schoolName))
     .slice(0, 4);
   const recentSchoolBoardCount = schoolBoardPosts.filter((post) => isRecentActivity(post.createdAt)).length;
   const recentFreshmanCount = freshmanZonePosts.filter((post) => isRecentActivity(post.createdAt)).length;
@@ -343,18 +360,38 @@ export function SchoolPage({
         },
       ];
 
-  const handleSchoolPreviewChange = (nextSchoolId: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+  const handleSchoolPreviewChange = (nextSchoolId: string | null) => {
+    startSchoolSwitchTransition(() => {
+      const nextUser = {
+        ...currentUser,
+        schoolId: nextSchoolId ?? undefined,
+      };
 
-    if (nextSchoolId === userSchoolId) {
-      params.delete("school");
-    } else {
-      params.set("school", nextSchoolId);
-    }
+      setSnapshot((currentSnapshot) => ({
+        ...currentSnapshot,
+        currentUser: nextUser,
+        users: currentSnapshot.users.map((user) =>
+          user.id === currentSnapshot.currentUser.id
+            ? { ...user, schoolId: nextSchoolId ?? undefined }
+            : user,
+        ),
+      }));
 
-    params.delete("post");
-    setDetailPostId(null);
-    router.replace(`/school${params.size > 0 ? `?${params.toString()}` : ""}`);
+      setDetailPostId(null);
+      setSchoolPickerOpen(false);
+      setSchoolPickerQuery("");
+
+      void (async () => {
+        if (source === "supabase" && isAuthenticated) {
+          await upsertUserProfile(nextUser);
+          await refresh();
+        }
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("post");
+        params.delete("school");
+        router.replace(`/school${params.size > 0 ? `?${params.toString()}` : ""}`);
+      })();
+    });
   };
 
   useEffect(() => {
@@ -408,7 +445,7 @@ export function SchoolPage({
     );
   }
 
-  if (!loading && isAuthenticated && (!schoolId || !currentSchool)) {
+  if (!loading && isAuthenticated && (!schoolId || !currentSchool) && !canPreviewAllSchools) {
     return (
       <AppShell title={isApplicantMode ? "지망학교" : "우리학교"}>
         <Card className="border-dashed border-border bg-card">
@@ -450,40 +487,87 @@ export function SchoolPage({
               {schoolName}
             </h2>
             {canPreviewAllSchools ? (
-              <div className="max-w-[220px] space-y-2">
+              <div className="max-w-[280px] space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">학교 선택</p>
-                <Select value={schoolId ?? userSchoolId ?? ""} onValueChange={handleSchoolPreviewChange}>
-                  <SelectTrigger className="bg-background/80">
-                    <SelectValue placeholder="대학교 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSchools.map((school) => (
-                      <SelectItem key={school.id} value={school.id}>
-                        {school.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="rounded-[24px] border border-border bg-background/80">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    onClick={() => setSchoolPickerOpen((open) => !open)}
+                  >
+                    <span className="truncate text-sm font-medium text-foreground">
+                      {isAdminDashboardMode ? "관리자" : activeSchool?.name ?? "학교 선택"}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 text-muted-foreground transition-transform ${schoolPickerOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {schoolPickerOpen ? (
+                    <div className="space-y-3 border-t border-border px-3 py-3">
+                      <Input
+                        value={schoolPickerQuery}
+                        onChange={(event) => setSchoolPickerQuery(event.target.value)}
+                        placeholder="학교 검색"
+                        className="bg-background"
+                      />
+                      <div className="max-h-72 overflow-y-auto rounded-2xl border border-border">
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left text-sm hover:bg-muted/50"
+                          onClick={() => handleSchoolPreviewChange(null)}
+                        >
+                          <span className="font-medium text-foreground">관리자</span>
+                          {isAdminDashboardMode ? <Check className="h-4 w-4 text-primary" /> : null}
+                        </button>
+                        {filteredAvailableSchools.map((school) => (
+                          <button
+                            key={school.id}
+                            type="button"
+                            className="flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left text-sm last:border-b-0 hover:bg-muted/50"
+                            onClick={() => handleSchoolPreviewChange(school.id)}
+                          >
+                            <span className="font-medium text-foreground">{school.name}</span>
+                            {school.id === schoolId ? <Check className="h-4 w-4 text-primary" /> : null}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : null}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
-                <p className="text-[11px] text-muted-foreground">학교 글</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">{formatRecentCount(recentSchoolBoardCount)}</p>
-              </div>
-              <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
-                <p className="text-[11px] text-muted-foreground">{isApplicantMode ? "입시 질문" : "새내기 글"}</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">
-                  {formatRecentCount(isApplicantMode ? recentAdmissionCount : recentFreshmanCount)}
+            {isAdminDashboardMode ? (
+              <div className="rounded-[24px] border border-border bg-background/80 px-4 py-4">
+                <p className="text-sm font-medium text-foreground">관리자 모드</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  학교를 선택하면 해당 학교 콘텐츠를 바로 미리 볼 수 있고, 관리자 기능은 아래 버튼으로 실행할 수 있습니다.
                 </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button asChild size="sm">
+                    <Link href="/admin">관리자 페이지</Link>
+                  </Button>
+                </div>
               </div>
-              <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
-                <p className="text-[11px] text-muted-foreground">{isApplicantMode ? "새내기 글" : "강의"}</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">
-                  {formatRecentCount(isApplicantMode ? recentFreshmanCount : recentLectureCount)}
-                </p>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
+                  <p className="text-[11px] text-muted-foreground">학교 글</p>
+                  <p className="mt-1 text-[18px] font-semibold text-foreground">{formatRecentCount(recentSchoolBoardCount)}</p>
+                </div>
+                <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
+                  <p className="text-[11px] text-muted-foreground">{isApplicantMode ? "입시 질문" : "새내기 글"}</p>
+                  <p className="mt-1 text-[18px] font-semibold text-foreground">
+                    {formatRecentCount(isApplicantMode ? recentAdmissionCount : recentFreshmanCount)}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
+                  <p className="text-[11px] text-muted-foreground">{isApplicantMode ? "새내기 글" : "강의"}</p>
+                  <p className="mt-1 text-[18px] font-semibold text-foreground">
+                    {formatRecentCount(isApplicantMode ? recentFreshmanCount : recentLectureCount)}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {isApplicantMode ? (
@@ -520,6 +604,7 @@ export function SchoolPage({
         </CardContent>
       </Card>
 
+      {!isAdminDashboardMode ? (
       <section className="space-y-4">
         <SectionHeader title="퀵 메뉴" />
         <div className="grid grid-cols-2 gap-3">
@@ -545,7 +630,9 @@ export function SchoolPage({
           ))}
         </div>
       </section>
+      ) : null}
 
+      {!isAdminDashboardMode ? (
       <section className="space-y-4">
         <SectionHeader title="캠퍼스 라이브" />
 
@@ -672,7 +759,9 @@ export function SchoolPage({
           )}
         </div>
       </section>
+      ) : null}
 
+      {!isAdminDashboardMode ? (
       <section className="space-y-4">
         <SectionHeader title="강의 정보" href="/lectures" />
         {lectures.length === 0 ? (
@@ -690,8 +779,9 @@ export function SchoolPage({
           </div>
         )}
       </section>
+      ) : null}
 
-      {!isApplicantMode ? (
+      {!isApplicantMode && !isAdminDashboardMode ? (
         <section
           className={
             highlightSection === "trade"
@@ -717,6 +807,7 @@ export function SchoolPage({
         </section>
       ) : null}
 
+      {!isAdminDashboardMode ? (
       <section className="space-y-4">
         <SectionHeader title="탐색" />
         {campusInfoCards.length === 0 ? (
@@ -779,6 +870,7 @@ export function SchoolPage({
           </div>
         )}
       </section>
+      ) : null}
 
       <Dialog
         open={Boolean(detailPost)}
