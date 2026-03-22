@@ -292,27 +292,27 @@ function buildPostQuery(supabase: ReturnType<typeof createClient>, context: Runt
 
   switch (context.scope) {
     case "home":
-      return base.eq("category", "community").in("subcategory", [...HOME_POST_SUBCATEGORIES]).limit(180);
+      return base.eq("category", "community").in("subcategory", [...HOME_POST_SUBCATEGORIES]).limit(80);
     case "community":
-      return base.eq("category", "community").in("subcategory", COMMUNITY_POST_SUBCATEGORIES).limit(220);
+      return base.eq("category", "community").in("subcategory", COMMUNITY_POST_SUBCATEGORIES).limit(140);
     case "admission":
       return context.schoolId
-        ? base.eq("category", "admission").eq("school_id", context.schoolId).limit(140)
-        : base.eq("category", "admission").limit(140);
+        ? base.eq("category", "admission").eq("school_id", context.schoolId).limit(100)
+        : base.eq("category", "admission").limit(100);
     case "school":
       return context.schoolId
-        ? base.eq("school_id", context.schoolId).in("category", ["community", "admission"]).limit(180)
+        ? base.eq("school_id", context.schoolId).in("category", ["community", "admission"]).limit(120)
         : EMPTY_RESULT;
     case "dating":
-      return base.eq("category", "community").in("subcategory", [...DATING_POST_SUBCATEGORIES]).limit(160);
+      return base.eq("category", "community").in("subcategory", [...DATING_POST_SUBCATEGORIES]).limit(80);
     case "profile":
-      return context.userId ? base.eq("author_id", context.userId).limit(140) : EMPTY_RESULT;
+      return context.userId ? base.eq("author_id", context.userId).limit(80) : EMPTY_RESULT;
     case "notifications":
-      return base.in("category", ["community", "admission"]).limit(160);
+      return base.in("category", ["community", "admission"]).limit(80);
     case "admin":
     case "full":
     default:
-      return base.limit(260);
+      return base.limit(220);
   }
 }
 
@@ -324,14 +324,14 @@ function buildCommentQuery(
   const base = supabase.from("comments").select("*").order("created_at", { ascending: false });
 
   if (context.scope === "profile") {
-    return context.userId ? base.eq("author_id", context.userId).limit(180) : EMPTY_RESULT;
+    return context.userId ? base.eq("author_id", context.userId).limit(120) : EMPTY_RESULT;
   }
 
   if (postIds.length === 0) {
     return EMPTY_RESULT;
   }
 
-  return base.in("post_id", postIds).limit(420);
+  return base.in("post_id", postIds).limit(240);
 }
 
 function buildLectureQuery(
@@ -345,13 +345,13 @@ function buildLectureQuery(
     case "school":
     case "lectures":
     case "trade":
-      return context.schoolId ? base.eq("school_id", context.schoolId).limit(120) : base.limit(120);
-    case "notifications":
       return context.schoolId ? base.eq("school_id", context.schoolId).limit(80) : base.limit(80);
+    case "notifications":
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(40) : base.limit(40);
     case "admin":
     case "full":
     default:
-      return base.limit(220);
+      return base.limit(140);
   }
 }
 
@@ -363,14 +363,14 @@ function buildLectureReviewQuery(
   const base = supabase.from("lecture_reviews").select("*").order("created_at", { ascending: false });
 
   if (context.scope === "profile") {
-    return context.userId ? base.eq("author_id", context.userId).limit(120) : EMPTY_RESULT;
+    return context.userId ? base.eq("author_id", context.userId).limit(80) : EMPTY_RESULT;
   }
 
   if (lectureIds.length === 0) {
     return EMPTY_RESULT;
   }
 
-  return base.in("lecture_id", lectureIds).limit(320);
+  return base.in("lecture_id", lectureIds).limit(160);
 }
 
 function buildTradePostsQuery(
@@ -385,28 +385,43 @@ function buildTradePostsQuery(
     case "lectures":
     case "trade":
     case "notifications":
-      return context.schoolId ? base.eq("school_id", context.schoolId).limit(120) : base.limit(120);
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(80) : base.limit(80);
     case "profile":
-      return context.userId ? base.eq("author_id", context.userId).limit(80) : EMPTY_RESULT;
+      return context.userId ? base.eq("author_id", context.userId).limit(40) : EMPTY_RESULT;
     case "messages":
-      return base.limit(120);
+      return context.userId ? base.eq("author_id", context.userId).limit(40) : EMPTY_RESULT;
     case "admin":
     case "full":
     default:
-      return base.limit(220);
+      return base.limit(120);
   }
 }
 
-function buildNotificationsQuery(supabase: ReturnType<typeof createClient>) {
-  return supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(120);
+function buildNotificationsQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
+  return context.userId
+    ? supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", context.userId)
+        .order("created_at", { ascending: false })
+        .limit(80)
+    : EMPTY_RESULT;
 }
 
-function buildReportsQuery(supabase: ReturnType<typeof createClient>) {
-  return supabase.from("reports").select("*").order("created_at", { ascending: false }).limit(120);
+function buildReportsQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
+  const base = supabase.from("reports").select("*").order("created_at", { ascending: false });
+  if (context.scope === "admin" || context.scope === "full") {
+    return base.limit(120);
+  }
+  return context.userId ? base.eq("reporter_id", context.userId).limit(80) : EMPTY_RESULT;
 }
 
-function buildBlocksQuery(supabase: ReturnType<typeof createClient>) {
-  return supabase.from("blocks").select("*").order("created_at", { ascending: false }).limit(120);
+function buildBlocksQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
+  const base = supabase.from("blocks").select("*").order("created_at", { ascending: false });
+  if (context.scope === "admin" || context.scope === "full") {
+    return base.limit(120);
+  }
+  return context.userId ? base.eq("blocker_id", context.userId).limit(80) : EMPTY_RESULT;
 }
 
 function buildDatingProfilesQuery(
@@ -419,11 +434,15 @@ function buildDatingProfilesQuery(
     return context.userId ? base.eq("user_id", context.userId).limit(8) : EMPTY_RESULT;
   }
 
-  return base.limit(120);
+  return base.limit(80);
 }
 
-function buildMediaAssetsQuery(supabase: ReturnType<typeof createClient>) {
-  return supabase.from("media_assets").select("*").order("created_at", { ascending: false }).limit(80);
+function buildMediaAssetsQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
+  const base = supabase.from("media_assets").select("*").order("created_at", { ascending: false });
+  if (context.scope === "admin" || context.scope === "full") {
+    return base.limit(80);
+  }
+  return context.userId ? base.eq("owner_id", context.userId).limit(40) : EMPTY_RESULT;
 }
 
 function createSupabaseFallbackSnapshot(issue?: string): AppRuntimeSnapshot {
@@ -801,9 +820,11 @@ export function getAuthFlowHref({
   return nextPath;
 }
 
-let clientRuntimeSnapshotPromise: Promise<AppRuntimeSnapshot> | null = null;
-let lastClientRuntimeSnapshot: AppRuntimeSnapshot | null = null;
-let lastClientRuntimeSnapshotAt = 0;
+const clientRuntimeSnapshotPromises = new Map<RuntimeSnapshotScope, Promise<AppRuntimeSnapshot>>();
+const lastClientRuntimeSnapshots = new Map<
+  RuntimeSnapshotScope,
+  { snapshot: AppRuntimeSnapshot; at: number }
+>();
 const CLIENT_RUNTIME_SNAPSHOT_TTL_MS = 1500;
 
 async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"): Promise<AppRuntimeSnapshot> {
@@ -902,19 +923,19 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
         ? buildTradePostsQuery(supabase, queryContext)
         : EMPTY_RESULT,
       authUser && include.notifications
-        ? buildNotificationsQuery(supabase)
+        ? buildNotificationsQuery(supabase, queryContext)
         : EMPTY_RESULT,
       authUser && include.reports
-        ? buildReportsQuery(supabase)
+        ? buildReportsQuery(supabase, queryContext)
         : EMPTY_RESULT,
       authUser && include.blocks
-        ? buildBlocksQuery(supabase)
+        ? buildBlocksQuery(supabase, queryContext)
         : EMPTY_RESULT,
       authUser && include.datingProfiles
         ? buildDatingProfilesQuery(supabase, queryContext)
         : EMPTY_RESULT,
       authUser && include.mediaAssets
-        ? buildMediaAssetsQuery(supabase)
+        ? buildMediaAssetsQuery(supabase, queryContext)
         : EMPTY_RESULT,
     ]);
 
@@ -1015,30 +1036,35 @@ export async function loadClientRuntimeSnapshot(options?: {
   const force = options?.force ?? false;
   const scope = options?.scope ?? "full";
   const now = Date.now();
+  const cachedSnapshot = lastClientRuntimeSnapshots.get(scope);
+  const inFlightSnapshot = clientRuntimeSnapshotPromises.get(scope);
 
   if (
     !force &&
-    lastClientRuntimeSnapshot &&
-    now - lastClientRuntimeSnapshotAt < CLIENT_RUNTIME_SNAPSHOT_TTL_MS
+    cachedSnapshot &&
+    now - cachedSnapshot.at < CLIENT_RUNTIME_SNAPSHOT_TTL_MS
   ) {
-    return lastClientRuntimeSnapshot;
+    return cachedSnapshot.snapshot;
   }
 
-  if (!force && clientRuntimeSnapshotPromise) {
-    return clientRuntimeSnapshotPromise;
+  if (!force && inFlightSnapshot) {
+    return inFlightSnapshot;
   }
 
-  clientRuntimeSnapshotPromise = fetchClientRuntimeSnapshot(scope)
+  const nextSnapshotPromise = fetchClientRuntimeSnapshot(scope)
     .then((snapshot) => {
-      lastClientRuntimeSnapshot = snapshot;
-      lastClientRuntimeSnapshotAt = Date.now();
+      lastClientRuntimeSnapshots.set(scope, {
+        snapshot,
+        at: Date.now(),
+      });
       return snapshot;
     })
     .finally(() => {
-      clientRuntimeSnapshotPromise = null;
+      clientRuntimeSnapshotPromises.delete(scope);
     });
+  clientRuntimeSnapshotPromises.set(scope, nextSnapshotPromise);
 
-  return clientRuntimeSnapshotPromise;
+  return nextSnapshotPromise;
 }
 
 export async function signInWithSupabase(email: string, password: string) {
