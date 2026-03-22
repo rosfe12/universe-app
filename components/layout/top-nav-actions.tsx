@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, School2 } from "lucide-react";
+import { MessagesSquare, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
@@ -53,9 +53,6 @@ export function TopNavActions() {
   const snapshot = getRuntimeSnapshot();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-
-  const schoolHref =
-    snapshot.isAuthenticated && snapshot.currentUser.schoolId ? "/school" : "/profile";
 
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -120,9 +117,9 @@ export function TopNavActions() {
         >
           <Search className="h-5 w-5" />
         </Button>
-        <Button asChild size="icon" variant="ghost" aria-label="우리학교">
-          <Link href={schoolHref}>
-            <School2 className="h-5 w-5" />
+        <Button asChild size="icon" variant="ghost" aria-label="쪽지">
+          <Link href="/messages">
+            <MessagesSquare className="h-5 w-5" />
           </Link>
         </Button>
       </div>
