@@ -7,6 +7,7 @@ import { z } from "zod";
 import { hasAppSmtpConfig, publicEnv, resolveAuthSiteUrl } from "@/lib/env";
 import { sendStudentVerificationEmail } from "@/lib/email/server-mailer";
 import { logServerEvent } from "@/lib/ops";
+import { canUseSchoolVerificationEmail, normalizeSchoolEmail } from "@/lib/school-email";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -19,14 +20,6 @@ const requestSchema = z.object({
   schoolEmail: z.string().email(),
   nextPath: z.string().optional(),
 });
-
-function normalizeEmail(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function isAcademicSchoolEmail(value: string) {
-  return /@([^.@]+\.)*ac\.kr$/i.test(value);
-}
 
 function sanitizeNextPath(value?: string | null) {
   if (!value || !value.startsWith("/")) {
@@ -136,7 +129,7 @@ export async function POST(request: Request) {
 
   const input = parsed.data;
   const nextPath = sanitizeNextPath(input.nextPath);
-  const normalizedSchoolEmail = normalizeEmail(input.schoolEmail);
+  const normalizedSchoolEmail = normalizeSchoolEmail(input.schoolEmail);
   const admin = createAdminSupabaseClient();
 
   const [{ data: profile, error: profileError }, { data: school, error: schoolError }] =
@@ -183,9 +176,9 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isAcademicSchoolEmail(normalizedSchoolEmail)) {
+  if (!canUseSchoolVerificationEmail(normalizedSchoolEmail)) {
     return NextResponse.json(
-      { error: "학교 메일은 ac.kr 주소만 인증에 사용할 수 있습니다." },
+      { error: "학교 메일은 ac.kr 주소만 인증에 사용할 수 있습니다. 테스트 계정은 개인 메일도 허용됩니다." },
       { status: 400 },
     );
   }
@@ -274,7 +267,7 @@ export async function POST(request: Request) {
   if (
     profile.student_verification_status === "verified" &&
     profile.school_id === input.schoolId &&
-    normalizeEmail(profile.school_email ?? "") === normalizedSchoolEmail
+    normalizeSchoolEmail(profile.school_email ?? "") === normalizedSchoolEmail
   ) {
     return NextResponse.json({ ok: true, alreadyVerified: true });
   }

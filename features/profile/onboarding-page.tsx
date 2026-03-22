@@ -15,6 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import {
+  canUseSchoolVerificationEmail,
+  isTestVerificationEmail,
+  normalizeSchoolEmail,
+} from "@/lib/school-email";
 import { createClient } from "@/lib/supabase/client";
 import {
   hasCompletedOnboarding,
@@ -47,11 +52,6 @@ const onboardingSchema = z.object({
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
-const normalizeEmail = (value?: string) => value?.trim().toLowerCase() ?? "";
-
-const isAcademicSchoolEmail = (email: string) =>
-  /@([^.@]+\.)*ac\.kr$/i.test(email);
-
 export function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -83,8 +83,8 @@ export function OnboardingPage() {
   const selectedSchool = schools.find((school) => school.id === form.watch("schoolId"));
   const selectedUserType = form.watch("userType");
   const schoolEmailValue = form.watch("schoolEmail");
-  const normalizedSchoolEmailValue = normalizeEmail(schoolEmailValue);
-  const currentSchoolEmail = normalizeEmail(currentUser.schoolEmail);
+  const normalizedSchoolEmailValue = normalizeSchoolEmail(schoolEmailValue);
+  const currentSchoolEmail = normalizeSchoolEmail(currentUser.schoolEmail);
   const isMatchingVerifiedState =
     selectedUserType === "student" &&
     currentUser.studentVerificationStatus === "verified" &&
@@ -108,8 +108,10 @@ export function OnboardingPage() {
     ? "학교를 먼저 선택해주세요."
     : !normalizedSchoolEmailValue
       ? "학교 메일을 입력한 뒤 인증 요청을 눌러주세요."
-      : !isAcademicSchoolEmail(normalizedSchoolEmailValue)
-        ? "학교 메일은 ac.kr 주소만 사용할 수 있습니다."
+      : isTestVerificationEmail(normalizedSchoolEmailValue)
+        ? "테스트 계정은 개인 메일로도 인증 요청할 수 있습니다."
+        : !canUseSchoolVerificationEmail(normalizedSchoolEmailValue)
+          ? "학교 메일은 ac.kr 주소만 사용할 수 있습니다."
         : isMatchingPendingState
           ? "이미 요청한 메일이 있다면 다시 요청해 새 메일을 받을 수 있습니다."
           : "인증 메일은 버튼을 눌렀을 때만 발송됩니다.";
@@ -219,17 +221,17 @@ export function OnboardingPage() {
 
     setPending(true);
     const selectedSchool = schools.find((school) => school.id === values.schoolId) ?? null;
-    const normalizedSchoolEmail = normalizeEmail(values.schoolEmail);
+    const normalizedSchoolEmail = normalizeSchoolEmail(values.schoolEmail);
     const keepsVerifiedStudentState =
       values.userType === "student" &&
       currentUser.studentVerificationStatus === "verified" &&
       currentUser.schoolId === values.schoolId &&
-      normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmail;
+      normalizeSchoolEmail(currentUser.schoolEmail) === normalizedSchoolEmail;
 
-    if (values.userType === "student" && !isAcademicSchoolEmail(normalizedSchoolEmail)) {
+    if (values.userType === "student" && !canUseSchoolVerificationEmail(normalizedSchoolEmail)) {
       setPending(false);
       form.setError("schoolEmail", {
-        message: "학교 메일은 ac.kr 주소만 학생 인증에 사용할 수 있습니다.",
+        message: "학교 메일은 ac.kr 주소만 사용할 수 있습니다. 테스트 계정은 개인 메일도 허용됩니다.",
       });
       return;
     }
