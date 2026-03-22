@@ -22,9 +22,10 @@ import {
   getCareerPosts,
   getCurrentSchool,
   getLectureById,
-  getLectureSummaries,
   getPostHref,
-  getTradePosts,
+  getSchoolScopedCommunityPosts,
+  getSchoolScopedLectureSummaries,
+  getSchoolScopedTradePosts,
 } from "@/lib/mock-queries";
 import type { AppRuntimeSnapshot } from "@/types";
 
@@ -45,19 +46,16 @@ export function HomePage({
       ? "🎯 지망학교를 선택하세요"
       : "🏫 학교를 선택하세요";
   const schoolFeedPosts = [
-    ...getCommunityPosts("school"),
-    ...getCommunityPosts("freshman"),
-    ...getCommunityPosts("club"),
-    ...getCommunityPosts("food"),
+    ...getSchoolScopedCommunityPosts(currentSchool?.id, "school"),
+    ...getSchoolScopedCommunityPosts(currentSchool?.id, "freshman"),
+    ...getSchoolScopedCommunityPosts(currentSchool?.id, "club"),
+    ...getSchoolScopedCommunityPosts(currentSchool?.id, "food"),
   ]
-    .filter((post) => hasSelectedSchool && post.schoolId === currentSchool?.id)
     .sort((a, b) => b.likes + b.commentCount * 2 - (a.likes + a.commentCount * 2))
     .slice(0, 5);
-  const schoolLectureHighlights = getLectureSummaries()
-    .filter((lecture) => hasSelectedSchool && lecture.schoolId === currentSchool?.id)
+  const schoolLectureHighlights = getSchoolScopedLectureSummaries(currentSchool?.id)
     .slice(0, 3);
-  const tradeHighlights = getTradePosts()
-    .filter((tradePost) => hasSelectedSchool && tradePost.schoolId === currentSchool?.id)
+  const tradeHighlights = getSchoolScopedTradePosts(currentSchool?.id)
     .slice(0, 3);
   const communityHighlights = [
     ...getCommunityPosts("free").slice(0, 2),

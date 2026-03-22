@@ -66,12 +66,12 @@ import { addPostToSnapshot } from "@/lib/runtime-mutations";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   getAdmissionQuestion,
-  getAdmissionQuestions,
   getCommentsByPostId,
-  getCommunityPosts,
   getLectureReviews,
-  getLectureSummaries,
-  getTradePosts,
+  getSchoolScopedAdmissionQuestions,
+  getSchoolScopedCommunityPosts,
+  getSchoolScopedLectureSummaries,
+  getSchoolScopedTradePosts,
 } from "@/lib/mock-queries";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import {
@@ -143,15 +143,6 @@ function isSchoolSection(value: string | null): value is SchoolSection {
   return Boolean(value && SECTION_VALUES.includes(value as SchoolSection));
 }
 
-function matchesSchoolAdmission(post: Post, schoolId?: string, schoolName?: string) {
-  const shortName = getSchoolShortName(schoolName);
-  return (
-    post.schoolId === schoolId ||
-    post.meta?.interestUniversity?.includes(schoolName ?? "") ||
-    post.meta?.interestUniversity?.includes(shortName)
-  );
-}
-
 export function SchoolPage({
   initialSnapshot,
 }: {
@@ -210,26 +201,19 @@ export function SchoolPage({
     );
   }, [availableSchools, schoolPickerQuery]);
 
-  const lectures = getLectureSummaries()
-    .filter((lecture) => schoolId && lecture.schoolId === schoolId)
+  const lectures = getSchoolScopedLectureSummaries(schoolId)
     .slice(0, 4);
-  const tradeItems = getTradePosts()
-    .filter((tradePost) => schoolId && tradePost.schoolId === schoolId)
+  const tradeItems = getSchoolScopedTradePosts(schoolId)
     .slice(0, 3);
-  const schoolBoardPosts = getCommunityPosts("school")
-    .filter((post) => schoolId && post.schoolId === schoolId)
+  const schoolBoardPosts = getSchoolScopedCommunityPosts(schoolId, "school")
     .slice(0, 6);
-  const clubPosts = getCommunityPosts("club")
-    .filter((post) => schoolId && post.schoolId === schoolId)
+  const clubPosts = getSchoolScopedCommunityPosts(schoolId, "club")
     .slice(0, 5);
-  const foodPosts = getCommunityPosts("food")
-    .filter((post) => schoolId && post.schoolId === schoolId)
+  const foodPosts = getSchoolScopedCommunityPosts(schoolId, "food")
     .slice(0, 5);
-  const freshmanZonePosts = getCommunityPosts("freshman")
-    .filter((post) => schoolId && post.schoolId === schoolId)
+  const freshmanZonePosts = getSchoolScopedCommunityPosts(schoolId, "freshman")
     .slice(0, 4);
-  const admissionPosts = getAdmissionQuestions()
-    .filter((post) => schoolId && matchesSchoolAdmission(post, schoolId, schoolName))
+  const admissionPosts = getSchoolScopedAdmissionQuestions(schoolId)
     .slice(0, 4);
   const recentSchoolBoardCount = schoolBoardPosts.filter((post) => isRecentActivity(post.createdAt)).length;
   const recentFreshmanCount = freshmanZonePosts.filter((post) => isRecentActivity(post.createdAt)).length;

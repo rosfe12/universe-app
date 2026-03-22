@@ -17,7 +17,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { getCurrentSchool, getLectureSummaries, getTradePosts } from "@/lib/mock-queries";
+import {
+  getCurrentSchool,
+  getSchoolScopedLectureSummaries,
+  getSchoolScopedTradePosts,
+} from "@/lib/mock-queries";
 import { canAccessSchoolFeatures } from "@/lib/permissions";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import type { AppRuntimeSnapshot } from "@/types";
@@ -63,8 +67,7 @@ export function LecturesPage({
   const lectures = (() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-    return getLectureSummaries().filter((lecture) => {
-      const matchesSchool = !schoolId || lecture.schoolId === schoolId;
+    return getSchoolScopedLectureSummaries(schoolId).filter((lecture) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         lecture.courseName.toLowerCase().includes(normalizedQuery) ||
@@ -76,7 +79,6 @@ export function LecturesPage({
       const matchesGrading = !filters.generousGrading || lecture.isGenerousGrading;
 
       return (
-        matchesSchool &&
         matchesQuery &&
         matchesWorkload &&
         matchesAttendance &&
@@ -86,7 +88,7 @@ export function LecturesPage({
     });
   })();
 
-  const tradeItems = getTradePosts().filter((tradePost) => !schoolId || tradePost.schoolId === schoolId);
+  const tradeItems = getSchoolScopedTradePosts(schoolId);
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const lectureOverview = useMemo(() => {
     const reviewCount = lectures.reduce((sum, lecture) => sum + lecture.reviewCount, 0);

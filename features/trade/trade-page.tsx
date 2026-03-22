@@ -60,9 +60,10 @@ import {
   getHiddenTradePostCount,
   getLectureById,
   getLectures,
+  getSchoolScopedLectureSummaries,
+  getSchoolScopedTradePosts,
   getTradeMatchCandidates,
   getTradeMatchInsight,
-  getTradePosts,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
 import { canAccessTrade } from "@/lib/permissions";
@@ -123,7 +124,7 @@ export function TradePage({
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [tradeItems, setTradeItems] = useState(
-    getTradePosts().filter((tradePost) => !schoolId || tradePost.schoolId === schoolId),
+    getSchoolScopedTradePosts(schoolId),
   );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tradeMessages, setTradeMessages] = useState<TradeMessage[]>([]);
@@ -135,7 +136,8 @@ export function TradePage({
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessTrade(currentUser);
   const currentSchool = getCurrentSchool();
-  const schoolLectures = getLectures().filter((lecture) => !schoolId || lecture.schoolId === schoolId);
+  const schoolLectureIds = new Set(getSchoolScopedLectureSummaries(schoolId).map((lecture) => lecture.id));
+  const schoolLectures = getLectures().filter((lecture) => schoolLectureIds.has(lecture.id));
   const lectureOptions = schoolLectures
     .map((lecture) => [lecture.id, lecture.courseName] as const);
   const defaultHaveLectureId = schoolLectures[0]?.id ?? getLectures()[0]?.id ?? "lecture-1";
@@ -160,7 +162,7 @@ export function TradePage({
   });
 
   useEffect(() => {
-    setTradeItems(getTradePosts().filter((tradePost) => !schoolId || tradePost.schoolId === schoolId));
+    setTradeItems(getSchoolScopedTradePosts(schoolId));
   }, [blocks, reports, schoolId, tradePosts]);
 
   useEffect(() => {

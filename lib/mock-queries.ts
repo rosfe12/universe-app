@@ -100,6 +100,87 @@ export function getSchoolName(schoolId?: string) {
   return getState().schools.find((school) => school.id === schoolId)?.name ?? "학교 미지정";
 }
 
+function getSchoolTokensForMatch(schoolId?: string) {
+  const school = getState().schools.find((item) => item.id === schoolId);
+  if (!school) return [];
+
+  return [school.name, getSchoolShortName(school.name)]
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function hasConflictingSchoolReference(input: string, schoolId?: string) {
+  const normalizedInput = input.trim();
+  if (!normalizedInput) return false;
+
+  const allowedTokens = new Set(getSchoolTokensForMatch(schoolId));
+
+  return getState().schools.some((school) => {
+    const candidates = [school.name, getSchoolShortName(school.name)]
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    return candidates.some((token) => {
+      if (allowedTokens.has(token)) {
+        return false;
+      }
+
+      return normalizedInput.includes(token);
+    });
+  });
+}
+
+function isConsistentSchoolScopedPost(post: Post, schoolId?: string) {
+  if (!schoolId || post.schoolId !== schoolId) {
+    return false;
+  }
+
+  const haystack = [post.title, post.content, ...(post.tags ?? [])].join(" ");
+  return !hasConflictingSchoolReference(haystack, schoolId);
+}
+
+export function getSchoolScopedCommunityPosts(
+  schoolId = currentUser.schoolId,
+  subcategory?: Extract<CommunitySubcategory, "school" | "freshman" | "club" | "food">,
+) {
+  return recentFirst(
+    getState().posts.filter(
+      (post) =>
+        post.category === "community" &&
+        !getCareerBoardKind(post) &&
+        !isHiddenPost(post) &&
+        isConsistentSchoolScopedPost(post, schoolId) &&
+        (!subcategory || post.subcategory === subcategory),
+    ),
+  );
+}
+
+export function getSchoolScopedAdmissionQuestions(
+  schoolId = currentUser.schoolId,
+) {
+  const schoolName = getSchoolName(schoolId);
+  const schoolTokens = getSchoolTokensForMatch(schoolId);
+
+  return recentFirst(
+    getState().posts.filter((post) => {
+      if (post.category !== "admission" || isHiddenPost(post)) {
+        return false;
+      }
+
+      const matchesSchool =
+        post.schoolId === schoolId ||
+        schoolTokens.some((token) => post.meta?.interestUniversity?.includes(token));
+
+      if (!matchesSchool) {
+        return false;
+      }
+
+      const haystack = [post.title, post.content, post.meta?.interestUniversity ?? ""].join(" ");
+      return !hasConflictingSchoolReference(haystack, schoolId) || haystack.includes(schoolName);
+    }),
+  );
+}
+
 export function getCurrentSchool() {
   return getState().schools.find((school) => school.id === currentUser.schoolId);
 }
@@ -157,6 +238,7 @@ export function getPublicIdentitySummary(
   const user = getUser(userId);
   if (!user) {
     return {
+      nickname: "익명",
       label: "완전 익명",
       trustScore: 0,
       trustTier: getTrustTier(0),
@@ -167,6 +249,8 @@ export function getPublicIdentitySummary(
   const resolvedVisibilityLevel = getUserVisibilityLevel(userId, visibilityLevel);
 
   return {
+    nickname:
+      resolvedVisibilityLevel === "anonymous" ? "익명" : getAnonymousHandle(userId),
     label: getPublicIdentityLabel({
       schoolName: getSchoolName(user.schoolId),
       department: user.department,
@@ -471,6 +555,10 @@ export function getLectureSummaries() {
     );
 }
 
+export function getSchoolScopedLectureSummaries(schoolId = currentUser.schoolId) {
+  return getLectureSummaries().filter((lecture) => lecture.schoolId === schoolId);
+}
+
 export function getLectureById(id: string) {
   return getState().lectures.find((lecture) => lecture.id === id);
 }
@@ -492,6 +580,10 @@ export function getLectureReviews(lectureId: string) {
 
 export function getTradePosts() {
   return recentFirst(getState().tradePosts.filter((post) => !isHiddenTradePost(post)));
+}
+
+export function getSchoolScopedTradePosts(schoolId = currentUser.schoolId) {
+  return getTradePosts().filter((post) => post.schoolId === schoolId);
 }
 
 export function getTradeStatusLabel(status: TradePost["status"]) {
@@ -602,23 +694,23 @@ export function getDashboardStats(viewer: User = currentUser) {
 
 export function getSchoolHotPosts(schoolId = currentUser.schoolId) {
   return popularFirst(
-    getState().posts.filter(
-      (post) =>
-        post.schoolId === schoolId &&
-        !getCareerBoardKind(post) &&
-        !isHiddenPost(post) &&
-        post.subcategory !== "hot" &&
-        post.likes >= 40,
-    ),
+    [
+      ...getSchoolScopedCommunityPosts(schoolId, "school"),
+      ...getSchoolScopedCommunityPosts(schoolId, "freshman"),
+      ...getSchoolScopedCommunityPosts(schoolId, "club"),
+      ...getSchoolScopedCommunityPosts(schoolId, "food"),
+    ].filter((post) => post.likes >= 40),
   ).slice(0, 4);
 }
 
 export function getRealtimeSchoolFeed(schoolId = currentUser.schoolId) {
-  return recentFirst(
-    getState().posts.filter(
-      (post) => post.schoolId === schoolId && !getCareerBoardKind(post) && !isHiddenPost(post),
-    ),
-  ).slice(0, 5);
+  return recentFirst([
+    ...getSchoolScopedCommunityPosts(schoolId, "school"),
+    ...getSchoolScopedCommunityPosts(schoolId, "freshman"),
+    ...getSchoolScopedCommunityPosts(schoolId, "club"),
+    ...getSchoolScopedCommunityPosts(schoolId, "food"),
+    ...getSchoolScopedAdmissionQuestions(schoolId),
+  ]).slice(0, 5);
 }
 
 export function getHomeRecommendations() {
