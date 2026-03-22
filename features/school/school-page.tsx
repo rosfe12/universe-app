@@ -40,6 +40,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentThread } from "@/features/common/comment-thread";
 import { FeedPostCard } from "@/features/common/feed-post-card";
@@ -54,12 +61,12 @@ import {
   canWriteFreshmanZone,
 } from "@/lib/permissions";
 import { addPostToSnapshot } from "@/lib/runtime-mutations";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   getAdmissionQuestion,
   getAdmissionQuestions,
   getCommentsByPostId,
   getCommunityPosts,
-  getCurrentSchool,
   getLectureReviews,
   getLectureSummaries,
   getTradePosts,
@@ -153,6 +160,7 @@ export function SchoolPage({
     ? tabParam
     : null;
   const {
+    snapshot,
     loading,
     currentUser: runtimeUser,
     isAuthenticated,
@@ -167,9 +175,21 @@ export function SchoolPage({
   const [admissionComposerOpen, setAdmissionComposerOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
-  const currentSchool = getCurrentSchool();
-  const schoolId = currentUser.schoolId;
-  const schoolName = currentSchool?.name ?? "우리학교";
+  const userSchoolId = currentUser.schoolId;
+  const canPreviewAllSchools = isAuthenticated && isMasterAdminEmail(currentUser.email);
+  const availableSchools = useMemo(
+    () => [...snapshot.schools].sort((a, b) => a.name.localeCompare(b.name, "ko")),
+    [snapshot.schools],
+  );
+  const requestedSchoolId = searchParams.get("school");
+  const currentSchool =
+    availableSchools.find((school) => school.id === userSchoolId) ?? null;
+  const activeSchool =
+    canPreviewAllSchools && requestedSchoolId
+      ? availableSchools.find((school) => school.id === requestedSchoolId) ?? currentSchool
+      : currentSchool;
+  const schoolId = activeSchool?.id;
+  const schoolName = activeSchool?.name ?? "우리학교";
   const schoolShortName = getSchoolShortName(schoolName);
   const isApplicantMode = currentUser.userType === "applicant";
 
@@ -323,6 +343,20 @@ export function SchoolPage({
         },
       ];
 
+  const handleSchoolPreviewChange = (nextSchoolId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (nextSchoolId === userSchoolId) {
+      params.delete("school");
+    } else {
+      params.set("school", nextSchoolId);
+    }
+
+    params.delete("post");
+    setDetailPostId(null);
+    router.replace(`/school${params.size > 0 ? `?${params.toString()}` : ""}`);
+  };
+
   useEffect(() => {
     if (!detailParam) {
       return;
@@ -415,6 +449,23 @@ export function SchoolPage({
             <h2 className="text-[30px] font-semibold tracking-tight text-foreground text-balance">
               {schoolName}
             </h2>
+            {canPreviewAllSchools ? (
+              <div className="max-w-[220px] space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">학교 선택</p>
+                <Select value={schoolId ?? userSchoolId ?? ""} onValueChange={handleSchoolPreviewChange}>
+                  <SelectTrigger className="bg-background/80">
+                    <SelectValue placeholder="대학교 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSchools.map((school) => (
+                      <SelectItem key={school.id} value={school.id}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
                 <p className="text-[11px] text-muted-foreground">학교 글</p>
