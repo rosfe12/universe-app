@@ -16,7 +16,6 @@ import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
   getLectureById,
   getNotifications,
-  getPostById,
   getPostHref,
   getTradeStatusLabel,
   getTradePosts,
@@ -46,6 +45,22 @@ type MessageThreadItem = {
   targetId?: string;
   sectionLabel?: string;
 };
+
+function getThreadHref(
+  targetType?: "post" | "trade",
+  targetId?: string,
+  fallbackHref?: string,
+) {
+  if (targetType === "post" && targetId) {
+    return getPostHref(targetId);
+  }
+
+  if (targetType === "trade" && targetId) {
+    return `/trade?post=${targetId}`;
+  }
+
+  return fallbackHref ?? "/notifications";
+}
 
 function ThreadLink({
   thread,
@@ -112,30 +127,74 @@ export function MessagesPage({
 }) {
   const { loading, isAuthenticated, currentUser } = useAppRuntime(initialSnapshot);
   const notifications = getNotifications(currentUser.id);
+  const messageThreads = Array.from(
+    notifications
+      .filter((item) => isMessageNotification(item.type))
+      .reduce((map, item) => {
+        const normalizedTargetType =
+          item.targetType === "post" || item.targetType === "trade"
+            ? item.targetType
+            : undefined;
+        const key = `${normalizedTargetType ?? "system"}:${item.targetId ?? item.id}`;
+        const existing = map.get(key);
 
-  const notificationThreads = notifications
-    .filter((item) => isMessageNotification(item.type))
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      preview: item.body,
-      href:
-        item.targetType === "post" && item.targetId
-          ? getPostHref(item.targetId)
-          : item.href ?? "/notifications",
-      unread: !item.isRead,
-      time: formatRelativeLabel(item.createdAt),
-      notificationId: item.id,
+        if (!existing) {
+          map.set(key, {
+            id: key,
+            title: item.title,
+            preview: item.body,
+            href: getThreadHref(normalizedTargetType, item.targetId, item.href),
+            unread: !item.isRead,
+            time: formatRelativeLabel(item.createdAt),
+            notificationId: item.id,
+            targetType: normalizedTargetType,
+            targetId: item.targetId,
+            sectionLabel: item.type === "tradeMatch" ? "수강신청 교환" : "내 글 반응",
+            createdAt: item.createdAt,
+          });
+          return map;
+        }
+
+        if (new Date(item.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+          existing.title = item.title;
+          existing.preview = item.body;
+          existing.time = formatRelativeLabel(item.createdAt);
+          existing.notificationId = item.id;
+          existing.createdAt = item.createdAt;
+        }
+
+        existing.unread = existing.unread || !item.isRead;
+        return map;
+      }, new Map<string, MessageThreadItem & { createdAt: string }>())
+      .values(),
+  )
+    .sort(
+      (a, b) =>
+        Number(b.unread) - Number(a.unread) ||
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 12)
+    .map((thread) => ({
+      id: thread.id,
+      title: thread.title,
+      preview: thread.preview,
+      href: thread.href,
+      unread: thread.unread,
+      time: thread.time,
+      notificationId: thread.notificationId,
+      targetType: thread.targetType,
+      targetId: thread.targetId,
+      sectionLabel: thread.sectionLabel,
     }));
 
   const tradeThreads = getTradePosts()
     .filter((item) => item.userId === currentUser.id)
     .slice(0, 6)
     .map((item) => ({
-      id: `trade-${item.id}`,
+      id: `trade-room:${item.id}`,
       title: `${getLectureById(item.wantLectureId)?.courseName ?? "원하는 강의"} 교환 진행`,
       preview: `${getTradeStatusLabel(item.status)} · ${item.note}`,
-      href: "/trade",
+      href: `/trade?post=${item.id}`,
       unread: item.status === "matching",
       time: formatRelativeLabel(item.createdAt),
       targetType: "trade" as const,
@@ -143,42 +202,10 @@ export function MessagesPage({
       sectionLabel: "수강신청 교환",
     }));
 
-  const commentThreads = currentUser.id
-    ? Array.from(
-        new Map(
-          notifications
-            .filter((item) => item.type === "comment" || item.type === "reply")
-            .map((item) => [item.targetId ?? item.id, item]),
-        ).values(),
-      )
-        .slice(0, 4)
-        .map((item) => {
-          const post = item.targetId ? getPostById(item.targetId) : undefined;
-          return {
-            id: `post-${item.id}`,
-            title: post?.title ?? item.title,
-            preview: item.body,
-            href: item.targetId ? getPostHref(item.targetId) : item.href ?? "/community",
-            unread: !item.isRead,
-            time: formatRelativeLabel(item.createdAt),
-            notificationId: item.id,
-            sectionLabel: "내 글 반응",
-          };
-        })
-    : [];
-
-  const messageThreads = Array.from(
-    new Map(
-      [...notificationThreads, ...tradeThreads, ...commentThreads]
-        .sort((a, b) => Number(b.unread) - Number(a.unread))
-        .map((item) => [item.id, item]),
-    ).values(),
-  ).slice(0, 12);
-
   const chatThreads = tradeThreads
     .map((thread) => ({
       ...thread,
-      id: `chat-${thread.id}`,
+      id: `chat:${thread.targetId}`,
     }))
     .sort((a, b) => Number(b.unread) - Number(a.unread))
     .slice(0, 12);

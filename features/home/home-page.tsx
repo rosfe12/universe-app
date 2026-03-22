@@ -36,18 +36,18 @@ export function HomePage({
   const { loading, currentUser: runtimeUser } = useAppRuntime(initialSnapshot);
   const currentUser = runtimeUser;
   const currentSchool = getCurrentSchool();
-  const schoolName = currentSchool?.name ?? "우리학교";
+  const hasSelectedSchool = Boolean(currentSchool?.id);
   const schoolFeedPosts = [
     ...getCommunityPosts("freshman"),
     ...getCommunityPosts("club"),
     ...getCommunityPosts("food"),
   ]
-    .filter((post) => !currentSchool?.id || post.schoolId === currentSchool.id)
+    .filter((post) => hasSelectedSchool && post.schoolId === currentSchool?.id)
     .sort((a, b) => b.likes + b.commentCount * 2 - (a.likes + a.commentCount * 2))
     .slice(0, 5);
   const lectureHighlights = getLectureSummaries().slice(0, 3);
   const tradeHighlights = getTradePosts()
-    .filter((tradePost) => !currentSchool?.id || tradePost.schoolId === currentSchool.id)
+    .filter((tradePost) => hasSelectedSchool && tradePost.schoolId === currentSchool?.id)
     .slice(0, 3);
   const communityHighlights = [
     ...getCommunityPosts("free").slice(0, 2),
@@ -69,7 +69,11 @@ export function HomePage({
 
       <section className="space-y-3">
         <SectionHeader
-          title={currentUser.userType === "applicant" ? "🎯 지금 지망학교는" : "🏫 지금 우리 학교는"}
+          title={
+            currentUser.userType === "applicant"
+              ? "🎯 지금 지망학교는"
+              : "🏫 지금 우리 학교는"
+          }
           href="/school"
         />
         <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#eef2ff_0%,#ffffff_58%,#f5f3ff_130%)]">
@@ -95,7 +99,13 @@ export function HomePage({
         ) : (
           <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_100%)]">
             <CardContent className="space-y-3 py-5">
-              <p className="text-base font-semibold text-foreground">학교 피드가 곧 채워집니다</p>
+              <p className="text-base font-semibold text-foreground">
+                {hasSelectedSchool
+                  ? "학교 피드가 곧 채워집니다"
+                  : currentUser.userType === "applicant"
+                    ? "지망학교를 선택하면 학교별 질문과 분위기를 볼 수 있습니다"
+                    : "학교를 선택하면 우리학교 피드가 열립니다"}
+              </p>
               <Link
                 href="/school"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
@@ -144,7 +154,11 @@ export function HomePage({
         ) : (
           <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_100%)]">
             <CardContent className="space-y-3 py-5">
-              <p className="text-base font-semibold text-foreground">교환 글이 올라오면 바로 이어집니다</p>
+              <p className="text-base font-semibold text-foreground">
+                {hasSelectedSchool
+                  ? "교환 글이 올라오면 바로 이어집니다"
+                  : "학교를 선택하면 수강신청 교환 글이 보입니다"}
+              </p>
               <Link
                 href="/trade"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-primary"

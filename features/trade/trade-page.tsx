@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -89,6 +89,7 @@ export function TradePage({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const {
     loading,
     tradePosts,
@@ -130,6 +131,16 @@ export function TradePage({
   useEffect(() => {
     setTradeItems(getTradePosts());
   }, [blocks, reports, tradePosts]);
+
+  useEffect(() => {
+    const queryPostId = searchParams.get("post");
+    if (!queryPostId) {
+      setDetailId(null);
+      return;
+    }
+
+    setDetailId((current) => (current === queryPostId ? current : queryPostId));
+  }, [searchParams]);
 
   const detailItem = tradeItems.find((item) => item.id === detailId) ?? null;
   const selectedHaveLecture = getLectureById(form.watch("haveLectureId"));
@@ -366,7 +377,11 @@ export function TradePage({
             <TradePostCard
               key={item.id}
               tradePost={item}
-              onDetail={() => setDetailId(item.id)}
+              onDetail={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set("post", item.id);
+                router.push(`${pathname}?${params.toString()}`);
+              }}
               repeatedlyReported={isRepeatedlyReportedUser(item.userId)}
               onReport={async ({ reason, memo }) => {
                 if (source === "supabase" && isAuthenticated) {
@@ -538,7 +553,18 @@ export function TradePage({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(detailItem)} onOpenChange={(next) => !next && setDetailId(null)}>
+      <Dialog
+        open={Boolean(detailItem)}
+        onOpenChange={(next) => {
+          if (!next) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("post");
+            const query = params.toString();
+            router.replace(query ? `${pathname}?${query}` : pathname);
+            setDetailId(null);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>매칭 글 상세</DialogTitle>
