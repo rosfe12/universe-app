@@ -272,7 +272,7 @@ export function CommunityPage({
   const [activeFilter, setActiveFilter] = useState<SharedFilter>(
     isSharedFilter(filterParam) ? filterParam : "all",
   );
-  const [sortMode, setSortMode] = useState<"popular" | "latest">("popular");
+  const [sortMode, setSortMode] = useState<"popular" | "latest">("latest");
   const [composerOpen, setComposerOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -537,18 +537,18 @@ export function CommunityPage({
                 <Button
                   type="button"
                   size="sm"
-                  variant={sortMode === "popular" ? "default" : "outline"}
-                  onClick={() => setSortMode("popular")}
-                >
-                  인기순
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
                   variant={sortMode === "latest" ? "default" : "outline"}
                   onClick={() => setSortMode("latest")}
                 >
                   최신순
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={sortMode === "popular" ? "default" : "outline"}
+                  onClick={() => setSortMode("popular")}
+                >
+                  인기순
                 </Button>
               </div>
             </CardContent>

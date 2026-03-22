@@ -26,12 +26,19 @@ export function PostAuthorRow({
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0 space-y-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-gray-500">
-          <p className="min-w-0 max-w-full truncate font-medium text-gray-700">
-            {identity.label}
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm">
+          <p className="min-w-0 max-w-full truncate font-semibold text-gray-900 dark:text-gray-50">
+            {identity.nickname}
           </p>
           <UserLevelText score={identity.trustScore} />
-          <span>·</span>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+          {identity.label !== identity.nickname ? (
+            <>
+              <p className="min-w-0 max-w-full truncate">{identity.label}</p>
+              <span>·</span>
+            </>
+          ) : null}
           <span>{formatRelativeLabel(createdAt)}</span>
         </div>
         {!minimal && (identity.visibilityLevel === "anonymous" || repeatedlyReported) ? (
