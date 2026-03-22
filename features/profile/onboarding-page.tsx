@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, GraduationCap, School2, Sparkles } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, GraduationCap, School2, Sparkles } from "lucide-react";
 
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { ErrorState } from "@/components/shared/error-state";
@@ -62,6 +62,7 @@ export function OnboardingPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [authEmail, setAuthEmail] = useState("");
   const [schoolQuery, setSchoolQuery] = useState("");
+  const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
 
   const schoolOptions = useMemo(
     () => schools.map((school) => ({ id: school.id, name: school.name })),
@@ -154,6 +155,7 @@ export function OnboardingPage() {
       bio: currentUser.bio ?? "",
     });
     setSchoolQuery("");
+    setSchoolPickerOpen(false);
   }, [
     currentUser.bio,
     currentUser.department,
@@ -406,41 +408,66 @@ export function OnboardingPage() {
             )}
             <div className="space-y-2">
               <Label>학교</Label>
-              <Input
-                value={schoolQuery}
-                onChange={(event) => setSchoolQuery(event.target.value)}
-                placeholder="학교 검색"
-                disabled={pending}
-              />
               <Controller
                 control={form.control}
                 name="schoolId"
                 render={({ field }) => (
-                  <div className="max-h-64 overflow-y-auto rounded-[22px] border border-border bg-background">
-                    {filteredSchoolOptions.map((school) => {
-                      const selected = field.value === school.id;
-
-                      return (
-                        <button
-                          key={school.id}
-                          type="button"
-                          className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${
-                            selected
-                              ? "bg-primary/10 font-medium text-primary"
-                              : "border-b border-gray-100 text-foreground last:border-b-0 hover:bg-gray-50"
-                          }`}
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-[22px] border border-border bg-background px-4 py-3 text-left text-sm transition-colors hover:bg-gray-50"
+                      disabled={pending}
+                      onClick={() => setSchoolPickerOpen((prev) => !prev)}
+                    >
+                      <span className={selectedSchool ? "text-foreground" : "text-muted-foreground"}>
+                        {selectedSchool?.name ?? "학교 선택"}
+                      </span>
+                      {schoolPickerOpen ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    {schoolPickerOpen ? (
+                      <>
+                        <Input
+                          value={schoolQuery}
+                          onChange={(event) => setSchoolQuery(event.target.value)}
+                          placeholder="학교 검색"
                           disabled={pending}
-                          onClick={() => field.onChange(school.id)}
-                        >
-                          <span>{school.name}</span>
-                          {selected ? <span className="text-xs">선택됨</span> : null}
-                        </button>
-                      );
-                    })}
-                    {filteredSchoolOptions.length === 0 ? (
-                      <div className="px-4 py-6 text-sm text-muted-foreground">
-                        검색 결과가 없습니다.
-                      </div>
+                        />
+                        <div className="max-h-64 overflow-y-auto rounded-[22px] border border-border bg-background">
+                          {filteredSchoolOptions.map((school) => {
+                            const selected = field.value === school.id;
+
+                            return (
+                              <button
+                                key={school.id}
+                                type="button"
+                                className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${
+                                  selected
+                                    ? "bg-primary/10 font-medium text-primary"
+                                    : "border-b border-gray-100 text-foreground last:border-b-0 hover:bg-gray-50"
+                                }`}
+                                disabled={pending}
+                                onClick={() => {
+                                  field.onChange(school.id);
+                                  setSchoolPickerOpen(false);
+                                  setSchoolQuery("");
+                                }}
+                              >
+                                <span>{school.name}</span>
+                                {selected ? <span className="text-xs">선택됨</span> : null}
+                              </button>
+                            );
+                          })}
+                          {filteredSchoolOptions.length === 0 ? (
+                            <div className="px-4 py-6 text-sm text-muted-foreground">
+                              검색 결과가 없습니다.
+                            </div>
+                          ) : null}
+                        </div>
+                      </>
                     ) : null}
                   </div>
                 )}
