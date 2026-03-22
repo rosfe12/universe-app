@@ -1,5 +1,4 @@
-import { Bell, Search } from "lucide-react";
-import Link from "next/link";
+import { Search } from "lucide-react";
 import { ReactNode } from "react";
 
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
@@ -32,11 +31,6 @@ export function AppShell({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {topAction}
-              <Button asChild size="icon" variant="ghost">
-                <Link href="/notifications" aria-label="알림">
-                  <Bell className="h-5 w-5" />
-                </Link>
-              </Button>
               <Button size="icon" variant="ghost" aria-label="검색">
                 <Search className="h-5 w-5" />
               </Button>
