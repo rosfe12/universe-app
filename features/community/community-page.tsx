@@ -128,6 +128,7 @@ function getDefaultBoard(filter: SharedFilter): CommunityFormValues["board"] {
 }
 
 function getComposeLabel(filter: SharedFilter) {
+  if (filter === "all") return "글쓰기";
   if (filter === "free") return "자유 글쓰기";
   if (filter === "ask") return "무물 글쓰기";
   if (filter === "hot") return "핫갤 글쓰기";

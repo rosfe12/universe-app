@@ -63,6 +63,7 @@ import { getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post } from "@/types";
 
 const datingSchema = z.object({
+  subcategory: z.enum(["dating", "meeting"]),
   title: z.string().min(3),
   content: z.string().min(6),
   vibeTag: z.string().min(2),
@@ -113,6 +114,7 @@ export function DatingPage({
   const form = useForm<DatingFormValues>({
     resolver: zodResolver(datingSchema),
     defaultValues: {
+      subcategory: "meeting",
       title: "",
       content: "",
       vibeTag: "카페 / 전시",
@@ -158,7 +160,7 @@ export function DatingPage({
     const localPost = {
       id: `dating-local-${items.length + 1}`,
       category: "dating" as const,
-      subcategory: "dating" as const,
+      subcategory: values.subcategory,
       authorId: currentUser.id,
       schoolId: currentUser.schoolId,
       visibilityLevel: values.visibilityLevel,
@@ -181,7 +183,7 @@ export function DatingPage({
               vibeTag: values.vibeTag,
               photoUrl: values.photoUrl || undefined,
               visibilityLevel: values.visibilityLevel,
-              subcategory: "dating",
+              subcategory: values.subcategory,
             });
             await refresh();
             setOpen(false);
@@ -513,20 +515,52 @@ export function DatingPage({
             return;
           }
 
+          form.setValue("subcategory", "meeting", {
+            shouldValidate: true,
+          });
           setOpen(true);
         }}
-        label="미팅 글 작성"
+        label="미팅 / 연애 글 작성"
       />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>미팅 / 연애 글 작성</DialogTitle>
+            <DialogTitle>{form.watch("subcategory") === "meeting" ? "미팅 글 작성" : "연애 글 작성"}</DialogTitle>
             <DialogDescription>
               제목, 한줄 태그, 내용만 입력하면 바로 올릴 수 있습니다.
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={onSubmit}>
+            <div className="space-y-2">
+              <Label>카테고리</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("subcategory") === "meeting" ? "default" : "outline"}
+                  onClick={() =>
+                    form.setValue("subcategory", "meeting", {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  미팅
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("subcategory") === "dating" ? "default" : "outline"}
+                  onClick={() =>
+                    form.setValue("subcategory", "dating", {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  연애
+                </Button>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>제목</Label>
               <Input placeholder="예: 건대입구에서 카페 같이 갈 사람" {...form.register("title")} />
