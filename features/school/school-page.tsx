@@ -332,7 +332,7 @@ export function SchoolPage({
               <p className="font-semibold">학교를 선택하면 학교 전용 공간이 열립니다</p>
             </div>
             <Button asChild>
-              <Link href="/profile">프로필 설정하기</Link>
+              <Link href="/onboarding?next=%2Fschool&mode=verification">학교 인증하기</Link>
             </Button>
           </CardContent>
         </Card>
