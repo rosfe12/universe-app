@@ -84,6 +84,22 @@ export function OnboardingPage() {
   const selectedUserType = form.watch("userType");
   const schoolEmailValue = form.watch("schoolEmail");
   const normalizedSchoolEmailValue = normalizeEmail(schoolEmailValue);
+  const currentSchoolEmail = normalizeEmail(currentUser.schoolEmail);
+  const isMatchingVerifiedState =
+    selectedUserType === "student" &&
+    currentUser.studentVerificationStatus === "verified" &&
+    currentUser.schoolId === selectedSchool?.id &&
+    currentSchoolEmail === normalizedSchoolEmailValue;
+  const isMatchingPendingState =
+    selectedUserType === "student" &&
+    currentUser.studentVerificationStatus === "pending" &&
+    currentUser.schoolId === selectedSchool?.id &&
+    currentSchoolEmail === normalizedSchoolEmailValue;
+  const isMatchingRejectedState =
+    selectedUserType === "student" &&
+    currentUser.studentVerificationStatus === "rejected" &&
+    currentUser.schoolId === selectedSchool?.id &&
+    currentSchoolEmail === normalizedSchoolEmailValue;
   const canRequestCollegeVerification =
     selectedUserType === "student" &&
     Boolean(selectedSchool?.id) &&
@@ -93,18 +109,14 @@ export function OnboardingPage() {
     studentVerificationStatus:
       selectedUserType !== "student"
         ? "none"
-        : currentUser.studentVerificationStatus === "verified" &&
-            normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmailValue &&
-            currentUser.schoolId === selectedSchool?.id
+        : isMatchingVerifiedState
           ? "verified"
-          : normalizedSchoolEmailValue
+          : isMatchingPendingState
             ? "pending"
-            : "unverified",
-    verified:
-      selectedUserType === "student" &&
-      currentUser.studentVerificationStatus === "verified" &&
-      normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmailValue &&
-      currentUser.schoolId === selectedSchool?.id,
+            : isMatchingRejectedState
+              ? "rejected"
+              : "unverified",
+    verified: isMatchingVerifiedState,
   });
   const currentLoginEmail =
     authEmail || (currentUser.email !== "guest@univers.app" ? currentUser.email : "");
@@ -509,7 +521,7 @@ export function OnboardingPage() {
                 <div className="rounded-[22px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm">
                   <p className="font-medium text-foreground">{verificationPreview.label}</p>
                   <p className="mt-1 text-muted-foreground">
-                    학교 메일로 인증 링크를 보내고, 확인이 끝나면 대학생 권한이 열립니다.
+                    학교 메일을 입력한 뒤 아래 버튼을 눌러 인증 요청을 보내면 대학생 권한이 열립니다.
                   </p>
                 </div>
                 <Button
@@ -517,7 +529,7 @@ export function OnboardingPage() {
                   className="w-full"
                   disabled={!canRequestCollegeVerification || pending}
                 >
-                  {verificationPreview.status === "pending"
+                  {isMatchingPendingState
                     ? "학교 메일 인증 다시 요청"
                     : "학교 메일 인증 요청"}
                 </Button>
