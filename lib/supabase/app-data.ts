@@ -2,7 +2,10 @@
 
 import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 
-import { createClient } from "@/lib/supabase/client";
+import {
+  clearSupabaseSessionStorage,
+  createClient,
+} from "@/lib/supabase/client";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
 import { getMockRuntimeSnapshot, guestUser } from "@/lib/runtime-state";
@@ -1176,6 +1179,7 @@ export async function signOutFromSupabase() {
   const supabase = createClient();
   const result = await supabase.auth.signOut();
   if (!result.error) {
+    clearSupabaseSessionStorage();
     invalidateClientRuntimeSnapshots();
   }
   return result;

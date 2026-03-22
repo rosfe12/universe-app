@@ -14,6 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
+  AUTH_SAVED_EMAIL_STORAGE_KEY,
+  AUTH_SAVED_PASSWORD_STORAGE_KEY,
+  getKeepLoggedInPreference,
+  setKeepLoggedInPreference,
+} from "@/lib/app-preferences";
+import {
   getAuthFlowHref,
   isGoogleSignInEnabled,
   isSupabaseEnabled,
@@ -21,6 +27,7 @@ import {
   signInWithSupabase,
   signUpWithSupabase,
 } from "@/lib/supabase/app-data";
+import { setSupabaseSessionPersistence } from "@/lib/supabase/client";
 import { shouldShowTestAccounts } from "@/lib/env";
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { cn } from "@/lib/utils";
@@ -45,6 +52,9 @@ export function LoginPage() {
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [mode, setMode] = useState<AuthMode>(adminOnlyFlow ? "login" : "login");
+  const [saveEmail, setSaveEmail] = useState(true);
+  const [savePassword, setSavePassword] = useState(false);
+  const [keepLoggedIn, setKeepLoggedIn] = useState(true);
   const googleSignInEnabled = isGoogleSignInEnabled();
   const showTestAccounts = shouldShowTestAccounts();
   const form = useForm<LoginFormValues>({
@@ -60,6 +70,28 @@ export function LoginPage() {
       setMode("login");
     }
   }, [adminOnlyFlow, mode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const savedEmail = window.localStorage.getItem(AUTH_SAVED_EMAIL_STORAGE_KEY);
+    const savedPassword = window.localStorage.getItem(AUTH_SAVED_PASSWORD_STORAGE_KEY);
+    const rememberedSession = getKeepLoggedInPreference();
+
+    setSaveEmail(Boolean(savedEmail));
+    setSavePassword(Boolean(savedPassword));
+    setKeepLoggedIn(rememberedSession);
+
+    if (savedEmail) {
+      form.setValue("email", savedEmail, { shouldDirty: false });
+    }
+
+    if (savedPassword) {
+      form.setValue("password", savedPassword, { shouldDirty: false });
+    }
+  }, [form]);
 
   useEffect(() => {
     if (loading || !isAuthenticated) return;
@@ -81,6 +113,9 @@ export function LoginPage() {
       return;
     }
 
+    setSupabaseSessionPersistence(keepLoggedIn);
+    setKeepLoggedInPreference(keepLoggedIn);
+
     setPending(true);
     const result =
       mode === "login"
@@ -94,6 +129,20 @@ export function LoginPage() {
     if (result.error) {
       setErrorMessage(result.error.message);
       return;
+    }
+
+    if (typeof window !== "undefined") {
+      if (saveEmail) {
+        window.localStorage.setItem(AUTH_SAVED_EMAIL_STORAGE_KEY, values.email);
+      } else {
+        window.localStorage.removeItem(AUTH_SAVED_EMAIL_STORAGE_KEY);
+      }
+
+      if (savePassword) {
+        window.localStorage.setItem(AUTH_SAVED_PASSWORD_STORAGE_KEY, values.password);
+      } else {
+        window.localStorage.removeItem(AUTH_SAVED_PASSWORD_STORAGE_KEY);
+      }
     }
 
     if (mode === "signup") {
@@ -166,6 +215,8 @@ export function LoginPage() {
                     return;
                   }
 
+                  setSupabaseSessionPersistence(keepLoggedIn);
+                  setKeepLoggedInPreference(keepLoggedIn);
                   setPending(true);
                   const result = await signInWithGoogle(nextPath);
                   if (result.error) {
@@ -232,6 +283,35 @@ export function LoginPage() {
               {form.formState.errors.password ? (
                 <p className="text-xs text-rose-500">{form.formState.errors.password.message}</p>
               ) : null}
+            </div>
+            <div className="space-y-2 rounded-[22px] border border-border bg-secondary/50 p-4">
+              <label className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-foreground">아이디 저장</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-indigo-600"
+                  checked={saveEmail}
+                  onChange={(event) => setSaveEmail(event.target.checked)}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-foreground">비밀번호 저장</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-indigo-600"
+                  checked={savePassword}
+                  onChange={(event) => setSavePassword(event.target.checked)}
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-foreground">로그인 유지</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-indigo-600"
+                  checked={keepLoggedIn}
+                  onChange={(event) => setKeepLoggedIn(event.target.checked)}
+                />
+              </label>
             </div>
             <Button type="submit" className="w-full" disabled={pending || loading}>
               <Mail className="h-4 w-4" />
