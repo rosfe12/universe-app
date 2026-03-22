@@ -73,7 +73,7 @@ import {
   getAuthFlowHref,
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
-import { getStandardVisibilityLevel } from "@/lib/user-identity";
+import { getStandardVisibilityLevel, isAdultVerified } from "@/lib/user-identity";
 import { cn, formatRelativeLabel, getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/types";
 
@@ -284,13 +284,17 @@ export function CommunityPage({
     !isAuthenticated ||
     !hasCompletedOnboarding(currentUser) ||
     canAccessSchoolFeatures(currentUser);
+  const canAccessHotBoard = isAdultVerified(currentUser);
 
   useEffect(() => {
     setActiveFilter(isSharedFilter(filterParam) ? filterParam : "all");
   }, [filterParam]);
 
   const freePosts = useMemo(() => getCommunityPosts("free"), []);
-  const hotPosts = useMemo(() => getHotGalleryPosts(), []);
+  const hotPosts = useMemo(
+    () => (canAccessHotBoard ? getHotGalleryPosts() : []),
+    [canAccessHotBoard],
+  );
   const advicePosts = useMemo(() => getCommunityPosts("advice"), []);
   const askPosts = useMemo(() => getCommunityPosts("ask"), []);
   const anonymousPosts = useMemo(() => getCommunityPosts("anonymous"), []);
@@ -358,7 +362,11 @@ export function CommunityPage({
   const canComposeCareer =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCareer(currentUser);
   const canCompose =
-    activeFilter === "career" ? canComposeCareer : canComposeCommunity;
+    activeFilter === "career"
+      ? canComposeCareer
+      : activeFilter === "hot"
+        ? canComposeCommunity && canAccessHotBoard
+        : canComposeCommunity;
 
   const form = useForm<CommunityFormValues>({
     resolver: zodResolver(communitySchema),
@@ -391,6 +399,12 @@ export function CommunityPage({
 
     const isCareerBoard = values.board === "careerInfo" || values.board === "jobPosting";
     const isAnonymousBoard = values.board === "anonymous";
+    if (values.board === "hot" && !canAccessHotBoard) {
+      form.setError("root", {
+        message: "핫갤은 성인 인증을 완료한 뒤 사용할 수 있습니다.",
+      });
+      return;
+    }
     const communityBoard =
       values.board === "free" ||
       values.board === "advice" ||
@@ -546,7 +560,14 @@ export function CommunityPage({
       </section>
 
       <section className="space-y-4">
-        {filteredItems.length === 0 ? (
+        {activeFilter === "hot" && !canAccessHotBoard ? (
+          <EmptyState
+            title="핫갤은 성인 인증 후 이용할 수 있습니다"
+            description="마이에서 만 19세 이상 인증을 완료하면 핫갤 글과 댓글이 바로 열립니다."
+            actionLabel="마이에서 성인 인증"
+            href="/profile"
+          />
+        ) : filteredItems.length === 0 ? (
           <EmptyState
             title="표시할 글이 없습니다"
             description="다른 카테고리를 둘러보거나 새 글이 올라오기를 기다려보세요."
@@ -701,6 +722,11 @@ export function CommunityPage({
 
       <FloatingComposeButton
         onClick={() => {
+          if (activeFilter === "hot" && !canAccessHotBoard) {
+            router.push("/profile");
+            return;
+          }
+
           if (!canCompose) {
             router.push(
               getAuthFlowHref({
@@ -782,6 +808,7 @@ export function CommunityPage({
                   type="button"
                   size="sm"
                   variant={form.watch("board") === "hot" ? "default" : "outline"}
+                  disabled={!canAccessHotBoard}
                   onClick={() =>
                     form.setValue("board", "hot", {
                       shouldValidate: true,

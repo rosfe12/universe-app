@@ -52,6 +52,8 @@ type UserRow = {
   created_at: string;
   name: string | null;
   verified: boolean;
+  adult_verified: boolean;
+  adult_verified_at: string | null;
   student_verification_status: StudentVerificationStatus;
   school_email: string | null;
   school_email_verified_at: string | null;
@@ -76,6 +78,8 @@ type UserInsert = {
   created_at?: string;
   name?: string | null;
   verified?: boolean;
+  adult_verified?: boolean;
+  adult_verified_at?: string | null;
   student_verification_status?: StudentVerificationStatus;
   school_email?: string | null;
   school_email_verified_at?: string | null;

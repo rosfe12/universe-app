@@ -166,6 +166,8 @@ create table if not exists public.users (
   created_at timestamptz not null default timezone('utc', now()),
   name text,
   verified boolean not null default false,
+  adult_verified boolean not null default false,
+  adult_verified_at timestamptz,
   student_verification_status public.student_verification_status not null default 'unverified',
   school_email citext,
   school_email_verified_at timestamptz,
@@ -184,6 +186,12 @@ alter table public.users
 
 alter table public.users
   add column if not exists school_email_verified_at timestamptz;
+
+alter table public.users
+  add column if not exists adult_verified boolean not null default false;
+
+alter table public.users
+  add column if not exists adult_verified_at timestamptz;
 
 update public.users
 set user_type = 'applicant'
@@ -572,14 +580,11 @@ begin
     end;
   end if;
 
-  if new.school_email is not null and new.school_id is not null and not (
-    lower(new.school_email::text) in ('rosfe12@gmail.com', 'rosfe@naver.com')
-    or exists (
-      select 1
-      from public.schools
-      where id = new.school_id
-        and split_part(lower(new.school_email::text), '@', 2) = lower(domain::text)
-    )
+  if new.school_email is not null and new.school_id is not null and not exists (
+    select 1
+    from public.schools
+    where id = new.school_id
+      and split_part(lower(new.school_email::text), '@', 2) = lower(domain::text)
   ) then
     raise exception '학교 메일 도메인이 학교 정보와 일치하지 않습니다.';
   end if;
@@ -745,10 +750,7 @@ as $$
     where id = p_school_id
       and p_school_email is not null
       and lower(p_school_email::text) = lower(public.current_auth_email()::text)
-      and (
-        split_part(lower(p_school_email::text), '@', 2) = lower(domain::text)
-        or lower(p_school_email::text) in ('rosfe12@gmail.com', 'rosfe@naver.com')
-      )
+      and split_part(lower(p_school_email::text), '@', 2) = lower(domain::text)
       and public.is_current_auth_email_confirmed()
   )
 $$;

@@ -266,6 +266,7 @@ type RuntimeQueryContext = {
   scope: RuntimeSnapshotScope;
   schoolId?: string;
   userId?: string;
+  adultVerified?: boolean;
 };
 
 const EMPTY_RESULT = Promise.resolve({ data: [], error: null });
@@ -492,6 +493,8 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     department: row.department ? String(row.department) : undefined,
     grade: typeof row.grade === "number" ? row.grade : undefined,
     verified: studentVerificationStatus === "verified" || Boolean(row.verified),
+    adultVerified: Boolean(row.adult_verified),
+    adultVerifiedAt: row.adult_verified_at ? String(row.adult_verified_at) : undefined,
     studentVerificationStatus,
     schoolEmail: row.school_email ? String(row.school_email) : undefined,
     schoolEmailVerifiedAt: row.school_email_verified_at
@@ -516,6 +519,14 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     bio: row.bio ? String(row.bio) : undefined,
     avatarUrl: row.avatar_url ? String(row.avatar_url) : undefined,
   };
+}
+
+function filterAdultGatedPosts(posts: Post[], context: RuntimeQueryContext) {
+  if (context.adultVerified) {
+    return posts;
+  }
+
+  return posts.filter((post) => post.subcategory !== "hot");
 }
 
 function mapPostRow(row: Record<string, unknown>): Post {
@@ -758,6 +769,8 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
     department: undefined,
     grade: undefined,
     verified: false,
+    adultVerified: false,
+    adultVerifiedAt: undefined,
     studentVerificationStatus: "unverified",
     trustScore: 0,
     reportCount: 0,
@@ -857,6 +870,7 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
           ? undefined
           : String(currentUserProfileResult.data.school_id),
       userId: authUser?.id,
+      adultVerified: Boolean(currentUserProfileResult?.data?.adult_verified),
     };
 
     const [
@@ -964,7 +978,7 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
     const snapshot: AppRuntimeSnapshot = {
       schools,
       users,
-      posts: postRows.map(mapPostRow),
+      posts: filterAdultGatedPosts(postRows.map(mapPostRow), queryContext),
       comments: ((commentsResult?.data ?? []) as Record<string, unknown>[]).map(mapCommentRow),
       lectures: lectureRows.map(mapLectureRow),
       lectureReviews: ((lectureReviewsResult?.data ?? []) as Record<string, unknown>[]).map(mapLectureReviewRow),
@@ -1181,6 +1195,8 @@ export async function upsertUserProfile(user: User) {
       department: user.department ?? null,
       grade: user.grade ?? null,
       verified: user.verified,
+      adult_verified: user.adultVerified ?? false,
+      adult_verified_at: user.adultVerifiedAt ?? null,
       student_verification_status:
         user.studentVerificationStatus ??
         (user.userType === "student" ? "unverified" : "none"),

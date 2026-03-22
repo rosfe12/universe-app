@@ -3241,6 +3241,18 @@ export const datingProfiles: DatingProfile[] = [
   },
 ];
 
+for (const user of users) {
+  user.avatarUrl = undefined;
+}
+
+for (const post of posts) {
+  post.imageUrl = undefined;
+}
+
+for (const profile of datingProfiles) {
+  profile.photoUrl = undefined;
+}
+
 export const mediaAssets: MediaAsset[] = [
   ...posts
     .filter((post) => post.imageUrl)

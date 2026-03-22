@@ -158,6 +158,51 @@ export function ProfilePage({
       </section>
 
       <section className="space-y-2 border-b border-gray-100 pb-5">
+        <p className="text-sm font-semibold text-gray-900">성인 인증 상태</p>
+        <p className="text-sm text-gray-500">
+          핫갤은 만 19세 이상 인증을 완료한 뒤에만 글쓰기와 댓글 작성이 가능합니다.
+        </p>
+        {currentUser.adultVerified ? (
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            성인 인증 완료
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={async () => {
+              const adultVerifiedAt = new Date().toISOString();
+              setSnapshot((snapshot) => ({
+                ...snapshot,
+                currentUser: {
+                  ...snapshot.currentUser,
+                  adultVerified: true,
+                  adultVerifiedAt,
+                },
+                users: snapshot.users.map((user) =>
+                  user.id === snapshot.currentUser.id
+                    ? { ...user, adultVerified: true, adultVerifiedAt }
+                    : user,
+                ),
+              }));
+
+              if (source === "supabase" && isAuthenticated) {
+                await upsertUserProfile({
+                  ...currentUser,
+                  adultVerified: true,
+                  adultVerifiedAt,
+                });
+                await refresh();
+              }
+            }}
+          >
+            만 19세 이상 인증
+          </Button>
+        )}
+      </section>
+
+      <section className="space-y-2 border-b border-gray-100 pb-5">
           {schoolVerified ? (
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               학교 메일 인증이 완료되었습니다. 대학생 전용 기능이 바로 열립니다.

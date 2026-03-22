@@ -7,14 +7,9 @@ import { z } from "zod";
 import { hasAppSmtpConfig, publicEnv, resolveAuthSiteUrl } from "@/lib/env";
 import { sendStudentVerificationEmail } from "@/lib/email/server-mailer";
 import { logServerEvent } from "@/lib/ops";
-import {
-  canUseSchoolVerificationEmail,
-  isTestVerificationEmail,
-  normalizeSchoolEmail,
-} from "@/lib/school-email";
+import { canUseSchoolVerificationEmail, normalizeSchoolEmail } from "@/lib/school-email";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { createStudentVerificationToken } from "@/lib/student-verification-token";
 
 export const runtime = "nodejs";
 const VERIFICATION_REQUEST_COOLDOWN_MS = 60 * 1000;
@@ -69,16 +64,6 @@ function buildVerificationUrl(origin: string, requestId: string, tokenHash: stri
   callbackUrl.searchParams.set("request_id", requestId);
   callbackUrl.searchParams.set("token_hash", tokenHash);
   callbackUrl.searchParams.set("type", type);
-  return callbackUrl.toString();
-}
-
-function buildTestVerificationUrl(origin: string, requestId: string, userId: string, email: string) {
-  const callbackUrl = new URL("/auth/school-email/callback", origin);
-  callbackUrl.searchParams.set("request_id", requestId);
-  callbackUrl.searchParams.set(
-    "test_token",
-    createStudentVerificationToken(requestId, userId, email),
-  );
   return callbackUrl.toString();
 }
 
@@ -406,49 +391,6 @@ export async function POST(request: Request) {
   }
 
   if (hasAppSmtpConfig()) {
-    if (isTestVerificationEmail(normalizedSchoolEmail)) {
-      const verificationUrl = buildTestVerificationUrl(
-        origin,
-        verificationRequestId,
-        authUser.id,
-        normalizedSchoolEmail,
-      );
-
-      try {
-        await sendStudentVerificationEmail({
-          toEmail: normalizedSchoolEmail,
-          verificationUrl,
-        });
-      } catch (deliveryError) {
-        const deliveryMessage = getDeliveryErrorMessage(deliveryError);
-        logServerEvent("error", "student_verification_email_delivery_failed", {
-          requestId: verificationRequestId,
-          schoolEmail: normalizedSchoolEmail,
-          message: deliveryMessage,
-        });
-        await updateDeliveryState(admin, verificationRequestId, {
-          deliveryMethod: "app_smtp",
-          deliveryStatus: "failed",
-          deliveryError: deliveryMessage,
-        });
-
-        return NextResponse.json(
-          { error: deliveryMessage },
-          { status: 500 },
-        );
-      }
-
-      await updateDeliveryState(admin, verificationRequestId, {
-        deliveryMethod: "app_smtp",
-        deliveryStatus: "sent",
-        deliveryError: null,
-        deliveredAt: new Date().toISOString(),
-        verificationUserId: authUser.id,
-      });
-
-      return NextResponse.json({ ok: true, pending: true, deliveryMode: "app_smtp" });
-    }
-
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: "signup",
       email: normalizedSchoolEmail,

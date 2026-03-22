@@ -83,6 +83,8 @@ export interface User {
   department?: string;
   grade?: number;
   verified: boolean;
+  adultVerified?: boolean;
+  adultVerifiedAt?: string;
   studentVerificationStatus?: StudentVerificationStatus;
   schoolEmail?: string;
   schoolEmailVerifiedAt?: string;

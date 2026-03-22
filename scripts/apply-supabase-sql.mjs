@@ -2028,6 +2028,20 @@ try {
       delete from public.media_assets
       where owner_type = 'post'
     `);
+    await client.query(`
+      update public.users
+      set avatar_url = null
+      where avatar_url is not null
+    `);
+    await client.query(`
+      update public.dating_profiles
+      set photo_url = null
+      where photo_url is not null
+    `);
+    await client.query(`
+      delete from public.media_assets
+      where owner_type in ('post', 'profile')
+    `);
   }
 
   console.log(`Applied ${mode} SQL to Supabase.`);

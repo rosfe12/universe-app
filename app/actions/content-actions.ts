@@ -129,6 +129,8 @@ type CurrentProfile = {
   department: string | null;
   grade: number | null;
   verified: boolean;
+  adult_verified: boolean;
+  adult_verified_at: string | null;
   student_verification_status:
     | "none"
     | "unverified"
@@ -173,7 +175,7 @@ async function requireCurrentUser() {
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select(
-      "id, user_type, school_id, department, grade, verified, student_verification_status, school_email, is_restricted, trust_score, default_visibility_level",
+      "id, user_type, school_id, department, grade, verified, adult_verified, adult_verified_at, student_verification_status, school_email, is_restricted, trust_score, default_visibility_level",
     )
     .eq("id", user.id)
     .single();
@@ -241,6 +243,15 @@ function requireVerifiedStudentProfile(
     !profile.school_id
   ) {
     throw new Error(`${featureLabel}은 학교 메일 인증을 완료한 대학생만 사용할 수 있습니다.`);
+  }
+}
+
+function requireAdultVerifiedProfile(
+  profile: CurrentProfile,
+  featureLabel: string,
+) {
+  if (!profile.adult_verified) {
+    throw new Error(`${featureLabel}은 성인 인증을 완료한 사용자만 사용할 수 있습니다.`);
   }
 }
 
@@ -645,6 +656,9 @@ export async function createPost(input: z.input<typeof postSchema>) {
   if (values.category === "dating") {
     requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
   }
+  if (values.subcategory === "hot") {
+    requireAdultVerifiedProfile(profile, "핫갤 글쓰기");
+  }
   if (values.subcategory === "freshman") {
     if (profile.user_type !== "freshman" || !profile.school_id) {
       throw new Error("새내기존 글쓰기는 같은 학교 예비입학생만 사용할 수 있습니다.");
@@ -713,6 +727,9 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 
   if (profile.user_type === "applicant" && post.category !== "admission") {
     throw new Error("입시생은 입시 게시판에만 댓글을 남길 수 있습니다.");
+  }
+  if (post.subcategory === "hot") {
+    requireAdultVerifiedProfile(profile, "핫갤 댓글");
   }
   if (post.category === "community") {
     const { data: postDetail, error: postDetailError } = await supabase

@@ -218,6 +218,10 @@ export function getStandardVisibilityLevel(
   return fallback === "schoolDepartment" ? "schoolDepartment" : "school";
 }
 
+export function isAdultVerified(user?: Pick<User, "adultVerified"> | null) {
+  return Boolean(user?.adultVerified);
+}
+
 export function getProfileVisibilityLevel(
   value: VisibilityLevel | undefined,
   user?: Pick<User, "userType" | "schoolId"> | null,
