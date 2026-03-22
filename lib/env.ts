@@ -62,6 +62,12 @@ export function hasPublicSupabaseEnv() {
   );
 }
 
+export function hasAdminSupabaseEnv() {
+  return Boolean(
+    publicEnv.NEXT_PUBLIC_SUPABASE_URL && serverEnv.SUPABASE_SERVICE_ROLE_KEY,
+  );
+}
+
 export function resolveAppUrl(fallback?: string) {
   return (
     publicEnv.NEXT_PUBLIC_APP_URL ??

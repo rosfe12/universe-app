@@ -127,6 +127,10 @@ async function main() {
   if (!isLocalAppUrl && (!supportUrl || supportUrl.includes("your-domain.com"))) {
     throw new Error("NEXT_PUBLIC_SUPPORT_URL 운영값이 필요합니다.");
   }
+
+  if (!isLocalAppUrl && !hasSmtpConfig()) {
+    throw new Error("운영 배포에서는 앱 SMTP 설정이 필요합니다.");
+  }
 }
 
 main().catch((error) => {

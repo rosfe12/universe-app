@@ -454,6 +454,16 @@ create table if not exists public.admin_audit_logs (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.ops_events (
+  id uuid primary key default gen_random_uuid(),
+  level text not null,
+  event text not null,
+  source text not null default 'app',
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint ops_events_level_check check (level in ('info', 'warn', 'error'))
+);
+
 create index if not exists idx_posts_school_id on public.posts (school_id);
 create index if not exists idx_posts_scope on public.posts (scope);
 create index if not exists idx_posts_author_created_at on public.posts (author_id, created_at desc);
@@ -473,6 +483,8 @@ create index if not exists idx_notifications_user_source_created_at on public.no
 create index if not exists idx_media_assets_owner on public.media_assets (owner_type, owner_id);
 create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs (created_at desc);
 create index if not exists idx_admin_audit_logs_target on public.admin_audit_logs (target_type, target_id);
+create index if not exists idx_ops_events_created_at on public.ops_events (created_at desc);
+create index if not exists idx_ops_events_level_created_at on public.ops_events (level, created_at desc);
 
 create or replace function public.set_user_defaults()
 returns trigger
@@ -1033,6 +1045,7 @@ alter table public.blocks enable row level security;
 alter table public.notifications enable row level security;
 alter table public.media_assets enable row level security;
 alter table public.admin_audit_logs enable row level security;
+alter table public.ops_events enable row level security;
 
 drop policy if exists "schools read" on public.schools;
 create policy "schools read"
@@ -1480,6 +1493,13 @@ on public.admin_audit_logs
 for insert
 to authenticated
 with check (public.is_admin() and auth.uid() = admin_user_id);
+
+drop policy if exists "ops events read" on public.ops_events;
+create policy "ops events read"
+on public.ops_events
+for select
+to authenticated
+using (public.is_admin());
 
 insert into storage.buckets (id, name, public)
 values ('media', 'media', true)

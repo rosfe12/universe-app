@@ -58,6 +58,7 @@ const checks = [
   checkEndpoint("public.dating_profiles", "/rest/v1/dating_profiles?select=id&limit=1"),
   checkEndpoint("public.media_assets", "/rest/v1/media_assets?select=id&limit=1"),
   checkEndpoint("public.admin_audit_logs", "/rest/v1/admin_audit_logs?select=id&limit=1"),
+  checkEndpoint("public.ops_events", "/rest/v1/ops_events?select=id&limit=1"),
   checkEndpoint("rpc.list_user_public_profiles", "/rest/v1/rpc/list_user_public_profiles", {
     ...restHeaders,
     "content-type": "application/json",
