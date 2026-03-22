@@ -5,7 +5,14 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AlertTriangle, ArrowRightLeft, BellRing, CheckCircle2, Clock3 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  BellRing,
+  CheckCircle2,
+  Clock3,
+  MessageCircle,
+} from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
@@ -35,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createTradePost } from "@/app/actions/content-actions";
+import { createTradeMessage, createTradePost } from "@/app/actions/content-actions";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { TRADE_STATUS_LABELS } from "@/lib/constants";
@@ -47,6 +54,7 @@ import {
 } from "@/lib/runtime-mutations";
 import {
   getBlockedContentCount,
+  getAnonymousHandle,
   getCurrentSchool,
   getHiddenTradePostCount,
   getLectureById,
@@ -58,6 +66,7 @@ import {
 } from "@/lib/mock-queries";
 import { canAccessTrade } from "@/lib/permissions";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
+import { createClient } from "@/lib/supabase/client";
 import {
   createBlockRecord,
   createReportRecord,
@@ -81,6 +90,13 @@ const tradeSchema = z.object({
 });
 
 type TradeFormValues = z.infer<typeof tradeSchema>;
+type TradeMessage = {
+  id: string;
+  tradePostId: string;
+  senderId: string;
+  content: string;
+  createdAt: string;
+};
 
 export function TradePage({
   initialSnapshot,
@@ -105,7 +121,12 @@ export function TradePage({
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [tradeItems, setTradeItems] = useState(getTradePosts());
+  const [tradeMessages, setTradeMessages] = useState<TradeMessage[]>([]);
+  const [tradeMessageInput, setTradeMessageInput] = useState("");
+  const [tradeMessageError, setTradeMessageError] = useState<string | null>(null);
+  const [tradeMessageLoading, setTradeMessageLoading] = useState(false);
   const [isSubmitting, startSubmitTransition] = useTransition();
+  const [isSendingMessage, startSendMessageTransition] = useTransition();
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessTrade(currentUser);
   const currentSchool = getCurrentSchool();
@@ -142,6 +163,49 @@ export function TradePage({
     setDetailId((current) => (current === queryPostId ? current : queryPostId));
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!detailId) {
+      setTradeMessages([]);
+      setTradeMessageInput("");
+      setTradeMessageError(null);
+      setTradeMessageLoading(false);
+      return;
+    }
+
+    if (source !== "supabase" || !isAuthenticated) {
+      setTradeMessages([]);
+      return;
+    }
+
+    const supabase = createClient();
+    setTradeMessageLoading(true);
+    setTradeMessageError(null);
+
+    void supabase
+      .from("trade_messages")
+      .select("id, trade_post_id, sender_id, content, created_at")
+      .eq("trade_post_id", detailId)
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (error) {
+          setTradeMessageError("채팅을 불러오지 못했습니다.");
+          setTradeMessageLoading(false);
+          return;
+        }
+
+        setTradeMessages(
+          (data ?? []).map((item) => ({
+            id: String(item.id),
+            tradePostId: String(item.trade_post_id),
+            senderId: String(item.sender_id),
+            content: String(item.content),
+            createdAt: String(item.created_at),
+          })),
+        );
+        setTradeMessageLoading(false);
+      });
+  }, [detailId, isAuthenticated, source]);
+
   const detailItem = tradeItems.find((item) => item.id === detailId) ?? null;
   const selectedHaveLecture = getLectureById(form.watch("haveLectureId"));
   const selectedWantLecture = getLectureById(form.watch("wantLectureId"));
@@ -160,6 +224,61 @@ export function TradePage({
   );
   const hiddenTradeCount = getHiddenTradePostCount();
   const blockedContentCount = getBlockedContentCount();
+
+  const handleSendTradeMessage = () => {
+    if (!detailItem) return;
+
+    const content = tradeMessageInput.trim();
+    if (!content) {
+      setTradeMessageError("메시지를 입력해주세요.");
+      return;
+    }
+
+    setTradeMessageError(null);
+
+    if (source === "supabase" && isAuthenticated) {
+      startSendMessageTransition(() => {
+        void (async () => {
+          try {
+            const created = await createTradeMessage({
+              tradePostId: detailItem.id,
+              content,
+            });
+
+            setTradeMessages((current) => [
+              ...current,
+              {
+                id: String(created.id),
+                tradePostId: String(created.trade_post_id),
+                senderId: String(created.sender_id),
+                content: String(created.content),
+                createdAt: String(created.created_at),
+              },
+            ]);
+            setTradeMessageInput("");
+            await refresh();
+          } catch (error) {
+            setTradeMessageError(
+              error instanceof Error ? error.message : "채팅 전송에 실패했습니다.",
+            );
+          }
+        })();
+      });
+      return;
+    }
+
+    setTradeMessages((current) => [
+      ...current,
+      {
+        id: `trade-message-local-${current.length + 1}`,
+        tradePostId: detailItem.id,
+        senderId: currentUser.id,
+        content,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    setTradeMessageInput("");
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
@@ -638,6 +757,70 @@ export function TradePage({
                   />
                 </div>
               </div>
+              <Card className="shadow-none">
+                <CardContent className="space-y-4 py-5">
+                  <div className="space-y-1">
+                    <p className="font-semibold">교환 채팅</p>
+                    <p className="text-sm text-muted-foreground">
+                      이 교환 글을 보는 사람끼리 바로 대화를 이어갈 수 있습니다.
+                    </p>
+                  </div>
+                  <div className="max-h-64 space-y-3 overflow-y-auto rounded-[20px] bg-secondary/40 p-3">
+                    {tradeMessageLoading ? (
+                      <p className="text-sm text-muted-foreground">대화를 불러오는 중입니다.</p>
+                    ) : tradeMessages.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        아직 시작된 대화가 없습니다. 먼저 한 줄 남겨보세요.
+                      </p>
+                    ) : (
+                      tradeMessages.map((message) => {
+                        const mine = message.senderId === currentUser.id;
+                        return (
+                          <div
+                            key={message.id}
+                            className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                          >
+                            <div
+                              className={`max-w-[85%] rounded-[18px] px-3 py-2 ${
+                                mine
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-background text-foreground"
+                              }`}
+                            >
+                              <p className="text-[11px] opacity-70">
+                                {mine ? "나" : getAnonymousHandle(message.senderId)}
+                              </p>
+                              <p className="mt-1 whitespace-pre-wrap text-sm leading-6">
+                                {message.content}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Textarea
+                      rows={3}
+                      value={tradeMessageInput}
+                      onChange={(event) => setTradeMessageInput(event.target.value)}
+                      placeholder="예: 원하는 시간대 확인 가능할까요?"
+                    />
+                    {tradeMessageError ? (
+                      <p className="text-sm text-rose-600">{tradeMessageError}</p>
+                    ) : null}
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={handleSendTradeMessage}
+                      disabled={isSendingMessage}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      대화 보내기
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
               <div className="space-y-2">
                 <p className="text-sm font-semibold">바로 맞물리는 후보</p>
                 {detailMatches.length === 0 ? (

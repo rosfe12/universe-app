@@ -327,6 +327,22 @@ type TradePostInsert = {
   auto_hidden?: boolean;
 };
 
+type TradeMessageRow = {
+  id: string;
+  trade_post_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+};
+
+type TradeMessageInsert = {
+  id?: string;
+  trade_post_id: string;
+  sender_id: string;
+  content: string;
+  created_at?: string;
+};
+
 type DatingProfileRow = {
   id: string;
   user_id: string;
@@ -514,6 +530,7 @@ export interface Database {
       lectures: SupabaseTable<LectureRow, LectureInsert>;
       lecture_reviews: SupabaseTable<LectureReviewRow, LectureReviewInsert>;
       trade_posts: SupabaseTable<TradePostRow, TradePostInsert>;
+      trade_messages: SupabaseTable<TradeMessageRow, TradeMessageInsert>;
       dating_profiles: SupabaseTable<DatingProfileRow, DatingProfileInsert>;
       reports: SupabaseTable<ReportRow, ReportInsert>;
       blocks: SupabaseTable<BlockRow, BlockInsert>;

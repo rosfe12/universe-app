@@ -351,6 +351,14 @@ create table if not exists public.trade_posts (
   auto_hidden boolean not null default false
 );
 
+create table if not exists public.trade_messages (
+  id uuid primary key default gen_random_uuid(),
+  trade_post_id uuid not null references public.trade_posts(id) on delete cascade,
+  sender_id uuid not null references public.users(id) on delete cascade,
+  content text not null,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
 create table if not exists public.dating_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.users(id) on delete cascade,
@@ -476,6 +484,7 @@ create index if not exists idx_lecture_reviews_author_semester on public.lecture
 create index if not exists idx_lecture_reviews_author_created_at on public.lecture_reviews (author_id, created_at desc);
 create index if not exists idx_trade_posts_school_status on public.trade_posts (school_id, status);
 create index if not exists idx_trade_posts_author_created_at on public.trade_posts (author_id, created_at desc);
+create index if not exists idx_trade_messages_trade_post_created_at on public.trade_messages (trade_post_id, created_at desc);
 create index if not exists idx_reports_target on public.reports (target_type, target_id);
 create index if not exists idx_reports_reporter_created_at on public.reports (reporter_id, created_at desc);
 create index if not exists idx_notifications_user_created_at on public.notifications (user_id, created_at desc);
@@ -1039,6 +1048,7 @@ alter table public.comments enable row level security;
 alter table public.lectures enable row level security;
 alter table public.lecture_reviews enable row level security;
 alter table public.trade_posts enable row level security;
+alter table public.trade_messages enable row level security;
 alter table public.dating_profiles enable row level security;
 alter table public.reports enable row level security;
 alter table public.blocks enable row level security;
@@ -1325,6 +1335,40 @@ on public.trade_posts
 for delete
 to authenticated
 using (auth.uid() = author_id or public.is_admin());
+
+drop policy if exists "trade_messages same school read" on public.trade_messages;
+create policy "trade_messages same school read"
+on public.trade_messages
+for select
+to authenticated
+using (
+  auth.uid() = sender_id
+  or exists (
+    select 1
+    from public.trade_posts trade_post
+    where trade_post.id = trade_post_id
+      and (
+        trade_post.author_id = auth.uid()
+        or trade_post.school_id = public.current_user_school_id()
+      )
+  )
+);
+
+drop policy if exists "trade_messages verified student insert" on public.trade_messages;
+create policy "trade_messages verified student insert"
+on public.trade_messages
+for insert
+to authenticated
+with check (
+  auth.uid() = sender_id
+  and public.is_verified_student()
+  and exists (
+    select 1
+    from public.trade_posts trade_post
+    where trade_post.id = trade_post_id
+      and trade_post.school_id = public.current_user_school_id()
+  )
+);
 
 drop policy if exists "dating_profiles student read" on public.dating_profiles;
 create policy "dating_profiles student read"

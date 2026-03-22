@@ -186,6 +186,14 @@ export interface TradePost {
   createdAt: string;
 }
 
+export interface TradeMessage {
+  id: string;
+  tradePostId: string;
+  senderId: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface Notification {
   id: string;
   userId: string;

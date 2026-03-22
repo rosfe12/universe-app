@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { MessageCircleMore, MessagesSquare, RefreshCw } from "lucide-react";
 
 import {
@@ -20,6 +20,7 @@ import {
   getTradeStatusLabel,
   getTradePosts,
 } from "@/lib/mock-queries";
+import { createClient } from "@/lib/supabase/client";
 import { formatRelativeLabel } from "@/lib/utils";
 import type { ReactNode } from "react";
 import type { AppRuntimeSnapshot } from "@/types";
@@ -46,6 +47,14 @@ type MessageThreadItem = {
   sectionLabel?: string;
 };
 
+type TradeMessageRow = {
+  id: string;
+  trade_post_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+};
+
 function getThreadHref(
   targetType?: "post" | "trade",
   targetId?: string,
@@ -56,7 +65,7 @@ function getThreadHref(
   }
 
   if (targetType === "trade" && targetId) {
-    return `/trade?post=${targetId}`;
+    return `/trade?post=${targetId}&chat=1`;
   }
 
   return fallbackHref ?? "/notifications";
@@ -125,8 +134,10 @@ export function MessagesPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, isAuthenticated, currentUser } = useAppRuntime(initialSnapshot);
+  const { loading, isAuthenticated, currentUser, source } = useAppRuntime(initialSnapshot);
   const notifications = getNotifications(currentUser.id);
+  const [chatThreads, setChatThreads] = useState<MessageThreadItem[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
   const messageThreads = Array.from(
     notifications
       .filter((item) => isMessageNotification(item.type))
@@ -187,28 +198,105 @@ export function MessagesPage({
       sectionLabel: thread.sectionLabel,
     }));
 
-  const tradeThreads = getTradePosts()
-    .filter((item) => item.userId === currentUser.id)
-    .slice(0, 6)
-    .map((item) => ({
-      id: `trade-room:${item.id}`,
-      title: `${getLectureById(item.wantLectureId)?.courseName ?? "원하는 강의"} 교환 진행`,
-      preview: `${getTradeStatusLabel(item.status)} · ${item.note}`,
-      href: `/trade?post=${item.id}`,
-      unread: item.status === "matching",
-      time: formatRelativeLabel(item.createdAt),
-      targetType: "trade" as const,
-      targetId: item.id,
-      sectionLabel: "수강신청 교환",
-    }));
+  const fallbackChatThreads = useMemo(
+    () =>
+      getTradePosts()
+        .filter((item) => item.userId === currentUser.id)
+        .slice(0, 6)
+        .map((item) => ({
+          id: `chat:${item.id}`,
+          title: `${getLectureById(item.wantLectureId)?.courseName ?? "원하는 강의"} 교환 대화`,
+          preview: `${getTradeStatusLabel(item.status)} · ${item.note}`,
+          href: `/trade?post=${item.id}&chat=1`,
+          unread: item.status === "matching",
+          time: formatRelativeLabel(item.createdAt),
+          targetType: "trade" as const,
+          targetId: item.id,
+          sectionLabel: "수강신청 교환",
+        })),
+    [currentUser.id],
+  );
 
-  const chatThreads = tradeThreads
-    .map((thread) => ({
-      ...thread,
-      id: `chat:${thread.targetId}`,
-    }))
-    .sort((a, b) => Number(b.unread) - Number(a.unread))
-    .slice(0, 12);
+  useEffect(() => {
+    if (!isAuthenticated || source !== "supabase") {
+      setChatThreads(fallbackChatThreads);
+      return;
+    }
+
+    const supabase = createClient();
+    const loadChatThreads = async () => {
+      setChatLoading(true);
+      const ownedTradeIds = getTradePosts()
+        .filter((item) => item.userId === currentUser.id)
+        .map((item) => item.id);
+
+      const { data: joinedRooms } = await supabase
+        .from("trade_messages")
+        .select("trade_post_id")
+        .eq("sender_id", currentUser.id)
+        .limit(120);
+
+      const roomIds = [...new Set([
+        ...ownedTradeIds,
+        ...(joinedRooms ?? []).map((item) => String(item.trade_post_id)),
+      ])];
+
+      if (roomIds.length === 0) {
+        setChatThreads(fallbackChatThreads);
+        setChatLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("trade_messages")
+        .select("id, trade_post_id, sender_id, content, created_at")
+        .in("trade_post_id", roomIds)
+        .order("created_at", { ascending: false })
+        .limit(120);
+
+      if (error || !data) {
+        setChatThreads(fallbackChatThreads);
+        setChatLoading(false);
+        return;
+      }
+
+      const latestByTrade = new Map<string, TradeMessageRow>();
+      for (const row of data as TradeMessageRow[]) {
+        if (!latestByTrade.has(row.trade_post_id)) {
+          latestByTrade.set(row.trade_post_id, row);
+        }
+      }
+
+      const visibleTradePosts = getTradePosts();
+      const nextThreads: MessageThreadItem[] = [...latestByTrade.entries()]
+        .flatMap(([tradePostId, message]) => {
+          const tradePost = visibleTradePosts.find((item) => item.id === tradePostId);
+          if (!tradePost) {
+            return [];
+          }
+
+          return [
+            {
+              id: `chat:${tradePost.id}`,
+              title: `${getLectureById(tradePost.wantLectureId)?.courseName ?? "원하는 강의"} 교환 대화`,
+              preview: message.content,
+              href: `/trade?post=${tradePost.id}&chat=1`,
+              unread: message.sender_id !== currentUser.id,
+              time: formatRelativeLabel(message.created_at),
+              targetType: "trade" as const,
+              targetId: tradePost.id,
+              sectionLabel: "수강신청 교환",
+            },
+          ];
+        })
+        .sort((a, b) => Number(b.unread) - Number(a.unread));
+
+      setChatThreads(nextThreads.length > 0 ? nextThreads : fallbackChatThreads);
+      setChatLoading(false);
+    };
+
+    void loadChatThreads();
+  }, [currentUser.id, fallbackChatThreads, isAuthenticated, source]);
 
   return (
     <AppShell title="메시지">
@@ -260,12 +348,14 @@ export function MessagesPage({
           </TabsContent>
           <TabsContent value="chat" className="mt-0">
             <div className="px-4 pb-3 text-xs text-gray-400">
-              매칭이 진행 중인 수강신청 교환 대화만 따로 모아 보여줍니다.
+              실제 수강신청 교환 대화방만 따로 모아 보여줍니다.
             </div>
-            {chatThreads.length === 0 ? (
+            {chatLoading ? (
+              <LoadingState />
+            ) : chatThreads.length === 0 ? (
               <EmptyState
                 title="아직 진행 중인 교환 채팅이 없습니다"
-                description="매칭이 시작된 수강신청 교환이 생기면 여기에서 바로 이어볼 수 있습니다."
+                description="교환 글 상세에서 대화를 시작하면 여기에서 바로 이어볼 수 있습니다."
                 actionLabel="수강신청 교환 보기"
                 href="/trade"
               />
