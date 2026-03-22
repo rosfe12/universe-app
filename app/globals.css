@@ -31,6 +31,24 @@
     --chart-5: 45 93% 47%;
   }
 
+  html[data-theme="dark"] {
+    --background: 222 47% 10%;
+    --foreground: 210 40% 96%;
+    --card: 222 40% 12%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 40% 12%;
+    --popover-foreground: 210 40% 96%;
+    --secondary: 222 22% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222 22% 15%;
+    --muted-foreground: 215 20% 72%;
+    --accent: 222 22% 17%;
+    --accent-foreground: 210 40% 96%;
+    --border: 222 18% 24%;
+    --input: 222 18% 24%;
+    color-scheme: dark;
+  }
+
   * {
     @apply border-border;
   }
@@ -74,6 +92,83 @@
 
   ::selection {
     background: rgba(99, 102, 241, 0.18);
+  }
+
+  html[data-theme="dark"] body {
+    background: #0b1020;
+  }
+
+  html[data-theme="dark"] .bg-white,
+  html[data-theme="dark"] .bg-background {
+    background-color: #0f172a !important;
+  }
+
+  html[data-theme="dark"] .bg-white\/95,
+  html[data-theme="dark"] .bg-white\/90,
+  html[data-theme="dark"] .bg-white\/80 {
+    background-color: rgba(15, 23, 42, 0.92) !important;
+  }
+
+  html[data-theme="dark"] .bg-gray-50,
+  html[data-theme="dark"] .bg-secondary,
+  html[data-theme="dark"] .bg-secondary\/60 {
+    background-color: rgba(30, 41, 59, 0.86) !important;
+  }
+
+  html[data-theme="dark"] .bg-gray-100 {
+    background-color: rgba(51, 65, 85, 0.92) !important;
+  }
+
+  html[data-theme="dark"] .border-gray-100,
+  html[data-theme="dark"] .border-border {
+    border-color: rgba(148, 163, 184, 0.16) !important;
+  }
+
+  html[data-theme="dark"] .text-gray-900,
+  html[data-theme="dark"] .text-foreground,
+  html[data-theme="dark"] .text-secondary-foreground,
+  html[data-theme="dark"] .text-card-foreground {
+    color: #f8fafc !important;
+  }
+
+  html[data-theme="dark"] .text-gray-500,
+  html[data-theme="dark"] .text-muted-foreground {
+    color: #94a3b8 !important;
+  }
+
+  html[data-theme="dark"] .text-gray-400 {
+    color: #64748b !important;
+  }
+
+  html[data-theme="dark"] input,
+  html[data-theme="dark"] textarea,
+  html[data-theme="dark"] select {
+    color: #f8fafc;
+  }
+
+  html[data-theme="dark"] [class*="bg-emerald-50"] {
+    background-color: rgba(6, 95, 70, 0.18) !important;
+  }
+
+  html[data-theme="dark"] [class*="bg-amber-50"] {
+    background-color: rgba(120, 53, 15, 0.2) !important;
+  }
+
+  html[data-theme="dark"] [class*="text-emerald-700"] {
+    color: #6ee7b7 !important;
+  }
+
+  html[data-theme="dark"] [class*="text-amber-700"] {
+    color: #fbbf24 !important;
+  }
+
+  html[data-reduce-motion="true"] *,
+  html[data-reduce-motion="true"] *::before,
+  html[data-reduce-motion="true"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

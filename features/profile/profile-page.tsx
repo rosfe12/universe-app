@@ -14,6 +14,7 @@ import {
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
+import { AppSettingsSection } from "@/components/shared/app-settings-section";
 import { MyPageLevelSection } from "@/components/shared/my-page-level-section";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ProfileCard } from "@/components/shared/profile-card";
@@ -22,7 +23,7 @@ import { UserLevelText } from "@/components/shared/user-level-text";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
@@ -279,6 +280,8 @@ export function ProfilePage({
           })}
         </div>
       </section>
+
+      <AppSettingsSection />
 
       <section className="space-y-3">
         <SectionHeader title="계정 관리" />
