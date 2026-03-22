@@ -19,6 +19,7 @@ import {
 
 import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
 import { AppShell } from "@/components/layout/app-shell";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FeedList } from "@/components/shared/feed-list";
 import { CommentThread } from "@/features/common/comment-thread";
@@ -269,6 +270,7 @@ export function CommunityPage({
   const [sortMode, setSortMode] = useState<"popular" | "latest">("popular");
   const [composerOpen, setComposerOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const canAccessCommunity =
     !isAuthenticated ||
@@ -416,10 +418,11 @@ export function CommunityPage({
               content: values.content,
               tags,
             });
-            await refresh();
             setComposerOpen(false);
             form.reset();
             setActiveFilter(getFilterFromBoard(values.board));
+            setSuccessMessage("게시글이 등록되었습니다.");
+            await refresh();
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "글 작성에 실패했습니다.",
@@ -435,6 +438,7 @@ export function CommunityPage({
     setComposerOpen(false);
     form.reset();
     setActiveFilter(getFilterFromBoard(values.board));
+    setSuccessMessage("게시글이 등록되었습니다.");
   });
 
   if (!loading && !canAccessCommunity) {
@@ -463,6 +467,12 @@ export function CommunityPage({
       subtitle="공유 피드"
     >
       {loading ? <LoadingState /> : null}
+      {successMessage ? (
+        <ActionFeedbackBanner
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      ) : null}
 
       <section className="space-y-3">
         <div className="space-y-3">

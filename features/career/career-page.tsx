@@ -10,6 +10,7 @@ import { BriefcaseBusiness, Building2, FileText, MessageCircle } from "lucide-re
 import { createPost } from "@/app/actions/content-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FeedList } from "@/components/shared/feed-list";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
@@ -94,6 +95,7 @@ export function CareerPage({
   const [activeBoard, setActiveBoard] = useState<CareerBoardFilter>("all");
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
 
   const careerInfoPosts = getCareerPosts("careerInfo");
@@ -177,7 +179,6 @@ export function CareerPage({
               visibilityLevel: values.visibilityLevel,
               tags: [boardLabel, values.board === "careerInfo" ? "합격루틴" : "인턴"],
             });
-            await refresh();
             setComposerOpen(false);
             form.reset({
               board: values.board,
@@ -185,6 +186,8 @@ export function CareerPage({
               content: "",
               visibilityLevel: values.visibilityLevel,
             });
+            setSuccessMessage("게시글이 등록되었습니다.");
+            await refresh();
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "취업 글 작성에 실패했습니다.",
@@ -203,11 +206,18 @@ export function CareerPage({
       content: "",
       visibilityLevel: values.visibilityLevel,
     });
+    setSuccessMessage("게시글이 등록되었습니다.");
   });
 
   return (
     <AppShell title="취업" subtitle="실전 정보와 채용 공고를 한 흐름으로 봅니다">
       {loading ? <LoadingState /> : null}
+      {successMessage ? (
+        <ActionFeedbackBanner
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      ) : null}
 
       <Card className="overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.18),_transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,244,255,0.92))]">
         <CardContent className="space-y-5 py-6">

@@ -10,6 +10,7 @@ import { Eye, Heart, MessageCircle, ShieldCheck, Users } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { ImageUploadField } from "@/components/shared/image-upload-field";
@@ -96,6 +97,7 @@ export function DatingPage({
   const [open, setOpen] = useState(false);
   const [detailPost, setDetailPost] = useState<Post | null>(null);
   const [items, setItems] = useState(getDatingPosts());
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessDating(currentUser);
@@ -185,9 +187,14 @@ export function DatingPage({
               visibilityLevel: values.visibilityLevel,
               subcategory: values.subcategory,
             });
-            await refresh();
             setOpen(false);
             form.reset();
+            setSuccessMessage(
+              values.subcategory === "meeting"
+                ? "미팅 글이 등록되었습니다."
+                : "연애 글이 등록되었습니다.",
+            );
+            await refresh();
           } catch (error) {
             await deleteImageByPublicUrl(values.photoUrl);
             form.setError("root", {
@@ -211,6 +218,11 @@ export function DatingPage({
 
     setOpen(false);
     form.reset();
+    setSuccessMessage(
+      values.subcategory === "meeting"
+        ? "미팅 글이 등록되었습니다."
+        : "연애 글이 등록되었습니다.",
+    );
   });
 
   if (!canAccessDating(currentUser)) {
@@ -277,6 +289,12 @@ export function DatingPage({
       subtitle="대학생 익명 관계 피드"
     >
       {loading ? <LoadingState /> : null}
+      {successMessage ? (
+        <ActionFeedbackBanner
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      ) : null}
       <Card className="border-amber-200 bg-amber-50/90">
         <CardContent className="py-4">
           <p className="text-sm font-medium text-amber-800">

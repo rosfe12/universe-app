@@ -10,6 +10,7 @@ import { Filter, MessageSquarePlus } from "lucide-react";
 
 import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
 import { AppShell } from "@/components/layout/app-shell";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
@@ -93,6 +94,7 @@ export function AdmissionPage({
   const [open, setOpen] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion(currentUser);
@@ -184,9 +186,10 @@ export function AdmissionPage({
               tags: [values.track, values.interestUniversity],
               meta: localQuestion.meta,
             });
-            await refresh();
             setOpen(false);
             form.reset();
+            setSuccessMessage("질문이 등록되었습니다.");
+            await refresh();
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "질문 등록에 실패했습니다.",
@@ -201,6 +204,7 @@ export function AdmissionPage({
 
     setOpen(false);
     form.reset();
+    setSuccessMessage("질문이 등록되었습니다.");
   });
 
   return (
@@ -215,6 +219,12 @@ export function AdmissionPage({
       }
     >
       {loading ? <LoadingState /> : null}
+      {successMessage ? (
+        <ActionFeedbackBanner
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      ) : null}
       <Card className="bg-secondary/70">
         <CardContent className="space-y-3 py-5">
           <SectionHeader

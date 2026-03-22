@@ -16,6 +16,7 @@ import {
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -124,6 +125,7 @@ export function TradePage({
   const [tradeItems, setTradeItems] = useState(
     getTradePosts().filter((tradePost) => !schoolId || tradePost.schoolId === schoolId),
   );
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tradeMessages, setTradeMessages] = useState<TradeMessage[]>([]);
   const [tradeMessageInput, setTradeMessageInput] = useState("");
   const [tradeMessageError, setTradeMessageError] = useState<string | null>(null);
@@ -350,9 +352,10 @@ export function TradePage({
               status: values.status,
               visibilityLevel: values.visibilityLevel,
             });
-            await refresh();
             setOpen(false);
             form.reset();
+            setSuccessMessage("매칭 글이 등록되었습니다.");
+            await refresh();
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "매칭 글 등록에 실패했습니다.",
@@ -368,6 +371,7 @@ export function TradePage({
 
     setOpen(false);
     form.reset();
+    setSuccessMessage("매칭 글이 등록되었습니다.");
   });
 
   if (!canAccessTrade(currentUser)) {
@@ -434,6 +438,12 @@ export function TradePage({
       subtitle="수강신청 정보 연결 중심 교환 게시판"
     >
       {loading ? <LoadingState /> : null}
+      {successMessage ? (
+        <ActionFeedbackBanner
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      ) : null}
       <div className="grid grid-cols-3 gap-3">
         <Card className="border-none bg-secondary/60 shadow-none">
           <CardContent className="py-4">

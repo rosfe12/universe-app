@@ -10,6 +10,7 @@ import { ArrowLeft, PenSquare, ThumbsUp } from "lucide-react";
 
 import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
 import { AppShell } from "@/components/layout/app-shell";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -112,6 +113,7 @@ export function LectureDetailPage({
   const lecture = getLectureById(lectureId);
   const [open, setOpen] = useState(false);
   const [reviews, setReviews] = useState(getLectureReviews(lectureId));
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const canWriteReview =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteLectureReview(currentUser);
@@ -293,9 +295,10 @@ export function LectureDetailPage({
               semester: lecture.semester,
               visibilityLevel: values.visibilityLevel,
             });
-            await refresh();
             setOpen(false);
             form.reset();
+            setSuccessMessage("리뷰가 등록되었습니다.");
+            await refresh();
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "리뷰 등록에 실패했습니다.",
@@ -311,6 +314,7 @@ export function LectureDetailPage({
 
     setOpen(false);
     form.reset();
+    setSuccessMessage("리뷰가 등록되었습니다.");
   });
 
   return (
@@ -326,6 +330,12 @@ export function LectureDetailPage({
       }
     >
       {loading ? <LoadingState /> : null}
+      {successMessage ? (
+        <ActionFeedbackBanner
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      ) : null}
       <Card className="overflow-hidden bg-[linear-gradient(135deg,#173821_0%,#2d5a35_52%,#f4e3bb_100%)] text-white">
         <CardContent className="space-y-5 py-6">
           <div className="flex items-start justify-between gap-4">

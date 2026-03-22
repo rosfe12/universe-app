@@ -21,6 +21,7 @@ import {
 
 import { createPost } from "@/app/actions/content-actions";
 import { AppShell } from "@/components/layout/app-shell";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FeedList } from "@/components/shared/feed-list";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
@@ -134,6 +135,7 @@ export function SchoolPage({
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [admissionComposerOpen, setAdmissionComposerOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const currentSchool = getCurrentSchool();
   const schoolId = currentUser.schoolId;
@@ -343,6 +345,12 @@ export function SchoolPage({
   return (
     <AppShell title={isApplicantMode ? "지망학교" : "우리학교"}>
       {loading ? <LoadingState /> : null}
+      {successMessage ? (
+        <ActionFeedbackBanner
+          message={successMessage}
+          onClose={() => setSuccessMessage(null)}
+        />
+      ) : null}
 
       <Card className="relative overflow-hidden border-border bg-card">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.16),_transparent_36%)] opacity-90 dark:opacity-35" />
@@ -758,7 +766,7 @@ export function SchoolPage({
                         tags: [values.track, schoolShortName],
                         meta,
                       });
-                      await refresh();
+                      setSuccessMessage("입시 질문이 등록되었습니다.");
                       admissionForm.reset({
                         title: "",
                         region: "서울",
@@ -770,6 +778,7 @@ export function SchoolPage({
                           currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
                       });
                       setAdmissionComposerOpen(false);
+                      await refresh();
                     } catch (error) {
                       admissionForm.setError("root", {
                         message: error instanceof Error ? error.message : "입시 질문 등록에 실패했습니다.",
@@ -792,6 +801,7 @@ export function SchoolPage({
                   currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
               });
               setAdmissionComposerOpen(false);
+              setSuccessMessage("입시 질문이 등록되었습니다.");
             })}
           >
             <div className="space-y-2">
@@ -891,7 +901,7 @@ export function SchoolPage({
                         content: values.content,
                         tags: ["새내기존", schoolShortName],
                       });
-                      await refresh();
+                      setSuccessMessage("새내기 게시글이 등록되었습니다.");
                       freshmanForm.reset({
                         title: "",
                         content: "",
@@ -899,6 +909,7 @@ export function SchoolPage({
                           currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
                       });
                       setComposerOpen(false);
+                      await refresh();
                     } catch (error) {
                       freshmanForm.setError("root", {
                         message: error instanceof Error ? error.message : "새내기 게시판 글 작성에 실패했습니다.",
@@ -917,6 +928,7 @@ export function SchoolPage({
                   currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
               });
               setComposerOpen(false);
+              setSuccessMessage("새내기 게시글이 등록되었습니다.");
             })}
           >
             <div className="space-y-2">
