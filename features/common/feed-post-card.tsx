@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Heart, MessageCircle } from "lucide-react";
 
@@ -67,17 +66,6 @@ export function FeedPostCard({
         <h3 className="text-base font-semibold leading-6 text-gray-900">{post.title}</h3>
         <p className="line-clamp-2 text-sm leading-6 text-gray-500">{post.content}</p>
       </div>
-      {post.imageUrl ? (
-        <div className="overflow-hidden rounded-xl border border-gray-100">
-          <Image
-            src={post.imageUrl}
-            alt={post.title}
-            width={1200}
-            height={720}
-            className="h-40 w-full object-cover"
-          />
-        </div>
-      ) : null}
     </div>
   );
 

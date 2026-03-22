@@ -157,17 +157,11 @@ export function HomePage({
         />
         <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_56%,#fff1f2_100%)]">
           <CardContent className="space-y-4 py-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">
-                  캠퍼스 믹스
-                </p>
-                <p className="mt-2 text-lg font-bold text-foreground">동아리, 모임, 고민 글부터 보여줘요</p>
-              </div>
-              <div className="rounded-[22px] bg-white px-4 py-3 text-right shadow-[0_20px_44px_-28px_rgba(251,146,60,0.28)]">
-                <p className="text-[11px] text-muted-foreground">게시글</p>
-                <p className="mt-1 text-2xl font-bold text-orange-500">{campusLifePosts.length}</p>
-              </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">
+                캠퍼스 믹스
+              </p>
+              <p className="mt-2 text-lg font-bold text-foreground">동아리, 모임, 고민 글부터 보여줘요</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="warning">
@@ -211,14 +205,9 @@ export function HomePage({
         />
         <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f3fbf4_0%,#ffffff_58%,#ecfccb_130%)]">
           <CardContent className="space-y-3 py-5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                <Sparkles className="h-3.5 w-3.5" />
-                우리학교 새내기
-              </div>
-              <Badge className="border-emerald-200 bg-white/90 text-emerald-700">
-                글 {freshmanPosts.length}개
-              </Badge>
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <Sparkles className="h-3.5 w-3.5" />
+              우리학교 새내기
             </div>
           </CardContent>
         </Card>
@@ -251,17 +240,11 @@ export function HomePage({
         />
         <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#eef2ff_0%,#ffffff_56%,#f5f3ff_100%)]">
           <CardContent className="space-y-4 py-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500">
-                  강의 한눈에
-                </p>
-                <p className="mt-2 text-lg font-bold text-foreground">수강 전에 먼저 보는 강의평만 골랐어요</p>
-              </div>
-              <div className="rounded-[22px] bg-white px-4 py-3 text-right shadow-[0_20px_44px_-28px_rgba(99,102,241,0.35)]">
-                <p className="text-[11px] text-muted-foreground">강의 수</p>
-                <p className="mt-1 text-2xl font-bold text-indigo-600">{lectureHighlights.length}</p>
-              </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500">
+                강의 한눈에
+              </p>
+              <p className="mt-2 text-lg font-bold text-foreground">수강 전에 먼저 보는 강의평만 골랐어요</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="default">

@@ -1,6 +1,4 @@
 "use client";
-
-import Image from "next/image";
 import { useTransition } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,13 +22,12 @@ import { FeedList } from "@/components/shared/feed-list";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
-import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -73,13 +70,11 @@ import {
 import { getDefaultVisibilityLevel } from "@/lib/user-identity";
 import { cn, formatRelativeLabel } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/types";
-import { deleteImageByPublicUrl } from "@/lib/supabase/storage";
 
 const communitySchema = z.object({
   board: z.enum(["free", "advice", "ask", "hot", "careerInfo", "jobPosting"]),
   title: z.string().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().min(10, "본문을 10자 이상 입력해주세요."),
-  imageUrl: z.string().url().optional().or(z.literal("")),
   visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
 });
 
@@ -199,21 +194,6 @@ function SharedFeedCard({
         </button>
       </div>
       <div className="space-y-3 px-4 pb-4">
-        {post.imageUrl ? (
-          <button
-            type="button"
-            onClick={onOpen}
-            className="block w-full overflow-hidden rounded-xl border border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
-          >
-            <Image
-              src={post.imageUrl}
-              alt={post.title}
-              width={1200}
-              height={900}
-              className="h-44 w-full object-cover"
-            />
-          </button>
-        ) : null}
         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
           <span>반응 {post.likes}</span>
           <span>댓글 {post.commentCount}</span>
@@ -263,9 +243,6 @@ export function CommunityPage({
   const detailParam = searchParams.get("post");
   const {
     loading,
-    posts,
-    reports,
-    blocks,
     currentUser: runtimeUser,
     source,
     isAuthenticated,
@@ -289,11 +266,11 @@ export function CommunityPage({
     setActiveFilter(isSharedFilter(filterParam) ? filterParam : "all");
   }, [filterParam]);
 
-  const freePosts = useMemo(() => getCommunityPosts("free"), [blocks, posts, reports]);
-  const hotPosts = useMemo(() => getHotGalleryPosts(), [blocks, posts, reports]);
-  const advicePosts = useMemo(() => getCommunityPosts("advice"), [blocks, posts, reports]);
-  const askPosts = useMemo(() => getCommunityPosts("ask"), [blocks, posts, reports]);
-  const careerPosts = useMemo(() => getCareerPosts(), [blocks, posts, reports]);
+  const freePosts = useMemo(() => getCommunityPosts("free"), []);
+  const hotPosts = useMemo(() => getHotGalleryPosts(), []);
+  const advicePosts = useMemo(() => getCommunityPosts("advice"), []);
+  const askPosts = useMemo(() => getCommunityPosts("ask"), []);
+  const careerPosts = useMemo(() => getCareerPosts(), []);
 
   const feedItems = useMemo(() => {
     const all = [...freePosts, ...advicePosts, ...hotPosts, ...askPosts, ...careerPosts];
@@ -344,15 +321,6 @@ export function CommunityPage({
     [detailPostId, feedItems],
   );
 
-  const counts = {
-    all: feedItems.length,
-    free: freePosts.length,
-    advice: advicePosts.length,
-    hot: hotPosts.length,
-    ask: askPosts.length,
-    career: careerPosts.length,
-  };
-
   const canComposeCommunity =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCommunity(currentUser);
   const canComposeCareer =
@@ -360,33 +328,12 @@ export function CommunityPage({
   const canCompose =
     activeFilter === "career" ? canComposeCareer : canComposeCommunity;
 
-  if (!loading && !canAccessCommunity) {
-    return (
-      <AppShell title="커뮤니티" subtitle="대학생 중심 익명 커뮤니티">
-        <Card className="border-dashed border-white/80 bg-white/92">
-          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-            <div className="space-y-1">
-              <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
-              <p className="text-sm text-muted-foreground">
-                자유, 고민, 핫갤, 무물, 취업 보드는 대학생 계정에서만 열립니다.
-              </p>
-            </div>
-            <Button type="button" onClick={() => router.push("/admission")}>
-              입시 게시판으로 이동
-            </Button>
-          </CardContent>
-        </Card>
-      </AppShell>
-    );
-  }
-
   const form = useForm<CommunityFormValues>({
     resolver: zodResolver(communitySchema),
     defaultValues: {
       board: getDefaultBoard(activeFilter),
       title: "",
       content: "",
-      imageUrl: "",
       visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
     },
   });
@@ -441,7 +388,6 @@ export function CommunityPage({
       likes: 0,
       commentCount: 0,
       tags,
-      imageUrl: values.imageUrl || undefined,
     };
 
     if (source === "supabase" && isAuthenticated) {
@@ -455,7 +401,6 @@ export function CommunityPage({
               visibilityLevel: values.visibilityLevel,
               title: values.title,
               content: values.content,
-              imageUrl: values.imageUrl || undefined,
               tags,
             });
             await refresh();
@@ -463,7 +408,6 @@ export function CommunityPage({
             form.reset();
             setActiveFilter(getFilterFromBoard(values.board));
           } catch (error) {
-            await deleteImageByPublicUrl(values.imageUrl);
             form.setError("root", {
               message: error instanceof Error ? error.message : "글 작성에 실패했습니다.",
             });
@@ -479,6 +423,26 @@ export function CommunityPage({
     form.reset();
     setActiveFilter(getFilterFromBoard(values.board));
   });
+
+  if (!loading && !canAccessCommunity) {
+    return (
+      <AppShell title="커뮤니티" subtitle="대학생 중심 익명 커뮤니티">
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
+              <p className="text-sm text-muted-foreground">
+                자유, 고민, 핫갤, 무물, 취업 보드는 대학생 계정에서만 열립니다.
+              </p>
+            </div>
+            <Button type="button" onClick={() => router.push("/admission")}>
+              입시 게시판으로 이동
+            </Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -504,9 +468,6 @@ export function CommunityPage({
               >
                 <filter.icon className="h-4 w-4" />
                 <span>{filter.label}</span>
-                <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px]">
-                  {counts[filter.value]}
-                </span>
               </button>
             ))}
           </div>
@@ -637,17 +598,6 @@ export function CommunityPage({
                     <Badge variant={getCardVariant(detailPost)}>{getCardLabel(detailPost)}</Badge>
                     {detailPost.subcategory === "hot" ? <Badge variant="danger">19+</Badge> : null}
                   </div>
-                  {detailPost.imageUrl ? (
-                    <div className="relative overflow-hidden rounded-[24px] border border-white/70 bg-secondary/50">
-                      <Image
-                        src={detailPost.imageUrl}
-                        alt={detailPost.title}
-                        width={1200}
-                        height={900}
-                        className="h-60 w-full object-cover"
-                      />
-                    </div>
-                  ) : null}
                   <p className="text-sm leading-7 text-muted-foreground">{detailPost.content}</p>
                   <ReportBlockActions
                     targetType="post"
@@ -816,14 +766,6 @@ export function CommunityPage({
               <Label htmlFor="content">내용</Label>
               <Textarea id="content" {...form.register("content")} />
             </div>
-            <ImageUploadField
-              label="대표 이미지"
-              helperText="글 카드에 함께 노출될 이미지를 업로드합니다."
-              value={form.watch("imageUrl")}
-              onChange={(url) => form.setValue("imageUrl", url, { shouldValidate: true })}
-              userId={currentUser.id}
-              disabled={!canCompose}
-            />
             <div className="space-y-2">
               <Label>공개 범위</Label>
               <VisibilityLevelSelect

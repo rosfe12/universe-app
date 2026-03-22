@@ -11,7 +11,6 @@ import { Filter, MessageSquarePlus } from "lucide-react";
 import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
 import { AppShell } from "@/components/layout/app-shell";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
-import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -59,7 +58,6 @@ import {
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
 import { canWriteAdmissionQuestion } from "@/lib/permissions";
-import { deleteImageByPublicUrl } from "@/lib/supabase/storage";
 import { getDefaultVisibilityLevel } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot, VisibilityLevel } from "@/types";
 
@@ -71,7 +69,6 @@ const admissionSchema = z.object({
   interestUniversity: z.string().min(2, "관심 대학을 입력해주세요."),
   interestDepartment: z.string().min(2, "관심 학과를 입력해주세요."),
   content: z.string().min(10, "질문 내용을 10자 이상 입력해주세요."),
-  imageUrl: z.string().url().optional().or(z.literal("")),
   visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
 });
 
@@ -86,9 +83,6 @@ export function AdmissionPage({
   const pathname = usePathname();
   const {
     loading,
-    posts,
-    reports,
-    blocks,
     currentUser: runtimeUser,
     source,
     isAuthenticated,
@@ -103,10 +97,7 @@ export function AdmissionPage({
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion(currentUser);
   const currentSchool = getCurrentSchool();
-  const questions = useMemo(
-    () => getAdmissionQuestions(),
-    [blocks, posts, reports],
-  );
+  const questions = useMemo(() => getAdmissionQuestions(), []);
 
   const form = useForm<AdmissionFormValues>({
     resolver: zodResolver(admissionSchema),
@@ -118,7 +109,6 @@ export function AdmissionPage({
       interestUniversity: "",
       interestDepartment: "",
       content: "",
-      imageUrl: "",
       visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
     },
   });
@@ -172,7 +162,6 @@ export function AdmissionPage({
       likes: 0,
       commentCount: 0,
       tags: [values.track, values.interestUniversity],
-      imageUrl: values.imageUrl || undefined,
       meta: {
         region: values.region,
         track: values.track as "문과" | "이과" | "예체능" | "기타",
@@ -192,7 +181,6 @@ export function AdmissionPage({
               visibilityLevel: values.visibilityLevel,
               title: values.title,
               content: values.content,
-              imageUrl: values.imageUrl || undefined,
               tags: [values.track, values.interestUniversity],
               meta: localQuestion.meta,
             });
@@ -200,7 +188,6 @@ export function AdmissionPage({
             setOpen(false);
             form.reset();
           } catch (error) {
-            await deleteImageByPublicUrl(values.imageUrl);
             form.setError("root", {
               message: error instanceof Error ? error.message : "질문 등록에 실패했습니다.",
             });
@@ -434,14 +421,6 @@ export function AdmissionPage({
               <Label>질문 내용</Label>
               <Textarea {...form.register("content")} />
             </div>
-            <ImageUploadField
-              label="질문 이미지"
-              helperText="자료 화면이나 참고 이미지를 함께 올릴 수 있습니다."
-              value={form.watch("imageUrl")}
-              onChange={(url) => form.setValue("imageUrl", url, { shouldValidate: true })}
-              userId={currentUser.id}
-              disabled={!canCompose}
-            />
             <div className="space-y-2">
               <Label>공개 범위</Label>
               <VisibilityLevelSelect

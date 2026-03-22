@@ -786,6 +786,15 @@ try {
   if (mode === "seed" || mode === "all") {
     await upsertGeneratedReferenceContent(client);
     await upsertSchoolCoverageContent(client);
+    await client.query(`
+      update public.posts
+      set image_url = null
+      where image_url is not null
+    `);
+    await client.query(`
+      delete from public.media_assets
+      where owner_type = 'post'
+    `);
   }
 
   console.log(`Applied ${mode} SQL to Supabase.`);

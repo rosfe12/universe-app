@@ -13,7 +13,6 @@ import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FeedList } from "@/components/shared/feed-list";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
-import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { LoadingState } from "@/components/shared/loading-state";
 import { SectionHeader } from "@/components/shared/section-header";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
@@ -58,7 +57,6 @@ const boardSchema = z.object({
   board: z.enum(["careerInfo", "jobPosting"]),
   title: z.string().trim().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().trim().min(10, "본문을 10자 이상 입력해주세요."),
-  imageUrl: z.string().url().optional().or(z.literal("")),
   visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
 });
 
@@ -113,7 +111,6 @@ export function CareerPage({
       board: activeBoard === "all" ? "careerInfo" : activeBoard,
       title: "",
       content: "",
-      imageUrl: "",
       visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
     },
   });
@@ -159,7 +156,6 @@ export function CareerPage({
       createdAt,
       likes: 0,
       commentCount: 0,
-      imageUrl: values.imageUrl || undefined,
       tags: [boardLabel, values.board === "careerInfo" ? "합격루틴" : "인턴"],
     };
 
@@ -173,7 +169,6 @@ export function CareerPage({
               content: values.content,
               schoolId: currentUser.schoolId,
               visibilityLevel: values.visibilityLevel,
-              imageUrl: values.imageUrl || undefined,
               tags: [boardLabel, values.board === "careerInfo" ? "합격루틴" : "인턴"],
             });
             await refresh();
@@ -182,7 +177,6 @@ export function CareerPage({
               board: values.board,
               title: "",
               content: "",
-              imageUrl: "",
               visibilityLevel: values.visibilityLevel,
             });
           } catch (error) {
@@ -201,7 +195,6 @@ export function CareerPage({
       board: values.board,
       title: "",
       content: "",
-      imageUrl: "",
       visibilityLevel: values.visibilityLevel,
     });
   });
@@ -218,16 +211,6 @@ export function CareerPage({
           </div>
           <div className="space-y-2">
             <h2 className="text-[28px] font-semibold tracking-tight text-slate-950">채용공고부터 합격 후기까지</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[22px] border border-white/85 bg-white/90 px-4 py-4">
-              <p className="text-[11px] text-muted-foreground">취업정보</p>
-              <p className="mt-1 text-2xl font-bold text-slate-950">{careerInfoPosts.length}</p>
-            </div>
-            <div className="rounded-[22px] border border-white/85 bg-white/90 px-4 py-4">
-              <p className="text-[11px] text-muted-foreground">채용공고</p>
-              <p className="mt-1 text-2xl font-bold text-slate-950">{jobPostingPosts.length}</p>
-            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline">자소서</Badge>
@@ -373,17 +356,6 @@ export function CareerPage({
             <div className="space-y-2">
               <Label htmlFor="career-content">내용</Label>
               <Textarea id="career-content" rows={5} placeholder="실제 경험 위주로 정리해주세요." {...form.register("content")} />
-            </div>
-
-            <div className="space-y-2">
-              <ImageUploadField
-                label="이미지"
-                helperText="공고 캡처나 정리 이미지 1장만 첨부할 수 있습니다."
-                value={form.watch("imageUrl") || ""}
-                onChange={(value) => form.setValue("imageUrl", value, { shouldValidate: true })}
-                userId={currentUser.id}
-                target="post"
-              />
             </div>
 
             <div className="space-y-2">

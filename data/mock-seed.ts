@@ -2382,6 +2382,7 @@ export const posts: Post[] = [
   ...generatedSchoolCoveragePosts,
 ].map((post) => ({
   ...post,
+  imageUrl: undefined,
   commentCount: comments.filter((comment) => comment.postId === post.id).length,
 }));
 
