@@ -78,7 +78,7 @@ export function OnboardingPage() {
   const form = useForm<OnboardingFormValues>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
-      userType: currentUser.userType,
+      userType: isVerificationMode ? "student" : currentUser.userType,
       schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
       schoolEmail: currentUser.schoolEmail ?? "",
       department: currentUser.department ?? "",
@@ -145,7 +145,7 @@ export function OnboardingPage() {
     if (loading) return;
 
     form.reset({
-      userType: currentUser.userType,
+      userType: isVerificationMode ? "student" : currentUser.userType,
       schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
       schoolEmail: currentUser.schoolEmail ?? "",
       department: currentUser.department ?? "",
@@ -160,6 +160,7 @@ export function OnboardingPage() {
     currentUser.schoolId,
     currentUser.userType,
     form,
+    isVerificationMode,
     loading,
     schoolOptions,
   ]);
@@ -187,7 +188,7 @@ export function OnboardingPage() {
     setErrorMessage("");
 
     if (!isSupabaseEnabled()) {
-      router.push("/home");
+      router.push(nextPath);
       return;
     }
 
@@ -264,11 +265,10 @@ export function OnboardingPage() {
       }
 
       await refresh();
-      router.push(
-        verificationResult.data?.alreadyVerified
-          ? "/profile?schoolVerified=1"
-          : "/profile?verification=pending",
-      );
+      const redirectTarget = verificationResult.data?.alreadyVerified
+        ? appendSearchParam(nextPath, "schoolVerified", "1")
+        : appendSearchParam(nextPath, "verification", "pending");
+      router.push(redirectTarget);
       return;
     }
 
@@ -296,9 +296,13 @@ export function OnboardingPage() {
         <CardHeader className="space-y-3">
           <p className="text-xs font-semibold tracking-[0.2em] text-primary">유니버스</p>
           <div>
-            <CardTitle className="text-2xl">기본 프로필 설정</CardTitle>
+            <CardTitle className="text-2xl">
+              {isVerificationMode ? "학교 메일 인증" : "기본 프로필 설정"}
+            </CardTitle>
             <p className="mt-2 text-sm text-muted-foreground">
-              계정은 자유롭게 만들고, 대학생 권한은 학교 메일이 확인된 뒤 열립니다.
+              {isVerificationMode
+                ? "학교 메일을 확인하면 대학생 권한이 바로 열립니다."
+                : "계정은 자유롭게 만들고, 대학생 권한은 학교 메일이 확인된 뒤 열립니다."}
             </p>
           </div>
         </CardHeader>
@@ -352,35 +356,44 @@ export function OnboardingPage() {
             {errorMessage ? (
               <ErrorState title="온보딩 저장 실패" description={errorMessage} />
             ) : null}
-            <div className="space-y-2">
-              <Label>유저 타입</Label>
-              <Controller
-                control={form.control}
-                name="userType"
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={(value) =>
-                      field.onChange(value as OnboardingFormValues["userType"])
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="유저 타입 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">대학생</SelectItem>
-                      <SelectItem value="freshman">예비입학생</SelectItem>
-                      <SelectItem value="applicant">입시생</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {form.formState.errors.userType ? (
-                <p className="text-sm text-rose-600">
-                  {form.formState.errors.userType.message}
-                </p>
-              ) : null}
-            </div>
+            {isVerificationMode ? (
+              <div className="space-y-2">
+                <Label>인증 유형</Label>
+                <div className="rounded-[22px] border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-medium text-primary">
+                  대학생 인증
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>유저 타입</Label>
+                <Controller
+                  control={form.control}
+                  name="userType"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) =>
+                        field.onChange(value as OnboardingFormValues["userType"])
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="유저 타입 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student">대학생</SelectItem>
+                        <SelectItem value="freshman">예비입학생</SelectItem>
+                        <SelectItem value="applicant">입시생</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.userType ? (
+                  <p className="text-sm text-rose-600">
+                    {form.formState.errors.userType.message}
+                  </p>
+                ) : null}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>학교</Label>
               <Controller
@@ -475,4 +488,9 @@ export function OnboardingPage() {
       </Card>
     </div>
   );
+}
+
+function appendSearchParam(path: string, key: string, value: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}${key}=${encodeURIComponent(value)}`;
 }

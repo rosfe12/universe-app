@@ -68,12 +68,12 @@ export async function GET(request: Request) {
 
     if (verificationRequest.status === "expired") {
       return NextResponse.redirect(
-        buildLoginRedirect(request, "/profile", "schoolVerificationExpired"),
+        buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationExpired"), "schoolVerificationExpired"),
       );
     }
 
     return NextResponse.redirect(
-      buildLoginRedirect(request, "/profile", "schoolVerificationFailed"),
+      buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationFailed"), "schoolVerificationFailed"),
     );
   }
 
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
       .eq("id", verificationRequest.id);
 
     return NextResponse.redirect(
-      buildLoginRedirect(request, "/profile", "schoolVerificationExpired"),
+      buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationExpired"), "schoolVerificationExpired"),
     );
   }
 
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
       .eq("id", verificationRequest.id);
 
     return NextResponse.redirect(
-      buildLoginRedirect(request, "/profile", "schoolVerificationFailed"),
+      buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationFailed"), "schoolVerificationFailed"),
     );
   }
 
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
 
   if (verifiedEmail !== targetEmail) {
     return NextResponse.redirect(
-      buildLoginRedirect(request, "/profile", "schoolVerificationFailed"),
+      buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationFailed"), "schoolVerificationFailed"),
     );
   }
 
@@ -151,7 +151,7 @@ export async function GET(request: Request) {
 
   if (updateUserError || updateRequestError) {
     return NextResponse.redirect(
-      buildLoginRedirect(request, "/profile", "schoolVerificationFailed"),
+      buildLoginRedirect(request, appendFlag(nextPath, "schoolVerificationFailed"), "schoolVerificationFailed"),
     );
   }
 
