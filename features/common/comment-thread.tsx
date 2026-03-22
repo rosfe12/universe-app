@@ -212,104 +212,106 @@ export function CommentThread({
       ) : null}
 
       {sortedComments.length > 0 ? (
-        <FeedList>
+        <div className="divide-y divide-gray-100 border-t border-gray-100">
           {sortedComments.map((comment) => (
-            <div key={comment.id} className="space-y-3 px-4 py-4">
-            <PostAuthorRow
-              authorId={comment.authorId}
-              createdAt={comment.createdAt}
-              visibilityLevel={
-                targetPost?.category === "community" && targetPost.subcategory !== "anonymous"
-                  ? "school"
-                  : comment.visibilityLevel
-              }
-              minimal
-            />
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                {comment.accepted ? <span className="text-xs text-emerald-600">채택됨</span> : null}
-                {allowAccept && isLegendarySenior(getAuthorTrustScore(comment.authorId)) ? (
-                  <LegendAnswerTag />
-                ) : null}
-              </div>
-              <p className="text-sm leading-6 text-gray-700">{comment.content}</p>
-              <div className="flex items-center justify-between">
-                {allowAccept ? (
-                  <Button
-                    size="sm"
-                    variant={comment.accepted ? "secondary" : "outline"}
-                    type="button"
-                    onClick={async () => {
+            <div key={comment.id} className="space-y-3 py-4">
+              <PostAuthorRow
+                authorId={comment.authorId}
+                createdAt={comment.createdAt}
+                visibilityLevel={
+                  targetPost?.category === "community" && targetPost.subcategory !== "anonymous"
+                    ? "school"
+                    : comment.visibilityLevel
+                }
+                minimal
+              />
+              <div className="space-y-2 pl-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  {comment.accepted ? <span className="text-xs text-emerald-600">채택됨</span> : null}
+                  {allowAccept && isLegendarySenior(getAuthorTrustScore(comment.authorId)) ? (
+                    <LegendAnswerTag />
+                  ) : null}
+                </div>
+                <p className="text-sm leading-7 text-gray-700 dark:text-gray-200">{comment.content}</p>
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  {allowAccept ? (
+                    <Button
+                      size="sm"
+                      variant={comment.accepted ? "secondary" : "outline"}
+                      type="button"
+                      onClick={async () => {
+                        if (source === "supabase" && isAuthenticated) {
+                          await acceptAdmissionAnswer(postId, comment.id);
+                          await refresh();
+                          return;
+                        }
+
+                        setSnapshot((current) =>
+                          acceptCommentInSnapshot(current, postId, comment.id),
+                        );
+                      }}
+                    >
+                      {comment.accepted ? "채택됨" : "답변 채택"}
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
+                  <ReportBlockActions
+                    compact
+                    targetType="comment"
+                    targetId={comment.id}
+                    targetUserId={comment.authorId}
+                    repeatedlyReported={isRepeatedlyReportedUser(comment.authorId)}
+                    onReport={async ({ targetId, targetType, reason, memo }) => {
+                      if (!targetId || !targetType) return;
+
                       if (source === "supabase" && isAuthenticated) {
-                        await acceptAdmissionAnswer(postId, comment.id);
+                        await createReportRecord({
+                          reporterId: currentUser.id,
+                          targetType,
+                          targetId,
+                          reason,
+                          memo,
+                        });
                         await refresh();
                         return;
                       }
 
                       setSnapshot((current) =>
-                        acceptCommentInSnapshot(current, postId, comment.id),
+                        addReportToSnapshot(current, {
+                          targetType,
+                          targetId,
+                          reporterId: currentUser.id,
+                          reason: reason ?? "other",
+                          memo,
+                        }),
                       );
                     }}
-                  >
-                    {comment.accepted ? "채택됨" : "답변 채택"}
-                  </Button>
-                ) : <span />}
+                    onBlock={async ({ targetUserId }) => {
+                      if (!targetUserId) return;
+
+                      if (source === "supabase" && isAuthenticated) {
+                        await createBlockRecord({
+                          blockerId: currentUser.id,
+                          blockedUserId: targetUserId,
+                        });
+                        await refresh();
+                        return;
+                      }
+
+                      setSnapshot((current) =>
+                        addBlockToSnapshot(current, {
+                          blockerId: currentUser.id,
+                          blockedUserId: targetUserId,
+                        }),
+                      );
+                    }}
+                  />
+                </div>
               </div>
-              <ReportBlockActions
-                compact
-                targetType="comment"
-                targetId={comment.id}
-                targetUserId={comment.authorId}
-                repeatedlyReported={isRepeatedlyReportedUser(comment.authorId)}
-                onReport={async ({ targetId, targetType, reason, memo }) => {
-                  if (!targetId || !targetType) return;
-
-                  if (source === "supabase" && isAuthenticated) {
-                    await createReportRecord({
-                      reporterId: currentUser.id,
-                      targetType,
-                      targetId,
-                      reason,
-                      memo,
-                    });
-                    await refresh();
-                    return;
-                  }
-
-                  setSnapshot((current) =>
-                    addReportToSnapshot(current, {
-                      targetType,
-                      targetId,
-                      reporterId: currentUser.id,
-                      reason: reason ?? "other",
-                      memo,
-                    }),
-                  );
-                }}
-                onBlock={async ({ targetUserId }) => {
-                  if (!targetUserId) return;
-
-                  if (source === "supabase" && isAuthenticated) {
-                    await createBlockRecord({
-                      blockerId: currentUser.id,
-                      blockedUserId: targetUserId,
-                    });
-                    await refresh();
-                    return;
-                  }
-
-                  setSnapshot((current) =>
-                    addBlockToSnapshot(current, {
-                      blockerId: currentUser.id,
-                      blockedUserId: targetUserId,
-                    }),
-                  );
-                }}
-              />
-            </div>
             </div>
           ))}
-        </FeedList>
+        </div>
       ) : null}
 
       {canComment ? (

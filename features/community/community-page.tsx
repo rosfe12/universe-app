@@ -234,10 +234,7 @@ function SharedFeedCard({
             <p className="mt-1 line-clamp-2 leading-6">{latestComment}</p>
           </button>
         ) : null}
-        <div className="flex items-center justify-between gap-2">
-          <Button type="button" size="sm" onClick={onOpen}>
-            상세 보기
-          </Button>
+        <div className="flex items-center justify-end gap-2">
           <ReportBlockActions
             compact
             targetType="post"
