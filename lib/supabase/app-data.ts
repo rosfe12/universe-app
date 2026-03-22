@@ -271,6 +271,7 @@ const EMPTY_RESULT = Promise.resolve({ data: [], error: null });
 const HOME_POST_SUBCATEGORIES = [
   "free",
   "ask",
+  "school",
   "careerInfo",
   "jobPosting",
   "freshman",

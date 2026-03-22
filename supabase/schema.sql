@@ -441,6 +441,7 @@ end $$;
 
 alter type public.post_subcategory add value if not exists 'free';
 alter type public.post_subcategory add value if not exists 'ask';
+alter type public.post_subcategory add value if not exists 'school';
 
 create table if not exists public.media_assets (
   id uuid primary key default gen_random_uuid(),

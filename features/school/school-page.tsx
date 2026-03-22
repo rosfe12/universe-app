@@ -84,15 +84,30 @@ const schoolAdmissionSchema = z.object({
   visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
 });
 
+const schoolBoardSchema = z.object({
+  title: z.string().trim().min(4, "제목을 4자 이상 입력해주세요."),
+  content: z.string().trim().min(10, "본문을 10자 이상 입력해주세요."),
+  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+});
+
+type SchoolBoardFormValues = z.infer<typeof schoolBoardSchema>;
 type FreshmanZoneFormValues = z.infer<typeof freshmanZoneSchema>;
 type SchoolAdmissionFormValues = z.infer<typeof schoolAdmissionSchema>;
-type SchoolSection = "lectures" | "trade" | "club" | "food" | "freshman" | "admission";
+type SchoolSection =
+  | "lectures"
+  | "trade"
+  | "club"
+  | "food"
+  | "school"
+  | "freshman"
+  | "admission";
 
 const SECTION_VALUES: SchoolSection[] = [
   "lectures",
   "trade",
   "club",
   "food",
+  "school",
   "freshman",
   "admission",
 ];
@@ -133,6 +148,7 @@ export function SchoolPage({
   } = useAppRuntime(initialSnapshot, "school");
   const currentUser = runtimeUser;
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
+  const [schoolBoardComposerOpen, setSchoolBoardComposerOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [admissionComposerOpen, setAdmissionComposerOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -149,6 +165,9 @@ export function SchoolPage({
   const tradeItems = getTradePosts()
     .filter((tradePost) => !schoolId || tradePost.schoolId === schoolId)
     .slice(0, 3);
+  const schoolBoardPosts = getCommunityPosts("school")
+    .filter((post) => !schoolId || post.schoolId === schoolId)
+    .slice(0, 6);
   const clubPosts = getCommunityPosts("club")
     .filter((post) => !schoolId || post.schoolId === schoolId)
     .slice(0, 5);
@@ -161,20 +180,11 @@ export function SchoolPage({
   const admissionPosts = getAdmissionQuestions()
     .filter((post) => matchesSchoolAdmission(post, schoolId, schoolName))
     .slice(0, 4);
-  const campusLivePosts = useMemo(() => {
-    const liveFreshmanPosts = freshmanZonePosts.map((post) => ({
-      post,
-      href: `/school?tab=freshman&post=${post.id}`,
-    }));
-    const admissionMix = admissionPosts.slice(0, 2).map((post) => ({
-      post,
-      href: `/school?tab=admission&post=${post.id}`,
-    }));
-
-    return [...liveFreshmanPosts, ...admissionMix]
-      .sort((a, b) => +new Date(b.post.createdAt) - +new Date(a.post.createdAt))
-      .slice(0, 6);
-  }, [admissionPosts, freshmanZonePosts]);
+  const schoolBoardWriteEnabled =
+    isAuthenticated &&
+    hasCompletedOnboarding(currentUser) &&
+    Boolean(currentUser.schoolId) &&
+    !isApplicantMode;
   const freshmanComposeEnabled =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteFreshmanZone(currentUser);
   const freshmanCommentEnabled = freshmanComposeEnabled;
@@ -189,8 +199,8 @@ export function SchoolPage({
     [clubPosts, foodPosts],
   );
   const schoolDetailPosts = useMemo(
-    () => [...freshmanZonePosts, ...campusInfoCards, ...admissionPosts],
-    [admissionPosts, campusInfoCards, freshmanZonePosts],
+    () => [...schoolBoardPosts, ...freshmanZonePosts, ...campusInfoCards, ...admissionPosts],
+    [admissionPosts, campusInfoCards, freshmanZonePosts, schoolBoardPosts],
   );
   const detailPost = useMemo(
     () =>
@@ -199,6 +209,14 @@ export function SchoolPage({
     [detailPostId, schoolDetailPosts],
   );
 
+  const schoolBoardForm = useForm<SchoolBoardFormValues>({
+    resolver: zodResolver(schoolBoardSchema),
+    defaultValues: {
+      title: "",
+      content: "",
+      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+    },
+  });
   const freshmanForm = useForm<FreshmanZoneFormValues>({
     resolver: zodResolver(freshmanZoneSchema),
     defaultValues: {
@@ -259,6 +277,12 @@ export function SchoolPage({
           label: "수강신청 교환",
           icon: Repeat2,
           href: "/trade",
+        },
+        {
+          key: "school" as const,
+          label: "학교 게시판",
+          icon: MessageCircle,
+          href: "/school?tab=school",
         },
         {
           key: "freshman" as const,
@@ -368,16 +392,20 @@ export function SchoolPage({
             </h2>
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
-                <p className="text-[11px] text-muted-foreground">새내기 글</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">{freshmanZonePosts.length}</p>
+                <p className="text-[11px] text-muted-foreground">학교 글</p>
+                <p className="mt-1 text-[18px] font-semibold text-foreground">{schoolBoardPosts.length}</p>
               </div>
               <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
-                <p className="text-[11px] text-muted-foreground">입시 질문</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">{admissionPosts.length}</p>
+                <p className="text-[11px] text-muted-foreground">{isApplicantMode ? "입시 질문" : "새내기 글"}</p>
+                <p className="mt-1 text-[18px] font-semibold text-foreground">
+                  {isApplicantMode ? admissionPosts.length : freshmanZonePosts.length}
+                </p>
               </div>
               <div className="rounded-[20px] border border-border bg-background/80 px-4 py-3">
-                <p className="text-[11px] text-muted-foreground">강의</p>
-                <p className="mt-1 text-[18px] font-semibold text-foreground">{lectures.length}</p>
+                <p className="text-[11px] text-muted-foreground">{isApplicantMode ? "새내기 글" : "강의"}</p>
+                <p className="mt-1 text-[18px] font-semibold text-foreground">
+                  {isApplicantMode ? freshmanZonePosts.length : lectures.length}
+                </p>
               </div>
             </div>
           </div>
@@ -447,24 +475,75 @@ export function SchoolPage({
 
         <div
           className={
+            highlightSection === "school"
+              ? "rounded-[32px] border border-blue-200/80 bg-blue-50/35 p-4"
+              : "space-y-4"
+          }
+        >
+          <div className="flex items-center justify-between gap-3">
+            <SectionHeader title="학교 게시판" />
+            {!isApplicantMode ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (!schoolBoardWriteEnabled) {
+                    router.push(
+                      getAuthFlowHref({
+                        isAuthenticated,
+                        user: currentUser,
+                        nextPath: "/school?tab=school",
+                      }),
+                    );
+                    return;
+                  }
+                  setSchoolBoardComposerOpen(true);
+                }}
+              >
+                글쓰기
+              </Button>
+            ) : null}
+          </div>
+          {schoolBoardPosts.length === 0 ? (
+            <EmptyState
+              title="학교 게시판 글이 아직 없습니다"
+              description="도서관, 학생식당, 통학, 팀플처럼 학교 안에서 바로 묻고 싶은 질문을 올려보세요."
+            />
+          ) : (
+            <FeedList>
+              {schoolBoardPosts.map((post) => (
+                <FeedPostCard
+                  key={post.id}
+                  post={post}
+                  href={`/school?tab=school&post=${post.id}`}
+                  onOpen={() => setDetailPostId(post.id)}
+                />
+              ))}
+            </FeedList>
+          )}
+        </div>
+
+        <div
+          className={
             highlightSection === "freshman"
               ? "rounded-[32px] border border-emerald-200/80 bg-emerald-50/40 p-4"
               : "space-y-4"
           }
         >
           <SectionHeader title="새내기 게시판" />
-          {campusLivePosts.length === 0 ? (
+          {freshmanZonePosts.length === 0 ? (
             <EmptyState
               title="아직 새내기 글이 없습니다"
               description="오티, 기숙사, 시간표처럼 입학 전에 궁금한 내용을 가장 먼저 올려보세요."
             />
           ) : (
             <FeedList>
-              {campusLivePosts.map(({ post, href }) => (
+              {freshmanZonePosts.map((post) => (
                 <FeedPostCard
                   key={post.id}
                   post={post}
-                  href={href}
+                  href={`/school?tab=freshman&post=${post.id}`}
                   onOpen={() => setDetailPostId(post.id)}
                 />
               ))}
@@ -645,6 +724,8 @@ export function SchoolPage({
                 <DialogDescription>
                   {detailPost.category === "admission"
                     ? `${schoolShortName} 입시 Q&A`
+                    : detailPost.subcategory === "school"
+                    ? `${schoolShortName} 학교 게시판`
                     : detailPost.subcategory === "freshman"
                     ? `${schoolShortName} 새내기 게시판`
                     : detailPost.subcategory === "club"
@@ -661,6 +742,8 @@ export function SchoolPage({
                     trailing={
                       detailPost.category === "admission" ? (
                         <Badge variant="secondary">입시 Q&A</Badge>
+                      ) : detailPost.subcategory === "school" ? (
+                        <Badge variant="secondary">학교 게시판</Badge>
                       ) : detailPost.subcategory === "freshman" ? (
                         <Badge variant="success">새내기존</Badge>
                       ) : detailPost.subcategory === "club" ? (
@@ -844,6 +927,125 @@ export function SchoolPage({
             ) : null}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "등록 중" : "질문 올리기"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={schoolBoardComposerOpen} onOpenChange={setSchoolBoardComposerOpen}>
+        <DialogContent className="max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{schoolShortName} 학교 게시판 글쓰기</DialogTitle>
+            <DialogDescription>도서관, 학생식당, 통학, 팀플처럼 학교 안에서 바로 묻고 싶은 내용을 올릴 수 있습니다.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={schoolBoardForm.handleSubmit(async (values) => {
+              schoolBoardForm.clearErrors("root");
+              const createdAt = new Date().toISOString();
+              const validationError = validatePostSubmission(getRuntimeSnapshot(), {
+                authorId: currentUser.id,
+                category: "community",
+                title: values.title,
+                content: values.content,
+                createdAt,
+              });
+
+              if (validationError) {
+                schoolBoardForm.setError("root", { message: validationError });
+                return;
+              }
+
+              const localPost: Post = {
+                id: `school-board-local-${schoolBoardPosts.length + 1}`,
+                category: "community",
+                subcategory: "school",
+                authorId: currentUser.id,
+                schoolId: currentUser.schoolId,
+                visibilityLevel: values.visibilityLevel as VisibilityLevel,
+                title: values.title,
+                content: values.content,
+                createdAt,
+                likes: 0,
+                commentCount: 0,
+                tags: ["학교 게시판"],
+              };
+
+              if (source === "supabase" && isAuthenticated) {
+                startSubmitTransition(() => {
+                  void (async () => {
+                    try {
+                      await createPost({
+                        category: "community",
+                        subcategory: "school",
+                        schoolId: currentUser.schoolId,
+                        visibilityLevel: values.visibilityLevel,
+                        title: values.title,
+                        content: values.content,
+                        tags: ["학교 게시판"],
+                      });
+                      setSuccessMessage("학교 게시판 글이 등록되었습니다.");
+                      schoolBoardForm.reset({
+                        title: "",
+                        content: "",
+                        visibilityLevel:
+                          currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+                      });
+                      setSchoolBoardComposerOpen(false);
+                      await refresh();
+                    } catch (error) {
+                      schoolBoardForm.setError("root", {
+                        message: error instanceof Error ? error.message : "학교 게시판 글 작성에 실패했습니다.",
+                      });
+                    }
+                  })();
+                });
+                return;
+              }
+
+              setSnapshot((current) => addPostToSnapshot(current, localPost));
+              schoolBoardForm.reset({
+                title: "",
+                content: "",
+                visibilityLevel:
+                  currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+              });
+              setSchoolBoardComposerOpen(false);
+              setSuccessMessage("학교 게시판 글이 등록되었습니다.");
+            })}
+          >
+            <div className="space-y-2">
+              <Label>제목</Label>
+              <Input placeholder="예: 도서관 자리 보통 몇 시쯤 차나요?" {...schoolBoardForm.register("title")} />
+              {schoolBoardForm.formState.errors.title ? (
+                <p className="text-xs text-rose-500">{schoolBoardForm.formState.errors.title.message}</p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              <Label>내용</Label>
+              <Textarea
+                rows={5}
+                placeholder="학생식당, 통학, 팀플, 열람실처럼 학교 안에서 바로 묻고 싶은 내용을 적어보세요."
+                {...schoolBoardForm.register("content")}
+              />
+              {schoolBoardForm.formState.errors.content ? (
+                <p className="text-xs text-rose-500">{schoolBoardForm.formState.errors.content.message}</p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              <Label>공개 범위</Label>
+              <VisibilityLevelSelect
+                value={schoolBoardForm.watch("visibilityLevel")}
+                onChange={(value) =>
+                  schoolBoardForm.setValue("visibilityLevel", value, { shouldValidate: true })
+                }
+              />
+            </div>
+            {schoolBoardForm.formState.errors.root?.message ? (
+              <p className="text-xs text-rose-500">{schoolBoardForm.formState.errors.root.message}</p>
+            ) : null}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "등록 중" : "학교 게시판에 올리기"}
             </Button>
           </form>
         </DialogContent>

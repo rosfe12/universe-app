@@ -674,7 +674,7 @@ const SCHOOL_COVERAGE_LECTURE_BLUEPRINTS = [
 
 const schoolIdsWithLectureContent = new Set(baseLectures.map((lecture) => lecture.schoolId));
 
-const generatedSchoolCoverageLectures: Lecture[] = schools.flatMap((school, schoolIndex) => {
+const generatedSchoolCoverageLectures: Lecture[] = schools.flatMap((school) => {
   if (schoolIdsWithLectureContent.has(school.id)) {
     return [];
   }
@@ -1276,90 +1276,90 @@ const ASK_TOPIC_BLUEPRINTS = [
   {
     key: "commute",
     tags: ["무물", "통학"],
-    title: (schoolName: string) => `무물) ${schoolName} 통학러는 1교시 있는 날 어떻게 버텨요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 기준으로 1교시가 연속으로 잡히는 날이 있는데, 전날부터 컨디션 관리하는 팁이 궁금합니다. 통학 시간이 길면 아침 루틴을 어떻게 잡는지 무물합니다.`,
+    title: () => "통학러는 1교시 있는 날 어떻게 버텨요?",
+    content: () =>
+      "1교시가 연속으로 잡히는 날이 있는데, 전날부터 컨디션 관리하는 팁이 궁금합니다. 통학 시간이 길면 아침 루틴을 어떻게 잡는지 묻고 싶어요.",
   },
   {
     key: "lunch",
     tags: ["무물", "학생식당"],
-    title: (schoolName: string) => `무물) ${schoolName} 학생식당은 몇 시쯤 가야 덜 붐비나요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 점심시간마다 줄 서는 시간이 꽤 길더라고요. 다들 학생식당이나 교내 카페를 언제 가는 편인지, 붐비는 시간 피하는 루틴 있으면 공유 부탁해요.`,
+    title: () => "학생식당은 몇 시쯤 가야 덜 붐비나요?",
+    content: () =>
+      "점심시간마다 줄 서는 시간이 꽤 길더라고요. 학생식당이나 교내 카페를 언제 가는 편인지, 붐비는 시간 피하는 루틴 있으면 공유 부탁해요.",
   },
   {
     key: "laptop",
     tags: ["무물", "기기"],
-    title: (schoolName: string) => `무물) ${schoolName} 다니면 노트북은 결국 매일 들고 다니게 되나요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 강의실 이동이 많은 편이라 노트북을 매일 챙겨야 할지 고민입니다. 태블릿만으로 버티는 사람도 있는지, 과제 많은 수업은 어느 정도까지 가능한지 궁금해요.`,
+    title: () => "노트북은 결국 매일 들고 다니게 되나요?",
+    content: () =>
+      "강의실 이동이 많은 편이라 노트북을 매일 챙겨야 할지 고민입니다. 태블릿만으로 버티는 사람도 있는지, 과제 많은 수업은 어느 정도까지 가능한지 궁금해요.",
   },
   {
     key: "library",
     tags: ["무물", "도서관"],
-    title: (schoolName: string) => `무물) ${schoolName} 도서관 자리 잡으려면 몇 시쯤 가는 편이에요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 시험기간만 되면 도서관 자리 경쟁이 치열하다고 들어서요. 평소에도 인기 많은 구역이 있는지, 다들 어느 시간대에 가는지 궁금합니다.`,
+    title: () => "도서관 자리 잡으려면 몇 시쯤 가는 편이에요?",
+    content: () =>
+      "시험기간만 되면 도서관 자리 경쟁이 치열하다고 들어서요. 평소에도 인기 많은 구역이 있는지, 다들 어느 시간대에 가는지 궁금합니다.",
   },
   {
     key: "groupwork",
     tags: ["무물", "조별과제"],
-    title: (schoolName: string) => `무물) ${schoolName} 팀플 조장은 보통 먼저 손드는 편인가요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 전공 수업 팀플이 슬슬 시작되는데, 조장 맡는 분위기가 궁금해요. 무조건 먼저 나서는 게 편한지, 역할만 빨리 정하면 무난한지 실제 경험 듣고 싶습니다.`,
+    title: () => "팀플 조장은 보통 먼저 손드는 편인가요?",
+    content: () =>
+      "전공 수업 팀플이 슬슬 시작되는데, 조장 맡는 분위기가 궁금해요. 무조건 먼저 나서는 게 편한지, 역할만 빨리 정하면 무난한지 실제 경험 듣고 싶습니다.",
   },
   {
     key: "otlook",
     tags: ["무물", "새내기"],
-    title: (schoolName: string) => `무물) ${schoolName} OT나 개강 첫 주에는 다들 어느 정도 꾸미고 가요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 처음 만나는 자리라 너무 편하게 가도 되나 고민됩니다. 새내기 때 너무 힘줘서 간 사람이 많은지, 오히려 편한 복장이 더 많은지 궁금해요.`,
+    title: () => "OT나 개강 첫 주에는 다들 어느 정도 꾸미고 가요?",
+    content: () =>
+      "처음 만나는 자리라 너무 편하게 가도 되나 고민됩니다. 새내기 때 너무 힘줘서 간 사람이 많은지, 오히려 편한 복장이 더 많은지 궁금해요.",
   },
   {
     key: "club",
     tags: ["무물", "동아리"],
-    title: (schoolName: string) => `무물) ${schoolName} 동아리는 첫 학기에 바로 들어가는 편인가요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 새내기 때 동아리를 바로 정하는 게 좋은지, 한 달 정도 학교 분위기 보고 들어가는 게 좋은지 고민입니다. 너무 빨리 들어가서 후회한 경험도 있는지 듣고 싶어요.`,
+    title: () => "동아리는 첫 학기에 바로 들어가는 편인가요?",
+    content: () =>
+      "새내기 때 동아리를 바로 정하는 게 좋은지, 한 달 정도 학교 분위기 보고 들어가는 게 좋은지 고민입니다. 너무 빨리 들어가서 후회한 경험도 있는지 듣고 싶어요.",
   },
   {
     key: "festival",
     tags: ["무물", "축제"],
-    title: (schoolName: string) => `무물) ${schoolName} 축제는 첫날 가는 게 재밌나요 마지막 날이 재밌나요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 축제 라인업 발표되면 항상 어느 날 갈지 고민됩니다. 첫날 분위기가 좋은지, 마지막 날이 더 사람 많고 재밌는지 경험담 부탁해요.`,
+    title: () => "축제는 첫날 가는 게 재밌나요 마지막 날이 재밌나요?",
+    content: () =>
+      "축제 라인업 발표되면 항상 어느 날 갈지 고민됩니다. 첫날 분위기가 좋은지, 마지막 날이 더 사람 많고 재밌는지 경험담 부탁해요.",
   },
   {
     key: "elective",
     tags: ["무물", "교양"],
-    title: (schoolName: string) => `무물) ${schoolName} 교양은 꿀강 위주로 담는 편인가요 흥미 위주로 담는 편인가요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 시간표 짜다 보니 꿀강 평점 좋은 과목과 진짜 듣고 싶은 과목이 갈립니다. 학점 관리 우선으로 가는지, 흥미 과목도 한두 개는 꼭 넣는지 궁금해요.`,
+    title: () => "교양은 꿀강 위주로 담는 편인가요 흥미 위주로 담는 편인가요?",
+    content: () =>
+      "시간표 짜다 보니 꿀강 평점 좋은 과목과 진짜 듣고 싶은 과목이 갈립니다. 학점 관리 우선으로 가는지, 흥미 과목도 한두 개는 꼭 넣는지 궁금해요.",
   },
   {
     key: "parttime",
     tags: ["무물", "알바"],
-    title: (schoolName: string) => `무물) ${schoolName} 다니면서 주중 알바 병행하면 힘든 편인가요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 이번 학기에 주중 알바를 병행할지 고민 중입니다. 통학이나 팀플까지 있으면 주중 알바가 너무 빡센지, 주말만 하는 게 나은지 궁금합니다.`,
+    title: () => "다니면서 주중 알바 병행하면 힘든 편인가요?",
+    content: () =>
+      "이번 학기에 주중 알바를 병행할지 고민 중입니다. 통학이나 팀플까지 있으면 주중 알바가 너무 빡센지, 주말만 하는 게 나은지 궁금합니다.",
   },
   {
     key: "ipad",
     tags: ["무물", "필기"],
-    title: (schoolName: string) => `무물) ${schoolName}에서는 아이패드 필기가 많은 편인가요 종이 노트도 아직 많나요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 수업 스타일이 과마다 다르겠지만, 실제로 아이패드 필기가 얼마나 많은지 감이 안 옵니다. 종이 노트로도 충분한 과목이 많은지 궁금해요.`,
+    title: () => "아이패드 필기가 많은 편인가요, 종이 노트도 아직 많나요?",
+    content: () =>
+      "수업 스타일이 과마다 다르겠지만, 실제로 아이패드 필기가 얼마나 많은지 감이 안 옵니다. 종이 노트로도 충분한 과목이 많은지 궁금해요.",
   },
   {
     key: "shuttle",
     tags: ["무물", "캠퍼스생활"],
-    title: (schoolName: string) => `무물) ${schoolName} 캠퍼스에서 건물 사이 이동 빡센 편인가요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 시간표 짤 때 연강 사이 건물 이동이 얼마나 빡센지 알고 싶어요. 언덕이나 거리 때문에 사실상 10분 쉬는 시간에 뛰어야 하는지 궁금합니다.`,
+    title: () => "캠퍼스에서 건물 사이 이동 빡센 편인가요?",
+    content: () =>
+      "시간표 짤 때 연강 사이 건물 이동이 얼마나 빡센지 알고 싶어요. 언덕이나 거리 때문에 사실상 10분 쉬는 시간에 뛰어야 하는지 궁금합니다.",
   },
 ] as const;
 
-const generatedAskPosts: SeedPost[] = schools.flatMap((school, schoolIndex) =>
+const schoolBoardPosts: SeedPost[] = schools.flatMap((school, schoolIndex) =>
   Array.from({ length: 3 }, (_, offset) => {
     const blueprint =
       ASK_TOPIC_BLUEPRINTS[(schoolIndex * 3 + offset) % ASK_TOPIC_BLUEPRINTS.length];
@@ -1367,21 +1367,21 @@ const generatedAskPosts: SeedPost[] = schools.flatMap((school, schoolIndex) =>
     return {
       id: `community-ask-${school.id}-${blueprint.key}`,
       category: "community",
-      subcategory: "ask",
+      subcategory: "school",
       authorId: collegeReviewerIds[(schoolIndex + offset) % collegeReviewerIds.length],
       schoolId: school.id,
-      title: blueprint.title(school.name),
-      content: blueprint.content(school.name),
+      title: blueprint.title(),
+      content: blueprint.content(),
       createdAt: new Date(
         Date.UTC(2026, 2, 18, 9, 0, 0) + (schoolIndex * 3 + offset) * 47 * 60 * 1000,
       ).toISOString(),
       likes: 11 + ((schoolIndex + offset) % 13),
-      tags: [...blueprint.tags, school.name],
+      tags: ["학교 게시판", ...blueprint.tags],
     };
   }),
 );
 
-const allAskPosts: SeedPost[] = [...askPosts, ...generatedAskPosts];
+const allAskPosts: SeedPost[] = [...askPosts];
 
 const HOT_TOPIC_BLUEPRINTS = [
   {
@@ -1436,14 +1436,14 @@ const HOT_TOPIC_BLUEPRINTS = [
   {
     key: "fwbline",
     tags: ["핫갤", "19+", "관계"],
-    title: (schoolName: string) => `핫갤) 관계는 편한데 연애는 아닌 상황, 다들 어디서 선 긋나요?`,
+    title: () => `핫갤) 관계는 편한데 연애는 아닌 상황, 다들 어디서 선 긋나요?`,
     content: (schoolName: string) =>
       `${schoolName} 쪽 생활권에서 자주 보게 되는 사람이 있는데 서로 편하고 끌리긴 합니다. 그런데 연애로 가는 건 아닌 느낌이라 이런 상황에서 다들 어느 순간 선을 긋는지 궁금해요.`,
   },
   {
     key: "jealous",
     tags: ["핫갤", "19+", "질투"],
-    title: (schoolName: string) => `핫갤) 아직 사귀는 건 아닌데 질투나면 티 내는 편이에요?`,
+    title: () => `핫갤) 아직 사귀는 건 아닌데 질투나면 티 내는 편이에요?`,
     content: (schoolName: string) =>
       `${schoolName} 안에서 자주 보는 사이라 미묘하게 신경 쓰이는데, 아직 관계를 정의한 건 아니라 괜히 티 냈다가 부담 줄까 고민됩니다. 다들 이런 때는 그냥 모른 척하는 편인지 궁금해요.`,
   },
@@ -1457,14 +1457,14 @@ const HOT_TOPIC_BLUEPRINTS = [
   {
     key: "drunkcall",
     tags: ["핫갤", "19+", "술자리"],
-    title: (schoolName: string) => `핫갤) 술 마신 날만 연락 오는 사람은 다들 바로 거르나요?`,
+    title: () => `핫갤) 술 마신 날만 연락 오는 사람은 다들 바로 거르나요?`,
     content: (schoolName: string) =>
       `${schoolName} 근처에서 술자리 뒤에만 연락 오는 사람이 있는데 평소엔 또 멀쩡해서 애매합니다. 그냥 심심풀이인지, 술 마시면 솔직해지는 타입인지 다들 어떻게 구분하는지 궁금해요.`,
   },
   {
     key: "trip",
     tags: ["핫갤", "19+", "여행"],
-    title: (schoolName: string) => `핫갤) 사귀기 전 여행 제안 받으면 다들 선 넘었다고 느껴요?`,
+    title: () => `핫갤) 사귀기 전 여행 제안 받으면 다들 선 넘었다고 느껴요?`,
     content: (schoolName: string) =>
       `${schoolName} 주변에서 친해진 사람이 갑자기 근교 드라이브나 1박 쪽 얘기를 꺼내서 당황했습니다. 아직 확실한 관계도 아닌데 이런 제안은 보통 어떻게 받아들이는지 무물합니다.`,
   },
@@ -2032,15 +2032,15 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
     {
       id: `coverage-${school.id}-ask`,
       category: "community",
-      subcategory: "ask",
+      subcategory: "school",
       authorId: "user-chaeeun",
       schoolId: school.id,
-      title: `${school.name} 준비할 때 공식 홈페이지에서 제일 먼저 보는 메뉴 다들 어디인가요?`,
-      content: `${school.name} 준비하면서 입학처, 학사, 학생지원, 장학 메뉴를 돌아보다 보니 학교마다 정보가 묶이는 방식이 꽤 다르더라고요. 저는 공식 홈페이지 기준으로 자주 보는 메뉴를 정리해두는 편인데, 재학생이나 예비입학생은 어떤 순서로 보는지 궁금합니다.\n출처: ${baseUrl}`,
+      title: "공식 홈페이지에서 제일 먼저 보는 메뉴 다들 어디인가요?",
+      content: `입학처, 학사, 학생지원, 장학 메뉴를 돌아보다 보니 학교마다 정보가 묶이는 방식이 꽤 다르더라고요. 저는 공식 홈페이지 기준으로 자주 보는 메뉴를 정리해두는 편인데, 재학생이나 예비입학생은 어떤 순서로 보는지 궁금합니다.\n출처: ${baseUrl}`,
       createdAt: at(createdDay, "18:10:00"),
       likes: 9 + (index % 4),
       visibilityLevel: "school",
-      tags: ["공식자료", "무물", "학교생활"],
+      tags: ["학교 게시판", "공식자료", "학교생활"],
     },
     {
       id: `coverage-${school.id}-study`,
@@ -2065,6 +2065,7 @@ const baseSchoolSeedPosts = [
   ...advicePosts,
   ...freePosts,
   ...allAskPosts,
+  ...schoolBoardPosts,
   ...referenceCommunityPosts,
   ...datingPosts,
   ...careerPosts,
@@ -2255,6 +2256,15 @@ const askComments: Comment[] = allAskPosts.map((post, index) => ({
   content: getAskComment(post),
   accepted: false,
   createdAt: new Date(Date.UTC(2026, 2, 22, 10, 0, 0) + index * 31 * 60 * 1000).toISOString(),
+}));
+
+const schoolBoardComments: Comment[] = schoolBoardPosts.map((post, index) => ({
+  id: nextCommentId(),
+  postId: post.id,
+  authorId: collegeReviewerIds[(index + 1) % collegeReviewerIds.length],
+  content: getAskComment(post),
+  accepted: false,
+  createdAt: new Date(Date.UTC(2026, 2, 22, 14, 0, 0) + index * 29 * 60 * 1000).toISOString(),
 }));
 
 const getHotComment = (post: SeedPost) => {
@@ -2526,7 +2536,7 @@ const generatedSchoolCoverageComments: Comment[] = generatedSchoolCoveragePosts.
 }));
 
 const generatedSchoolCoverageFollowupComments: Comment[] = generatedSchoolCoveragePosts
-  .filter((post) => post.subcategory === "free" || post.subcategory === "ask")
+  .filter((post) => post.subcategory === "free" || post.subcategory === "school")
   .map((post, index) => ({
     id: `coverage-followup-comment-${post.id}`,
     postId: post.id,
@@ -2536,7 +2546,7 @@ const generatedSchoolCoverageFollowupComments: Comment[] = generatedSchoolCovera
         ? "저도 학기 초에 학교 취업지원 메뉴부터 저장해두는 편인데, 막상 필요할 때 찾는 시간이 확실히 줄었습니다."
         : post.tags?.includes("도서관")
           ? "도서관 이용시간이나 열람실 공지는 시험기간마다 달라질 수 있어서 공식 메뉴를 저장해두는 게 제일 편했습니다."
-          : post.subcategory === "ask"
+          : post.subcategory === "school"
             ? "저는 학교 공식 홈페이지에서 입학·학사·학생지원 순으로 보는 편입니다. 학교마다 메뉴가 다르게 묶여 있어서 처음에 한 번 정리해두면 편해요."
             : "학기 초에 공식 메뉴를 한 번 정리해두면 커뮤니티 글을 읽다가도 다시 찾는 시간이 크게 줄었습니다.",
     accepted: false,
@@ -2549,6 +2559,7 @@ export const comments: Comment[] = [
   ...adviceComments,
   ...freeComments,
   ...askComments,
+  ...schoolBoardComments,
   ...hotComments,
   ...freshmanZoneComments,
   ...datingComments,

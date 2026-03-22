@@ -87,6 +87,7 @@ export const COMMUNITY_CATEGORY_LABELS = {
   ask: "무물",
   hot: "핫갤",
   freshman: "새내기존",
+  school: "학교 게시판",
   dating: "연애",
   meeting: "미팅",
 } as const;

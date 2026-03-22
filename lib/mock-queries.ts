@@ -367,6 +367,7 @@ export function getPostHref(postId: string) {
     return `/dating${post.subcategory ? `?filter=${post.subcategory}` : ""}`;
   }
 
+  if (post.subcategory === "school") return `/school?tab=school&post=${post.id}`;
   if (post.subcategory === "freshman") return `/school?tab=freshman&post=${post.id}`;
   if (post.subcategory === "club") return `/school?tab=club&post=${post.id}`;
   if (post.subcategory === "food") return `/school?tab=food&post=${post.id}`;

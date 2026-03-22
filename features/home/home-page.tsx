@@ -45,6 +45,7 @@ export function HomePage({
       ? "🎯 지망학교를 선택하세요"
       : "🏫 학교를 선택하세요";
   const schoolFeedPosts = [
+    ...getCommunityPosts("school"),
     ...getCommunityPosts("freshman"),
     ...getCommunityPosts("club"),
     ...getCommunityPosts("food"),

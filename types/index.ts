@@ -6,6 +6,7 @@ export type CommunitySubcategory =
   | "food"
   | "hot"
   | "freshman"
+  | "school"
   | "advice"
   | "free"
   | "ask";

@@ -34,6 +34,7 @@ const postSchema = z.object({
       "food",
       "advice",
       "ask",
+      "school",
       "hot",
       "freshman",
       "dating",
@@ -302,6 +303,10 @@ function getPostNotificationHref(post: {
 
   if (post.category === "dating") {
     return "/dating";
+  }
+
+  if (post.subcategory === "school") {
+    return `/school?tab=school&post=${post.id}`;
   }
 
   const filter = getCommunityFilterFromPost(post);
