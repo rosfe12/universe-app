@@ -48,6 +48,18 @@ function isEmailDeliverySetupError(message?: string | null) {
   );
 }
 
+function getDeliveryErrorMessage(error: unknown) {
+  const message =
+    error instanceof Error ? error.message : "학교 메일 발송에 실패했습니다.";
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("domain is not verified")) {
+    return "발신 도메인 인증이 아직 완료되지 않았습니다. Resend에서 universeapp.kr 도메인 인증 상태를 확인해주세요.";
+  }
+
+  return message;
+}
+
 function buildVerificationUrl(origin: string, requestId: string, tokenHash: string, type: string) {
   const callbackUrl = new URL("/auth/school-email/callback", origin);
   callbackUrl.searchParams.set("request_id", requestId);
@@ -404,22 +416,20 @@ export async function POST(request: Request) {
           verificationUrl,
         });
       } catch (deliveryError) {
+        const deliveryMessage = getDeliveryErrorMessage(deliveryError);
+        logServerEvent("error", "student_verification_email_delivery_failed", {
+          requestId: verificationRequestId,
+          schoolEmail: normalizedSchoolEmail,
+          message: deliveryMessage,
+        });
         await updateDeliveryState(admin, verificationRequestId, {
           deliveryMethod: "app_smtp",
           deliveryStatus: "failed",
-          deliveryError:
-            deliveryError instanceof Error
-              ? deliveryError.message
-              : "학교 메일 발송에 실패했습니다.",
+          deliveryError: deliveryMessage,
         });
 
         return NextResponse.json(
-          {
-            error:
-              deliveryError instanceof Error
-                ? deliveryError.message
-                : "학교 메일 발송에 실패했습니다.",
-          },
+          { error: deliveryMessage },
           { status: 500 },
         );
       }
@@ -472,23 +482,21 @@ export async function POST(request: Request) {
         verificationUrl,
       });
     } catch (deliveryError) {
+      const deliveryMessage = getDeliveryErrorMessage(deliveryError);
+      logServerEvent("error", "student_verification_email_delivery_failed", {
+        requestId: verificationRequestId,
+        schoolEmail: normalizedSchoolEmail,
+        message: deliveryMessage,
+      });
       await admin.auth.admin.deleteUser(linkData.user.id).catch(() => null);
       await updateDeliveryState(admin, verificationRequestId, {
         deliveryMethod: "app_smtp",
         deliveryStatus: "failed",
-        deliveryError:
-          deliveryError instanceof Error
-            ? deliveryError.message
-            : "학교 메일 발송에 실패했습니다.",
+        deliveryError: deliveryMessage,
       });
 
       return NextResponse.json(
-        {
-          error:
-            deliveryError instanceof Error
-              ? deliveryError.message
-              : "학교 메일 발송에 실패했습니다.",
-        },
+        { error: deliveryMessage },
         { status: 500 },
       );
     }
