@@ -526,7 +526,7 @@ export function OnboardingPage() {
                 <div className="rounded-[22px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm">
                   <p className="font-medium text-foreground">{verificationPreview.label}</p>
                   <p className="mt-1 text-muted-foreground">
-                    학교 메일을 입력하고 인증 요청을 누르면 대학생 권한이 열립니다.
+                    메일 인증이 완료되야 대학생 권한으로 전환됩니다.
                   </p>
                 </div>
                 <Button
@@ -539,9 +539,6 @@ export function OnboardingPage() {
                     : "학교 메일 인증 요청"}
                 </Button>
                 <p className="text-xs text-muted-foreground">{verificationInputHint}</p>
-                <p className="text-xs text-muted-foreground">
-                  인증 메일을 누르면 바로 대학생 권한으로 전환됩니다.
-                </p>
               </div>
             ) : null}
             <div className="grid grid-cols-2 gap-3">
