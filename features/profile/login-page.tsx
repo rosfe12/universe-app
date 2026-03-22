@@ -31,6 +31,7 @@ import { setSupabaseSessionPersistence } from "@/lib/supabase/client";
 import { shouldShowTestAccounts } from "@/lib/env";
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { cn } from "@/lib/utils";
+import type { AppRuntimeSnapshot } from "@/types";
 
 const loginSchema = z.object({
   email: z.string().email("이메일 형식이 필요합니다."),
@@ -39,6 +40,26 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type AuthMode = "login" | "signup";
+
+async function waitForAuthenticatedSnapshot(
+  refresh: () => Promise<AppRuntimeSnapshot>,
+) {
+  let nextSnapshot = await refresh();
+
+  if (nextSnapshot.isAuthenticated) {
+    return nextSnapshot;
+  }
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await new Promise((resolve) => window.setTimeout(resolve, 150));
+    nextSnapshot = await refresh();
+    if (nextSnapshot.isAuthenticated) {
+      break;
+    }
+  }
+
+  return nextSnapshot;
+}
 
 export function LoginPage() {
   const router = useRouter();
@@ -150,7 +171,12 @@ export function LoginPage() {
       return;
     }
 
-    const nextSnapshot = await refresh();
+    const nextSnapshot = await waitForAuthenticatedSnapshot(refresh);
+    if (!nextSnapshot.isAuthenticated) {
+      setErrorMessage("로그인을 완료하지 못했습니다. 다시 시도해주세요.");
+      return;
+    }
+
     router.replace(
       getAuthFlowHref({
         isAuthenticated: nextSnapshot.isAuthenticated,
@@ -272,14 +298,14 @@ export function LoginPage() {
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <Label>이메일</Label>
-              <Input {...form.register("email")} />
+              <Input autoComplete="email" {...form.register("email")} />
               {form.formState.errors.email ? (
                 <p className="text-xs text-rose-500">{form.formState.errors.email.message}</p>
               ) : null}
             </div>
             <div className="space-y-2">
               <Label>비밀번호</Label>
-              <Input type="password" {...form.register("password")} />
+              <Input autoComplete="current-password" type="password" {...form.register("password")} />
               {form.formState.errors.password ? (
                 <p className="text-xs text-rose-500">{form.formState.errors.password.message}</p>
               ) : null}

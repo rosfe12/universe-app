@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { getRuntimeSnapshot, setRuntimeSnapshot } from "@/lib/runtime-state";
-import { createClient } from "@/lib/supabase/client";
+import { clearSupabaseSessionStorage, createClient, shouldClearNonPersistentSession } from "@/lib/supabase/client";
 import {
   isSupabaseEnabled,
   loadClientRuntimeSnapshot,
@@ -47,6 +47,15 @@ export function useAppRuntime(
       setLoading(false);
     }
 
+    async function prepareSession() {
+      if (!shouldClearNonPersistentSession()) {
+        return;
+      }
+
+      clearSupabaseSessionStorage();
+      await createClient().auth.signOut();
+    }
+
     if (!isSupabaseEnabled()) {
       if (initialSnapshot) {
         setLoading(false);
@@ -58,18 +67,34 @@ export function useAppRuntime(
       };
     }
 
-    if (initialSnapshot) {
-      setLoading(false);
-      void bootstrap(false);
-    } else {
-      void bootstrap(true);
-    }
-
     const supabase = createClient();
+    void (async () => {
+      await prepareSession();
+
+      if (!active) {
+        return;
+      }
+
+      if (initialSnapshot) {
+        setLoading(false);
+        await bootstrap(false, true);
+        return;
+      }
+
+      await bootstrap(true);
+    })();
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async () => {
-      await bootstrap(false, true);
+    } = supabase.auth.onAuthStateChange(() => {
+      // Avoid awaiting Supabase auth-bound queries inside the auth callback.
+      window.setTimeout(() => {
+        if (!active) {
+          return;
+        }
+
+        void bootstrap(false, true);
+      }, 0);
     });
 
     return () => {
