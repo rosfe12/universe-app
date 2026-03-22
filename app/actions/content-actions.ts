@@ -918,7 +918,7 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
 
   const { data: tradePost, error: tradePostError } = await supabase
     .from("trade_posts")
-    .select("id, author_id, school_id, have_lecture_id, want_lecture_id")
+    .select("id, author_id, school_id, have_lecture_id, want_lecture_id, status")
     .eq("id", values.tradePostId)
     .single();
 
@@ -947,6 +947,14 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
 
   if (error || !data) {
     throw new Error(error?.message ?? "채팅 전송에 실패했습니다.");
+  }
+
+  if (tradePost.status === "open") {
+    await supabase
+      .from("trade_posts")
+      .update({ status: "matching" })
+      .eq("id", values.tradePostId)
+      .eq("status", "open");
   }
 
   try {

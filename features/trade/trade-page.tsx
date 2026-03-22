@@ -207,12 +207,26 @@ export function TradePage({
   }, [detailId, isAuthenticated, source]);
 
   const detailItem = tradeItems.find((item) => item.id === detailId) ?? null;
+  const chatHighlighted = searchParams.get("chat") === "1";
   const selectedHaveLecture = getLectureById(form.watch("haveLectureId"));
   const selectedWantLecture = getLectureById(form.watch("wantLectureId"));
   const detailMatches = useMemo(
     () => (detailItem ? getTradeMatchCandidates(detailItem.id) : []),
     [detailItem],
   );
+  const detailParticipants = useMemo(
+    () =>
+      detailItem
+        ? new Set([detailItem.userId, ...tradeMessages.map((message) => message.senderId)]).size
+        : 0,
+    [detailItem, tradeMessages],
+  );
+  const quickReplies = [
+    "시간표 먼저 맞춰볼까요?",
+    "지금 바로 교환 가능해요.",
+    "세부 조건 한 번 더 확인하고 싶어요.",
+    "완료되면 상태도 같이 바꿔둘게요.",
+  ];
 
   const items = useMemo(
     () =>
@@ -757,13 +771,19 @@ export function TradePage({
                   />
                 </div>
               </div>
-              <Card className="shadow-none">
+              <Card className={`shadow-none ${chatHighlighted ? "ring-2 ring-primary/25" : ""}`}>
                 <CardContent className="space-y-4 py-5">
-                  <div className="space-y-1">
-                    <p className="font-semibold">교환 채팅</p>
-                    <p className="text-sm text-muted-foreground">
-                      이 교환 글을 보는 사람끼리 바로 대화를 이어갈 수 있습니다.
-                    </p>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="font-semibold">교환 채팅</p>
+                      <p className="text-sm text-muted-foreground">
+                        이 교환 글을 기준으로 실제 교환 대화를 이어갑니다.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{TRADE_STATUS_LABELS[detailItem.status]}</Badge>
+                      <span className="text-xs text-muted-foreground">참여 {detailParticipants}명</span>
+                    </div>
                   </div>
                   <div className="max-h-64 space-y-3 overflow-y-auto rounded-[20px] bg-secondary/40 p-3">
                     {tradeMessageLoading ? (
@@ -800,6 +820,18 @@ export function TradePage({
                     )}
                   </div>
                   <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {quickReplies.map((reply) => (
+                        <button
+                          key={reply}
+                          type="button"
+                          onClick={() => setTradeMessageInput(reply)}
+                          className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-50"
+                        >
+                          {reply}
+                        </button>
+                      ))}
+                    </div>
                     <Textarea
                       rows={3}
                       value={tradeMessageInput}

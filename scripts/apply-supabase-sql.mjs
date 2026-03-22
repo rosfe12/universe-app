@@ -448,6 +448,46 @@ const buildSchoolCoverageRows = (schools) => {
         tags: ["공식자료", "생활권", "학생식당"],
         comment: "생활권 정보는 공식 안내를 기준으로 먼저 외워두면 공강 동선이 훨씬 안정적이었습니다.",
       },
+      {
+        suffix: "free",
+        category: "community",
+        subcategory: "free",
+        title: `${schoolName} 학교생활 링크는 학기 초에 한 번 정리해두는 편이 좋았습니다`,
+        content: `${schoolName} 포털, 학사 공지, 장학, 학생지원 메뉴를 학교 홈페이지 기준으로 한 번 정리해두면 학기 중 다시 찾는 시간이 크게 줄었습니다. 커뮤니티 글을 보다가도 결국 공식 메뉴를 다시 찾게 되니 처음부터 저장해두는 편이 훨씬 편했습니다.\n출처: ${sourceUrl}`,
+        visibilityLevel: "school",
+        tags: ["공식자료", "학교생활", "학사"],
+        comment: "학기 초에 공식 메뉴를 한 번 정리해두면 커뮤니티 글을 읽다가도 다시 찾는 시간이 크게 줄었습니다.",
+      },
+      {
+        suffix: "ask",
+        category: "community",
+        subcategory: "ask",
+        title: `${schoolName} 준비할 때 공식 홈페이지에서 제일 먼저 보는 메뉴 다들 어디인가요?`,
+        content: `${schoolName} 준비하면서 입학처, 학사, 학생지원, 장학 메뉴를 돌아보다 보니 학교마다 정보가 묶이는 방식이 꽤 다르더라고요. 저는 공식 홈페이지 기준으로 자주 보는 메뉴를 정리해두는 편인데, 재학생이나 예비입학생은 어떤 순서로 보는지 궁금합니다.\n출처: ${sourceUrl}`,
+        visibilityLevel: "school",
+        tags: ["공식자료", "무물", "학교생활"],
+        comment: "저는 학교 공식 홈페이지에서 입학·학사·학생지원 순으로 보는 편입니다. 학교마다 메뉴가 다르게 묶여 있어서 처음에 한 번 정리해두면 편해요.",
+      },
+      {
+        suffix: "career",
+        category: "community",
+        subcategory: "free",
+        title: `${schoolName} 취업지원 메뉴는 학기 초에 한 번 열어두는 편이 좋았습니다`,
+        content: `${schoolName} 취업 준비를 당장 시작하지 않더라도 학교 홈페이지에서 진로·취업지원 메뉴를 한 번 열어두면 나중에 공고나 상담 링크를 다시 찾을 때 훨씬 편했습니다. 학교별로 대학일자리센터나 취업지원팀 위치가 달라서 공식 경로를 먼저 익혀두는 편이 실용적이었습니다.\n출처: ${sourceUrl}`,
+        visibilityLevel: "school",
+        tags: ["공식자료", "취업정보", "진로지원"],
+        comment: "저도 학기 초에 학교 취업지원 메뉴부터 저장해두는 편인데, 막상 필요할 때 찾는 시간이 확실히 줄었습니다.",
+      },
+      {
+        suffix: "study",
+        category: "community",
+        subcategory: "free",
+        title: `${schoolName} 도서관과 학습지원 메뉴도 미리 저장해두면 편했습니다`,
+        content: `${schoolName} 시험기간이 되면 도서관 이용시간, 열람실, 학습지원 공지를 다시 찾게 되는데 공식 홈페이지 기준으로 저장해두면 급할 때 훨씬 빨리 찾을 수 있었습니다. 학교생활에서 자주 보는 메뉴는 결국 공식 사이트가 가장 정확했습니다.\n출처: ${sourceUrl}`,
+        visibilityLevel: "schoolDepartment",
+        tags: ["공식자료", "학습지원", "도서관"],
+        comment: "도서관 이용시간이나 열람실 공지는 시험기간마다 달라질 수 있어서 공식 메뉴를 저장해두는 게 제일 편했습니다.",
+      },
     ];
 
     for (const [variantIndex, variant] of variants.entries()) {
@@ -642,11 +682,6 @@ const upsertSchoolCoverageContent = async (client) => {
   const { rows } = await client.query(`
     select s.id::text, s.name, s.domain
     from public.schools s
-    left join public.posts p
-      on p.school_id = s.id
-     and p.scope = 'school'::public.content_scope
-    group by s.id, s.name, s.domain
-    having count(p.*) = 0
     order by s.name asc
   `);
 
