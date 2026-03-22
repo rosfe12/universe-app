@@ -196,7 +196,7 @@ export function MessagesPage({
       {!isAuthenticated ? (
         <EmptyState
           title="로그인 후 메시지를 확인할 수 있습니다"
-          description="쪽지와 진행 중인 대화를 한곳에서 바로 이어볼 수 있습니다."
+          description="반응과 이어진 대화 흐름을 한곳에서 바로 확인할 수 있습니다."
           actionLabel="로그인"
           href="/login?next=/messages"
         />
@@ -211,7 +211,7 @@ export function MessagesPage({
         <Tabs defaultValue="dm" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dm">쪽지</TabsTrigger>
-            <TabsTrigger value="chat">채팅</TabsTrigger>
+            <TabsTrigger value="chat">대화</TabsTrigger>
           </TabsList>
           <TabsContent value="dm" className="mt-0">
             {messageThreads.length === 0 ? (
@@ -238,8 +238,8 @@ export function MessagesPage({
           <TabsContent value="chat" className="mt-0">
             {chatThreads.length === 0 ? (
               <EmptyState
-                title="아직 열린 대화가 없습니다"
-                description="내 글에 댓글이 달리거나 교환이 진행되면 채팅처럼 이어서 볼 수 있습니다."
+                title="아직 이어진 대화가 없습니다"
+                description="내 글 댓글과 교환 진행 흐름이 생기면 여기에서 이어볼 수 있습니다."
                 actionLabel="우리학교 보기"
                 href="/school"
               />

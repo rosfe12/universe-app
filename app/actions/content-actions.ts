@@ -667,7 +667,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
 
   await awardTrustScore(authUser.id, 5);
 
-  revalidateFeed(["/home", "/admission", "/community", "/school", "/career", "/notifications", "/profile"]);
+  revalidateFeed(["/home", "/community", "/school", "/notifications", "/profile"]);
   return data;
 }
 
@@ -815,7 +815,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
     // noop
   }
 
-  revalidateFeed(["/home", "/admission", "/community", "/school", "/career"]);
+  revalidateFeed(["/home", "/community", "/school"]);
   return data;
 }
 
@@ -1074,7 +1074,7 @@ export async function acceptAdmissionAnswer(postId: string, commentId: string) {
     await awardTrustScore(String(targetComment.author_id), 5);
   }
 
-  revalidateFeed(["/admission", `/admission/${postId}`, "/notifications"]);
+  revalidateFeed(["/school", "/notifications"]);
 }
 
 export async function reportContent(input: z.input<typeof reportContentSchema>) {
@@ -1099,7 +1099,7 @@ export async function reportContent(input: z.input<typeof reportContentSchema>) 
     throw new Error(error.message);
   }
 
-  revalidateFeed(["/community", "/career", "/admission", "/lectures", "/trade", "/dating"]);
+  revalidateFeed(["/community", "/school", "/lectures", "/trade", "/dating"]);
   return data;
 }
 
@@ -1127,6 +1127,6 @@ export async function blockUser(input: z.input<typeof blockUserSchema>) {
     throw new Error(error.message);
   }
 
-  revalidateFeed(["/community", "/career", "/admission", "/lectures", "/trade", "/dating", "/profile"]);
+  revalidateFeed(["/community", "/school", "/lectures", "/trade", "/dating", "/profile"]);
   return data;
 }

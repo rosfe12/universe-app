@@ -139,7 +139,7 @@ export function TopNavActions() {
         >
           <Search className="h-5 w-5" />
         </Button>
-        <Button asChild size="icon" variant="ghost" aria-label="쪽지">
+        <Button asChild size="icon" variant="ghost" aria-label="메시지">
           <Link href="/messages">
             <MessagesSquare className="h-5 w-5" />
           </Link>

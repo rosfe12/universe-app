@@ -4,10 +4,11 @@ import { resolveAppUrl } from "@/lib/env";
 
 const routes = [
   "/home",
-  "/admission",
   "/school",
   "/community",
   "/lectures",
+  "/messages",
+  "/notifications",
   "/profile",
   "/support",
   "/terms",
