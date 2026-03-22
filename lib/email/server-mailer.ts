@@ -4,10 +4,8 @@ import path from "node:path";
 import nodemailer from "nodemailer";
 
 import { env, hasAppSmtpConfig } from "@/lib/env";
-import { isTestVerificationEmail, normalizeSchoolEmail } from "@/lib/school-email";
 
 let cachedTransporter: nodemailer.Transporter | null = null;
-const RESEND_TEST_SENDER = "onboarding@resend.dev";
 
 function getSmtpPort() {
   return Number(env.SUPABASE_SMTP_PORT ?? "587");
@@ -61,12 +59,9 @@ export async function sendStudentVerificationEmail({
 
   const transporter = getTransporter();
   const html = replaceTemplateLink(htmlTemplate, verificationUrl);
-  const senderEmail = isTestVerificationEmail(normalizeSchoolEmail(toEmail))
-    ? RESEND_TEST_SENDER
-    : env.SUPABASE_SMTP_SENDER_EMAIL!;
   const from = env.SUPABASE_SMTP_SENDER_NAME
-    ? `"${env.SUPABASE_SMTP_SENDER_NAME}" <${senderEmail}>`
-    : senderEmail;
+    ? `"${env.SUPABASE_SMTP_SENDER_NAME}" <${env.SUPABASE_SMTP_SENDER_EMAIL}>`
+    : env.SUPABASE_SMTP_SENDER_EMAIL!;
 
   await transporter.sendMail({
     from,
