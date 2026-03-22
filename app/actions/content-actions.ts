@@ -117,7 +117,7 @@ const blockUserSchema = z.object({
 
 type CurrentProfile = {
   id: string;
-  user_type: "student" | "highschool" | "freshman";
+  user_type: "student" | "applicant" | "freshman";
   school_id: string | null;
   department: string | null;
   grade: number | null;
@@ -626,7 +626,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
   const values = postSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
-  if (profile.user_type === "highschool" && values.category !== "admission") {
+  if (profile.user_type === "applicant" && values.category !== "admission") {
     throw new Error("입시생은 입시 게시판만 작성할 수 있습니다.");
   }
   if (values.category === "dating") {
@@ -685,7 +685,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
     throw new Error("댓글을 남길 글을 찾을 수 없습니다.");
   }
 
-  if (profile.user_type === "highschool" && post.category !== "admission") {
+  if (profile.user_type === "applicant" && post.category !== "admission") {
     throw new Error("입시생은 입시 게시판에만 댓글을 남길 수 있습니다.");
   }
   if (post.category === "community") {

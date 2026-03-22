@@ -179,7 +179,7 @@ with seeded_profiles as (
       (
         'e5555555-5555-4555-8555-555555555555'::uuid,
         'hayoon@example.com',
-        'highschool'::public.user_type,
+        'applicant'::public.user_type,
         '11111111-1111-4111-8111-111111111111'::uuid,
         null,
         12,
@@ -194,7 +194,7 @@ with seeded_profiles as (
       (
         'f6666666-6666-4666-8666-666666666666'::uuid,
         'sujin.hs@example.com',
-        'highschool'::public.user_type,
+        'applicant'::public.user_type,
         '11111111-1111-4111-8111-111111111111'::uuid,
         null,
         12,

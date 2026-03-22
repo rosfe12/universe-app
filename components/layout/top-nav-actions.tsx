@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getPostHref } from "@/lib/mock-queries";
@@ -42,10 +43,23 @@ function getSearchScore(input: {
   return score;
 }
 
+function isMessageNotification(type: string) {
+  return (
+    type === "comment" ||
+    type === "reply" ||
+    type === "admissionAnswer" ||
+    type === "tradeMatch"
+  );
+}
+
 export function TopNavActions() {
-  const snapshot = getRuntimeSnapshot();
+  const runtimeSnapshot = getRuntimeSnapshot();
+  const { notifications, snapshot } = useAppRuntime(runtimeSnapshot);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const unreadMessageCount = notifications.filter(
+    (item) => !item.isRead && isMessageNotification(item.type),
+  ).length;
 
   useEffect(() => {
     if (!open) {
@@ -140,8 +154,13 @@ export function TopNavActions() {
           <Search className="h-5 w-5" />
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="메시지">
-          <Link href="/messages">
+          <Link href="/messages" className="relative">
             <MessagesSquare className="h-5 w-5" />
+            {unreadMessageCount > 0 ? (
+              <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold leading-4 text-white">
+                {Math.min(unreadMessageCount, 9)}
+              </span>
+            ) : null}
           </Link>
         </Button>
       </div>

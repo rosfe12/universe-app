@@ -41,13 +41,15 @@ import type {
 
 const toUserType = (value?: string | null): UserType => {
   if (value === "freshman") return "freshman";
-  if (value === "high_school" || value === "highschool") return "applicant";
+  if (value === "applicant" || value === "high_school" || value === "highschool") {
+    return "applicant";
+  }
   return "student";
 };
 
 const fromUserType = (value: UserType) => {
   if (value === "freshman") return "freshman";
-  if (value === "applicant") return "highschool";
+  if (value === "applicant") return "applicant";
   return "student";
 };
 

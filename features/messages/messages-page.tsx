@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { MessageCircleMore, MessagesSquare, RefreshCw } from "lucide-react";
 
-import { markNotificationRead } from "@/app/actions/notification-actions";
+import {
+  markNotificationRead,
+  markNotificationsReadByTarget,
+} from "@/app/actions/notification-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -41,6 +44,9 @@ type MessageThreadItem = {
   unread: boolean;
   time: string;
   notificationId?: string;
+  targetType?: "post" | "trade";
+  targetId?: string;
+  sectionLabel?: string;
 };
 
 function ThreadLink({
@@ -66,6 +72,12 @@ function ThreadLink({
             if (thread.notificationId) {
               try {
                 await markNotificationRead(thread.notificationId);
+              } catch {
+                // ignore read sync errors and continue navigation
+              }
+            } else if (thread.targetType && thread.targetId) {
+              try {
+                await markNotificationsReadByTarget(thread.targetType, thread.targetId);
               } catch {
                 // ignore read sync errors and continue navigation
               }
@@ -134,6 +146,9 @@ export function MessagesPage({
       href: "/trade",
       unread: item.status === "matching",
       time: formatRelativeLabel(item.createdAt),
+      targetType: "trade" as const,
+      targetId: item.id,
+      sectionLabel: "수강신청 교환",
     }));
 
   const commentThreads = currentUser.id
@@ -155,6 +170,7 @@ export function MessagesPage({
             unread: !item.isRead,
             time: formatRelativeLabel(item.createdAt),
             notificationId: item.id,
+            sectionLabel: "내 글 반응",
           };
         })
     : [];
@@ -180,6 +196,9 @@ export function MessagesPage({
           href: getPostHref(post.id),
           unread: unreadPostIds.has(post.id),
           time: formatRelativeLabel(latestComment?.createdAt ?? post.createdAt),
+          targetType: "post" as const,
+          targetId: post.id,
+          sectionLabel: "내 글 반응",
         };
       }),
     ...tradeThreads.map((thread) => ({
@@ -244,16 +263,28 @@ export function MessagesPage({
                 href="/school"
               />
             ) : (
-              <div className="divide-y divide-gray-100">
-                {chatThreads.map((thread) => (
-                  <ThreadLink
-                    key={thread.id}
-                    thread={thread}
-                    label="대화 보기"
-                    unreadIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
-                    readIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
-                  />
-                ))}
+              <div className="space-y-4">
+                {["내 글 반응", "수강신청 교환"].map((section) => {
+                  const threads = chatThreads.filter((thread) => thread.sectionLabel === section);
+                  if (threads.length === 0) return null;
+
+                  return (
+                    <section key={section} className="space-y-2">
+                      <p className="px-4 text-xs font-medium text-gray-400">{section}</p>
+                      <div className="divide-y divide-gray-100">
+                        {threads.map((thread) => (
+                          <ThreadLink
+                            key={thread.id}
+                            thread={thread}
+                            label="이어보기"
+                            unreadIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
+                            readIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
               </div>
             )}
           </TabsContent>

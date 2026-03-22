@@ -777,8 +777,19 @@ try {
 
     console.log(`Applying ${relativeFile}...`);
     if (relativeFile === "supabase/schema.sql") {
-      await client.query("alter type public.user_type add value if not exists 'freshman';");
-      await client.query("alter type public.post_subcategory add value if not exists 'freshman';");
+      await client.query(`
+        do $$
+        begin
+          if exists (select 1 from pg_type where typname = 'user_type') then
+            alter type public.user_type add value if not exists 'applicant';
+            alter type public.user_type add value if not exists 'freshman';
+          end if;
+          if exists (select 1 from pg_type where typname = 'post_subcategory') then
+            alter type public.post_subcategory add value if not exists 'freshman';
+          end if;
+        end
+        $$;
+      `);
     }
     await client.query(sql);
   }

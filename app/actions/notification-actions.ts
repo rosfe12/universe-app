@@ -33,6 +33,7 @@ export async function markNotificationRead(notificationId: string) {
   }
 
   revalidatePath("/notifications");
+  revalidatePath("/messages");
   revalidatePath("/profile");
 }
 
@@ -51,5 +52,30 @@ export async function markAllNotificationsRead() {
   }
 
   revalidatePath("/notifications");
+  revalidatePath("/messages");
+  revalidatePath("/profile");
+}
+
+export async function markNotificationsReadByTarget(
+  targetType: "post" | "trade",
+  targetId: string,
+) {
+  const { supabase, user } = await requireNotificationUser();
+  const now = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true, read_at: now })
+    .eq("user_id", user.id)
+    .eq("target_type", targetType)
+    .eq("target_id", targetId)
+    .eq("is_read", false);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/notifications");
+  revalidatePath("/messages");
   revalidatePath("/profile");
 }

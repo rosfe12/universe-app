@@ -4,7 +4,7 @@ create extension if not exists citext;
 do $$
 begin
   if not exists (select 1 from pg_type where typname = 'user_type') then
-    create type public.user_type as enum ('student', 'highschool', 'freshman');
+    create type public.user_type as enum ('student', 'applicant', 'freshman');
   end if;
   if not exists (select 1 from pg_type where typname = 'content_scope') then
     create type public.content_scope as enum ('school', 'global');
@@ -68,6 +68,7 @@ $$;
 
 do $$
 begin
+  alter type public.user_type add value if not exists 'applicant';
   alter type public.user_type add value if not exists 'freshman';
 exception
   when duplicate_object then null;
@@ -185,8 +186,12 @@ alter table public.users
   add column if not exists school_email_verified_at timestamptz;
 
 update public.users
-set user_type = 'highschool'
-where user_type::text not in ('student', 'highschool', 'freshman');
+set user_type = 'applicant'
+where user_type::text = 'highschool';
+
+update public.users
+set user_type = 'applicant'
+where user_type::text not in ('student', 'applicant', 'freshman');
 
 update public.users
 set school_email = lower(email::text)::citext
@@ -489,7 +494,7 @@ begin
     new.default_visibility_level := case
       when new.user_type = 'student' and new.school_id is not null then 'schoolDepartment'::public.visibility_level
       when new.user_type = 'freshman' and new.school_id is not null then 'school'::public.visibility_level
-      when new.user_type = 'highschool' and new.school_id is not null then 'school'::public.visibility_level
+      when new.user_type = 'applicant' and new.school_id is not null then 'school'::public.visibility_level
       else 'anonymous'::public.visibility_level
     end;
   end if;

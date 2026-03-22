@@ -14,7 +14,7 @@ type SupabaseTable<Row, Insert, Update = Partial<Insert>> = {
 };
 
 type VisibilityLevel = "anonymous" | "school" | "schoolDepartment" | "profile";
-type UserType = "student" | "highschool" | "freshman";
+type UserType = "student" | "applicant" | "freshman";
 type StudentVerificationStatus = "none" | "unverified" | "pending" | "verified" | "rejected";
 type VerificationRequestStatus = "pending" | "verified" | "expired" | "cancelled";
 type ReportStatus = "pending" | "reviewed" | "reviewing" | "confirmed" | "dismissed";
