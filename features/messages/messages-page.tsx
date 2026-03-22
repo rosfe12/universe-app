@@ -14,14 +14,12 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
-  getLatestCommentPreview,
   getLectureById,
   getNotifications,
   getPostById,
   getPostHref,
   getTradeStatusLabel,
   getTradePosts,
-  getUserPosts,
 } from "@/lib/mock-queries";
 import { formatRelativeLabel } from "@/lib/utils";
 import type { ReactNode } from "react";
@@ -115,12 +113,6 @@ export function MessagesPage({
   const { loading, isAuthenticated, currentUser } = useAppRuntime(initialSnapshot);
   const notifications = getNotifications(currentUser.id);
 
-  const unreadPostIds = new Set(
-    notifications
-      .filter((item) => !item.isRead && item.targetType === "post" && item.targetId)
-      .map((item) => item.targetId as string),
-  );
-
   const notificationThreads = notifications
     .filter((item) => isMessageNotification(item.type))
     .map((item) => ({
@@ -183,29 +175,11 @@ export function MessagesPage({
     ).values(),
   ).slice(0, 12);
 
-  const chatThreads = [
-    ...getUserPosts(currentUser.id)
-      .filter((post) => post.commentCount > 0)
-      .slice(0, 8)
-      .map((post) => {
-        const latestComment = getLatestCommentPreview(post.id);
-        return {
-          id: `chat-post-${post.id}`,
-          title: post.title,
-          preview: latestComment?.content ?? post.content,
-          href: getPostHref(post.id),
-          unread: unreadPostIds.has(post.id),
-          time: formatRelativeLabel(latestComment?.createdAt ?? post.createdAt),
-          targetType: "post" as const,
-          targetId: post.id,
-          sectionLabel: "내 글 반응",
-        };
-      }),
-    ...tradeThreads.map((thread) => ({
+  const chatThreads = tradeThreads
+    .map((thread) => ({
       ...thread,
       id: `chat-${thread.id}`,
-    })),
-  ]
+    }))
     .sort((a, b) => Number(b.unread) - Number(a.unread))
     .slice(0, 12);
 
@@ -259,38 +233,26 @@ export function MessagesPage({
           </TabsContent>
           <TabsContent value="chat" className="mt-0">
             <div className="px-4 pb-3 text-xs text-gray-400">
-              내 글에 이어진 대화와 수강신청 교환 진행 흐름을 모아서 보여줍니다.
+              매칭이 진행 중인 수강신청 교환 대화만 따로 모아 보여줍니다.
             </div>
             {chatThreads.length === 0 ? (
               <EmptyState
-                title="아직 채팅이 없습니다"
-                description="내 글 댓글과 교환 진행 흐름이 생기면 여기에서 이어볼 수 있습니다."
-                actionLabel="우리학교 보기"
-                href="/school"
+                title="아직 진행 중인 교환 채팅이 없습니다"
+                description="매칭이 시작된 수강신청 교환이 생기면 여기에서 바로 이어볼 수 있습니다."
+                actionLabel="수강신청 교환 보기"
+                href="/trade"
               />
             ) : (
-              <div className="space-y-4">
-                {["내 글 반응", "수강신청 교환"].map((section) => {
-                  const threads = chatThreads.filter((thread) => thread.sectionLabel === section);
-                  if (threads.length === 0) return null;
-
-                  return (
-                    <section key={section} className="space-y-2">
-                      <p className="px-4 text-xs font-medium text-gray-400">{section}</p>
-                      <div className="divide-y divide-gray-100">
-                        {threads.map((thread) => (
-                          <ThreadLink
-                            key={thread.id}
-                            thread={thread}
-                            label="이어보기"
-                            unreadIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
-                            readIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
+              <div className="divide-y divide-gray-100">
+                {chatThreads.map((thread) => (
+                  <ThreadLink
+                    key={thread.id}
+                    thread={thread}
+                    label="대화 열기"
+                    unreadIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
+                    readIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
+                  />
+                ))}
               </div>
             )}
           </TabsContent>
