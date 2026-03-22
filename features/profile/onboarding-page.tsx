@@ -272,31 +272,56 @@ export function OnboardingPage() {
       return false;
     }
 
-    if (options?.requestVerification && values.userType === "student" && !keepsVerifiedStudentState) {
-      const verificationResult = await requestStudentVerificationEmail({
-        schoolId: values.schoolId,
-        schoolEmail: normalizedSchoolEmail,
-        nextPath,
-      });
-
-      setPending(false);
-
-      if (verificationResult.error) {
-        setErrorMessage(verificationResult.error.message);
-        return false;
-      }
-
-      await refresh();
-      const redirectTarget = verificationResult.data?.alreadyVerified
-        ? appendSearchParam(nextPath, "schoolVerified", "1")
-        : appendSearchParam(nextPath, "verification", "pending");
-      router.push(redirectTarget);
-      return true;
-    }
-
     await refresh();
     setPending(false);
     router.push(nextPath);
+    return true;
+  };
+
+  const sendVerificationRequest = async (values: OnboardingFormValues) => {
+    setErrorMessage("");
+
+    if (!isSupabaseEnabled()) {
+      router.push(nextPath);
+      return false;
+    }
+
+    const normalizedSchoolEmail = normalizeSchoolEmail(values.schoolEmail);
+
+    if (!values.schoolId) {
+      form.setError("schoolId", {
+        message: "학교를 선택해주세요.",
+      });
+      return false;
+    }
+
+    if (!canUseSchoolVerificationEmail(normalizedSchoolEmail)) {
+      form.setError("schoolEmail", {
+        message: "학교 메일 형식을 확인해주세요.",
+      });
+      return false;
+    }
+
+    setPending(true);
+
+    const verificationResult = await requestStudentVerificationEmail({
+      schoolId: values.schoolId,
+      schoolEmail: normalizedSchoolEmail,
+      nextPath,
+    });
+
+    setPending(false);
+
+    if (verificationResult.error) {
+      setErrorMessage(verificationResult.error.message);
+      return false;
+    }
+
+    await refresh();
+    const redirectTarget = verificationResult.data?.alreadyVerified
+      ? appendSearchParam(nextPath, "schoolVerified", "1")
+      : appendSearchParam(nextPath, "verification", "pending");
+    router.push(redirectTarget);
     return true;
   };
 
@@ -305,7 +330,7 @@ export function OnboardingPage() {
   });
 
   const onRequestVerification = form.handleSubmit(async (values) => {
-    await saveProfile(values, { requestVerification: true });
+    await sendVerificationRequest(values);
   });
 
   if (!isAuthenticated && !loading) {
