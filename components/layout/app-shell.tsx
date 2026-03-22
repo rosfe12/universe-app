@@ -1,10 +1,9 @@
-import { Search } from "lucide-react";
 import { ReactNode } from "react";
 
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
+import { TopNavActions } from "@/components/layout/top-nav-actions";
 import { RuntimeSetupNotice } from "@/components/shared/runtime-setup-notice";
-import { Button } from "@/components/ui/button";
 
 export function AppShell({
   children,
@@ -31,9 +30,7 @@ export function AppShell({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {topAction}
-              <Button size="icon" variant="ghost" aria-label="검색">
-                <Search className="h-5 w-5" />
-              </Button>
+              <TopNavActions />
             </div>
           </div>
         </header>
