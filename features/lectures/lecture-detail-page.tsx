@@ -116,31 +116,6 @@ export function LectureDetailPage({
   const canWriteReview =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteLectureReview(currentUser);
 
-  if (
-    !loading &&
-    isAuthenticated &&
-    hasCompletedOnboarding(currentUser) &&
-    !canAccessSchoolFeatures(currentUser)
-  ) {
-    return (
-      <AppShell title={lecture?.courseName ?? "강의"} subtitle="대학생 전용 강의 정보">
-        <Card className="border-dashed border-white/80 bg-white/92">
-          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-            <div className="space-y-1">
-              <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
-              <p className="text-sm text-muted-foreground">
-                강의 상세와 강의평은 대학생 계정에서만 열립니다.
-              </p>
-            </div>
-            <Button asChild>
-              <Link href="/admission">입시 게시판으로 이동</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </AppShell>
-    );
-  }
-
   useEffect(() => {
     setReviews(getLectureReviews(lectureId));
   }, [blocks, lectureId, reports, runtimeLectureReviews]);
@@ -235,6 +210,31 @@ export function LectureDetailPage({
     return (
       <AppShell title="강의 상세" subtitle="강의를 불러오는 중입니다.">
         <LoadingState />
+      </AppShell>
+    );
+  }
+
+  if (
+    !loading &&
+    isAuthenticated &&
+    hasCompletedOnboarding(currentUser) &&
+    !canAccessSchoolFeatures(currentUser)
+  ) {
+    return (
+      <AppShell title={lecture.courseName} subtitle="대학생 전용 강의 정보">
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">입시생 계정은 입시 게시판만 사용할 수 있습니다</p>
+              <p className="text-sm text-muted-foreground">
+                강의 상세와 강의평은 대학생 계정에서만 열립니다.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/school?tab=admission">지망학교 보기</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </AppShell>
     );
   }

@@ -136,7 +136,7 @@ export function TradePage({
   const selectedWantLecture = getLectureById(form.watch("wantLectureId"));
   const detailMatches = useMemo(
     () => (detailItem ? getTradeMatchCandidates(detailItem.id) : []),
-    [detailItem, tradePosts, reports, blocks],
+    [detailItem],
   );
 
   const items = useMemo(
@@ -147,11 +147,8 @@ export function TradePage({
       })),
     [tradeItems],
   );
-  const hiddenTradeCount = useMemo(
-    () => getHiddenTradePostCount(),
-    [blocks, reports, tradePosts],
-  );
-  const blockedContentCount = useMemo(() => getBlockedContentCount(), [blocks, reports, tradePosts]);
+  const hiddenTradeCount = getHiddenTradePostCount();
+  const blockedContentCount = getBlockedContentCount();
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
@@ -250,8 +247,8 @@ export function TradePage({
           <EmptyState
             title="입시생 계정은 입시 탭부터 둘러보세요"
             description="수강신청 매칭은 대학생용 기능입니다. 지금은 입시 질문과 재학생 답변을 먼저 확인하면 충분합니다."
-            actionLabel="입시 탭으로 이동"
-            href="/admission"
+            actionLabel="지망학교 보기"
+            href="/school?tab=admission"
           />
         </AppShell>
       );

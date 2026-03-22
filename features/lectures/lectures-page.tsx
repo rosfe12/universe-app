@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { getCurrentSchool, getLectureSummaries, getTradePosts } from "@/lib/mock-queries";
+import { getLectureSummaries, getTradePosts } from "@/lib/mock-queries";
 import { canAccessSchoolFeatures } from "@/lib/permissions";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import type { AppRuntimeSnapshot } from "@/types";
@@ -40,9 +40,6 @@ export function LecturesPage({
   const initialView = searchParams.get("view") === "trade" ? "trade" : "reviews";
   const {
     loading,
-    lectures: runtimeLectures,
-    lectureReviews,
-    tradePosts: runtimeTradePosts,
     currentUser: runtimeUser,
     isAuthenticated,
   } = useAppRuntime(initialSnapshot);
@@ -50,7 +47,6 @@ export function LecturesPage({
   const [activeView, setActiveView] = useState<LectureView>(initialView);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  const currentSchool = getCurrentSchool();
   const [filters, setFilters] = useState({
     lightWorkload: false,
     flexibleAttendance: false,
@@ -62,7 +58,7 @@ export function LecturesPage({
     setActiveView(searchParams.get("view") === "trade" ? "trade" : "reviews");
   }, [searchParams]);
 
-  const lectures = useMemo(() => {
+  const lectures = (() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
 
     return getLectureSummaries().filter((lecture) => {
@@ -84,9 +80,9 @@ export function LecturesPage({
         matchesGrading
       );
     });
-  }, [deferredQuery, filters, lectureReviews, runtimeLectures]);
+  })();
 
-  const tradeItems = useMemo(() => getTradePosts(), [runtimeTradePosts]);
+  const tradeItems = getTradePosts();
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const lectureOverview = useMemo(() => {
     const reviewCount = lectures.reduce((sum, lecture) => sum + lecture.reviewCount, 0);
@@ -121,7 +117,7 @@ export function LecturesPage({
               </p>
             </div>
             <Button asChild>
-              <Link href="/admission">입시 게시판으로 이동</Link>
+              <Link href="/school?tab=admission">지망학교 보기</Link>
             </Button>
           </CardContent>
         </Card>
@@ -151,7 +147,7 @@ export function LecturesPage({
             </div>
             <div className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4">
               <p className="text-xs text-muted-foreground">리뷰 수</p>
-              <p className="mt-1 text-lg font-semibold">{lectureReviews.length}개</p>
+              <p className="mt-1 text-lg font-semibold">{lectureOverview.reviewCount}개</p>
             </div>
             <div className="rounded-[22px] border border-white/80 bg-white/80 px-4 py-4">
               <p className="text-xs text-muted-foreground">매칭 글</p>

@@ -292,7 +292,7 @@ function getPostNotificationHref(post: {
   metadata?: { tags?: string[] } | null;
 }) {
   if (post.category === "admission") {
-    return `/admission/${post.id}`;
+    return `/school?tab=admission&post=${post.id}`;
   }
 
   if (post.category === "dating") {

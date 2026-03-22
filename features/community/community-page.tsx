@@ -448,8 +448,8 @@ export function CommunityPage({
                 자유, 고민, 핫갤, 무물, 취업 보드는 대학생 계정에서만 열립니다.
               </p>
             </div>
-            <Button type="button" onClick={() => router.push("/admission")}>
-              입시 게시판으로 이동
+            <Button type="button" onClick={() => router.push("/school?tab=admission")}>
+              지망학교 보기
             </Button>
           </CardContent>
         </Card>

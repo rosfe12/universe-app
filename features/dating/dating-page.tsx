@@ -239,8 +239,8 @@ export function DatingPage({
           <EmptyState
             title="입시생 계정은 입시 탭부터 이용할 수 있습니다"
             description="연애와 미팅은 대학 생활 맥락에서 열리는 기능입니다. 지금은 입시 질문과 학교 정보를 먼저 살펴보세요."
-            actionLabel="입시 탭으로 이동"
-            href="/admission"
+            actionLabel="지망학교 보기"
+            href="/school?tab=admission"
           />
         </AppShell>
       );

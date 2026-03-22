@@ -355,12 +355,27 @@ export function getCommunityFilterForPost(post: Pick<Post, "category" | "subcate
   return "advice" as const;
 }
 
+function matchesAdmissionSchool(post: Post, schoolId?: string, schoolName?: string) {
+  const shortName = getSchoolShortName(schoolName);
+
+  return (
+    Boolean(schoolId && post.schoolId === schoolId) ||
+    post.meta?.interestUniversity?.includes(schoolName ?? "") ||
+    post.meta?.interestUniversity?.includes(shortName)
+  );
+}
+
 export function getPostHref(postId: string) {
   const post = getPostById(postId);
   if (!post) return "/home";
 
   if (post.category === "admission") {
-    return `/admission/${post.id}`;
+    const school = getCurrentSchool();
+    const currentSchoolMatches =
+      Boolean(currentUser.schoolId && post.schoolId === currentUser.schoolId) ||
+      matchesAdmissionSchool(post, currentUser.schoolId, school?.name);
+
+    return currentSchoolMatches ? `/school?tab=admission&post=${post.id}` : `/admission/${post.id}`;
   }
 
   if (post.category === "dating") {
@@ -652,7 +667,7 @@ export function getHomeCategoryStats() {
       label: "입시 질문",
       value: `${getAdmissionQuestions().length}개`,
       description: "입시생 유입 허브",
-      href: "/admission",
+      href: "/school?tab=admission",
     },
     {
       label: "강의평",

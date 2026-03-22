@@ -172,8 +172,8 @@ export function SchoolPage({
     [clubPosts, foodPosts],
   );
   const schoolDetailPosts = useMemo(
-    () => [...freshmanZonePosts, ...campusInfoCards],
-    [campusInfoCards, freshmanZonePosts],
+    () => [...freshmanZonePosts, ...campusInfoCards, ...admissionPosts],
+    [admissionPosts, campusInfoCards, freshmanZonePosts],
   );
   const detailPost = useMemo(
     () => schoolDetailPosts.find((post) => post.id === detailPostId) ?? null,
@@ -478,7 +478,7 @@ export function SchoolPage({
           ) : (
             <FeedList>
               {admissionPosts.map((post) => (
-                <FeedPostCard key={post.id} post={post} href={`/admission/${post.id}`} />
+                <FeedPostCard key={post.id} post={post} href={`/school?tab=admission&post=${post.id}`} />
               ))}
             </FeedList>
           )}
@@ -610,7 +610,9 @@ export function SchoolPage({
               <DialogHeader>
                 <DialogTitle>{detailPost.title}</DialogTitle>
                 <DialogDescription>
-                  {detailPost.subcategory === "freshman"
+                  {detailPost.category === "admission"
+                    ? `${schoolShortName} 입시 Q&A`
+                    : detailPost.subcategory === "freshman"
                     ? `${schoolShortName} 새내기 게시판`
                     : detailPost.subcategory === "club"
                       ? `${schoolShortName} 동아리`
@@ -624,7 +626,9 @@ export function SchoolPage({
                     createdAt={detailPost.createdAt}
                     visibilityLevel={detailPost.visibilityLevel}
                     trailing={
-                      detailPost.subcategory === "freshman" ? (
+                      detailPost.category === "admission" ? (
+                        <Badge variant="secondary">입시 Q&A</Badge>
+                      ) : detailPost.subcategory === "freshman" ? (
                         <Badge variant="success">새내기존</Badge>
                       ) : detailPost.subcategory === "club" ? (
                         <Badge variant="secondary">동아리</Badge>
@@ -939,7 +943,7 @@ export function SchoolPage({
                 });
                 return;
               }
-              router.push("/admission");
+              setAdmissionComposerOpen(true);
               return;
             }
 

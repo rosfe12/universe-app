@@ -1,8 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { MessageCircleMore, MessagesSquare, RefreshCw } from "lucide-react";
 
+import { markNotificationRead } from "@/app/actions/notification-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingState } from "@/components/shared/loading-state";
@@ -19,6 +21,7 @@ import {
   getUserPosts,
 } from "@/lib/mock-queries";
 import { formatRelativeLabel } from "@/lib/utils";
+import type { ReactNode } from "react";
 import type { AppRuntimeSnapshot } from "@/types";
 
 function isMessageNotification(type: string) {
@@ -27,6 +30,68 @@ function isMessageNotification(type: string) {
     type === "reply" ||
     type === "admissionAnswer" ||
     type === "tradeMatch"
+  );
+}
+
+type MessageThreadItem = {
+  id: string;
+  title: string;
+  preview: string;
+  href: string;
+  unread: boolean;
+  time: string;
+  notificationId?: string;
+};
+
+function ThreadLink({
+  thread,
+  label,
+  unreadIcon,
+  readIcon,
+}: {
+  thread: MessageThreadItem;
+  label: string;
+  unreadIcon?: ReactNode;
+  readIcon?: ReactNode;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        startTransition(() => {
+          void (async () => {
+            if (thread.notificationId) {
+              try {
+                await markNotificationRead(thread.notificationId);
+              } catch {
+                // ignore read sync errors and continue navigation
+              }
+            }
+            router.push(thread.href);
+          })();
+        });
+      }}
+      className="flex w-full items-start justify-between gap-3 px-4 py-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]"
+      disabled={isPending}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-semibold text-gray-900">{thread.title}</p>
+          {thread.unread ? <span className="h-2 w-2 rounded-full bg-indigo-500" /> : null}
+        </div>
+        <p className="mt-1 line-clamp-2 text-sm leading-6 text-gray-500">{thread.preview}</p>
+      </div>
+      <div className="shrink-0 text-right">
+        <span className="block text-xs text-gray-400">{thread.time}</span>
+        <span className="mt-2 inline-flex items-center gap-1 text-xs text-primary">
+          {thread.unread ? unreadIcon : readIcon}
+          {label}
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -56,6 +121,7 @@ export function MessagesPage({
           : item.href ?? "/notifications",
       unread: !item.isRead,
       time: formatRelativeLabel(item.createdAt),
+      notificationId: item.id,
     }));
 
   const tradeThreads = getTradePosts()
@@ -88,6 +154,7 @@ export function MessagesPage({
             href: item.targetId ? getPostHref(item.targetId) : item.href ?? "/community",
             unread: !item.isRead,
             time: formatRelativeLabel(item.createdAt),
+            notificationId: item.id,
           };
         })
     : [];
@@ -157,26 +224,13 @@ export function MessagesPage({
             ) : (
               <div className="divide-y divide-gray-100">
                 {messageThreads.map((thread) => (
-                  <Link
+                  <ThreadLink
                     key={thread.id}
-                    href={thread.href}
-                    className="flex items-start justify-between gap-3 px-4 py-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-gray-900">{thread.title}</p>
-                        {thread.unread ? <span className="h-2 w-2 rounded-full bg-indigo-500" /> : null}
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-gray-500">{thread.preview}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <span className="block text-xs text-gray-400">{thread.time}</span>
-                      <span className="mt-2 inline-flex items-center gap-1 text-xs text-primary">
-                        {thread.unread ? <MessagesSquare className="h-3.5 w-3.5" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                        이어보기
-                      </span>
-                    </div>
-                  </Link>
+                    thread={thread}
+                    label="이어보기"
+                    unreadIcon={<MessagesSquare className="h-3.5 w-3.5" />}
+                    readIcon={<RefreshCw className="h-3.5 w-3.5" />}
+                  />
                 ))}
               </div>
             )}
@@ -192,26 +246,13 @@ export function MessagesPage({
             ) : (
               <div className="divide-y divide-gray-100">
                 {chatThreads.map((thread) => (
-                  <Link
+                  <ThreadLink
                     key={thread.id}
-                    href={thread.href}
-                    className="flex items-start justify-between gap-3 px-4 py-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-gray-900">{thread.title}</p>
-                        {thread.unread ? <span className="h-2 w-2 rounded-full bg-indigo-500" /> : null}
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-gray-500">{thread.preview}</p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <span className="block text-xs text-gray-400">{thread.time}</span>
-                      <span className="mt-2 inline-flex items-center gap-1 text-xs text-primary">
-                        <MessageCircleMore className="h-3.5 w-3.5" />
-                        대화 보기
-                      </span>
-                    </div>
-                  </Link>
+                    thread={thread}
+                    label="대화 보기"
+                    unreadIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
+                    readIcon={<MessageCircleMore className="h-3.5 w-3.5" />}
+                  />
                 ))}
               </div>
             )}

@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { markAllNotificationsRead, markNotificationRead } from "@/app/actions/notification-actions";
 import { AppShell } from "@/components/layout/app-shell";
@@ -157,7 +157,7 @@ function getNotificationHref(item: Notification) {
   switch (item.type) {
     case "admissionAnswer":
     case "admissionUnanswered":
-      return item.targetId ? `/admission/${item.targetId}` : "/admission";
+      return item.targetId ? getPostHref(item.targetId) : "/school?tab=admission";
     case "lectureReaction":
       return item.targetId ? `/lectures/${item.targetId}` : "/lectures";
     case "tradeMatch":
@@ -312,7 +312,7 @@ function buildRecommendedNotifications(userId: string, schoolName?: string) {
       isRead: true,
       sourceKind: "recommendation",
       deliveryMode: "daily",
-      href: `/admission/${unansweredAdmission.id}`,
+      href: getPostHref(unansweredAdmission.id),
       targetType: "post",
       targetId: unansweredAdmission.id,
       recommended: true,
@@ -349,26 +349,14 @@ export function NotificationsPage({
     currentUser,
     loading,
     isAuthenticated,
-    notifications: runtimeNotifications,
-    posts,
-    comments,
-    lectures,
-    lectureReviews,
-    tradePosts,
     refresh,
   } = useAppRuntime(initialSnapshot);
   const [tab, setTab] = useState<NotificationTab>("all");
   const [isPending, startTransition] = useTransition();
   const schoolName = getCurrentSchool()?.name;
 
-  const actualItems = useMemo(
-    () => getNotifications(currentUser.id),
-    [currentUser.id, runtimeNotifications],
-  );
-  const recommendedItems = useMemo(
-    () => buildRecommendedNotifications(currentUser.id, schoolName),
-    [comments, currentUser.id, lectures, lectureReviews, posts, schoolName, tradePosts],
-  );
+  const actualItems = getNotifications(currentUser.id);
+  const recommendedItems = buildRecommendedNotifications(currentUser.id, schoolName);
 
   useEffect(() => {
     if (!isAuthenticated || !isSupabaseEnabled()) {
@@ -397,19 +385,6 @@ export function NotificationsPage({
     };
   }, [currentUser.id, isAuthenticated, refresh]);
 
-  if (!loading && !isAuthenticated) {
-    return (
-      <AppShell title="알림">
-        <AccountRequiredCard
-          isAuthenticated={false}
-          nextPath="/notifications"
-          title="알림은 로그인 후 확인할 수 있습니다"
-          description="댓글, 매칭, 학교 추천까지 한 번에 모아 보여줍니다."
-        />
-      </AppShell>
-    );
-  }
-
   const activityItems = actualItems.filter((item) => item.category === "activity");
   const noticeItems = actualItems.filter((item) => item.category === "notice");
   const unreadCount = actualItems.filter((item) => !item.isRead).length;
@@ -422,7 +397,7 @@ export function NotificationsPage({
     notice: noticeItems,
   };
 
-  const visibleItems = useMemo(() => {
+  const visibleItems = (() => {
     const baseItems = actualByTab[tab];
     const fallbackItems = recommendedItems
       .filter((item) => tab === "all" || item.category === (tab as NotificationCategory))
@@ -435,7 +410,20 @@ export function NotificationsPage({
       .slice(0, Math.max(0, TAB_TARGET_SIZE[tab] - baseItems.length));
 
     return [...baseItems, ...fallbackItems];
-  }, [actualByTab, recommendedItems, tab]);
+  })();
+
+  if (!loading && !isAuthenticated) {
+    return (
+      <AppShell title="알림">
+        <AccountRequiredCard
+          isAuthenticated={false}
+          nextPath="/notifications"
+          title="알림은 로그인 후 확인할 수 있습니다"
+          description="댓글, 매칭, 학교 추천까지 한 번에 모아 보여줍니다."
+        />
+      </AppShell>
+    );
+  }
 
   const handleOpen = (item: Notification) => {
     const href = getNotificationHref(item);
