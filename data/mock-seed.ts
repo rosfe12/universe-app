@@ -1387,86 +1387,86 @@ const HOT_TOPIC_BLUEPRINTS = [
   {
     key: "cc",
     tags: ["핫갤", "19+", "과CC"],
-    title: (schoolName: string) => `핫갤) ${schoolName}에서 과CC 들키면 진짜 바로 소문 도는 편인가요?`,
-    content: (schoolName: string) =>
-      `${schoolName}는 캠퍼스가 은근 좁은 편이라는 얘기를 들었는데, 과CC 시작하면 생각보다 빨리 소문나는지 궁금합니다. 숨기고 다녀도 결국 다 알게 되는 분위기인지 무물합니다.`,
+    title: () => `핫갤) 과CC 들키면 진짜 바로 소문 도는 편인가요?`,
+    content: () =>
+      `캠퍼스 안에서 동선이 자주 겹치다 보니 과CC 시작하면 생각보다 빨리 소문나는지 궁금합니다. 숨기고 다녀도 결국 다 알게 되는 분위기인지 무물합니다.`,
   },
   {
     key: "afterdate",
     tags: ["핫갤", "19+", "썸"],
-    title: (schoolName: string) => `핫갤) ${schoolName} 쪽에서 소개받고 애프터까지 갔으면 보통 가능성 있다고 보나요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 근처에서 두 번째까지 만났는데 연락 텀이 애매해서 감이 안 옵니다. 처음엔 잘 맞는 것 같았는데 애프터 이후부터 다들 어느 정도 텐션으로 이어가는지 궁금해요.`,
+    title: () => `핫갤) 소개받고 애프터까지 갔으면 보통 가능성 있다고 보나요?`,
+    content: () =>
+      `두 번째까지 만났는데 연락 텀이 애매해서 감이 안 옵니다. 처음엔 잘 맞는 것 같았는데 애프터 이후부터 다들 어느 정도 텐션으로 이어가는지 궁금해요.`,
   },
   {
     key: "touch",
     tags: ["핫갤", "19+", "연애"],
-    title: (schoolName: string) => `핫갤) ${schoolName} 또래들은 스킨십 속도감 보통 어느 정도가 자연스럽다고 느껴요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 근처에서 자주 만나게 되는 사람이 있는데 서로 호감은 분명한데 진도가 너무 빠르면 부담스러울까 고민됩니다. 다들 편하다고 느끼는 속도감이 어느 정도인지 궁금합니다.`,
+    title: () => `핫갤) 또래들은 스킨십 속도감 보통 어느 정도가 자연스럽다고 느껴요?`,
+    content: () =>
+      `자주 만나게 되는 사람이 있는데 서로 호감은 분명한데 진도가 너무 빠르면 부담스러울까 고민됩니다. 다들 편하다고 느끼는 속도감이 어느 정도인지 궁금합니다.`,
   },
   {
     key: "exsame",
     tags: ["핫갤", "19+", "전애인"],
-    title: (schoolName: string) => `핫갤) 전애인이 ${schoolName} 같은 생활권이면 다들 어떻게 마주쳐요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 생활권이 겹치다 보니 안 마주치기가 더 어렵네요. 헤어진 뒤에도 가끔 보게 되는데 모른 척하는지, 가볍게 인사하는지 다들 기준이 궁금합니다.`,
+    title: () => `핫갤) 전애인이 같은 생활권이면 다들 어떻게 마주쳐요?`,
+    content: () =>
+      `생활권이 겹치다 보니 안 마주치기가 더 어렵네요. 헤어진 뒤에도 가끔 보게 되는데 모른 척하는지, 가볍게 인사하는지 다들 기준이 궁금합니다.`,
   },
   {
     key: "sleepover",
     tags: ["핫갤", "19+", "자취"],
-    title: (schoolName: string) => `핫갤) ${schoolName} 자취하는 사람들, 썸 단계에서 집 초대는 언제부터 괜찮다고 봐요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 주변 자취하는 친구들은 생각보다 집에서 영화 보거나 밥 먹는 약속을 자연스럽게 잡더라고요. 썸 단계에서 너무 이른 건 아닌지, 다들 어느 정도 만난 뒤에 괜찮다고 보는지 궁금합니다.`,
+    title: () => `핫갤) 자취하는 사람들, 썸 단계에서 집 초대는 언제부터 괜찮다고 봐요?`,
+    content: () =>
+      `주변 자취하는 친구들은 생각보다 집에서 영화 보거나 밥 먹는 약속을 자연스럽게 잡더라고요. 썸 단계에서 너무 이른 건 아닌지, 다들 어느 정도 만난 뒤에 괜찮다고 보는지 궁금합니다.`,
   },
   {
     key: "meetingafter",
     tags: ["핫갤", "19+", "미팅"],
-    title: (schoolName: string) => `핫갤) ${schoolName} 미팅 끝나고 둘이 따로 보자는 연락 오면 보통 나가요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 미팅은 재밌게 끝났는데 그중 한 명이 따로 보자고 해서 고민 중입니다. 자리 분위기가 좋아서 괜찮은 건지, 술자리 텐션일 뿐인지 다들 어떤 기준으로 판단하는지 궁금해요.`,
+    title: () => `핫갤) 미팅 끝나고 둘이 따로 보자는 연락 오면 보통 나가요?`,
+    content: () =>
+      `미팅은 재밌게 끝났는데 그중 한 명이 따로 보자고 해서 고민 중입니다. 자리 분위기가 좋아서 괜찮은 건지, 술자리 텐션일 뿐인지 다들 어떤 기준으로 판단하는지 궁금해요.`,
   },
   {
     key: "dm",
     tags: ["핫갤", "19+", "DM"],
-    title: (schoolName: string) => `핫갤) ${schoolName} 사람한테 인스타 DM 먼저 보내본 사람 있어요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 행사에서 한두 번 본 사람인데 팔로우만 해놓고 대화는 못 시작했습니다. DM 먼저 보내는 게 너무 들이대는 느낌인지, 자연스럽게 시작하는 멘트가 있는지 무물합니다.`,
+    title: () => `핫갤) 인스타 DM 먼저 보내본 사람 있어요?`,
+    content: () =>
+      `행사에서 한두 번 본 사람인데 팔로우만 해놓고 대화는 못 시작했습니다. DM 먼저 보내는 게 너무 들이대는 느낌인지, 자연스럽게 시작하는 멘트가 있는지 무물합니다.`,
   },
   {
     key: "fwbline",
     tags: ["핫갤", "19+", "관계"],
     title: () => `핫갤) 관계는 편한데 연애는 아닌 상황, 다들 어디서 선 긋나요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 쪽 생활권에서 자주 보게 되는 사람이 있는데 서로 편하고 끌리긴 합니다. 그런데 연애로 가는 건 아닌 느낌이라 이런 상황에서 다들 어느 순간 선을 긋는지 궁금해요.`,
+    content: () =>
+      `자주 보게 되는 사람이 있는데 서로 편하고 끌리긴 합니다. 그런데 연애로 가는 건 아닌 느낌이라 이런 상황에서 다들 어느 순간 선을 긋는지 궁금해요.`,
   },
   {
     key: "jealous",
     tags: ["핫갤", "19+", "질투"],
     title: () => `핫갤) 아직 사귀는 건 아닌데 질투나면 티 내는 편이에요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 안에서 자주 보는 사이라 미묘하게 신경 쓰이는데, 아직 관계를 정의한 건 아니라 괜히 티 냈다가 부담 줄까 고민됩니다. 다들 이런 때는 그냥 모른 척하는 편인지 궁금해요.`,
+    content: () =>
+      `자주 보는 사이라 미묘하게 신경 쓰이는데, 아직 관계를 정의한 건 아니라 괜히 티 냈다가 부담 줄까 고민됩니다. 다들 이런 때는 그냥 모른 척하는 편인지 궁금해요.`,
   },
   {
     key: "confession",
     tags: ["핫갤", "19+", "고백"],
-    title: (schoolName: string) => `핫갤) ${schoolName} 생활권이면 고백 실패 후에도 얼굴 볼 각오하고 하는 편인가요?`,
-    content: (schoolName: string) =>
-      `${schoolName}에서 매일 마주칠 수도 있는 사이라 마음 표현이 더 어렵네요. 거절당하면 계속 어색할까 봐 망설여지는데, 다들 이런 경우에도 그냥 질러보는지 궁금합니다.`,
+    title: () => `핫갤) 같은 생활권이면 고백 실패 후에도 얼굴 볼 각오하고 하는 편인가요?`,
+    content: () =>
+      `매일 마주칠 수도 있는 사이라 마음 표현이 더 어렵네요. 거절당하면 계속 어색할까 봐 망설여지는데, 다들 이런 경우에도 그냥 질러보는지 궁금합니다.`,
   },
   {
     key: "drunkcall",
     tags: ["핫갤", "19+", "술자리"],
     title: () => `핫갤) 술 마신 날만 연락 오는 사람은 다들 바로 거르나요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 근처에서 술자리 뒤에만 연락 오는 사람이 있는데 평소엔 또 멀쩡해서 애매합니다. 그냥 심심풀이인지, 술 마시면 솔직해지는 타입인지 다들 어떻게 구분하는지 궁금해요.`,
+    content: () =>
+      `술자리 뒤에만 연락 오는 사람이 있는데 평소엔 또 멀쩡해서 애매합니다. 그냥 심심풀이인지, 술 마시면 솔직해지는 타입인지 다들 어떻게 구분하는지 궁금해요.`,
   },
   {
     key: "trip",
     tags: ["핫갤", "19+", "여행"],
     title: () => `핫갤) 사귀기 전 여행 제안 받으면 다들 선 넘었다고 느껴요?`,
-    content: (schoolName: string) =>
-      `${schoolName} 주변에서 친해진 사람이 갑자기 근교 드라이브나 1박 쪽 얘기를 꺼내서 당황했습니다. 아직 확실한 관계도 아닌데 이런 제안은 보통 어떻게 받아들이는지 무물합니다.`,
+    content: () =>
+      `친해진 사람이 갑자기 근교 드라이브나 1박 쪽 얘기를 꺼내서 당황했습니다. 아직 확실한 관계도 아닌데 이런 제안은 보통 어떻게 받아들이는지 무물합니다.`,
   },
 ] as const;
 
@@ -1481,13 +1481,13 @@ const generatedHotPosts: SeedPost[] = schools.flatMap((school, schoolIndex) =>
       subcategory: "hot",
       authorId: collegeReviewerIds[(schoolIndex + offset + 5) % collegeReviewerIds.length],
       schoolId: school.id,
-      title: blueprint.title(school.name),
-      content: blueprint.content(school.name),
+      title: blueprint.title(),
+      content: blueprint.content(),
       createdAt: new Date(
         Date.UTC(2026, 2, 17, 21, 0, 0) + (schoolIndex * 3 + offset) * 41 * 60 * 1000,
       ).toISOString(),
       likes: 27 + ((schoolIndex + offset) % 19),
-      tags: [...blueprint.tags, school.name],
+      tags: [...blueprint.tags],
     };
   }),
 );

@@ -279,63 +279,63 @@ const SCHOOL_HOT_BLUEPRINTS = [
   {
     suffix: "cc-rumor",
     tags: ["핫갤", "19+", "과CC"],
-    title: (schoolName) => `핫갤) ${schoolName}에서 과CC 들키면 진짜 바로 소문 도는 편인가요?`,
-    content: (schoolName) =>
-      `${schoolName} 생활권이 생각보다 좁다는 얘기를 많이 들어서요. 과CC 시작하면 숨기고 다녀도 금방 소문나는지, 다들 얼마나 조심하는 편인지 궁금합니다.`,
+    title: () => `핫갤) 과CC 들키면 진짜 바로 소문 도는 편인가요?`,
+    content: () =>
+      `캠퍼스 생활권이 생각보다 좁다는 얘기를 많이 들어서요. 과CC 시작하면 숨기고 다녀도 금방 소문나는지, 다들 얼마나 조심하는 편인지 궁금합니다.`,
     comment:
       "과방이나 동선 겹치면 생각보다 빨리 퍼지더라고요. 완전히 숨기긴 어렵다는 얘기를 많이 들었습니다.",
   },
   {
     suffix: "after-date",
     tags: ["핫갤", "19+", "썸"],
-    title: (schoolName) => `핫갤) ${schoolName} 근처에서 애프터 두 번 갔으면 가능성 있다고 보나요?`,
-    content: (schoolName) =>
-      `${schoolName} 근처에서 두 번째 만남까지는 했는데 연락 텀이 애매해서 감이 안 옵니다. 초반에 텐션 괜찮았던 사람이 갑자기 애매해질 때 다들 어느 정도까지 기다리는지 궁금해요.`,
+    title: () => `핫갤) 애프터 두 번 갔으면 가능성 있다고 보나요?`,
+    content: () =>
+      `두 번째 만남까지는 했는데 연락 텀이 애매해서 감이 안 옵니다. 초반에 텐션 괜찮았던 사람이 갑자기 애매해질 때 다들 어느 정도까지 기다리는지 궁금해요.`,
     comment:
       "두 번 정도면 아예 관심 없는 건 아닌데, 텀이 길면 상대 리듬을 한 번 더 보는 편이 맞더라고요.",
   },
   {
     suffix: "skinship-speed",
     tags: ["핫갤", "19+", "연애"],
-    title: (schoolName) => `핫갤) ${schoolName} 또래들은 스킨십 속도감 어느 정도가 자연스럽다고 느껴요?`,
-    content: (schoolName) =>
-      `${schoolName} 쪽에서 자주 만나게 되는 사람이 있는데 서로 호감은 확실한데 진도가 너무 빠르면 부담스러울까 고민됩니다. 다들 편하다고 느끼는 속도감이 어느 정도인지 무물합니다.`,
+    title: () => `핫갤) 또래들은 스킨십 속도감 어느 정도가 자연스럽다고 느껴요?`,
+    content: () =>
+      `자주 만나게 되는 사람이 있는데 서로 호감은 확실한데 진도가 너무 빠르면 부담스러울까 고민됩니다. 다들 편하다고 느끼는 속도감이 어느 정도인지 무물합니다.`,
     comment:
       "호감이 있어도 속도감이 맞아야 오래 가더라고요. 애매하면 말로 기준 맞추는 게 제일 덜 꼬였습니다.",
   },
   {
     suffix: "same-campus-ex",
     tags: ["핫갤", "19+", "전애인"],
-    title: (schoolName) => `핫갤) 전애인이 ${schoolName} 같은 생활권이면 다들 어떻게 마주쳐요?`,
-    content: (schoolName) =>
-      `${schoolName} 생활권이 겹치다 보니 안 마주치기가 더 어렵네요. 헤어진 뒤에도 가끔 보게 되는데 모른 척하는지, 가볍게 인사하는지 다들 기준이 궁금합니다.`,
+    title: () => `핫갤) 전애인이 같은 생활권이면 다들 어떻게 마주쳐요?`,
+    content: () =>
+      `생활권이 겹치다 보니 안 마주치기가 더 어렵네요. 헤어진 뒤에도 가끔 보게 되는데 모른 척하는지, 가볍게 인사하는지 다들 기준이 궁금합니다.`,
     comment:
       "처음엔 어색해도 몇 번 지나가면 그냥 인사 정도는 하게 되더라고요. 완전 무시는 오히려 더 티 났습니다.",
   },
   {
     suffix: "room-invite",
     tags: ["핫갤", "19+", "자취"],
-    title: (schoolName) => `핫갤) ${schoolName} 자취하는 사람들, 썸 단계에서 집 초대는 언제부터 괜찮다고 봐요?`,
-    content: (schoolName) =>
-      `${schoolName} 주변 자취하는 친구들은 생각보다 집에서 영화 보거나 밥 먹는 약속을 자연스럽게 잡더라고요. 썸 단계에서 너무 이른 건 아닌지, 다들 어느 정도 만난 뒤에 괜찮다고 보는지 궁금합니다.`,
+    title: () => `핫갤) 자취하는 사람들, 썸 단계에서 집 초대는 언제부터 괜찮다고 봐요?`,
+    content: () =>
+      `주변 자취하는 친구들은 생각보다 집에서 영화 보거나 밥 먹는 약속을 자연스럽게 잡더라고요. 썸 단계에서 너무 이른 건 아닌지, 다들 어느 정도 만난 뒤에 괜찮다고 보는지 궁금합니다.`,
     comment:
       "분위기보다 서로 안심되는 타이밍인지가 더 중요했어요. 빠르면 오히려 선 넘었다고 느끼는 경우가 있었습니다.",
   },
   {
     suffix: "meeting-followup",
     tags: ["핫갤", "19+", "미팅"],
-    title: (schoolName) => `핫갤) ${schoolName} 미팅 끝나고 둘이 따로 보자는 연락 오면 보통 나가요?`,
-    content: (schoolName) =>
-      `${schoolName} 미팅은 재밌게 끝났는데 그중 한 명이 따로 보자고 해서 고민 중입니다. 자리 분위기가 좋아서 괜찮은 건지, 술자리 텐션일 뿐인지 다들 어떤 기준으로 판단하는지 궁금해요.`,
+    title: () => `핫갤) 미팅 끝나고 둘이 따로 보자는 연락 오면 보통 나가요?`,
+    content: () =>
+      `미팅은 재밌게 끝났는데 그중 한 명이 따로 보자고 해서 고민 중입니다. 자리 분위기가 좋아서 괜찮은 건지, 술자리 텐션일 뿐인지 다들 어떤 기준으로 판단하는지 궁금해요.`,
     comment:
       "미팅 텐션이랑 따로 만나는 텐션은 달라서, 낮에 한 번 더 보자는 제안이면 나쁘지 않다고 느꼈습니다.",
   },
   {
     suffix: "dm-first",
     tags: ["핫갤", "19+", "DM"],
-    title: (schoolName) => `핫갤) ${schoolName} 사람한테 인스타 DM 먼저 보내본 사람 있어요?`,
-    content: (schoolName) =>
-      `${schoolName} 행사에서 한두 번 본 사람인데 팔로우만 해놓고 대화는 못 시작했습니다. DM 먼저 보내는 게 너무 들이대는 느낌인지, 자연스럽게 시작하는 멘트가 있는지 궁금합니다.`,
+    title: () => `핫갤) 인스타 DM 먼저 보내본 사람 있어요?`,
+    content: () =>
+      `행사에서 한두 번 본 사람인데 팔로우만 해놓고 대화는 못 시작했습니다. DM 먼저 보내는 게 너무 들이대는 느낌인지, 자연스럽게 시작하는 멘트가 있는지 궁금합니다.`,
     comment:
       "스토리 리액션으로 가볍게 시작하는 사람이 많더라고요. 너무 길게 쓰는 것보다 짧게 여는 편이 부담이 덜했습니다.",
   },
@@ -343,44 +343,44 @@ const SCHOOL_HOT_BLUEPRINTS = [
     suffix: "line-drawing",
     tags: ["핫갤", "19+", "관계"],
     title: () => `핫갤) 편하긴 한데 연애는 아닌 관계, 다들 어디서 선 긋나요?`,
-    content: (schoolName) =>
-      `${schoolName} 생활권에서 자주 보는 사람이 있는데 서로 편하고 끌리긴 합니다. 그런데 연애로 가는 건 아닌 느낌이라 이런 상황에서 다들 어느 순간 선을 긋는지 궁금해요.`,
+    content: () =>
+      `자주 보는 사람이 있는데 서로 편하고 끌리긴 합니다. 그런데 연애로 가는 건 아닌 느낌이라 이런 상황에서 다들 어느 순간 선을 긋는지 궁금해요.`,
     comment:
       "기대치가 달라지기 시작하면 빨리 말하는 쪽이 덜 후회하더라고요. 애매하게 오래 가면 더 꼬였습니다.",
   },
   {
     suffix: "library-crush",
     tags: ["핫갤", "19+", "짝사랑"],
-    title: (schoolName) => `핫갤) ${schoolName} 도서관에서 자주 마주치는 사람한테 말 걸어본 적 있어요?`,
-    content: (schoolName) =>
-      `${schoolName} 도서관에서 계속 마주치는 사람이 있는데 먼저 말 걸면 너무 뜬금없을까 고민됩니다. 이런 상황에선 다들 그냥 지나치는지, 핑계를 만들어서라도 말 거는지 궁금해요.`,
+    title: () => `핫갤) 도서관에서 자주 마주치는 사람한테 말 걸어본 적 있어요?`,
+    content: () =>
+      `도서관에서 계속 마주치는 사람이 있는데 먼저 말 걸면 너무 뜬금없을까 고민됩니다. 이런 상황에선 다들 그냥 지나치는지, 핑계를 만들어서라도 말 거는지 궁금해요.`,
     comment:
       "도서관은 조용한 공간이라 더 어렵지만, 시험 끝난 타이밍처럼 자연스러운 순간을 많이 노리더라고요.",
   },
   {
     suffix: "night-walk",
     tags: ["핫갤", "19+", "데이트"],
-    title: (schoolName) => `핫갤) ${schoolName} 밤 산책 데이트 좋아하는 사람 많아요?`,
-    content: (schoolName) =>
-      `${schoolName} 근처에서 밥 먹고 산책하는 코스가 은근 데이트처럼 느껴지더라고요. 영화나 술보다 산책 데이트 선호하는 사람이 많은지, 너무 애매한 코스는 아닌지 궁금합니다.`,
+    title: () => `핫갤) 밤 산책 데이트 좋아하는 사람 많아요?`,
+    content: () =>
+      `밥 먹고 산책하는 코스가 은근 데이트처럼 느껴지더라고요. 영화나 술보다 산책 데이트 선호하는 사람이 많은지, 너무 애매한 코스는 아닌지 궁금합니다.`,
     comment:
       "분위기 타기엔 산책이 제일 편하다는 얘기를 많이 들었습니다. 대신 너무 늦은 시간은 부담스러워하는 경우가 많았어요.",
   },
   {
     suffix: "friend-boundary",
     tags: ["핫갤", "19+", "친구사이"],
-    title: (schoolName) => `핫갤) ${schoolName}에서 친구였다가 갑자기 텐션 바뀌는 순간 다들 느껴본 적 있어요?`,
-    content: (schoolName) =>
-      `${schoolName} 모임에서 편하게 지내던 사람이 있는데 어느 순간 분위기가 달라진 느낌이 있습니다. 이럴 때 그냥 모른 척하는지, 한 번쯤은 확실히 이야기하는지 궁금해요.`,
+    title: () => `핫갤) 친구였다가 갑자기 텐션 바뀌는 순간 다들 느껴본 적 있어요?`,
+    content: () =>
+      `모임에서 편하게 지내던 사람이 있는데 어느 순간 분위기가 달라진 느낌이 있습니다. 이럴 때 그냥 모른 척하는지, 한 번쯤은 확실히 이야기하는지 궁금해요.`,
     comment:
       "친구 선 넘는 분위기는 작은 행동에서 티가 나더라고요. 애매하면 괜히 혼자 의미 부여하지 않는 게 낫기도 했습니다.",
   },
   {
     suffix: "secret-dating",
     tags: ["핫갤", "19+", "비밀연애"],
-    title: (schoolName) => `핫갤) ${schoolName}에서 비밀연애 오래 유지한 사람 있어요?`,
-    content: (schoolName) =>
-      `${schoolName} 생활권이 겹치는 사람과 몰래 만나는 게 생각보다 어렵네요. 학교 안에서는 친구처럼 굴고 밖에서만 만나는 커플도 있는지, 보통 얼마나 가는지 궁금합니다.`,
+    title: () => `핫갤) 비밀연애 오래 유지한 사람 있어요?`,
+    content: () =>
+      `생활권이 겹치는 사람과 몰래 만나는 게 생각보다 어렵네요. 학교 안에서는 친구처럼 굴고 밖에서만 만나는 커플도 있는지, 보통 얼마나 가는지 궁금합니다.`,
     comment:
       "완전 비밀은 오래 못 간다는 얘기를 많이 들었습니다. 가까운 친구 한두 명까진 결국 알게 되는 경우가 많았어요.",
   },
@@ -421,6 +421,7 @@ const buildDerivedReferenceRows = (basePosts) => {
     const sourceUrl = extractSourceUrl(post.content);
     const summary = stripSourceLine(post.content);
     const metadata = parseMetadata(post.metadata);
+    const tags = Array.isArray(metadata.tags) ? metadata.tags : [];
     const kind = classifyReferencePost({ ...post, metadata });
 
     if (!kind || !sourceUrl) continue;
@@ -764,12 +765,12 @@ const buildSchoolCoverageRows = (schools) => {
         suffix: `hot-${blueprint.suffix}`,
         category: "community",
         subcategory: "hot",
-        title: blueprint.title(schoolName),
-        content: blueprint.content(schoolName),
+        title: blueprint.title(),
+        content: blueprint.content(),
         visibilityLevel: "anonymous",
         scope: "global",
         likeBase: 27,
-        tags: [...blueprint.tags, schoolName],
+        tags: [...blueprint.tags],
         comment: blueprint.comment,
       };
     });
