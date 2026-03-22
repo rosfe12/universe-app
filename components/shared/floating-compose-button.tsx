@@ -18,10 +18,11 @@ export function FloatingComposeButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="fixed bottom-[calc(env(safe-area-inset-bottom)+7.7rem)] right-4 z-40 w-auto rounded-full px-5 shadow-[0_24px_48px_-22px_rgba(99,102,241,0.7)] md:right-[calc(50%-220px+1rem)]"
+      aria-label={label}
+      className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] right-4 z-40 h-11 w-11 rounded-2xl border border-indigo-100 bg-[linear-gradient(135deg,#4f46e5_0%,#7c3aed_100%)] p-0 text-white shadow-[0_16px_30px_-18px_rgba(79,70,229,0.75)] transition-transform duration-150 active:scale-[0.98] md:right-[calc(50%-220px+1rem)] md:h-auto md:w-auto md:rounded-full md:px-4 md:py-2"
     >
-      <Plus className="h-4 w-4" />
-      {label}
+      <Plus className="h-4 w-4 shrink-0" />
+      <span className="sr-only md:not-sr-only md:ml-2">{label}</span>
     </Button>
   );
 }
