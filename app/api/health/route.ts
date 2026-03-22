@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { hasAppSmtpConfig } from "@/lib/env";
+import { env, hasAppSmtpConfig } from "@/lib/env";
 import { verifyAppSmtpConnection } from "@/lib/email/server-mailer";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { logServerEvent } from "@/lib/ops";
@@ -58,6 +58,15 @@ export async function GET() {
       throw new Error(`health check failed: ${failedChecks.join(",")}`);
     }
 
+    const smtpConfig = {
+      host: Boolean(env.SUPABASE_SMTP_HOST),
+      port: Boolean(env.SUPABASE_SMTP_PORT),
+      user: Boolean(env.SUPABASE_SMTP_USER),
+      password: Boolean(env.SUPABASE_SMTP_PASSWORD),
+      senderName: Boolean(env.SUPABASE_SMTP_SENDER_NAME),
+      senderEmail: Boolean(env.SUPABASE_SMTP_SENDER_EMAIL),
+    } as const;
+
     let mail = "supabase_auth_fallback";
     const warnings: string[] = [];
     if (hasAppSmtpConfig()) {
@@ -72,6 +81,7 @@ export async function GET() {
       database: "ready",
       storage: mediaBucket?.name === "media" ? "ready" : "missing",
       mail,
+      smtpConfig,
       checks,
       warnings,
       timestamp: new Date().toISOString(),
