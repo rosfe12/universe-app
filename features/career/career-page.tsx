@@ -117,7 +117,13 @@ export function CareerPage({
 
   const openComposer = () => {
     if (!isAuthenticated || !hasCompletedOnboarding(currentUser)) {
-      router.push(getAuthFlowHref({ isAuthenticated, user: currentUser, nextPath: "/career" }));
+      router.push(
+        getAuthFlowHref({
+          isAuthenticated,
+          user: currentUser,
+          nextPath: "/community?filter=career",
+        }),
+      );
       return;
     }
     if (!canWriteCareer(currentUser)) {
@@ -225,7 +231,7 @@ export function CareerPage({
         <AccountRequiredCard
           isAuthenticated={isAuthenticated}
           user={currentUser}
-          nextPath="/career"
+          nextPath="/community?filter=career"
           title="입시생 계정은 취업 게시판을 읽기만 할 수 있습니다"
           description="대학생 또는 예비입학생 계정에서 직접 글을 올리고 댓글에 참여할 수 있습니다."
           ctaLabel="프로필 상태 확인"

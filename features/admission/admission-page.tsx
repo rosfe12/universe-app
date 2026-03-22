@@ -205,11 +205,10 @@ export function AdmissionPage({
 
   return (
     <AppShell
-      title="입시 Q&A"
-      subtitle="구조화된 질문답변으로 입시 정보를 빠르게 찾습니다"
+      title="지망학교 입시"
       topAction={
         <Button asChild size="icon" variant="ghost">
-          <Link href="/home">
+          <Link href="/school?tab=admission">
             <Filter className="h-5 w-5" />
           </Link>
         </Button>
@@ -252,7 +251,7 @@ export function AdmissionPage({
           const question = slot.item;
 
           return (
-            <Link key={question.id} href={`/admission/${question.id}`}>
+            <Link key={question.id} href={`/school?tab=admission&post=${question.id}`}>
               <Card>
                 <CardHeader className="space-y-4">
                   <PostAuthorRow
@@ -358,7 +357,7 @@ export function AdmissionPage({
                 getAuthFlowHref({
                   isAuthenticated,
                   user: currentUser,
-                  nextPath: pathname,
+                  nextPath: "/school?tab=admission",
                 }),
               );
               return;

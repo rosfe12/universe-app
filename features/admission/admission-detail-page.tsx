@@ -57,7 +57,7 @@ export function AdmissionDetailPage({
       subtitle="입시 질문과 답변을 한눈에 확인해보세요"
       topAction={
         <Button asChild size="icon" variant="ghost">
-          <Link href="/admission" aria-label="뒤로">
+          <Link href="/school?tab=admission" aria-label="뒤로">
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
