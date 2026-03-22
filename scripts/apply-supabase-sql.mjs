@@ -18,6 +18,9 @@ const databaseUrl =
   process.env.SUPABASE_MIGRATION_DB_URL ?? process.env.SUPABASE_DB_URL;
 const mode = process.argv[2] ?? "all";
 const root = process.cwd();
+const careerBoardSeed = JSON.parse(
+  fs.readFileSync(path.join(root, "data/career-board-seed.json"), "utf8"),
+);
 const files =
   mode === "schema"
     ? ["supabase/schema.sql"]
@@ -51,6 +54,31 @@ const stripSourceLine = (content) =>
 const shiftIsoMinutes = (value, minutes) => new Date(new Date(value).getTime() + minutes * 60_000).toISOString();
 
 const uniqTags = (...groups) => Array.from(new Set(groups.flat().filter(Boolean)));
+const CURATED_CAREER_SEED_SOURCE = "career_curated_v1";
+const LEGACY_CAREER_SEED_POST_IDS = [
+  "41111111-1111-4111-8111-111111111129",
+  "41111111-1111-4111-8111-111111111130",
+  "41111111-1111-4111-8111-111111111131",
+  "41111111-1111-4111-8111-111111111132",
+  "41111111-1111-4111-8111-111111111133",
+  "41111111-1111-4111-8111-111111111134",
+];
+const LEGACY_CAREER_REFERENCE_POST_IDS = [
+  "41111111-1111-4111-8111-111111111156",
+  "41111111-1111-4111-8111-111111111157",
+  "41111111-1111-4111-8111-111111111158",
+  "41111111-1111-4111-8111-111111111159",
+];
+const LEGACY_DERIVED_CAREER_SUFFIXES = [
+  "career-save",
+  "career-junior",
+  "career-flow",
+  "career-link",
+  "career-center",
+  "career-checklist",
+  "career-alumni",
+  "career-roadmap",
+];
 
 const SCHOOL_LECTURE_BLUEPRINTS = [
   {
@@ -382,9 +410,6 @@ const classifyReferencePost = (post) => {
   if (post.category === "admission") return "admission";
   if (post.subcategory === "freshman") return "freshman";
   if (post.subcategory === "club" || post.subcategory === "food") return "campus";
-  if (post.category === "community" && (tags.includes("취업") || tags.includes("취업정보") || tags.includes("채용공고"))) {
-    return "career";
-  }
   return null;
 };
 
@@ -804,16 +829,6 @@ const buildSchoolCoverageRows = (schools) => {
       ...hotVariants,
       ...askVariants,
       {
-        suffix: "career",
-        category: "community",
-        subcategory: "free",
-        title: `${schoolName} 취업지원 메뉴는 학기 초에 한 번 열어두는 편이 좋았습니다`,
-        content: `${schoolName} 취업 준비를 당장 시작하지 않더라도 학교 홈페이지에서 진로·취업지원 메뉴를 한 번 열어두면 나중에 공고나 상담 링크를 다시 찾을 때 훨씬 편했습니다. 학교별로 대학일자리센터나 취업지원팀 위치가 달라서 공식 경로를 먼저 익혀두는 편이 실용적이었습니다.\n출처: ${sourceUrl}`,
-        visibilityLevel: "school",
-        tags: ["공식자료", "취업정보", "진로지원"],
-        comment: "저도 학기 초에 학교 취업지원 메뉴부터 저장해두는 편인데, 막상 필요할 때 찾는 시간이 확실히 줄었습니다.",
-      },
-      {
         suffix: "study",
         category: "community",
         subcategory: "free",
@@ -969,6 +984,62 @@ const buildSchoolTradeRows = (schools, lecturesBySchool, existingSchoolIds) => {
   }
 
   return rows;
+};
+
+const buildCuratedCareerRows = (studentUsers) => {
+  const posts = [];
+  const comments = [];
+  const postMap = new Map();
+  const baseCreatedAt = new Date(Date.UTC(2026, 2, 18, 0, 0, 0)).toISOString();
+
+  for (const [index, seed] of careerBoardSeed.posts.entries()) {
+    const author = studentUsers[index % studentUsers.length];
+    const postId = makeDeterministicUuid(`career-curated-post-${seed.id}`);
+    const createdAt = shiftIsoMinutes(baseCreatedAt, index * 53);
+
+    postMap.set(seed.id, {
+      id: postId,
+      createdAt,
+    });
+
+    posts.push({
+      id: postId,
+      author_id: author.id,
+      category: "community",
+      subcategory: null,
+      title: seed.title,
+      content: seed.content,
+      school_id: author.school_id,
+      scope: "global",
+      like_count: seed.likes,
+      comment_count: 0,
+      visibility_level: "schoolDepartment",
+      metadata: {
+        tags: seed.tags,
+        careerBoard: seed.board,
+        seedSource: CURATED_CAREER_SEED_SOURCE,
+      },
+      created_at: createdAt,
+    });
+  }
+
+  for (const [index, seed] of careerBoardSeed.comments.entries()) {
+    const post = postMap.get(seed.postId);
+    if (!post) continue;
+
+    const author = studentUsers[(index + 3) % studentUsers.length];
+    comments.push({
+      id: makeDeterministicUuid(`career-curated-comment-${seed.postId}-${index}`),
+      post_id: post.id,
+      author_id: author.id,
+      content: seed.content,
+      accepted: false,
+      visibility_level: "schoolDepartment",
+      created_at: shiftIsoMinutes(post.createdAt, 31 + index * 7),
+    });
+  }
+
+  return { posts, comments, postIds: posts.map((post) => post.id) };
 };
 
 const upsertGeneratedReferenceContent = async (client) => {
@@ -1234,6 +1305,230 @@ const upsertSchoolCoverageContent = async (client) => {
       where c.post_id = p.id
     ), 0)
   `);
+};
+
+const syncCuratedCareerBoardContent = async (client) => {
+  const { rows: studentUsers } = await client.query(`
+    select id::text, school_id::text
+    from public.users
+    where user_type = 'student'
+      and school_id is not null
+    order by created_at asc nulls last, id asc
+  `);
+
+  if (studentUsers.length === 0) {
+    return;
+  }
+
+  const { rows: schoolRows } = await client.query(`
+    select id::text
+    from public.schools
+    order by id asc
+  `);
+
+  const legacyDerivedCareerIds = LEGACY_CAREER_REFERENCE_POST_IDS.flatMap((postId) =>
+    LEGACY_DERIVED_CAREER_SUFFIXES.map((suffix) => makeDeterministicUuid(`${postId}-${suffix}`)),
+  );
+  const legacyCoverageCareerIds = schoolRows.map((school) =>
+    makeDeterministicUuid(`coverage-${school.id}-career`),
+  );
+  const legacyCareerPostIds = [
+    ...LEGACY_CAREER_SEED_POST_IDS,
+    ...LEGACY_CAREER_REFERENCE_POST_IDS,
+    ...legacyDerivedCareerIds,
+    ...legacyCoverageCareerIds,
+  ];
+
+  if (legacyCareerPostIds.length > 0) {
+    await client.query(
+      `
+        delete from public.comments
+        where post_id = any($1::uuid[])
+      `,
+      [legacyCareerPostIds],
+    );
+
+    await client.query(
+      `
+        delete from public.posts
+        where id = any($1::uuid[])
+      `,
+      [legacyCareerPostIds],
+    );
+  }
+
+  await client.query(
+    `
+      delete from public.comments
+      where post_id in (
+        select id
+        from public.posts
+        where category = 'community'
+          and (
+            (metadata -> 'tags') ? '취업정보'
+            or (metadata -> 'tags') ? '채용공고'
+          )
+          and coalesce(metadata ->> 'seedSource', '') <> $1
+      )
+    `,
+    [CURATED_CAREER_SEED_SOURCE],
+  );
+
+  await client.query(
+    `
+      delete from public.posts
+      where category = 'community'
+        and (
+          (metadata -> 'tags') ? '취업정보'
+          or (metadata -> 'tags') ? '채용공고'
+        )
+        and coalesce(metadata ->> 'seedSource', '') <> $1
+    `,
+    [CURATED_CAREER_SEED_SOURCE],
+  );
+
+  const { posts, comments, postIds } = buildCuratedCareerRows(studentUsers);
+
+  await client.query(
+    `
+      delete from public.comments
+      where post_id in (
+        select id
+        from public.posts
+        where metadata ->> 'seedSource' = $1
+          and not (id = any($2::uuid[]))
+      )
+    `,
+    [CURATED_CAREER_SEED_SOURCE, postIds],
+  );
+
+  await client.query(
+    `
+      delete from public.posts
+      where metadata ->> 'seedSource' = $1
+        and not (id = any($2::uuid[]))
+    `,
+    [CURATED_CAREER_SEED_SOURCE, postIds],
+  );
+
+  for (const post of posts) {
+    await client.query(
+      `
+        insert into public.posts (
+          id,
+          author_id,
+          category,
+          subcategory,
+          title,
+          content,
+          school_id,
+          scope,
+          like_count,
+          comment_count,
+          visibility_level,
+          metadata,
+          created_at
+        ) values (
+          $1::uuid,
+          $2::uuid,
+          $3::public.post_category,
+          $4::public.post_subcategory,
+          $5,
+          $6,
+          $7::uuid,
+          $8::public.content_scope,
+          $9,
+          $10,
+          $11::public.visibility_level,
+          $12::jsonb,
+          $13::timestamptz
+        )
+        on conflict (id) do update
+        set
+          author_id = excluded.author_id,
+          category = excluded.category,
+          subcategory = excluded.subcategory,
+          title = excluded.title,
+          content = excluded.content,
+          school_id = excluded.school_id,
+          scope = excluded.scope,
+          like_count = excluded.like_count,
+          comment_count = excluded.comment_count,
+          visibility_level = excluded.visibility_level,
+          metadata = excluded.metadata,
+          created_at = excluded.created_at
+      `,
+      [
+        post.id,
+        post.author_id,
+        post.category,
+        post.subcategory,
+        post.title,
+        post.content,
+        post.school_id,
+        post.scope,
+        post.like_count,
+        post.comment_count,
+        post.visibility_level,
+        JSON.stringify(post.metadata),
+        post.created_at,
+      ],
+    );
+  }
+
+  for (const comment of comments) {
+    await client.query(
+      `
+        insert into public.comments (
+          id,
+          post_id,
+          author_id,
+          content,
+          accepted,
+          visibility_level,
+          created_at
+        ) values (
+          $1::uuid,
+          $2::uuid,
+          $3::uuid,
+          $4,
+          $5,
+          $6::public.visibility_level,
+          $7::timestamptz
+        )
+        on conflict (id) do update
+        set
+          post_id = excluded.post_id,
+          author_id = excluded.author_id,
+          content = excluded.content,
+          accepted = excluded.accepted,
+          visibility_level = excluded.visibility_level,
+          created_at = excluded.created_at
+      `,
+      [
+        comment.id,
+        comment.post_id,
+        comment.author_id,
+        comment.content,
+        comment.accepted,
+        comment.visibility_level,
+        comment.created_at,
+      ],
+    );
+  }
+
+  await client.query(
+    `
+      update public.posts p
+      set comment_count = coalesce((
+        select count(*)::int
+        from public.comments c
+        where c.post_id = p.id
+      ), 0)
+      where p.id = any($1::uuid[])
+    `,
+    [postIds],
+  );
 };
 
 const upsertSchoolLectureContent = async (client) => {
@@ -1504,6 +1799,7 @@ try {
   if (mode === "seed" || mode === "all") {
     await upsertGeneratedReferenceContent(client);
     await upsertSchoolCoverageContent(client);
+    await syncCuratedCareerBoardContent(client);
     await upsertSchoolLectureContent(client);
     await upsertSchoolTradeContent(client);
     await client.query(`

@@ -13,6 +13,7 @@ import type {
   TradePost,
   User,
 } from "@/types";
+import careerBoardSeed from "./career-board-seed.json";
 
 const BASE_SCHOOL_ID = "school-konkuk";
 
@@ -883,18 +884,24 @@ const datingSeeds = [
   ["건대입구에서 전시보다 영화 취향 맞는 사람 찾습니다", "대화 텐션보다 취향이 맞는 게 더 중요해서요. 좋아하는 감독이나 장르 비슷하면 더 좋겠습니다.", "영화 취향", 17, "user-seungmin"],
 ] as const;
 
-const careerSeeds = [
-  ["careerInfo", "서류 합격률 높였던 자소서 루틴 공유", "지원 직무별로 문항을 따로 새로 쓰기보다 공통 경험을 먼저 묶어놓고, 직무 키워드만 마지막에 얹는 방식이 효율이 좋았습니다.", 34, "user-dohyun", "자소서"],
-  ["careerInfo", "금융권 인턴 면접에서 반복해서 나온 질문 정리", "지원 동기보다 '왜 이 직무를 지금 선택했는지'를 더 집요하게 물었습니다. 건국대 선배들끼리 예상 질문 풀을 같이 맞춰보면 훨씬 편해요.", 29, "user-jiyoon", "면접"],
-  ["careerInfo", "컴공 포트폴리오 정리할 때 GitHub보다 먼저 본 것", "프로젝트 수보다 문제 정의, 맡은 역할, 배포 링크가 더 중요했습니다. README보다 시연 가능한 결과물을 먼저 보여주는 편이 반응이 좋았어요.", 26, "user-minjae", "포트폴리오"],
-  ["careerInfo", "예비입학생도 미리 해두면 좋은 취업 준비", "학과 커리큘럼 보기, 관심 직무 채용 공고 읽기, 링크드인/노션 정리 정도만 해둬도 입학 후 훨씬 덜 급합니다.", 21, "user-fresh-yerin", "새내기"],
-  ["careerInfo", "현직자 커피챗 요청할 때 답장률 높았던 템플릿", "길게 쓰기보다 학교 / 관심 직무 / 왜 연락드렸는지 세 줄로 정리하는 편이 답이 빨랐습니다. 질문은 최대 2개가 제일 깔끔했어요.", 19, "user-sohee", "커피챗"],
-  ["jobPosting", "건국대 창업지원단 콘텐츠 인턴 모집 공유", "캠퍼스 행사 촬영, 카드뉴스 제작 중심이고 주 3회 근무 기준입니다. 포트폴리오 3개 정도 있으면 지원 가능하다고 안내받았어요.", 18, "user-arin", "교내인턴"],
-  ["jobPosting", "성수 브랜드 마케팅 인턴 공고 떴어요", "브랜드 SNS 운영 경험이나 숏폼 제작 경험이 있으면 유리해 보입니다. 출근 위치가 건대입구에서 멀지 않아서 통학도 가능한 편이에요.", 17, "user-sohee", "마케팅"],
-  ["jobPosting", "하계 SW 아카데미 모집 공고 정리", "프론트 / 백엔드 / 데이터 트랙이 나뉘고 과제 제출형입니다. 대학생은 물론 예비입학생도 지원 가능한 오픈 트랙이 있어요.", 22, "user-minjae", "개발"],
-  ["jobPosting", "연구실 학부연구생 모집 공지 공유", "컴퓨터비전 쪽 랩에서 파이썬 / 논문 리딩 가능한 학생을 찾고 있습니다. 학점보다 프로젝트 경험을 먼저 본다고 합니다.", 15, "user-seungmin", "학부연구생"],
-  ["jobPosting", "대외활동형 에디터 모집, 콘텐츠 써본 사람 추천", "에디터 경험 없어도 학교 커뮤니티나 개인 블로그 운영 경험 있으면 지원 가능해 보입니다. 마감이 빨라서 미리 자소서 준비하면 좋겠어요.", 14, "user-chaeeun", "에디터"],
-] as const;
+type CareerBoardSeedPost = {
+  id: string;
+  board: "careerInfo" | "jobPosting";
+  title: string;
+  content: string;
+  likes: number;
+  tags: string[];
+};
+
+type CareerBoardSeedComment = {
+  postId: string;
+  content: string;
+};
+
+const curatedCareerSeed = careerBoardSeed as {
+  posts: CareerBoardSeedPost[];
+  comments: CareerBoardSeedComment[];
+};
 
 const referenceAdmissionPosts: SeedPost[] = [
   {
@@ -1507,18 +1514,21 @@ const datingPosts: SeedPost[] = datingSeeds.map((seed, index) => ({
   ],
 }));
 
-const careerPosts: SeedPost[] = careerSeeds.map((seed, index) => ({
-  id: `career-${index + 1}`,
-  category: "community",
-  authorId: seed[4],
-  schoolId: getSchoolIdByUser(seed[4]),
-  title: seed[1],
-  content: seed[2],
-  createdAt: at(20 - Math.floor(index / 2), `${10 + (index % 6)}:${index % 2 === 0 ? "15" : "45"}:00`),
-  likes: seed[3],
-  tags: [seed[0] === "careerInfo" ? "취업정보" : "채용공고", seed[5], "취업"],
-  imageUrl: campusImages[(index + 2) % campusImages.length],
-}));
+const careerPosts: SeedPost[] = curatedCareerSeed.posts.map((seed, index) => {
+  const authorId = collegeReviewerIds[index % collegeReviewerIds.length];
+
+  return {
+    id: seed.id,
+    category: "community",
+    authorId,
+    schoolId: getSchoolIdByUser(authorId),
+    title: seed.title,
+    content: seed.content,
+    createdAt: at(12 + (index % 10), `${9 + (index % 7)}:${index % 2 === 0 ? "18" : "46"}:00`),
+    likes: seed.likes,
+    tags: seed.tags,
+  };
+});
 
 const referenceCommunityPosts: SeedPost[] = [
   {
@@ -1653,125 +1663,7 @@ const referenceCommunityPosts: SeedPost[] = [
   },
 ];
 
-const referenceCareerPosts: SeedPost[] = [
-  {
-    id: "career-ref-1",
-    category: "community",
-    authorId: "user-dohyun",
-    schoolId: "school-cau",
-    title: "[공식] 중앙대 학사가이드에 추천채용, 다빈치인재개발센터가 같이 정리돼 있어요",
-    content:
-      "중앙대 공식 신입생 학사가이드에서 다빈치인재개발센터, 추천채용, 진로설계 안내가 함께 소개됐습니다. 입학 직후부터 취업지원센터를 먼저 체크하는 게 생각보다 중요해 보여요.\n출처: https://nursing.cau.ac.kr/images//main/AcademicGuideforNewStudentsforClassof2023.pdf",
-    createdAt: at(21, "14:10:00"),
-    likes: 22,
-    tags: ["취업정보", "중앙대", "진로설계"],
-    imageUrl: campusImages[1],
-  },
-  {
-    id: "career-ref-2",
-    category: "community",
-    authorId: "user-yeji",
-    schoolId: "school-ewha",
-    title: "[공식] 이화 경력개발센터 자료 보니 신입생 때부터 직무 탐색 부스가 꽤 촘촘하네요",
-    content:
-      "이화 공식 공지 기준으로 신입생 대상 행사에 경력개발센터 프로그램, EWHACQ, E-Quest, 인턴십, 고시반, 창업 정보까지 같이 배치됐습니다. 진로 탐색을 입학 직후부터 해보려는 분들 참고용으로 남깁니다.\n출처: https://fashion.ewha.ac.kr/convergence/info/notice.do?articleNo=132356&attachNo=101916&mode=download",
-    createdAt: at(21, "14:55:00"),
-    likes: 20,
-    tags: ["취업정보", "이화여대", "경력개발센터"],
-    imageUrl: campusImages[2],
-  },
-  {
-    id: "career-ref-3",
-    category: "community",
-    authorId: "user-eunsol",
-    schoolId: "school-hanyang",
-    title: "[공식] 한양대 HY Tech & Startup Fair는 창업·기술 쪽 취업 감 잡기 좋아 보여요",
-    content:
-      "한양대 산학협력단 공식 페이지에서 HY Tech & Startup Fair를 운영하고 있고, 기술창업과 산학협력 흐름을 함께 소개하고 있습니다. 스타트업/산학 커리어에 관심 있으면 학교 공지부터 보는 편이 빠릅니다.\n출처: https://techfair.hanyang.ac.kr/page/introduce01.php",
-    createdAt: at(21, "15:30:00"),
-    likes: 18,
-    tags: ["취업정보", "한양대", "스타트업"],
-    imageUrl: campusImages[3],
-  },
-  {
-    id: "career-ref-4",
-    category: "community",
-    authorId: "user-taemin",
-    schoolId: "school-skku",
-    title: "[공식] 성균관대 공지에 행정조교 모집 글이 꾸준히 올라와요",
-    content:
-      "성균관대 공식 공지에서 경제대학 퀀트응용경제학과 행정조교 모집을 확인했습니다. 학교 공지 게시판에 조교·단기근로 형태 공고가 계속 올라오니 교내 일경험 찾는 분들은 주기적으로 체크해보세요.\n출처: https://www.skku.edu/skku/mobile/notice.do%3BHOMEPAGE_JSESSIONID%3DSCkS4VzcsOuTogmMrrC9Y-Nls3RK9woWuEaKKAHnpqsELNSU3aQp%21-1906863225?article.offset=10&articleLimit=10&articleNo=114978&mode=view&srSearchVal=%EB%8C%80%ED%95%99%EC%9B%90",
-    createdAt: at(21, "16:10:00"),
-    likes: 17,
-    tags: ["채용공고", "성균관대", "행정조교"],
-    imageUrl: campusImages[4],
-  },
-  {
-    id: "career-ref-5",
-    category: "community",
-    authorId: "user-taemin",
-    schoolId: "school-skku",
-    title: "[공식] 성균관대 공지에서 인권센터 행정조교 모집도 확인됩니다",
-    content:
-      "성균관대 공식 공지 목록에서 인권센터 행정조교 모집 같은 학내 공고가 확인됩니다. 교내 채용은 공지 리스트를 검색어로 모아보는 편이 훨씬 빠르더라고요.\n출처: https://www.skku.edu/skku/mobile/notice.do%3BHOMEPAGE_JSESSIONID%3DSCkS4VzcsOuTogmMrrC9Y-Nls3RK9woWuEaKKAHnpqsELNSU3aQp%21-1906863225?article.offset=40&articleLimit=10&mode=list&srSearchVal=%EB%8C%80%ED%95%99%EC%9B%90",
-    createdAt: at(21, "17:05:00"),
-    likes: 15,
-    tags: ["채용공고", "성균관대", "교내채용"],
-    imageUrl: campusImages[5],
-  },
-  {
-    id: "career-ref-6",
-    category: "community",
-    authorId: "user-yubin",
-    schoolId: "school-seoultech",
-    title: "[공식] 서울과기대 취업진로본부는 현장실습까지 한 번에 연결해주네요",
-    content:
-      "서울과기대 공식 조직도 상세 페이지를 보니 취업진로본부가 취업지원 프로그램뿐 아니라 단기·장기 현장실습까지 함께 운영하고 있었습니다. 취업정보 찾을 때 본부 소개 페이지부터 보는 게 생각보다 빠릅니다.\n출처: https://seoultech.ac.kr/intro/uvstat/orga/detail/alljob",
-    createdAt: at(21, "17:40:00"),
-    likes: 21,
-    tags: ["취업정보", "서울과기대", "현장실습"],
-    imageUrl: campusImages[6],
-  },
-  {
-    id: "career-ref-7",
-    category: "community",
-    authorId: "user-jaeho",
-    schoolId: "school-soongsil",
-    title: "[공식] 숭실대 진로취업센터는 재학생·졸업생·지역청년까지 같이 지원하네요",
-    content:
-      "숭실대 진로취업센터 소개 페이지를 보니 재학생뿐 아니라 졸업생과 지역 청년까지 열린 허브 역할을 한다고 명시돼 있었습니다. 학교 안 취업지원 범위가 넓어서 저학년 때부터 자주 보는 편이 좋아 보여요.\n출처: https://job.ssu.ac.kr/service/introduce/introduce.do",
-    createdAt: at(21, "18:15:00"),
-    likes: 19,
-    tags: ["취업정보", "숭실대", "진로취업센터"],
-    imageUrl: campusImages[0],
-  },
-  {
-    id: "career-ref-8",
-    category: "community",
-    authorId: "user-sejin",
-    schoolId: "school-hongik",
-    title: "[공식] 홍익 HIVE는 창업교육·멘토링·팀빌딩까지 학교 안에서 이어지네요",
-    content:
-      "홍익대 공식 학생활동 페이지를 보니 HIVE가 창업 기초 교육, 팀 빌딩, 멘토링, 네트워킹을 꾸준히 운영하고 있었습니다. 취업 탭에서도 창업 쪽 진로를 보는 사람이라면 학교 안 자원을 먼저 확인할 만합니다.\n출처: https://www.hongik.ac.kr/kr/life/seoul-hive.do",
-    createdAt: at(21, "18:50:00"),
-    likes: 18,
-    tags: ["취업정보", "홍익대", "창업"],
-    imageUrl: campusImages[1],
-  },
-  {
-    id: "career-ref-9",
-    category: "community",
-    authorId: "user-danbi",
-    schoolId: "school-hufs",
-    title: "[공식] 한국외대 대학일자리플러스센터가 고용노동부 평가 우수 3회를 받았다고 공지됐어요",
-    content:
-      "한국외대 공식 메인 공지에서 대학일자리플러스센터가 고용노동부 연차 성과평가에서 우수 등급을 3회 달성했다고 안내했습니다. 취업지원 체계가 실제로 잘 굴러가는 학교인지 볼 때 이런 공식 지표가 꽤 참고됩니다.\n출처: https://www.hufs.ac.kr/hufs/index.do",
-    createdAt: at(21, "19:20:00"),
-    likes: 17,
-    tags: ["취업정보", "한국외대", "대학일자리플러스센터"],
-    imageUrl: campusImages[2],
-  },
-];
+const referenceCareerPosts: SeedPost[] = [];
 
 const extractSourceUrl = (content: string) => {
   const match = content.match(/출처:\s*(https?:\/\/\S+)/);
@@ -2051,73 +1943,6 @@ const buildDerivedCampusPosts = (base: SeedPost, index: number): SeedPost[] => {
   }));
 };
 
-const buildDerivedCareerPosts = (base: SeedPost, index: number): SeedPost[] => {
-  const schoolName = getSchoolNameById(base.schoolId);
-  const summary = stripSourceLine(base.content);
-  const sourceUrl = extractSourceUrl(base.content);
-  const baseTags = base.tags ?? [];
-  const variants = [
-    {
-      suffix: "career-save",
-      title: `[취업 자료] ${schoolName} 취업지원 페이지에서 먼저 저장한 내용`,
-      content: `${summary}. 취업 준비를 막 시작할 때는 공고보다 학교 안 지원 구조를 먼저 보는 편이 훨씬 덜 막막했습니다. ${schoolName}처럼 공식 안내가 정리된 학교는 센터 링크부터 저장해두면 정보를 다시 찾기 편합니다.\n출처: ${sourceUrl}`,
-      tags: uniqTags(baseTags, ["공식자료", "취업지원"]),
-    },
-    {
-      suffix: "career-junior",
-      title: `${schoolName} 저학년 때부터 봐두면 좋았던 공식 취업지원 안내`,
-      content: `${summary}. 보통 4학년부터 취업 탭을 열기 쉬운데, 실제로는 1~2학년 때 학교가 어떤 상담과 프로그램을 주는지 먼저 보는 쪽이 준비 속도가 빨랐습니다.\n출처: ${sourceUrl}`,
-      tags: uniqTags(baseTags, ["공식자료", "저학년준비"]),
-    },
-    {
-      suffix: "career-flow",
-      title: `${schoolName} 공식 공지 기준으로 본 교내 일경험 흐름`,
-      content: `${summary}. 현장실습, 추천채용, 조교, 학부연구생처럼 학교 안에서 연결되는 일경험 구조를 공식 안내로 먼저 파악해두면 학년별 선택지가 훨씬 선명해집니다.\n출처: ${sourceUrl}`,
-      tags: uniqTags(baseTags, ["공식자료", "일경험"]),
-    },
-    {
-      suffix: "career-link",
-      title: `${schoolName} 취업 준비 시작 전에 학교 공식 사이트에서 먼저 본 포인트`,
-      content: `${summary}. 취업 커뮤니티 정보도 중요하지만, 교내에서 어떤 자원을 열어두는지 공식 사이트에서 먼저 보는 편이 준비 루틴을 세우기 좋았습니다. 학교 공지는 생각보다 진로 방향을 잡는 출발점 역할을 해줬습니다.\n출처: ${sourceUrl}`,
-      tags: uniqTags(baseTags, ["공식자료", "진로설계"]),
-    },
-    {
-      suffix: "career-center",
-      title: `${schoolName} 취업센터 공지에서 먼저 체크해둘 만한 것`,
-      content: `${summary}. 채용공고만 바로 보는 것보다 학교 취업센터가 제공하는 상담, 현장실습, 추천채용 흐름을 먼저 파악하면 준비 순서를 정하기 쉬웠습니다. 특히 처음 취업 준비를 시작하는 학생에게는 공식 안내가 기준 역할을 해줬습니다.\n출처: ${sourceUrl}`,
-      tags: uniqTags(baseTags, ["공식자료", "취업센터"]),
-    },
-    {
-      suffix: "career-checklist",
-      title: `${schoolName} 취업 준비 체크리스트 만들 때 공식 공지로 먼저 본 것`,
-      content: `${summary}. 저는 학교 공식 공지를 읽고 상담, 서류, 면접, 현장실습처럼 준비 단계를 체크리스트로 바꿔서 정리했습니다. 취업 커뮤니티 글만 따라가기보다 교내 지원 구조를 먼저 보는 쪽이 훨씬 체계적이었습니다.\n출처: ${sourceUrl}`,
-      tags: uniqTags(baseTags, ["공식자료", "체크리스트"]),
-    },
-    {
-      suffix: "career-alumni",
-      title: `${schoolName} 취업 준비하면서 동문·교내 연결 포인트 먼저 본 기록`,
-      content: `${summary}. 막연하게 공고만 보는 것보다 학교 안에 어떤 네트워크와 프로그램이 연결되는지 먼저 확인하는 편이 훨씬 안정적이었습니다. ${schoolName} 공식 안내는 그런 연결점을 찾는 출발점으로 쓰기 좋았습니다.\n출처: ${sourceUrl}`,
-      tags: uniqTags(baseTags, ["공식자료", "교내네트워크"]),
-    },
-    {
-      suffix: "career-roadmap",
-      title: `${schoolName} 학년별 취업 준비 로드맵 짤 때 공식 자료가 도움 된 부분`,
-      content: `${summary}. 취업 준비를 할 때 당장 지원할 것만 찾기보다, 학년별로 어떤 교내 자원을 언제 쓰는지 먼저 정리하는 쪽이 오래 버티기 좋았습니다. 공식 공지를 기준으로 로드맵을 짜면 준비 순서가 훨씬 명확해졌습니다.\n출처: ${sourceUrl}`,
-      tags: uniqTags(baseTags, ["공식자료", "준비로드맵"]),
-    },
-  ];
-
-  return variants.map((variant, variantIndex) => ({
-    ...base,
-    id: `${base.id}-${variant.suffix}`,
-    title: variant.title,
-    content: variant.content,
-    tags: variant.tags,
-    likes: Math.max(10, (base.likes ?? 14) - 1 + variantIndex + (index % 3)),
-    createdAt: shiftIsoMinutes(base.createdAt, 31 + variantIndex * 17 + index),
-  }));
-};
-
 const generatedReferencePosts: SeedPost[] = [
   ...referenceAdmissionPosts.flatMap(buildDerivedAdmissionPosts),
   ...referenceCommunityPosts.flatMap((post, index) =>
@@ -2125,7 +1950,6 @@ const generatedReferencePosts: SeedPost[] = [
       ? buildDerivedFreshmanPosts(post, index)
       : buildDerivedCampusPosts(post, index),
   ),
-  ...referenceCareerPosts.flatMap(buildDerivedCareerPosts),
 ];
 
 const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => {
@@ -2217,19 +2041,6 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
       likes: 9 + (index % 4),
       visibilityLevel: "school",
       tags: ["공식자료", "무물", "학교생활"],
-    },
-    {
-      id: `coverage-${school.id}-career`,
-      category: "community",
-      subcategory: "free",
-      authorId: "user-dohyun",
-      schoolId: school.id,
-      title: `${school.name} 취업지원 메뉴는 학기 초에 한 번 열어두는 편이 좋았습니다`,
-      content: `${school.name} 취업 준비를 당장 시작하지 않더라도 학교 홈페이지에서 진로·취업지원 메뉴를 한 번 열어두면 나중에 공고나 상담 링크를 다시 찾을 때 훨씬 편했습니다. 학교별로 대학일자리센터나 취업지원팀 위치가 달라서 공식 경로를 먼저 익혀두는 편이 실용적이었습니다.\n출처: ${baseUrl}`,
-      createdAt: at(createdDay, "19:05:00"),
-      likes: 10 + (index % 5),
-      visibilityLevel: "school",
-      tags: ["공식자료", "취업정보", "진로지원"],
     },
     {
       id: `coverage-${school.id}-study`,
@@ -2534,50 +2345,24 @@ const datingComments: Comment[] = datingPosts.slice(0, 8).map((post, index) => (
   createdAt: at(20 - Math.floor(index / 2), "22:00:00"),
 }));
 
-const getCareerComment = (post: SeedPost) => {
-  if (post.title.includes("자소서")) {
-    return "공통 경험 먼저 정리해두는 방식 공감합니다. 문항별 키워드만 따로 바꿔도 훨씬 빨랐어요.";
+const curatedCareerComments: Comment[] = curatedCareerSeed.comments.reduce<Comment[]>((acc, seed, index) => {
+  const post = careerPosts.find((item) => item.id === seed.postId);
+
+  if (!post) {
+    return acc;
   }
 
-  if (post.title.includes("금융권 인턴 면접")) {
-    return "금융권은 왜 이 업권인지까지 같이 묻는 경우가 많아서 최근 산업 뉴스 두세 개 정리해두면 답변이 훨씬 안정적이었습니다.";
-  }
+  acc.push({
+    id: nextCommentId(),
+    postId: post.id,
+    authorId: collegeReviewerIds[(index + 4) % collegeReviewerIds.length],
+    content: seed.content,
+    accepted: false,
+    createdAt: new Date(Date.UTC(2026, 2, 21, 3, 0, 0) + index * 19 * 60 * 1000).toISOString(),
+  });
 
-  if (post.title.includes("GitHub보다 먼저")) {
-    return "깃허브 링크보다 문제 정의랑 맡은 역할을 먼저 보여주는 쪽이 확실히 반응이 좋더라고요. 시연 영상 있으면 더 좋았습니다.";
-  }
-
-  if (post.title.includes("예비입학생")) {
-    return "직무 이름이랑 채용공고 포맷부터 익숙해지는 데 도움이 되더라고요. 입학 전에 가볍게 읽어보는 것만으로도 좋았습니다.";
-  }
-
-  if (post.title.includes("커피챗")) {
-    return "질문을 두세 개로 줄이는 방식 공감합니다. 장문 메일보다는 짧은 소개가 답장률이 높았어요.";
-  }
-
-  if (post.title.includes("창업지원단")) {
-    return "교내 인턴이면 수업 병행 가능한 시간대가 핵심이라 근무 요일만 확실해도 지원 판단이 훨씬 쉬울 것 같아요.";
-  }
-
-  if (post.title.includes("브랜드 마케팅")) {
-    return "브랜드 운영 경험이 없어도 학교 계정이나 개인 채널 관리 경험 정리해두면 꽤 어필되더라고요.";
-  }
-
-  if (post.title.includes("SW 아카데미")) {
-    return "오픈 트랙이면 저학년이나 예비입학생도 진입 장벽이 낮아서 좋네요. 과제 난도만 미리 알면 더 좋겠습니다.";
-  }
-
-  return "실제로 준비해본 사람이 남긴 포인트라 참고하기 좋네요. 다음엔 지원 과정 후기도 같이 있으면 더 도움 될 것 같아요.";
-};
-
-const careerComments: Comment[] = careerPosts.slice(0, 8).map((post, index) => ({
-  id: nextCommentId(),
-  postId: post.id,
-  authorId: collegeReviewerIds[(index + 4) % collegeReviewerIds.length],
-  content: getCareerComment(post),
-  accepted: false,
-  createdAt: at(19 - Math.floor(index / 2), "20:40:00"),
-}));
+  return acc;
+}, []);
 
 const referenceComments: Comment[] = [
   {
@@ -2619,30 +2404,6 @@ const referenceComments: Comment[] = [
     content: "우선수강신청 안내는 학기 시작 직전 다시 확인하는 게 좋아요. 공지 PDF가 제일 정확합니다.",
     accepted: false,
     createdAt: at(21, "12:40:00"),
-  },
-  {
-    id: nextCommentId(),
-    postId: "career-ref-1",
-    authorId: "user-minjae",
-    content: "진로센터나 추천채용 링크는 입학 직후에 저장해두면 학년 올라갈수록 꽤 도움 됩니다.",
-    accepted: false,
-    createdAt: at(21, "15:00:00"),
-  },
-  {
-    id: nextCommentId(),
-    postId: "career-ref-3",
-    authorId: "user-sohee",
-    content: "기술창업 관심 있으면 학교 산학협력단 페이지를 생각보다 자주 보게 되더라고요.",
-    accepted: false,
-    createdAt: at(21, "16:00:00"),
-  },
-  {
-    id: nextCommentId(),
-    postId: "career-ref-4",
-    authorId: "user-chaeeun",
-    content: "교내 조교 공고는 마감이 빠른 편이라 관심 있으면 키워드 검색 저장해두는 게 편합니다.",
-    accepted: false,
-    createdAt: at(21, "16:45:00"),
   },
   {
     id: nextCommentId(),
@@ -2715,38 +2476,6 @@ const referenceComments: Comment[] = [
     content: "총학생회 소개 페이지에 연간 일정이 같이 보여서 대동제나 OT 흐름 잡기 좋습니다.",
     accepted: false,
     createdAt: at(21, "16:00:00"),
-  },
-  {
-    id: nextCommentId(),
-    postId: "career-ref-6",
-    authorId: "user-yubin",
-    content: "서울과기대는 현장실습과 취업지원이 본부 단위로 묶여 있어서 공지 챙기기가 편한 편입니다.",
-    accepted: false,
-    createdAt: at(21, "17:55:00"),
-  },
-  {
-    id: nextCommentId(),
-    postId: "career-ref-7",
-    authorId: "user-jaeho",
-    content: "숭실 진로취업센터는 저학년 상담도 열려 있어서 첫 학기부터 계정 만들어두는 걸 추천합니다.",
-    accepted: false,
-    createdAt: at(21, "18:30:00"),
-  },
-  {
-    id: nextCommentId(),
-    postId: "career-ref-8",
-    authorId: "user-sejin",
-    content: "홍익은 창업 쪽도 학교 안 자원이 잘 정리돼 있어서 취업 탭에서 같이 보는 게 맞는 것 같아요.",
-    accepted: false,
-    createdAt: at(21, "19:00:00"),
-  },
-  {
-    id: nextCommentId(),
-    postId: "career-ref-9",
-    authorId: "user-danbi",
-    content: "외대는 대학일자리플러스센터 공지가 메인에도 자주 떠서 학교 지원 체감이 괜찮은 편입니다.",
-    accepted: false,
-    createdAt: at(21, "19:35:00"),
   },
 ];
 
@@ -2823,7 +2552,7 @@ export const comments: Comment[] = [
   ...hotComments,
   ...freshmanZoneComments,
   ...datingComments,
-  ...careerComments,
+  ...curatedCareerComments,
   ...referenceComments,
   ...generatedReferenceComments,
   ...generatedSchoolCoverageComments,
