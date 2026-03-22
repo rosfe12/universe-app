@@ -52,7 +52,9 @@ export function HomePage({
     .filter((post) => hasSelectedSchool && post.schoolId === currentSchool?.id)
     .sort((a, b) => b.likes + b.commentCount * 2 - (a.likes + a.commentCount * 2))
     .slice(0, 5);
-  const lectureHighlights = getLectureSummaries().slice(0, 3);
+  const schoolLectureHighlights = getLectureSummaries()
+    .filter((lecture) => hasSelectedSchool && lecture.schoolId === currentSchool?.id)
+    .slice(0, 3);
   const tradeHighlights = getTradePosts()
     .filter((tradePost) => hasSelectedSchool && tradePost.schoolId === currentSchool?.id)
     .slice(0, 3);
@@ -64,7 +66,7 @@ export function HomePage({
     .sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, 4);
   const hasSchoolFeedPosts = schoolFeedPosts.length > 0;
-  const hasLectureHighlights = lectureHighlights.length > 0;
+  const hasLectureHighlights = schoolLectureHighlights.length > 0;
   const hasTradeHighlights = tradeHighlights.length > 0;
   const hasCommunityHighlights = communityHighlights.length > 0;
 
@@ -203,7 +205,7 @@ export function HomePage({
         </Card>
         {hasLectureHighlights ? (
           <div className="space-y-3">
-            {lectureHighlights.map((lecture) => (
+            {schoolLectureHighlights.map((lecture) => (
               <LectureSummaryCard key={lecture.id} lecture={lecture} href={`/lectures/${lecture.id}`} />
             ))}
           </div>

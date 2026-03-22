@@ -497,7 +497,7 @@ export const users: User[] = [
   },
 ];
 
-export const lectures: Lecture[] = [
+const baseLectures: Lecture[] = [
   {
     id: "lecture-1",
     schoolId: BASE_SCHOOL_ID,
@@ -632,6 +632,70 @@ export const lectures: Lecture[] = [
   },
 ];
 
+const SCHOOL_COVERAGE_LECTURE_BLUEPRINTS = [
+  {
+    suffix: "writing",
+    courseName: "대학생활글쓰기",
+    professor: "김하은",
+    section: "01",
+    dayTime: "월 10:30 - 12:00",
+    credits: 2,
+    department: "교양",
+  },
+  {
+    suffix: "data",
+    courseName: "데이터리터러시기초",
+    professor: "박지훈",
+    section: "01",
+    dayTime: "화 13:00 - 14:30",
+    credits: 3,
+    department: "교양",
+  },
+  {
+    suffix: "career",
+    courseName: "진로탐색세미나",
+    professor: "이서윤",
+    section: "02",
+    dayTime: "수 15:00 - 16:30",
+    credits: 2,
+    department: "교양",
+  },
+  {
+    suffix: "project",
+    courseName: "문제해결프로젝트",
+    professor: "최도윤",
+    section: "01",
+    dayTime: "목 10:00 - 12:30",
+    credits: 3,
+    department: "융합교양",
+  },
+] as const;
+
+const schoolIdsWithLectureContent = new Set(baseLectures.map((lecture) => lecture.schoolId));
+
+const generatedSchoolCoverageLectures: Lecture[] = schools.flatMap((school, schoolIndex) => {
+  if (schoolIdsWithLectureContent.has(school.id)) {
+    return [];
+  }
+
+  return SCHOOL_COVERAGE_LECTURE_BLUEPRINTS.map((blueprint, blueprintIndex) => ({
+    id: `lecture-${school.id}-${blueprint.suffix}`,
+    schoolId: school.id,
+    semester: "2026-1",
+    courseName: blueprint.courseName,
+    professor: blueprint.professor,
+    section: blueprint.section,
+    dayTime: blueprint.dayTime,
+    credits: blueprint.credits,
+    department:
+      blueprintIndex === 0
+        ? `${school.name} 교양`
+        : blueprint.department,
+  }));
+});
+
+export const lectures: Lecture[] = [...baseLectures, ...generatedSchoolCoverageLectures];
+
 const collegeReviewerIds = users
   .filter((user) => user.userType === "student")
   .map((user) => user.id);
@@ -652,7 +716,7 @@ const reviewTemplates: Omit<
     helpfulCount: 38,
     shortComment: "부담 적고 만족도 높은 편",
     longComment:
-      "출결 체크가 빡세지 않고 채점 포인트가 명확합니다. 건국대에서 일정 빡빡한 학기에도 넣기 괜찮은 타입의 강의였어요.",
+      "출결 체크가 빡세지 않고 채점 포인트가 명확합니다. 일정이 빡빡한 학기에도 넣기 괜찮은 타입의 강의였어요.",
   },
   {
     difficulty: "medium",
@@ -722,7 +786,7 @@ const reviewTemplates: Omit<
     helpfulCount: 32,
     shortComment: "발표 부담만 넘기면 만족도 높음",
     longComment:
-      "평가 기준이 투명하고 교수님이 사례를 많이 보여주셔서 발표 준비가 수월합니다. 건국대에서 대외활동 병행하는 학생들에게 추천할 만해요.",
+      "평가 기준이 투명하고 교수님이 사례를 많이 보여주셔서 발표 준비가 수월합니다. 대외활동 병행하는 학생들에게 추천할 만해요.",
   },
 ];
 
@@ -2458,7 +2522,7 @@ export const posts: Post[] = [
   commentCount: comments.filter((comment) => comment.postId === post.id).length,
 }));
 
-export const tradePosts: TradePost[] = [
+const baseTradePosts: TradePost[] = [
   {
     id: "trade-1",
     schoolId: BASE_SCHOOL_ID,
@@ -2628,6 +2692,56 @@ export const tradePosts: TradePost[] = [
     createdAt: at(16, "18:20:00"),
   },
 ];
+
+const schoolIdsWithTradeContent = new Set(baseTradePosts.map((tradePost) => tradePost.schoolId));
+
+const generatedSchoolCoverageTradePosts: TradePost[] = schools.flatMap((school, schoolIndex) => {
+  if (schoolIdsWithTradeContent.has(school.id)) {
+    return [];
+  }
+
+  const schoolLectures = lectures.filter((lecture) => lecture.schoolId === school.id).slice(0, 4);
+  if (schoolLectures.length < 2) {
+    return [];
+  }
+
+  const [firstLecture, secondLecture, thirdLecture, fourthLecture] = schoolLectures;
+  const pairA = thirdLecture ?? secondLecture;
+  const pairB = fourthLecture ?? firstLecture;
+
+  return [
+    {
+      id: `trade-${school.id}-1`,
+      schoolId: school.id,
+      semester: "2026-1",
+      userId: collegeReviewerIds[schoolIndex % collegeReviewerIds.length],
+      haveLectureId: firstLecture.id,
+      wantLectureId: secondLecture.id,
+      professor: firstLecture.professor,
+      section: firstLecture.section,
+      timeRange: firstLecture.dayTime,
+      note: `${firstLecture.courseName} 보유 중이고 ${secondLecture.courseName} 자리로 옮기고 싶어요.`,
+      status: "open",
+      createdAt: at(18 - (schoolIndex % 3), "10:20:00"),
+    },
+    {
+      id: `trade-${school.id}-2`,
+      schoolId: school.id,
+      semester: "2026-1",
+      userId: collegeReviewerIds[(schoolIndex + 2) % collegeReviewerIds.length],
+      haveLectureId: pairA.id,
+      wantLectureId: pairB.id,
+      professor: pairA.professor,
+      section: pairA.section,
+      timeRange: pairA.dayTime,
+      note: `${pairA.courseName}에서 ${pairB.courseName}로 교환 희망합니다. 시간 맞는 분 찾고 있어요.`,
+      status: schoolIndex % 2 === 0 ? "matching" : "open",
+      createdAt: at(17 - (schoolIndex % 3), "16:10:00"),
+    },
+  ];
+});
+
+export const tradePosts: TradePost[] = [...baseTradePosts, ...generatedSchoolCoverageTradePosts];
 
 export const notifications: Notification[] = [
   {

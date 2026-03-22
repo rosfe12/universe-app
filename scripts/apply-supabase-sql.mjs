@@ -52,6 +52,97 @@ const shiftIsoMinutes = (value, minutes) => new Date(new Date(value).getTime() +
 
 const uniqTags = (...groups) => Array.from(new Set(groups.flat().filter(Boolean)));
 
+const SCHOOL_LECTURE_BLUEPRINTS = [
+  {
+    suffix: "writing",
+    name: "대학생활글쓰기",
+    professor: "김하은",
+    section: "01",
+    dayTime: "월 10:30 - 12:00",
+    credits: 2,
+    department: "교양",
+  },
+  {
+    suffix: "data",
+    name: "데이터리터러시기초",
+    professor: "박지훈",
+    section: "01",
+    dayTime: "화 13:00 - 14:30",
+    credits: 3,
+    department: "교양",
+  },
+  {
+    suffix: "career",
+    name: "진로탐색세미나",
+    professor: "이서윤",
+    section: "02",
+    dayTime: "수 15:00 - 16:30",
+    credits: 2,
+    department: "교양",
+  },
+  {
+    suffix: "project",
+    name: "문제해결프로젝트",
+    professor: "최도윤",
+    section: "01",
+    dayTime: "목 10:00 - 12:30",
+    credits: 3,
+    department: "융합교양",
+  },
+];
+
+const SCHOOL_REVIEW_TEMPLATES = [
+  {
+    difficulty: "easy",
+    workload: "light",
+    attendance: "flexible",
+    examStyle: "multipleChoice",
+    teamProject: false,
+    presentation: false,
+    gradingStyle: "generous",
+    honeyScore: 5,
+    shortComment: "부담 적고 만족도 높은 편",
+    longComment: "출결 체크가 빡세지 않고 채점 포인트가 명확합니다. 일정이 빡빡한 학기에도 넣기 괜찮은 타입의 강의였어요.",
+    helpfulCount: 18,
+    semester: "2025-2",
+  },
+  {
+    difficulty: "medium",
+    workload: "medium",
+    attendance: "medium",
+    examStyle: "mixed",
+    teamProject: true,
+    presentation: true,
+    gradingStyle: "medium",
+    honeyScore: 4,
+    shortComment: "준비한 만큼 확실히 가져가는 구조",
+    longComment: "과제와 발표가 적절히 섞여 있어 루틴만 잘 타면 만족도가 높습니다. 교수 피드백이 꽤 구체적이라 얻는 게 있는 강의예요.",
+    helpfulCount: 12,
+    semester: "2025-1",
+  },
+  {
+    difficulty: "medium",
+    workload: "light",
+    attendance: "flexible",
+    examStyle: "project",
+    teamProject: true,
+    presentation: false,
+    gradingStyle: "generous",
+    honeyScore: 4,
+    shortComment: "프로젝트 위주라 실전 감각 좋음",
+    longComment: "시험 압박이 적고 결과물을 만드는 재미가 있습니다. 팀플은 있지만 난이도가 과하지 않아서 포트폴리오용으로도 괜찮았어요.",
+    helpfulCount: 14,
+    semester: "2024-2",
+  },
+];
+
+const SCHOOL_TRADE_AUTHOR_IDS = [
+  "a1111111-1111-4111-8111-111111111111",
+  "b2222222-2222-4222-8222-222222222222",
+  "c3333333-3333-4333-8333-333333333333",
+  "d4444444-4444-4444-8444-444444444444",
+];
+
 const parseMetadata = (value) => {
   if (!value) return {};
   if (typeof value === "string") {
@@ -538,6 +629,104 @@ const buildSchoolCoverageRows = (schools) => {
   return { posts, comments };
 };
 
+const buildSchoolLectureRows = (schools, existingSchoolIds) => {
+  const lectures = [];
+  const reviews = [];
+
+  for (const [schoolIndex, school] of schools.entries()) {
+    if (existingSchoolIds.has(school.id)) continue;
+
+    for (const [lectureIndex, blueprint] of SCHOOL_LECTURE_BLUEPRINTS.entries()) {
+      const lectureId = makeDeterministicUuid(`coverage-lecture-${school.id}-${blueprint.suffix}`);
+      const createdAt = shiftIsoMinutes(new Date(Date.UTC(2026, 2, 14 + (schoolIndex % 8), 0, 0, 0)).toISOString(), lectureIndex * 43);
+      lectures.push({
+        id: lectureId,
+        school_id: school.id,
+        semester: "2026-1",
+        name: blueprint.name,
+        professor: blueprint.professor,
+        section: blueprint.section,
+        day_time: blueprint.dayTime,
+        credits: blueprint.credits,
+        department: lectureIndex === 0 ? `${school.name} 교양` : blueprint.department,
+      });
+
+      for (const [reviewIndex, template] of SCHOOL_REVIEW_TEMPLATES.entries()) {
+        reviews.push({
+          id: makeDeterministicUuid(`coverage-review-${school.id}-${blueprint.suffix}-${reviewIndex}`),
+          lecture_id: lectureId,
+          author_id: SCHOOL_TRADE_AUTHOR_IDS[(schoolIndex + reviewIndex) % SCHOOL_TRADE_AUTHOR_IDS.length],
+          difficulty: template.difficulty,
+          workload: template.workload,
+          attendance: template.attendance,
+          exam_style: template.examStyle,
+          team_project: template.teamProject,
+          presentation: template.presentation,
+          grading_style: template.gradingStyle,
+          honey_score: template.honeyScore,
+          short_comment: `${blueprint.name} - ${template.shortComment}`,
+          long_comment: `${blueprint.name} 기준으로 보면 ${template.longComment}`,
+          semester: template.semester,
+          helpful_count: template.helpfulCount + lectureIndex,
+          visibility_level: "schoolDepartment",
+          created_at: shiftIsoMinutes(createdAt, 18 + reviewIndex * 27),
+        });
+      }
+    }
+  }
+
+  return { lectures, reviews };
+};
+
+const buildSchoolTradeRows = (schools, lecturesBySchool, existingSchoolIds) => {
+  const rows = [];
+
+  for (const [schoolIndex, school] of schools.entries()) {
+    if (existingSchoolIds.has(school.id)) continue;
+
+    const lectures = lecturesBySchool.get(school.id) ?? [];
+    if (lectures.length < 2) continue;
+
+    const [firstLecture, secondLecture, thirdLecture, fourthLecture] = lectures;
+    const pairA = thirdLecture ?? secondLecture;
+    const pairB = fourthLecture ?? firstLecture;
+
+    rows.push({
+      id: makeDeterministicUuid(`coverage-trade-${school.id}-1`),
+      author_id: SCHOOL_TRADE_AUTHOR_IDS[schoolIndex % SCHOOL_TRADE_AUTHOR_IDS.length],
+      school_id: school.id,
+      have_lecture_id: firstLecture.id,
+      want_lecture_id: secondLecture.id,
+      note: `${firstLecture.name} 보유 중이고 ${secondLecture.name} 자리로 옮기고 싶어요.`,
+      status: "open",
+      semester: "2026-1",
+      professor: firstLecture.professor,
+      section: firstLecture.section,
+      time_range: firstLecture.day_time,
+      visibility_level: "school",
+      created_at: shiftIsoMinutes(new Date(Date.UTC(2026, 2, 18 + (schoolIndex % 4), 0, 0, 0)).toISOString(), 30),
+    });
+
+    rows.push({
+      id: makeDeterministicUuid(`coverage-trade-${school.id}-2`),
+      author_id: SCHOOL_TRADE_AUTHOR_IDS[(schoolIndex + 1) % SCHOOL_TRADE_AUTHOR_IDS.length],
+      school_id: school.id,
+      have_lecture_id: pairA.id,
+      want_lecture_id: pairB.id,
+      note: `${pairA.name}에서 ${pairB.name}로 교환 희망합니다. 시간 맞는 분 찾고 있어요.`,
+      status: schoolIndex % 2 === 0 ? "matched" : "open",
+      semester: "2026-1",
+      professor: pairA.professor,
+      section: pairA.section,
+      time_range: pairA.day_time,
+      visibility_level: "school",
+      created_at: shiftIsoMinutes(new Date(Date.UTC(2026, 2, 18 + (schoolIndex % 4), 0, 0, 0)).toISOString(), 130),
+    });
+  }
+
+  return rows;
+};
+
 const upsertGeneratedReferenceContent = async (client) => {
   const { rows } = await client.query(`
     select
@@ -803,6 +992,245 @@ const upsertSchoolCoverageContent = async (client) => {
   `);
 };
 
+const upsertSchoolLectureContent = async (client) => {
+  const { rows: schools } = await client.query(`
+    select s.id::text, s.name
+    from public.schools s
+    order by s.name asc
+  `);
+  const { rows: existingSchools } = await client.query(`
+    select distinct school_id::text as school_id
+    from public.lectures
+    where school_id is not null
+  `);
+  const existingSchoolIds = new Set(existingSchools.map((row) => row.school_id).filter(Boolean));
+  const { lectures, reviews } = buildSchoolLectureRows(schools, existingSchoolIds);
+
+  for (const lecture of lectures) {
+    await client.query(
+      `
+        insert into public.lectures (
+          id,
+          school_id,
+          semester,
+          name,
+          professor,
+          section,
+          day_time,
+          credits,
+          department
+        ) values (
+          $1::uuid,
+          $2::uuid,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9
+        )
+        on conflict (id) do update
+        set
+          school_id = excluded.school_id,
+          semester = excluded.semester,
+          name = excluded.name,
+          professor = excluded.professor,
+          section = excluded.section,
+          day_time = excluded.day_time,
+          credits = excluded.credits,
+          department = excluded.department
+      `,
+      [
+        lecture.id,
+        lecture.school_id,
+        lecture.semester,
+        lecture.name,
+        lecture.professor,
+        lecture.section,
+        lecture.day_time,
+        lecture.credits,
+        lecture.department,
+      ],
+    );
+  }
+
+  for (const review of reviews) {
+    await client.query(
+      `
+        insert into public.lecture_reviews (
+          id,
+          lecture_id,
+          author_id,
+          difficulty,
+          workload,
+          attendance,
+          exam_style,
+          team_project,
+          presentation,
+          grading_style,
+          honey_score,
+          short_comment,
+          long_comment,
+          semester,
+          helpful_count,
+          visibility_level,
+          created_at
+        ) values (
+          $1::uuid,
+          $2::uuid,
+          $3::uuid,
+          $4::public.difficulty_level,
+          $5::public.workload_level,
+          $6::public.attendance_level,
+          $7::public.exam_style_type,
+          $8,
+          $9,
+          $10::public.grading_style_type,
+          $11,
+          $12,
+          $13,
+          $14,
+          $15,
+          $16::public.visibility_level,
+          $17::timestamptz
+        )
+        on conflict (id) do update
+        set
+          lecture_id = excluded.lecture_id,
+          author_id = excluded.author_id,
+          difficulty = excluded.difficulty,
+          workload = excluded.workload,
+          attendance = excluded.attendance,
+          exam_style = excluded.exam_style,
+          team_project = excluded.team_project,
+          presentation = excluded.presentation,
+          grading_style = excluded.grading_style,
+          honey_score = excluded.honey_score,
+          short_comment = excluded.short_comment,
+          long_comment = excluded.long_comment,
+          semester = excluded.semester,
+          helpful_count = excluded.helpful_count,
+          visibility_level = excluded.visibility_level,
+          created_at = excluded.created_at
+      `,
+      [
+        review.id,
+        review.lecture_id,
+        review.author_id,
+        review.difficulty,
+        review.workload,
+        review.attendance,
+        review.exam_style,
+        review.team_project,
+        review.presentation,
+        review.grading_style,
+        review.honey_score,
+        review.short_comment,
+        review.long_comment,
+        review.semester,
+        review.helpful_count,
+        review.visibility_level,
+        review.created_at,
+      ],
+    );
+  }
+};
+
+const upsertSchoolTradeContent = async (client) => {
+  const { rows: schools } = await client.query(`
+    select s.id::text, s.name
+    from public.schools s
+    order by s.name asc
+  `);
+  const { rows: existingTradeSchools } = await client.query(`
+    select distinct school_id::text as school_id
+    from public.trade_posts
+    where school_id is not null
+  `);
+  const { rows: lectureRows } = await client.query(`
+    select id::text, school_id::text, name, professor, section, day_time
+    from public.lectures
+    where school_id is not null
+    order by school_id asc, name asc
+  `);
+
+  const lecturesBySchool = new Map();
+  for (const row of lectureRows) {
+    const bucket = lecturesBySchool.get(row.school_id) ?? [];
+    bucket.push(row);
+    lecturesBySchool.set(row.school_id, bucket);
+  }
+
+  const existingSchoolIds = new Set(existingTradeSchools.map((row) => row.school_id).filter(Boolean));
+  const rows = buildSchoolTradeRows(schools, lecturesBySchool, existingSchoolIds);
+
+  for (const row of rows) {
+    await client.query(
+      `
+        insert into public.trade_posts (
+          id,
+          author_id,
+          school_id,
+          have_lecture_id,
+          want_lecture_id,
+          note,
+          status,
+          semester,
+          professor,
+          section,
+          time_range,
+          visibility_level,
+          created_at
+        ) values (
+          $1::uuid,
+          $2::uuid,
+          $3::uuid,
+          $4::uuid,
+          $5::uuid,
+          $6,
+          $7::public.trade_post_status,
+          $8,
+          $9,
+          $10,
+          $11,
+          $12::public.visibility_level,
+          $13::timestamptz
+        )
+        on conflict (id) do update
+        set
+          author_id = excluded.author_id,
+          school_id = excluded.school_id,
+          have_lecture_id = excluded.have_lecture_id,
+          want_lecture_id = excluded.want_lecture_id,
+          note = excluded.note,
+          status = excluded.status,
+          semester = excluded.semester,
+          professor = excluded.professor,
+          section = excluded.section,
+          time_range = excluded.time_range,
+          visibility_level = excluded.visibility_level,
+          created_at = excluded.created_at
+      `,
+      [
+        row.id,
+        row.author_id,
+        row.school_id,
+        row.have_lecture_id,
+        row.want_lecture_id,
+        row.note,
+        row.status,
+        row.semester,
+        row.professor,
+        row.section,
+        row.time_range,
+        row.visibility_level,
+        row.created_at,
+      ],
+    );
+  }
+};
+
 try {
   await client.connect();
 
@@ -832,6 +1260,8 @@ try {
   if (mode === "seed" || mode === "all") {
     await upsertGeneratedReferenceContent(client);
     await upsertSchoolCoverageContent(client);
+    await upsertSchoolLectureContent(client);
+    await upsertSchoolTradeContent(client);
     await client.query(`
       update public.posts
       set image_url = null

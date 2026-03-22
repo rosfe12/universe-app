@@ -118,9 +118,12 @@ export function TradePage({
     setSnapshot,
   } = useAppRuntime(initialSnapshot);
   const currentUser = runtimeUser;
+  const schoolId = currentUser.schoolId;
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [tradeItems, setTradeItems] = useState(getTradePosts());
+  const [tradeItems, setTradeItems] = useState(
+    getTradePosts().filter((tradePost) => !schoolId || tradePost.schoolId === schoolId),
+  );
   const [tradeMessages, setTradeMessages] = useState<TradeMessage[]>([]);
   const [tradeMessageInput, setTradeMessageInput] = useState("");
   const [tradeMessageError, setTradeMessageError] = useState<string | null>(null);
@@ -130,16 +133,18 @@ export function TradePage({
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessTrade(currentUser);
   const currentSchool = getCurrentSchool();
-  const lectureOptions = getLectures().map(
-    (lecture) => [lecture.id, lecture.courseName] as const,
-  );
+  const schoolLectures = getLectures().filter((lecture) => !schoolId || lecture.schoolId === schoolId);
+  const lectureOptions = schoolLectures
+    .map((lecture) => [lecture.id, lecture.courseName] as const);
+  const defaultHaveLectureId = schoolLectures[0]?.id ?? getLectures()[0]?.id ?? "lecture-1";
+  const defaultWantLectureId = schoolLectures[1]?.id ?? schoolLectures[0]?.id ?? getLectures()[1]?.id ?? "lecture-3";
   const form = useForm<TradeFormValues>({
     resolver: zodResolver(tradeSchema),
     defaultValues: {
       schoolId: currentUser.schoolId ?? "school-default",
       semester: "2026-1",
-      haveLectureId: "lecture-1",
-      wantLectureId: "lecture-3",
+      haveLectureId: defaultHaveLectureId,
+      wantLectureId: defaultWantLectureId,
       professor: "",
       section: "",
       timeRange: "",
@@ -150,8 +155,8 @@ export function TradePage({
   });
 
   useEffect(() => {
-    setTradeItems(getTradePosts());
-  }, [blocks, reports, tradePosts]);
+    setTradeItems(getTradePosts().filter((tradePost) => !schoolId || tradePost.schoolId === schoolId));
+  }, [blocks, reports, schoolId, tradePosts]);
 
   useEffect(() => {
     const queryPostId = searchParams.get("post");

@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { getLectureSummaries, getTradePosts } from "@/lib/mock-queries";
+import { getCurrentSchool, getLectureSummaries, getTradePosts } from "@/lib/mock-queries";
 import { canAccessSchoolFeatures } from "@/lib/permissions";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import type { AppRuntimeSnapshot } from "@/types";
@@ -44,6 +44,8 @@ export function LecturesPage({
     isAuthenticated,
   } = useAppRuntime(initialSnapshot);
   const currentUser = runtimeUser;
+  const currentSchool = getCurrentSchool();
+  const schoolId = currentUser.schoolId;
   const [activeView, setActiveView] = useState<LectureView>(initialView);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -62,6 +64,7 @@ export function LecturesPage({
     const normalizedQuery = deferredQuery.trim().toLowerCase();
 
     return getLectureSummaries().filter((lecture) => {
+      const matchesSchool = !schoolId || lecture.schoolId === schoolId;
       const matchesQuery =
         normalizedQuery.length === 0 ||
         lecture.courseName.toLowerCase().includes(normalizedQuery) ||
@@ -73,6 +76,7 @@ export function LecturesPage({
       const matchesGrading = !filters.generousGrading || lecture.isGenerousGrading;
 
       return (
+        matchesSchool &&
         matchesQuery &&
         matchesWorkload &&
         matchesAttendance &&
@@ -82,7 +86,7 @@ export function LecturesPage({
     });
   })();
 
-  const tradeItems = getTradePosts();
+  const tradeItems = getTradePosts().filter((tradePost) => !schoolId || tradePost.schoolId === schoolId);
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const lectureOverview = useMemo(() => {
     const reviewCount = lectures.reduce((sum, lecture) => sum + lecture.reviewCount, 0);
@@ -154,6 +158,9 @@ export function LecturesPage({
               <p className="mt-1 text-lg font-semibold">{tradeItems.length}개</p>
             </div>
           </div>
+          {currentSchool ? (
+            <p className="text-sm text-muted-foreground">{currentSchool.name} 기준으로 보여줍니다.</p>
+          ) : null}
         </CardContent>
       </Card>
 
