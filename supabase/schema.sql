@@ -535,7 +535,7 @@ begin
   end if;
 
   if new.school_email is not null and new.school_id is not null and not (
-    lower(new.school_email::text) = 'rosfe12@gmail.com'
+    lower(new.school_email::text) in ('rosfe12@gmail.com', 'rosfe@naver.com')
     or exists (
       select 1
       from public.schools
@@ -709,7 +709,7 @@ as $$
       and lower(p_school_email::text) = lower(public.current_auth_email()::text)
       and (
         split_part(lower(p_school_email::text), '@', 2) = lower(domain::text)
-        or lower(p_school_email::text) = 'rosfe12@gmail.com'
+        or lower(p_school_email::text) in ('rosfe12@gmail.com', 'rosfe@naver.com')
       )
       and public.is_current_auth_email_confirmed()
   )

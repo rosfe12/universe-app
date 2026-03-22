@@ -1,4 +1,4 @@
-const TEST_VERIFICATION_EMAILS = new Set(["rosfe12@gmail.com"]);
+const TEST_VERIFICATION_EMAILS = new Set(["rosfe12@gmail.com", "rosfe@naver.com"]);
 
 export function normalizeSchoolEmail(value?: string) {
   return value?.trim().toLowerCase() ?? "";
