@@ -34,6 +34,182 @@ const hasSupabaseEnv = Boolean(
   publicEnv.NEXT_PUBLIC_SUPABASE_URL && publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 );
 
+export type RuntimeSnapshotScope =
+  | "full"
+  | "home"
+  | "community"
+  | "school"
+  | "lectures"
+  | "trade"
+  | "notifications"
+  | "profile"
+  | "messages"
+  | "dating"
+  | "admission"
+  | "admin";
+
+type SnapshotIncludeConfig = {
+  posts: boolean;
+  comments: boolean;
+  lectures: boolean;
+  lectureReviews: boolean;
+  tradePosts: boolean;
+  notifications: boolean;
+  reports: boolean;
+  blocks: boolean;
+  datingProfiles: boolean;
+  mediaAssets: boolean;
+  currentUserProfile: boolean;
+};
+
+function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeConfig {
+  switch (scope) {
+    case "home":
+      return {
+        posts: true,
+        comments: false,
+        lectures: true,
+        lectureReviews: false,
+        tradePosts: true,
+        notifications: false,
+        reports: false,
+        blocks: false,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "community":
+    case "admission":
+      return {
+        posts: true,
+        comments: true,
+        lectures: false,
+        lectureReviews: false,
+        tradePosts: false,
+        notifications: false,
+        reports: true,
+        blocks: true,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "school":
+      return {
+        posts: true,
+        comments: true,
+        lectures: true,
+        lectureReviews: false,
+        tradePosts: true,
+        notifications: false,
+        reports: true,
+        blocks: true,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "lectures":
+      return {
+        posts: false,
+        comments: false,
+        lectures: true,
+        lectureReviews: true,
+        tradePosts: true,
+        notifications: false,
+        reports: false,
+        blocks: false,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "trade":
+      return {
+        posts: false,
+        comments: false,
+        lectures: true,
+        lectureReviews: false,
+        tradePosts: true,
+        notifications: true,
+        reports: true,
+        blocks: true,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "notifications":
+      return {
+        posts: true,
+        comments: false,
+        lectures: true,
+        lectureReviews: false,
+        tradePosts: true,
+        notifications: true,
+        reports: false,
+        blocks: false,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "profile":
+      return {
+        posts: true,
+        comments: true,
+        lectures: false,
+        lectureReviews: true,
+        tradePosts: true,
+        notifications: true,
+        reports: false,
+        blocks: true,
+        datingProfiles: true,
+        mediaAssets: true,
+        currentUserProfile: true,
+      };
+    case "messages":
+      return {
+        posts: true,
+        comments: true,
+        lectures: false,
+        lectureReviews: false,
+        tradePosts: true,
+        notifications: true,
+        reports: false,
+        blocks: false,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "dating":
+      return {
+        posts: true,
+        comments: true,
+        lectures: false,
+        lectureReviews: false,
+        tradePosts: false,
+        notifications: false,
+        reports: true,
+        blocks: true,
+        datingProfiles: true,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "admin":
+    case "full":
+    default:
+      return {
+        posts: true,
+        comments: true,
+        lectures: true,
+        lectureReviews: true,
+        tradePosts: true,
+        notifications: true,
+        reports: true,
+        blocks: true,
+        datingProfiles: true,
+        mediaAssets: true,
+        currentUserProfile: true,
+      };
+  }
+}
+
 function createSupabaseFallbackSnapshot(issue?: string): AppRuntimeSnapshot {
   const snapshot = getMockRuntimeSnapshot();
   return {
@@ -408,7 +584,9 @@ async function ensureProfileRow(supabase: Awaited<ReturnType<typeof createServer
   );
 }
 
-export async function loadServerRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
+export async function loadServerRuntimeSnapshot(
+  scope: RuntimeSnapshotScope = "full",
+): Promise<AppRuntimeSnapshot> {
   noStore();
 
   if (!hasSupabaseEnv) {
@@ -417,38 +595,55 @@ export async function loadServerRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
 
   try {
     const supabase = await createServerSupabaseClient();
+    const include = getSnapshotIncludeConfig(scope);
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
 
-    const schoolsResult = await supabase.from("schools").select("*").order("name", { ascending: true });
+    const [
+      schoolsResult,
+      initialUsersResult,
+      postsResult,
+      commentsResult,
+      lecturesResult,
+      lectureReviewsResult,
+    ] = await Promise.all([
+      supabase.from("schools").select("*").order("name", { ascending: true }),
+      supabase.rpc("list_user_public_profiles"),
+      include.posts
+        ? supabase.from("posts").select("*").order("created_at", { ascending: false })
+        : Promise.resolve(null),
+      include.comments
+        ? supabase.from("comments").select("*").order("created_at", { ascending: false })
+        : Promise.resolve(null),
+      include.lectures
+        ? supabase.from("lectures").select("*").order("name", { ascending: true })
+        : Promise.resolve(null),
+      include.lectureReviews
+        ? supabase.from("lecture_reviews").select("*").order("created_at", { ascending: false })
+        : Promise.resolve(null),
+    ]);
+
     if (schoolsResult.error) {
       return createSupabaseFallbackSnapshot(getSupabaseSetupIssue(schoolsResult.error));
     }
 
-    let usersResult = await supabase.rpc("list_user_public_profiles");
-    const postsResult = await supabase.from("posts").select("*").order("created_at", { ascending: false });
-    const commentsResult = await supabase.from("comments").select("*").order("created_at", { ascending: false });
-    const lecturesResult = await supabase.from("lectures").select("*").order("name", { ascending: true });
-    const lectureReviewsResult = await supabase
-      .from("lecture_reviews")
-      .select("*")
-      .order("created_at", { ascending: false });
+    let usersResult = initialUsersResult;
 
     if (
       usersResult.error ||
-      postsResult.error ||
-      commentsResult.error ||
-      lecturesResult.error ||
-      lectureReviewsResult.error
+      postsResult?.error ||
+      commentsResult?.error ||
+      lecturesResult?.error ||
+      lectureReviewsResult?.error
     ) {
       return createSupabaseFallbackSnapshot(
         getSupabaseSetupIssue(
           usersResult.error,
-          postsResult.error,
-          commentsResult.error,
-          lecturesResult.error,
-          lectureReviewsResult.error,
+          postsResult?.error ?? undefined,
+          commentsResult?.error ?? undefined,
+          lecturesResult?.error ?? undefined,
+          lectureReviewsResult?.error ?? undefined,
         ),
       );
     }
@@ -473,13 +668,27 @@ export async function loadServerRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
 
     const authOnly = authUser
       ? await Promise.all([
-          supabase.from("trade_posts").select("*").order("created_at", { ascending: false }),
-          supabase.from("notifications").select("*").order("created_at", { ascending: false }),
-          supabase.from("reports").select("*").order("created_at", { ascending: false }),
-          supabase.from("blocks").select("*").order("created_at", { ascending: false }),
-          supabase.from("dating_profiles").select("*").order("created_at", { ascending: false }),
-          supabase.from("media_assets").select("*").order("created_at", { ascending: false }),
-          supabase.from("users").select("*").eq("id", authUser.id).single(),
+          include.tradePosts
+            ? supabase.from("trade_posts").select("*").order("created_at", { ascending: false })
+            : Promise.resolve(null),
+          include.notifications
+            ? supabase.from("notifications").select("*").order("created_at", { ascending: false })
+            : Promise.resolve(null),
+          include.reports
+            ? supabase.from("reports").select("*").order("created_at", { ascending: false })
+            : Promise.resolve(null),
+          include.blocks
+            ? supabase.from("blocks").select("*").order("created_at", { ascending: false })
+            : Promise.resolve(null),
+          include.datingProfiles
+            ? supabase.from("dating_profiles").select("*").order("created_at", { ascending: false })
+            : Promise.resolve(null),
+          include.mediaAssets
+            ? supabase.from("media_assets").select("*").order("created_at", { ascending: false })
+            : Promise.resolve(null),
+          include.currentUserProfile
+            ? supabase.from("users").select("*").eq("id", authUser.id).single()
+            : Promise.resolve(null),
         ])
       : [null, null, null, null, null, null, null];
 
@@ -496,10 +705,10 @@ export async function loadServerRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
     const snapshot: AppRuntimeSnapshot = {
       schools,
       users,
-      posts: (postsResult.data ?? []).map((row) => mapPostRow(row as unknown as Record<string, unknown>)),
-      comments: (commentsResult.data ?? []).map((row) => mapCommentRow(row as unknown as Record<string, unknown>)),
-      lectures: (lecturesResult.data ?? []).map((row) => mapLectureRow(row as unknown as Record<string, unknown>)),
-      lectureReviews: (lectureReviewsResult.data ?? []).map((row) =>
+      posts: (postsResult?.data ?? []).map((row) => mapPostRow(row as unknown as Record<string, unknown>)),
+      comments: (commentsResult?.data ?? []).map((row) => mapCommentRow(row as unknown as Record<string, unknown>)),
+      lectures: (lecturesResult?.data ?? []).map((row) => mapLectureRow(row as unknown as Record<string, unknown>)),
+      lectureReviews: (lectureReviewsResult?.data ?? []).map((row) =>
         mapLectureReviewRow(row as unknown as Record<string, unknown>),
       ),
       tradePosts: tradePostsResult?.error
@@ -555,7 +764,11 @@ export async function loadServerRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
         })()
       : guestUser;
 
-    if (snapshot.schools.length === 0 || (snapshot.posts.length === 0 && snapshot.lectures.length === 0)) {
+    const requiresPrimaryContent = include.posts || include.lectures;
+    if (
+      snapshot.schools.length === 0 ||
+      (requiresPrimaryContent && snapshot.posts.length === 0 && snapshot.lectures.length === 0)
+    ) {
       return createSupabaseFallbackSnapshot(getSupabaseSetupIssue());
     }
 

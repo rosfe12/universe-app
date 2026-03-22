@@ -261,7 +261,7 @@ export function CommunityPage({
     isAuthenticated,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "community");
   const currentUser = runtimeUser;
   const [activeFilter, setActiveFilter] = useState<SharedFilter>(
     isSharedFilter(filterParam) ? filterParam : "all",

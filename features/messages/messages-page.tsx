@@ -145,7 +145,7 @@ export function MessagesPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, isAuthenticated, currentUser, source } = useAppRuntime(initialSnapshot);
+  const { loading, isAuthenticated, currentUser, source } = useAppRuntime(initialSnapshot, "messages");
   const notifications = getNotifications(currentUser.id);
   const [chatThreads, setChatThreads] = useState<MessageThreadItem[]>([]);
   const [chatLoading, setChatLoading] = useState(false);

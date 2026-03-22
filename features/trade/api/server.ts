@@ -1,13 +1,13 @@
 import { loadServerRuntimeSnapshot } from "@/lib/supabase/server-data";
 
 export async function getTradePageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("trade");
 }
 
 export async function getSchoolPageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("school");
 }
 
 export async function getNotificationsPageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("notifications");
 }

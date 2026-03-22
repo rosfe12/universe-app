@@ -116,7 +116,7 @@ export function TradePage({
     isAuthenticated,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "trade");
   const currentUser = runtimeUser;
   const schoolId = currentUser.schoolId;
   const [open, setOpen] = useState(false);

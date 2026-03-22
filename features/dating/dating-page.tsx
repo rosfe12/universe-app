@@ -91,7 +91,7 @@ export function DatingPage({
     isAuthenticated,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "dating");
   const currentUser = runtimeUser;
   const [open, setOpen] = useState(false);
   const [detailPost, setDetailPost] = useState<Post | null>(null);

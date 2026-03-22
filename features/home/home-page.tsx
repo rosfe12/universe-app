@@ -33,7 +33,7 @@ export function HomePage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, currentUser: runtimeUser } = useAppRuntime(initialSnapshot);
+  const { loading, currentUser: runtimeUser } = useAppRuntime(initialSnapshot, "home");
   const currentUser = runtimeUser;
   const currentSchool = getCurrentSchool();
   const hasSelectedSchool = Boolean(currentSchool?.id);

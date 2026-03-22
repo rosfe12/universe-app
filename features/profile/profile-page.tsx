@@ -63,7 +63,7 @@ export function ProfilePage({
     isAuthenticated,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "profile");
   const currentUser = runtimeUser;
   const profile = getDatingProfileByUserId(currentUser.id);
   const blockedUsers = getBlocks();

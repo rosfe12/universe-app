@@ -129,7 +129,7 @@ export function SchoolPage({
     source,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "school");
   const currentUser = runtimeUser;
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);

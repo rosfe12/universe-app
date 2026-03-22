@@ -1,33 +1,33 @@
 import { loadServerRuntimeSnapshot } from "@/lib/supabase/server-data";
 
 export async function getHomePageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("home");
 }
 
 export async function getCommunityPageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("community");
 }
 
 export async function getCareerPageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("community");
 }
 
 export async function getAdmissionPageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("admission");
 }
 
 export async function getAdmissionDetailSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("admission");
 }
 
 export async function getDatingPageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("dating");
 }
 
 export async function getProfilePageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("profile");
 }
 
 export async function getAdminPageSnapshot() {
-  return loadServerRuntimeSnapshot();
+  return loadServerRuntimeSnapshot("admin");
 }

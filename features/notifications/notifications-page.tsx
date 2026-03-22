@@ -350,7 +350,7 @@ export function NotificationsPage({
     loading,
     isAuthenticated,
     refresh,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "notifications");
   const [tab, setTab] = useState<NotificationTab>("all");
   const [isPending, startTransition] = useTransition();
   const schoolName = getCurrentSchool()?.name;

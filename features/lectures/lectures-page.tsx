@@ -42,7 +42,7 @@ export function LecturesPage({
     loading,
     currentUser: runtimeUser,
     isAuthenticated,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "lectures");
   const currentUser = runtimeUser;
   const currentSchool = getCurrentSchool();
   const schoolId = currentUser.schoolId;

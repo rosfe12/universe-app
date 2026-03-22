@@ -4,10 +4,17 @@ import { useEffect, useState } from "react";
 
 import { getRuntimeSnapshot, setRuntimeSnapshot } from "@/lib/runtime-state";
 import { createClient } from "@/lib/supabase/client";
-import { isSupabaseEnabled, loadClientRuntimeSnapshot } from "@/lib/supabase/app-data";
+import {
+  isSupabaseEnabled,
+  loadClientRuntimeSnapshot,
+  type RuntimeSnapshotScope,
+} from "@/lib/supabase/app-data";
 import type { AppRuntimeSnapshot } from "@/types";
 
-export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
+export function useAppRuntime(
+  initialSnapshot?: AppRuntimeSnapshot,
+  scope: RuntimeSnapshotScope = "full",
+) {
   const seedSnapshot = initialSnapshot ?? getRuntimeSnapshot();
   const [snapshot, setSnapshot] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
   const [loading, setLoading] = useState(
@@ -34,7 +41,7 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
       if (showLoading) {
         setLoading(true);
       }
-      const nextSnapshot = await loadClientRuntimeSnapshot({ force });
+      const nextSnapshot = await loadClientRuntimeSnapshot({ force, scope });
       if (!active) return;
       setSnapshot(nextSnapshot);
       setLoading(false);
@@ -53,7 +60,6 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
 
     if (initialSnapshot) {
       setLoading(false);
-      void bootstrap(false);
     } else {
       void bootstrap(true);
     }
@@ -69,7 +75,7 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
       active = false;
       subscription.unsubscribe();
     };
-  }, [initialSnapshot]);
+  }, [initialSnapshot, scope]);
 
   return {
     snapshot,
@@ -77,7 +83,7 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
     loading,
     setSnapshot,
     refresh: async () => {
-      const nextSnapshot = await loadClientRuntimeSnapshot({ force: true });
+      const nextSnapshot = await loadClientRuntimeSnapshot({ force: true, scope });
       setSnapshot(nextSnapshot);
       return nextSnapshot;
     },
