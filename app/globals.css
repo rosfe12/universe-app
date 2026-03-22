@@ -110,33 +110,47 @@
   }
 
   html[data-theme="dark"] .bg-gray-50,
+  html[data-theme="dark"] .bg-slate-50,
   html[data-theme="dark"] .bg-secondary,
   html[data-theme="dark"] .bg-secondary\/60 {
     background-color: rgba(30, 41, 59, 0.86) !important;
   }
 
-  html[data-theme="dark"] .bg-gray-100 {
+  html[data-theme="dark"] .bg-gray-100,
+  html[data-theme="dark"] .bg-slate-100 {
     background-color: rgba(51, 65, 85, 0.92) !important;
   }
 
   html[data-theme="dark"] .border-gray-100,
+  html[data-theme="dark"] .border-slate-100,
+  html[data-theme="dark"] .border-slate-200,
   html[data-theme="dark"] .border-border {
     border-color: rgba(148, 163, 184, 0.16) !important;
   }
 
   html[data-theme="dark"] .text-gray-900,
+  html[data-theme="dark"] .text-gray-800,
+  html[data-theme="dark"] .text-gray-700,
   html[data-theme="dark"] .text-foreground,
   html[data-theme="dark"] .text-secondary-foreground,
-  html[data-theme="dark"] .text-card-foreground {
+  html[data-theme="dark"] .text-card-foreground,
+  html[data-theme="dark"] .text-slate-900,
+  html[data-theme="dark"] .text-slate-800,
+  html[data-theme="dark"] .text-slate-700 {
     color: #f8fafc !important;
   }
 
   html[data-theme="dark"] .text-gray-500,
-  html[data-theme="dark"] .text-muted-foreground {
+  html[data-theme="dark"] .text-gray-600,
+  html[data-theme="dark"] .text-muted-foreground,
+  html[data-theme="dark"] .text-slate-600,
+  html[data-theme="dark"] .text-slate-500 {
     color: #94a3b8 !important;
   }
 
-  html[data-theme="dark"] .text-gray-400 {
+  html[data-theme="dark"] .text-gray-400,
+  html[data-theme="dark"] .text-gray-300,
+  html[data-theme="dark"] .text-slate-400 {
     color: #64748b !important;
   }
 
@@ -144,6 +158,11 @@
   html[data-theme="dark"] textarea,
   html[data-theme="dark"] select {
     color: #f8fafc;
+  }
+
+  html[data-theme="dark"] input::placeholder,
+  html[data-theme="dark"] textarea::placeholder {
+    color: #64748b;
   }
 
   html[data-theme="dark"] [class*="bg-emerald-50"] {
@@ -154,12 +173,52 @@
     background-color: rgba(120, 53, 15, 0.2) !important;
   }
 
+  html[data-theme="dark"] [class*="bg-rose-50"] {
+    background-color: rgba(127, 29, 29, 0.22) !important;
+  }
+
+  html[data-theme="dark"] [class*="bg-indigo-50"] {
+    background-color: rgba(49, 46, 129, 0.25) !important;
+  }
+
+  html[data-theme="dark"] [class*="bg-sky-50"] {
+    background-color: rgba(12, 74, 110, 0.25) !important;
+  }
+
+  html[data-theme="dark"] [class*="bg-cyan-50"] {
+    background-color: rgba(22, 78, 99, 0.25) !important;
+  }
+
+  html[data-theme="dark"] [class*="bg-violet-50"] {
+    background-color: rgba(76, 29, 149, 0.22) !important;
+  }
+
   html[data-theme="dark"] [class*="text-emerald-700"] {
     color: #6ee7b7 !important;
   }
 
   html[data-theme="dark"] [class*="text-amber-700"] {
     color: #fbbf24 !important;
+  }
+
+  html[data-theme="dark"] [class*="text-indigo-600"] {
+    color: #a5b4fc !important;
+  }
+
+  html[data-theme="dark"] [class*="text-sky-600"] {
+    color: #7dd3fc !important;
+  }
+
+  html[data-theme="dark"] [class*="text-cyan-700"] {
+    color: #67e8f9 !important;
+  }
+
+  html[data-theme="dark"] [class*="text-violet-700"] {
+    color: #c4b5fd !important;
+  }
+
+  html[data-theme="dark"] [class*="text-rose-600"] {
+    color: #fda4af !important;
   }
 
   html[data-reduce-motion="true"] *,
