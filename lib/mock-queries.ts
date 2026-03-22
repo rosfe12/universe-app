@@ -77,8 +77,8 @@ const popularFirst = <T extends { createdAt: string; likes?: number; commentCoun
 const getState = () => getRuntimeSnapshot();
 
 const ANONYMOUS_GLYPH: Record<User["userType"], string> = {
-  college: "익",
-  highSchool: "입",
+  student: "익",
+  applicant: "입",
   freshman: "새",
 };
 

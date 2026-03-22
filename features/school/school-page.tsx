@@ -133,7 +133,7 @@ export function SchoolPage({
   const schoolId = currentUser.schoolId;
   const schoolName = currentSchool?.name ?? "우리학교";
   const schoolShortName = getSchoolShortName(schoolName);
-  const isApplicantMode = currentUser.userType === "highSchool";
+  const isApplicantMode = currentUser.userType === "applicant";
 
   const lectures = getLectureSummaries()
     .filter((lecture) => !schoolId || lecture.schoolId === schoolId)

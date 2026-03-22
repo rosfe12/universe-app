@@ -4,9 +4,9 @@ import type { UserType } from "@/types";
 
 export function UserBadge({ userType }: { userType: UserType }) {
   const variant =
-    userType === "college"
+    userType === "student"
       ? "default"
-      : userType === "highSchool"
+      : userType === "applicant"
         ? "secondary"
         : "outline";
 

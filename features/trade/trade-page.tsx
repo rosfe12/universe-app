@@ -244,7 +244,7 @@ export function TradePage({
       );
     }
 
-    if (currentUser.userType === "highSchool") {
+    if (currentUser.userType === "applicant") {
       return (
         <AppShell title="수강신청 매칭" subtitle="대학 생활 기능" showTabs>
           <EmptyState

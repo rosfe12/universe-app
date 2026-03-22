@@ -67,7 +67,7 @@ export function HomePage({
 
       <section className="space-y-3">
         <SectionHeader
-          title={currentUser.userType === "highSchool" ? "🎯 지망학교 지금" : "🏫 우리학교 지금"}
+          title={currentUser.userType === "applicant" ? "🎯 지망학교 지금" : "🏫 우리학교 지금"}
           href="/school"
         />
         <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#eef2ff_0%,#ffffff_58%,#f5f3ff_130%)]">
@@ -77,7 +77,7 @@ export function HomePage({
                 메인 피드
               </p>
               <p className="mt-2 text-lg font-bold text-foreground">
-                {currentUser.userType === "highSchool"
+                {currentUser.userType === "applicant"
                   ? `${schoolName} 관련 질문과 새내기 글부터 확인해요`
                   : `${schoolName} 안에서 바로 반응 붙는 글부터 보여줘요`}
               </p>

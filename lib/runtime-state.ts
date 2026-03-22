@@ -19,7 +19,7 @@ export const guestUser = {
   email: "guest@univers.app",
   name: "게스트",
   nickname: "게스트",
-  userType: "college",
+  userType: "student",
   schoolId: schools[0]?.id,
   department: undefined,
   grade: undefined,

@@ -233,7 +233,7 @@ export function DatingPage({
       );
     }
 
-    if (currentUser.userType === "highSchool") {
+    if (currentUser.userType === "applicant") {
       return (
         <AppShell title="미팅 / 연애" subtitle="대학생 중심 익명 관계 피드" showTabs>
           <EmptyState

@@ -22,7 +22,7 @@ export function canWriteLectureReview(user: User) {
 }
 
 export function canAccessSchoolFeatures(user: User) {
-  return isSignedInUser(user) && (user.userType === "college" || user.userType === "freshman");
+  return isSignedInUser(user) && (user.userType === "student" || user.userType === "freshman");
 }
 
 export function canAccessTrade(user: User) {
@@ -34,7 +34,7 @@ export function canAccessDating(user: User) {
 }
 
 export function canWriteCommunity(user: User) {
-  return canParticipate(user) && user.userType === "college";
+  return canParticipate(user) && user.userType === "student";
 }
 
 export function canWriteFreshmanZone(user: User) {
@@ -42,5 +42,5 @@ export function canWriteFreshmanZone(user: User) {
 }
 
 export function canWriteCareer(user: User) {
-  return canParticipate(user) && (user.userType === "college" || user.userType === "freshman");
+  return canParticipate(user) && (user.userType === "student" || user.userType === "freshman");
 }

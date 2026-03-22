@@ -103,7 +103,7 @@ export function CareerPage({
   const detailPost = visiblePosts.find((post) => post.id === detailPostId) ?? allPosts.find((post) => post.id === detailPostId) ?? null;
 
   const canCompose = isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCareer(currentUser);
-  const canComment = isAuthenticated && hasCompletedOnboarding(currentUser) && currentUser.userType !== "highSchool";
+  const canComment = isAuthenticated && hasCompletedOnboarding(currentUser) && currentUser.userType !== "applicant";
 
   const form = useForm<CareerFormValues>({
     resolver: zodResolver(boardSchema),
@@ -221,7 +221,7 @@ export function CareerPage({
         </CardContent>
       </Card>
 
-      {!loading && isAuthenticated && hasCompletedOnboarding(currentUser) && currentUser.userType === "highSchool" ? (
+      {!loading && isAuthenticated && hasCompletedOnboarding(currentUser) && currentUser.userType === "applicant" ? (
         <AccountRequiredCard
           isAuthenticated={isAuthenticated}
           user={currentUser}

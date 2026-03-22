@@ -13,8 +13,8 @@ import type {
 } from "@/types";
 
 export const USER_TYPE_LABELS: Record<UserType, string> = {
-  college: "대학생",
-  highSchool: "입시생",
+  student: "대학생",
+  applicant: "입시생",
   freshman: "예비입학생",
 };
 

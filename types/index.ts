@@ -1,4 +1,4 @@
-export type UserType = "college" | "highSchool" | "freshman";
+export type UserType = "student" | "applicant" | "freshman";
 
 export type CommunitySubcategory =
   | "club"

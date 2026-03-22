@@ -187,7 +187,7 @@ export function isLegendarySenior(score: number) {
 export function getDefaultVisibilityLevel(user?: Pick<User, "userType" | "schoolId"> | null): VisibilityLevel {
   if (!user) return "anonymous";
 
-  if (user.userType === "college") {
+  if (user.userType === "student") {
     return user.schoolId ? "schoolDepartment" : "anonymous";
   }
 
@@ -210,7 +210,7 @@ export function getStudentVerificationStatus(
   if (!user) return "none";
   const email = "email" in user ? user.email : undefined;
   if (isMasterAdminEmail(email)) return "verified";
-  if (user.userType !== "college") return "none";
+  if (user.userType !== "student") return "none";
   if (user.studentVerificationStatus) return user.studentVerificationStatus;
   return user.verified ? "verified" : "unverified";
 }
@@ -228,7 +228,7 @@ export function isVerifiedStudent(
   const email = "email" in user ? user.email : undefined;
   if (isMasterAdminEmail(email)) return true;
   return (
-    user.userType === "college" &&
+    user.userType === "student" &&
     Boolean(user.schoolId) &&
     getStudentVerificationStatus(user) === "verified"
   );

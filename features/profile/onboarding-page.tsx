@@ -37,14 +37,14 @@ import {
 } from "@/lib/user-identity";
 
 const onboardingSchema = z.object({
-  userType: z.enum(["college", "highSchool", "freshman"]),
+  userType: z.enum(["student", "applicant", "freshman"]),
   schoolId: z.string().min(1),
   schoolEmail: z.string().email("학교 메일 형식이 필요합니다.").optional().or(z.literal("")),
   department: z.string().optional(),
   grade: z.string().optional(),
   bio: z.string().optional(),
 }).superRefine((value, ctx) => {
-  if (value.userType === "college" && !value.schoolEmail?.trim()) {
+  if (value.userType === "student" && !value.schoolEmail?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["schoolEmail"],
@@ -91,13 +91,13 @@ export function OnboardingPage() {
   const schoolEmailValue = form.watch("schoolEmail");
   const normalizedSchoolEmailValue = normalizeEmail(schoolEmailValue);
   const canRequestCollegeVerification =
-    selectedUserType === "college" &&
+    selectedUserType === "student" &&
     Boolean(selectedSchool?.id) &&
     hasSchoolEmailDomain(normalizedSchoolEmailValue, selectedSchool?.domain);
   const verificationPreview = getStudentVerificationBadge({
     userType: selectedUserType,
     studentVerificationStatus:
-      selectedUserType !== "college"
+      selectedUserType !== "student"
         ? "none"
         : currentUser.studentVerificationStatus === "verified" &&
             normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmailValue &&
@@ -107,7 +107,7 @@ export function OnboardingPage() {
             ? "pending"
             : "unverified",
     verified:
-      selectedUserType === "college" &&
+      selectedUserType === "student" &&
       currentUser.studentVerificationStatus === "verified" &&
       normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmailValue &&
       currentUser.schoolId === selectedSchool?.id,
@@ -115,7 +115,7 @@ export function OnboardingPage() {
   const currentLoginEmail =
     authEmail || (currentUser.email !== "guest@univers.app" ? currentUser.email : "");
   const typeGuide =
-    selectedUserType === "college"
+    selectedUserType === "student"
       ? {
           icon: GraduationCap,
           title: "대학생 권한",
@@ -195,13 +195,13 @@ export function OnboardingPage() {
     const selectedSchool = schools.find((school) => school.id === values.schoolId) ?? null;
     const normalizedSchoolEmail = normalizeEmail(values.schoolEmail);
     const keepsVerifiedStudentState =
-      values.userType === "college" &&
+      values.userType === "student" &&
       currentUser.studentVerificationStatus === "verified" &&
       currentUser.schoolId === values.schoolId &&
       normalizeEmail(currentUser.schoolEmail) === normalizedSchoolEmail;
 
     if (
-      values.userType === "college" &&
+      values.userType === "student" &&
       !hasSchoolEmailDomain(normalizedSchoolEmail, selectedSchool?.domain)
     ) {
       setPending(false);
@@ -223,14 +223,14 @@ export function OnboardingPage() {
       department: values.department?.trim() || undefined,
       grade: values.grade ? Number(values.grade) : undefined,
       schoolEmail:
-        values.userType === "college" ? normalizedSchoolEmail : undefined,
+        values.userType === "student" ? normalizedSchoolEmail : undefined,
       schoolEmailVerifiedAt: keepsVerifiedStudentState
         ? currentUser.schoolEmailVerifiedAt
         : undefined,
       studentVerificationStatus:
         keepsVerifiedStudentState
           ? "verified"
-          : values.userType === "college"
+          : values.userType === "student"
           ? normalizedSchoolEmail
             ? "pending"
             : "unverified"
@@ -249,7 +249,7 @@ export function OnboardingPage() {
       return;
     }
 
-    if (values.userType === "college" && !keepsVerifiedStudentState) {
+    if (values.userType === "student" && !keepsVerifiedStudentState) {
       const verificationResult = await requestStudentVerificationEmail({
         schoolId: values.schoolId,
         schoolEmail: normalizedSchoolEmail,
@@ -368,9 +368,9 @@ export function OnboardingPage() {
                       <SelectValue placeholder="유저 타입 선택" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="college">대학생</SelectItem>
+                      <SelectItem value="student">대학생</SelectItem>
                       <SelectItem value="freshman">예비입학생</SelectItem>
-                      <SelectItem value="highSchool">입시생</SelectItem>
+                      <SelectItem value="applicant">입시생</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -407,7 +407,7 @@ export function OnboardingPage() {
                 </p>
               ) : null}
             </div>
-            {form.watch("userType") === "college" ? (
+            {form.watch("userType") === "student" ? (
               <div className="space-y-2">
                 <Label>학교 메일</Label>
                 <Input
@@ -465,7 +465,7 @@ export function OnboardingPage() {
                 {...form.register("bio")}
               />
             </div>
-            {form.watch("userType") !== "college" ? (
+            {form.watch("userType") !== "student" ? (
               <Button type="submit" className="w-full">
                 프로필 저장
               </Button>

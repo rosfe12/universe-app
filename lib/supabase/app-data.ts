@@ -41,13 +41,13 @@ import type {
 
 const toUserType = (value?: string | null): UserType => {
   if (value === "freshman") return "freshman";
-  if (value === "high_school" || value === "highschool") return "highSchool";
-  return "college";
+  if (value === "high_school" || value === "highschool") return "applicant";
+  return "student";
 };
 
 const fromUserType = (value: UserType) => {
   if (value === "freshman") return "freshman";
-  if (value === "highSchool") return "highschool";
+  if (value === "applicant") return "highschool";
   return "student";
 };
 
@@ -378,7 +378,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
       authUser.user_metadata.name ??
       authUser.email?.split("@")[0] ??
       "새 사용자",
-    userType: "college",
+    userType: "student",
     nickname: generateAutoNickname({
       id: authUser.id,
       email: authUser.email ?? undefined,
@@ -723,7 +723,7 @@ export async function upsertUserProfile(user: User) {
       verified: user.verified,
       student_verification_status:
         user.studentVerificationStatus ??
-        (user.userType === "college" ? "unverified" : "none"),
+        (user.userType === "student" ? "unverified" : "none"),
       school_email: user.schoolEmail ?? null,
       school_email_verified_at: user.schoolEmailVerifiedAt ?? null,
       trust_score: user.trustScore,
