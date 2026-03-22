@@ -57,6 +57,10 @@ function getDeliveryErrorMessage(error: unknown) {
     return "발신 도메인 인증이 아직 완료되지 않았습니다. Resend에서 universeapp.kr 도메인 인증 상태를 확인해주세요.";
   }
 
+  if (normalized.includes("you can only send testing emails to your own email address")) {
+    return "Resend 테스트 모드에서는 계정 소유 메일로만 발송할 수 있습니다. 다른 주소로 보내려면 universeapp.kr 도메인 인증을 완료해주세요.";
+  }
+
   return message;
 }
 
