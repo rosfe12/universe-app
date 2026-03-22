@@ -21,6 +21,9 @@ const root = process.cwd();
 const careerBoardSeed = JSON.parse(
   fs.readFileSync(path.join(root, "data/career-board-seed.json"), "utf8"),
 );
+const anonymousBoardSeed = JSON.parse(
+  fs.readFileSync(path.join(root, "data/anonymous-board-seed.json"), "utf8"),
+);
 const files =
   mode === "schema"
     ? ["supabase/schema.sql"]
@@ -55,6 +58,7 @@ const shiftIsoMinutes = (value, minutes) => new Date(new Date(value).getTime() +
 
 const uniqTags = (...groups) => Array.from(new Set(groups.flat().filter(Boolean)));
 const CURATED_CAREER_SEED_SOURCE = "career_curated_v1";
+const CURATED_ANONYMOUS_BOARD_SEED_SOURCE = "anonymous_curated_v1";
 const LEGACY_CAREER_SEED_POST_IDS = [
   "41111111-1111-4111-8111-111111111129",
   "41111111-1111-4111-8111-111111111130",
@@ -1041,6 +1045,218 @@ const buildCuratedCareerRows = (studentUsers) => {
   return { posts, comments, postIds: posts.map((post) => post.id) };
 };
 
+const buildCuratedAnonymousRows = (studentUsers) => {
+  const posts = [];
+  const comments = [];
+  const postMap = new Map();
+  const baseCreatedAt = new Date(Date.UTC(2026, 2, 20, 0, 0, 0)).toISOString();
+
+  for (const [index, seed] of anonymousBoardSeed.posts.entries()) {
+    const author = studentUsers[index % studentUsers.length];
+    const postId = makeDeterministicUuid(`anonymous-curated-post-${seed.id}`);
+    const createdAt = shiftIsoMinutes(baseCreatedAt, index * 41);
+
+    postMap.set(seed.id, {
+      id: postId,
+      createdAt,
+    });
+
+    posts.push({
+      id: postId,
+      author_id: author.id,
+      category: "community",
+      subcategory: "anonymous",
+      title: seed.title,
+      content: seed.content,
+      school_id: author.school_id,
+      scope: "global",
+      like_count: seed.likes,
+      comment_count: 0,
+      visibility_level: "anonymous",
+      metadata: {
+        tags: seed.tags,
+        seedSource: CURATED_ANONYMOUS_BOARD_SEED_SOURCE,
+      },
+      created_at: createdAt,
+    });
+  }
+
+  for (const [index, seed] of anonymousBoardSeed.comments.entries()) {
+    const post = postMap.get(seed.postId);
+    if (!post) continue;
+
+    const author = studentUsers[(index + 4) % studentUsers.length];
+    comments.push({
+      id: makeDeterministicUuid(`anonymous-curated-comment-${seed.postId}-${index}`),
+      post_id: post.id,
+      author_id: author.id,
+      content: seed.content,
+      accepted: false,
+      visibility_level: "anonymous",
+      created_at: shiftIsoMinutes(post.createdAt, 23 + index * 6),
+    });
+  }
+
+  return { posts, comments, postIds: posts.map((post) => post.id) };
+};
+
+const syncCuratedAnonymousBoardContent = async (client) => {
+  const { rows: studentUsers } = await client.query(`
+    select id::text, school_id::text
+    from public.users
+    where user_type = 'student'
+      and school_id is not null
+    order by created_at asc nulls last, id asc
+  `);
+
+  if (studentUsers.length === 0) {
+    return;
+  }
+
+  const { posts, comments, postIds } = buildCuratedAnonymousRows(studentUsers);
+
+  await client.query(
+    `
+      delete from public.comments
+      where post_id in (
+        select id
+        from public.posts
+        where metadata ->> 'seedSource' = $1
+          and not (id = any($2::uuid[]))
+      )
+    `,
+    [CURATED_ANONYMOUS_BOARD_SEED_SOURCE, postIds],
+  );
+
+  await client.query(
+    `
+      delete from public.posts
+      where metadata ->> 'seedSource' = $1
+        and not (id = any($2::uuid[]))
+    `,
+    [CURATED_ANONYMOUS_BOARD_SEED_SOURCE, postIds],
+  );
+
+  for (const post of posts) {
+    await client.query(
+      `
+        insert into public.posts (
+          id,
+          author_id,
+          category,
+          subcategory,
+          title,
+          content,
+          school_id,
+          scope,
+          like_count,
+          comment_count,
+          visibility_level,
+          metadata,
+          created_at
+        ) values (
+          $1::uuid,
+          $2::uuid,
+          $3::public.post_category,
+          $4::public.post_subcategory,
+          $5,
+          $6,
+          $7::uuid,
+          $8::public.content_scope,
+          $9,
+          $10,
+          $11::public.visibility_level,
+          $12::jsonb,
+          $13::timestamptz
+        )
+        on conflict (id) do update
+        set
+          author_id = excluded.author_id,
+          category = excluded.category,
+          subcategory = excluded.subcategory,
+          title = excluded.title,
+          content = excluded.content,
+          school_id = excluded.school_id,
+          scope = excluded.scope,
+          like_count = excluded.like_count,
+          comment_count = excluded.comment_count,
+          visibility_level = excluded.visibility_level,
+          metadata = excluded.metadata,
+          created_at = excluded.created_at
+      `,
+      [
+        post.id,
+        post.author_id,
+        post.category,
+        post.subcategory,
+        post.title,
+        post.content,
+        post.school_id,
+        post.scope,
+        post.like_count,
+        post.comment_count,
+        post.visibility_level,
+        JSON.stringify(post.metadata),
+        post.created_at,
+      ],
+    );
+  }
+
+  for (const comment of comments) {
+    await client.query(
+      `
+        insert into public.comments (
+          id,
+          post_id,
+          author_id,
+          content,
+          accepted,
+          visibility_level,
+          created_at
+        ) values (
+          $1::uuid,
+          $2::uuid,
+          $3::uuid,
+          $4,
+          $5,
+          $6::public.visibility_level,
+          $7::timestamptz
+        )
+        on conflict (id) do update
+        set
+          post_id = excluded.post_id,
+          author_id = excluded.author_id,
+          content = excluded.content,
+          accepted = excluded.accepted,
+          visibility_level = excluded.visibility_level,
+          created_at = excluded.created_at
+      `,
+      [
+        comment.id,
+        comment.post_id,
+        comment.author_id,
+        comment.content,
+        comment.accepted,
+        comment.visibility_level,
+        comment.created_at,
+      ],
+    );
+  }
+
+  await client.query(
+    `
+      update public.posts p
+      set comment_count = coalesce((
+        select count(*)::int
+        from public.comments c
+        where c.post_id = p.id
+      ), 0)
+      where p.id = any($1::uuid[])
+    `,
+    [postIds],
+  );
+};
+
 const upsertGeneratedReferenceContent = async (client) => {
   const { rows } = await client.query(`
     select
@@ -1787,6 +2003,7 @@ try {
           end if;
           if exists (select 1 from pg_type where typname = 'post_subcategory') then
             alter type public.post_subcategory add value if not exists 'freshman';
+            alter type public.post_subcategory add value if not exists 'anonymous';
           end if;
         end
         $$;
@@ -1799,6 +2016,7 @@ try {
     await upsertGeneratedReferenceContent(client);
     await upsertSchoolCoverageContent(client);
     await syncCuratedCareerBoardContent(client);
+    await syncCuratedAnonymousBoardContent(client);
     await upsertSchoolLectureContent(client);
     await upsertSchoolTradeContent(client);
     await client.query(`

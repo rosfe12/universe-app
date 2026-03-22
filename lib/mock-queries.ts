@@ -323,7 +323,13 @@ export function getLatestCommentPreview(postId: string) {
 }
 
 export function getCommunityPosts(subcategory?: CommunitySubcategory) {
-  const sharedCommunityBoards: CommunitySubcategory[] = ["free", "advice", "ask", "hot"];
+  const sharedCommunityBoards: CommunitySubcategory[] = [
+    "free",
+    "advice",
+    "ask",
+    "anonymous",
+    "hot",
+  ];
   return popularFirst(
     getState().posts.filter(
       (post) =>
@@ -349,6 +355,7 @@ export function getCareerPosts(kind?: CareerBoardKind) {
 export function getCommunityFilterForPost(post: Pick<Post, "category" | "subcategory" | "tags">) {
   const careerBoard = getCareerBoardKind(post);
   if (careerBoard) return "career" as const;
+  if (post.subcategory === "anonymous") return "anonymous" as const;
   if (post.subcategory === "free") return "free" as const;
   if (post.subcategory === "ask") return "ask" as const;
   if (post.subcategory === "hot") return "hot" as const;

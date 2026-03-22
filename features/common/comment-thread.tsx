@@ -31,8 +31,18 @@ import {
 } from "@/lib/runtime-mutations";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel, isLegendarySenior, isReliabilityRestricted } from "@/lib/user-identity";
-import { getCommentsByPostId, getPublicIdentitySummary, isRepeatedlyReportedUser } from "@/lib/mock-queries";
+import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
+import {
+  getStandardVisibilityLevel,
+  isLegendarySenior,
+  isReliabilityRestricted,
+} from "@/lib/user-identity";
+import {
+  getCommentsByPostId,
+  getPostById,
+  getPublicIdentitySummary,
+  isRepeatedlyReportedUser,
+} from "@/lib/mock-queries";
 import { formatRelativeLabel } from "@/lib/utils";
 import type { VisibilityLevel } from "@/types";
 
@@ -74,6 +84,9 @@ export function CommentThread({
     () => getCommentsByPostId(postId),
     [blocks, comments, postId, reports],
   );
+  const targetPost = useMemo(() => getPostById(postId), [postId, comments, reports, blocks]);
+  const isAnonymousBoard =
+    targetPost?.category === "community" && targetPost.subcategory === "anonymous";
   const sortedComments = useMemo(
     () =>
       [...threadComments].sort((a, b) => {
@@ -101,8 +114,9 @@ export function CommentThread({
     resolver: zodResolver(commentSchema),
     defaultValues: {
       content: "",
-      visibilityLevel:
-        runtimeUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(runtimeUser),
+      visibilityLevel: isAnonymousBoard
+        ? "anonymous"
+        : getStandardVisibilityLevel(runtimeUser.defaultVisibilityLevel, runtimeUser),
     },
   });
 
@@ -124,7 +138,9 @@ export function CommentThread({
       id: `comment-local-${threadComments.length + 1}`,
       postId,
       authorId: currentUser.id,
-      visibilityLevel: values.visibilityLevel as VisibilityLevel,
+      visibilityLevel: isAnonymousBoard
+        ? "anonymous"
+        : (values.visibilityLevel as VisibilityLevel),
       content: values.content,
       accepted: false,
       createdAt,
@@ -137,7 +153,7 @@ export function CommentThread({
             await createComment({
               postId,
               content: values.content,
-              visibilityLevel: values.visibilityLevel,
+              visibilityLevel: isAnonymousBoard ? "anonymous" : values.visibilityLevel,
             });
             await refresh();
             form.reset();
@@ -309,14 +325,21 @@ export function CommentThread({
             <p className="text-xs text-rose-500">{form.formState.errors.root.message}</p>
           ) : null}
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <VisibilityLevelSelect
-                value={form.watch("visibilityLevel")}
-                onChange={(value) =>
-                  form.setValue("visibilityLevel", value, { shouldValidate: true })
-                }
-              />
-            </div>
+            {isAnonymousBoard ? (
+              <div className="min-w-0 flex-1 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                익명 게시판에서는 댓글도 자동으로 익명 처리됩니다.
+              </div>
+            ) : (
+              <div className="min-w-0 flex-1">
+                <VisibilityLevelSelect
+                  value={form.watch("visibilityLevel")}
+                  levels={STANDARD_VISIBILITY_LEVELS}
+                  onChange={(value) =>
+                    form.setValue("visibilityLevel", value, { shouldValidate: true })
+                  }
+                />
+              </div>
+            )}
             <Button type="submit" size="sm" disabled={isSubmitting || !form.watch("content").trim()}>
               {isSubmitting ? "등록 중" : allowAccept ? "답변 등록" : "댓글 작성"}
             </Button>

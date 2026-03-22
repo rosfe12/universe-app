@@ -34,7 +34,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CommentThread } from "@/features/common/comment-thread";
 import { FeedPostCard } from "@/features/common/feed-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { CAREER_BOARD_LABELS } from "@/lib/constants";
+import { CAREER_BOARD_LABELS, STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
 import { canWriteCareer } from "@/lib/permissions";
 import { addBlockToSnapshot, addPostToSnapshot, addReportToSnapshot } from "@/lib/runtime-mutations";
@@ -51,14 +51,14 @@ import {
   getAuthFlowHref,
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel } from "@/lib/user-identity";
+import { getStandardVisibilityLevel } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot, Post, VisibilityLevel } from "@/types";
 
 const boardSchema = z.object({
   board: z.enum(["careerInfo", "jobPosting"]),
   title: z.string().trim().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().trim().min(10, "본문을 10자 이상 입력해주세요."),
-  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+  visibilityLevel: z.enum(["school", "schoolDepartment"]),
 });
 
 type CareerBoardFilter = "all" | CareerBoardKind;
@@ -113,7 +113,10 @@ export function CareerPage({
       board: activeBoard === "all" ? "careerInfo" : activeBoard,
       title: "",
       content: "",
-      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+      visibilityLevel: getStandardVisibilityLevel(
+        currentUser.defaultVisibilityLevel,
+        currentUser,
+      ),
     },
   });
 
@@ -379,12 +382,15 @@ export function CareerPage({
 
             <div className="space-y-2">
               <Label>공개 범위</Label>
-              <VisibilityLevelSelect
-                value={form.watch("visibilityLevel")}
-                onChange={(value) =>
-                  form.setValue("visibilityLevel", value, { shouldValidate: true })
-                }
-              />
+                <VisibilityLevelSelect
+                  value={form.watch("visibilityLevel")}
+                  levels={STANDARD_VISIBILITY_LEVELS}
+                  onChange={(value) =>
+                    form.setValue("visibilityLevel", value as "school" | "schoolDepartment", {
+                      shouldValidate: true,
+                    })
+                  }
+                />
             </div>
 
             {form.formState.errors.root?.message ? (

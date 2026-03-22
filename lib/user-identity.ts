@@ -189,17 +189,44 @@ export function isLegendarySenior(score: number) {
 }
 
 export function getDefaultVisibilityLevel(user?: Pick<User, "userType" | "schoolId"> | null): VisibilityLevel {
-  if (!user) return "anonymous";
+  if (!user) return "school";
 
   if (user.userType === "student") {
-    return user.schoolId ? "schoolDepartment" : "anonymous";
+    return user.schoolId ? "schoolDepartment" : "school";
   }
 
   if (user.userType === "freshman") {
-    return user.schoolId ? "school" : "anonymous";
+    return "school";
   }
 
-  return user.schoolId ? "school" : "anonymous";
+  return "school";
+}
+
+export function getStandardVisibilityLevel(
+  value: VisibilityLevel | undefined,
+  user?: Pick<User, "userType" | "schoolId"> | null,
+): Extract<VisibilityLevel, "school" | "schoolDepartment"> {
+  if (value === "schoolDepartment") {
+    return "schoolDepartment";
+  }
+
+  if (value === "school") {
+    return "school";
+  }
+
+  const fallback = getDefaultVisibilityLevel(user);
+  return fallback === "schoolDepartment" ? "schoolDepartment" : "school";
+}
+
+export function getProfileVisibilityLevel(
+  value: VisibilityLevel | undefined,
+  user?: Pick<User, "userType" | "schoolId"> | null,
+): Extract<VisibilityLevel, "school" | "schoolDepartment" | "profile"> {
+  if (value === "profile") {
+    return "profile";
+  }
+
+  return getStandardVisibilityLevel(value, user);
 }
 
 export function getStudentVerificationStatus(

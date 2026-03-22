@@ -35,6 +35,7 @@ import { createDatingPost } from "@/app/actions/content-actions";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { PROFILE_VISIBILITY_LEVELS } from "@/lib/constants";
 import {
   validateDatingWriteAccess,
   validatePostSubmission,
@@ -616,6 +617,7 @@ export function DatingPage({
               <Label>공개 범위</Label>
               <VisibilityLevelSelect
                 value={form.watch("visibilityLevel")}
+                levels={PROFILE_VISIBILITY_LEVELS}
                 onChange={(value) =>
                   form.setValue("visibilityLevel", value, { shouldValidate: true })
                 }

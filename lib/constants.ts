@@ -86,6 +86,7 @@ export const COMMUNITY_CATEGORY_LABELS = {
   advice: "고민",
   ask: "무물",
   hot: "핫갤",
+  anonymous: "익명",
   freshman: "새내기존",
   school: "학교 게시판",
   dating: "연애",
@@ -110,6 +111,17 @@ export const VISIBILITY_LEVEL_DESCRIPTIONS: Record<VisibilityLevel, string> = {
   schoolDepartment: "학교, 학과, 학년까지 공개",
   profile: "미팅 전용 프로필 카드 정보 공개",
 };
+
+export const STANDARD_VISIBILITY_LEVELS = [
+  "school",
+  "schoolDepartment",
+] as const satisfies readonly VisibilityLevel[];
+
+export const PROFILE_VISIBILITY_LEVELS = [
+  "school",
+  "schoolDepartment",
+  "profile",
+] as const satisfies readonly VisibilityLevel[];
 
 export const MAIN_TABS = [
   { href: "/home", label: "홈" },

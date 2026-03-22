@@ -15,6 +15,7 @@ import { getSupabaseSetupIssue } from "@/lib/supabase/setup-issue";
 import {
   generateAutoNickname,
   getDefaultVisibilityLevel,
+  getStandardVisibilityLevel,
 } from "@/lib/user-identity";
 import { getPostViewCount } from "@/lib/utils";
 import type {
@@ -282,6 +283,7 @@ const COMMUNITY_POST_SUBCATEGORIES = [
   "free",
   "advice",
   "ask",
+  "anonymous",
   "hot",
   "careerInfo",
   "jobPosting",
@@ -500,11 +502,16 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,
     isRestricted: Boolean(row.is_restricted),
     defaultVisibilityLevel:
-      toVisibilityLevel(row.default_visibility_level as string | null | undefined) ??
-      getDefaultVisibilityLevel({
-        userType: toUserType(row.user_type as string | null | undefined),
-        schoolId: row.school_id ? String(row.school_id) : undefined,
-      }),
+      (() => {
+        const fallback = getDefaultVisibilityLevel({
+          userType: toUserType(row.user_type as string | null | undefined),
+          schoolId: row.school_id ? String(row.school_id) : undefined,
+        });
+        const current = toVisibilityLevel(
+          row.default_visibility_level as string | null | undefined,
+        );
+        return current && current !== "anonymous" ? current : fallback;
+      })(),
     createdAt: String(row.created_at ?? new Date().toISOString()),
     bio: row.bio ? String(row.bio) : undefined,
     avatarUrl: row.avatar_url ? String(row.avatar_url) : undefined,
@@ -756,7 +763,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
     reportCount: 0,
     warningCount: 0,
     isRestricted: false,
-    defaultVisibilityLevel: "anonymous",
+    defaultVisibilityLevel: "school",
     createdAt: new Date().toISOString(),
     bio: undefined,
   };
@@ -1184,7 +1191,10 @@ export async function upsertUserProfile(user: User) {
       warning_count: user.warningCount ?? 0,
       is_restricted: user.isRestricted ?? false,
       default_visibility_level:
-        user.defaultVisibilityLevel ?? getDefaultVisibilityLevel(user),
+        getStandardVisibilityLevel(
+          user.defaultVisibilityLevel ?? getDefaultVisibilityLevel(user),
+          user,
+        ),
       bio: user.bio ?? null,
       avatar_url: user.avatarUrl ?? null,
     },
@@ -1210,7 +1220,8 @@ export async function createPostRecord(input: {
     input.subcategory === "hot" ||
     input.subcategory === "free" ||
     input.subcategory === "advice" ||
-    input.subcategory === "ask"
+    input.subcategory === "ask" ||
+    input.subcategory === "anonymous"
       ? "global"
       : "school";
   return supabase
@@ -1221,7 +1232,10 @@ export async function createPostRecord(input: {
       category: input.category,
       subcategory: input.subcategory ?? null,
       scope,
-      visibility_level: input.visibilityLevel ?? "anonymous",
+      visibility_level:
+        input.subcategory === "anonymous"
+          ? "anonymous"
+          : (input.visibilityLevel ?? "school"),
       title: input.title,
       content: input.content,
       like_count: 0,
@@ -1248,7 +1262,7 @@ export async function createCommentRecord(input: {
     .insert({
       post_id: input.postId,
       author_id: input.authorId,
-      visibility_level: input.visibilityLevel ?? "anonymous",
+      visibility_level: input.visibilityLevel ?? "school",
       content: input.content,
       accepted: false,
     })
@@ -1275,7 +1289,7 @@ export async function createLectureReviewRecord(
     .insert({
       lecture_id: input.lectureId,
       author_id: input.reviewerId,
-      visibility_level: input.visibilityLevel ?? "anonymous",
+      visibility_level: input.visibilityLevel ?? "school",
       difficulty: input.difficulty,
       workload: input.workload,
       attendance: input.attendance,

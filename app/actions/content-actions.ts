@@ -6,7 +6,7 @@ import { z } from "zod";
 import { findBlockedKeyword } from "@/lib/moderation";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { isReliabilityRestricted } from "@/lib/user-identity";
+import { getDefaultVisibilityLevel, isReliabilityRestricted } from "@/lib/user-identity";
 
 const visibilitySchema = z.enum([
   "anonymous",
@@ -34,6 +34,7 @@ const postSchema = z.object({
       "food",
       "advice",
       "ask",
+      "anonymous",
       "school",
       "hot",
       "freshman",
@@ -253,6 +254,7 @@ function inferScope(input: {
     input.subcategory === "free" ||
     input.subcategory === "advice" ||
     input.subcategory === "ask" ||
+    input.subcategory === "anonymous" ||
     input.subcategory === "hot" ||
     ("tags" in input &&
       Array.isArray(input.tags) &&
@@ -285,6 +287,7 @@ function getCommunityFilterFromPost(post: {
     return "career";
   }
 
+  if (post.subcategory === "anonymous") return "anonymous";
   if (post.subcategory === "hot") return "hot";
   if (post.subcategory === "free") return "free";
   if (post.subcategory === "ask") return "ask";
@@ -650,6 +653,19 @@ export async function createPost(input: z.input<typeof postSchema>) {
   await guardPostSubmission(supabase, authUser.id, values);
   const schoolId = values.schoolId ?? profile.school_id ?? null;
   const scope = inferScope(values);
+  const defaultVisibility =
+    profile.default_visibility_level === "anonymous"
+      ? getDefaultVisibilityLevel({
+          userType: profile.user_type,
+          schoolId: profile.school_id ?? undefined,
+        })
+      : profile.default_visibility_level;
+  const resolvedVisibilityLevel =
+    values.subcategory === "anonymous"
+      ? "anonymous"
+      : values.visibilityLevel === "anonymous"
+        ? defaultVisibility
+        : (values.visibilityLevel ?? defaultVisibility);
 
   const { data, error } = await supabase
     .from("posts")
@@ -661,7 +677,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
       content: values.content,
       school_id: schoolId,
       scope,
-      visibility_level: values.visibilityLevel ?? profile.default_visibility_level,
+      visibility_level: resolvedVisibilityLevel,
       image_url: values.imageUrl ?? null,
       metadata: {
         ...(values.meta ?? {}),
@@ -721,6 +737,19 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   }
 
   await guardCommentSubmission(supabase, authUser.id, values);
+  const defaultVisibility =
+    profile.default_visibility_level === "anonymous"
+      ? getDefaultVisibilityLevel({
+          userType: profile.user_type,
+          schoolId: profile.school_id ?? undefined,
+        })
+      : profile.default_visibility_level;
+  const resolvedVisibilityLevel =
+    post.category === "community" && post.subcategory === "anonymous"
+      ? "anonymous"
+      : values.visibilityLevel === "anonymous"
+        ? defaultVisibility
+        : (values.visibilityLevel ?? defaultVisibility);
 
   const { data, error } = await supabase
     .from("comments")
@@ -728,7 +757,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
       post_id: values.postId,
       author_id: authUser.id,
       content: values.content,
-      visibility_level: values.visibilityLevel ?? profile.default_visibility_level,
+      visibility_level: resolvedVisibilityLevel,
     })
     .select("*")
     .single();

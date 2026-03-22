@@ -13,7 +13,7 @@ begin
     create type public.post_category as enum ('admission', 'community', 'dating');
   end if;
   if not exists (select 1 from pg_type where typname = 'post_subcategory') then
-    create type public.post_subcategory as enum ('club', 'meetup', 'food', 'advice', 'hot', 'freshman', 'dating', 'meeting');
+    create type public.post_subcategory as enum ('club', 'meetup', 'food', 'advice', 'hot', 'freshman', 'dating', 'meeting', 'anonymous');
   end if;
   if not exists (select 1 from pg_type where typname = 'visibility_level') then
     create type public.visibility_level as enum ('anonymous', 'school', 'schoolDepartment', 'profile');
@@ -169,7 +169,7 @@ create table if not exists public.users (
   student_verification_status public.student_verification_status not null default 'unverified',
   school_email citext,
   school_email_verified_at timestamptz,
-  default_visibility_level public.visibility_level not null default 'anonymous',
+  default_visibility_level public.visibility_level not null default 'school',
   bio text,
   avatar_url text,
   updated_at timestamptz not null default timezone('utc', now()),
@@ -269,7 +269,7 @@ create table if not exists public.posts (
   report_count integer not null default 0,
   auto_hidden boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
-  visibility_level public.visibility_level not null default 'anonymous',
+  visibility_level public.visibility_level not null default 'school',
   image_url text,
   metadata jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default timezone('utc', now()),
@@ -290,7 +290,7 @@ create table if not exists public.comments (
   auto_hidden boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   accepted boolean not null default false,
-  visibility_level public.visibility_level not null default 'anonymous',
+  visibility_level public.visibility_level not null default 'school',
   constraint comments_content_check check (length(trim(content)) > 0)
 );
 
@@ -326,7 +326,7 @@ create table if not exists public.lecture_reviews (
   created_at timestamptz not null default timezone('utc', now()),
   presentation boolean not null default false,
   helpful_count integer not null default 0,
-  visibility_level public.visibility_level not null default 'anonymous',
+  visibility_level public.visibility_level not null default 'school',
   constraint lecture_reviews_short_comment_check check (length(trim(short_comment)) >= 5),
   constraint lecture_reviews_long_comment_check check (length(trim(long_comment)) >= 20),
   constraint lecture_reviews_honey_score_check check (honey_score between 0 and 100),
@@ -442,6 +442,42 @@ end $$;
 alter type public.post_subcategory add value if not exists 'free';
 alter type public.post_subcategory add value if not exists 'ask';
 alter type public.post_subcategory add value if not exists 'school';
+alter type public.post_subcategory add value if not exists 'anonymous';
+
+alter table public.users alter column default_visibility_level set default 'school';
+alter table public.posts alter column visibility_level set default 'school';
+alter table public.comments alter column visibility_level set default 'school';
+alter table public.lecture_reviews alter column visibility_level set default 'school';
+
+update public.users
+set default_visibility_level = case
+  when user_type = 'student' and school_id is not null then 'schoolDepartment'::public.visibility_level
+  when school_id is not null then 'school'::public.visibility_level
+  else 'school'::public.visibility_level
+end
+where default_visibility_level = 'anonymous'::public.visibility_level;
+
+update public.posts
+set visibility_level = 'school'::public.visibility_level
+where visibility_level = 'anonymous'::public.visibility_level
+  and not (
+    category = 'community'
+    and subcategory = 'anonymous'::public.post_subcategory
+  );
+
+update public.comments c
+set visibility_level = 'school'::public.visibility_level
+from public.posts p
+where c.post_id = p.id
+  and c.visibility_level = 'anonymous'::public.visibility_level
+  and not (
+    p.category = 'community'
+    and p.subcategory = 'anonymous'::public.post_subcategory
+  );
+
+update public.lecture_reviews
+set visibility_level = 'school'::public.visibility_level
+where visibility_level = 'anonymous'::public.visibility_level;
 
 create table if not exists public.media_assets (
   id uuid primary key default gen_random_uuid(),
@@ -512,12 +548,13 @@ begin
     new.nickname := public.generate_user_nickname(new.id, new.school_id);
   end if;
 
-  if new.default_visibility_level is null then
+  if new.default_visibility_level is null
+    or new.default_visibility_level = 'anonymous'::public.visibility_level then
     new.default_visibility_level := case
       when new.user_type = 'student' and new.school_id is not null then 'schoolDepartment'::public.visibility_level
       when new.user_type = 'freshman' and new.school_id is not null then 'school'::public.visibility_level
       when new.user_type = 'applicant' and new.school_id is not null then 'school'::public.visibility_level
-      else 'anonymous'::public.visibility_level
+      else 'school'::public.visibility_level
     end;
   end if;
 

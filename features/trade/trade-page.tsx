@@ -46,7 +46,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createTradeMessage, createTradePost } from "@/app/actions/content-actions";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { TRADE_STATUS_LABELS } from "@/lib/constants";
+import { STANDARD_VISIBILITY_LEVELS, TRADE_STATUS_LABELS } from "@/lib/constants";
 import { validateTradeSubmission } from "@/lib/moderation";
 import {
   addBlockToSnapshot,
@@ -74,7 +74,7 @@ import {
   getAuthFlowHref,
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel } from "@/lib/user-identity";
+import { getStandardVisibilityLevel } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot } from "@/types";
 
 const tradeSchema = z.object({
@@ -87,7 +87,7 @@ const tradeSchema = z.object({
   timeRange: z.string().optional(),
   note: z.string().min(2),
   status: z.enum(["open", "matching", "closed"]),
-  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+  visibilityLevel: z.enum(["school", "schoolDepartment"]),
 });
 
 type TradeFormValues = z.infer<typeof tradeSchema>;
@@ -152,7 +152,10 @@ export function TradePage({
       timeRange: "",
       note: "공강 맞는 분이면 바로 확인할게요.",
       status: "open",
-      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+      visibilityLevel: getStandardVisibilityLevel(
+        currentUser.defaultVisibilityLevel,
+        currentUser,
+      ),
     },
   });
 
@@ -663,12 +666,15 @@ export function TradePage({
             </div>
             <div className="space-y-2">
               <Label>공개 범위</Label>
-              <VisibilityLevelSelect
-                value={form.watch("visibilityLevel")}
-                onChange={(value) =>
-                  form.setValue("visibilityLevel", value, { shouldValidate: true })
-                }
-              />
+                <VisibilityLevelSelect
+                  value={form.watch("visibilityLevel")}
+                  levels={STANDARD_VISIBILITY_LEVELS}
+                  onChange={(value) =>
+                    form.setValue("visibilityLevel", value as "school" | "schoolDepartment", {
+                      shouldValidate: true,
+                    })
+                  }
+                />
             </div>
             <div className="space-y-2">
               <Label>상태</Label>

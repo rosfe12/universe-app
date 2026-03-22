@@ -39,6 +39,7 @@ import { createPost } from "@/app/actions/content-actions";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { injectInlineAdSlots } from "@/lib/ads";
+import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import {
@@ -59,7 +60,7 @@ import {
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
 import { canWriteAdmissionQuestion } from "@/lib/permissions";
-import { getDefaultVisibilityLevel } from "@/lib/user-identity";
+import { getStandardVisibilityLevel } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot, VisibilityLevel } from "@/types";
 
 const admissionSchema = z.object({
@@ -70,7 +71,7 @@ const admissionSchema = z.object({
   interestUniversity: z.string().min(2, "관심 대학을 입력해주세요."),
   interestDepartment: z.string().min(2, "관심 학과를 입력해주세요."),
   content: z.string().min(10, "질문 내용을 10자 이상 입력해주세요."),
-  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+  visibilityLevel: z.enum(["school", "schoolDepartment"]),
 });
 
 type AdmissionFormValues = z.infer<typeof admissionSchema>;
@@ -111,7 +112,10 @@ export function AdmissionPage({
       interestUniversity: "",
       interestDepartment: "",
       content: "",
-      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+      visibilityLevel: getStandardVisibilityLevel(
+        currentUser.defaultVisibilityLevel,
+        currentUser,
+      ),
     },
   });
 
@@ -432,12 +436,15 @@ export function AdmissionPage({
             </div>
             <div className="space-y-2">
               <Label>공개 범위</Label>
-              <VisibilityLevelSelect
-                value={form.watch("visibilityLevel")}
-                onChange={(value) =>
-                  form.setValue("visibilityLevel", value, { shouldValidate: true })
-                }
-              />
+                <VisibilityLevelSelect
+                  value={form.watch("visibilityLevel")}
+                  levels={STANDARD_VISIBILITY_LEVELS}
+                  onChange={(value) =>
+                    form.setValue("visibilityLevel", value as "school" | "schoolDepartment", {
+                      shouldValidate: true,
+                    })
+                  }
+                />
             </div>
             {form.formState.errors.root?.message ? (
               <p className="text-sm text-rose-600">{form.formState.errors.root.message}</p>

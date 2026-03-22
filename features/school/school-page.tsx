@@ -47,6 +47,7 @@ import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
 import {
   canWriteAdmissionQuestion,
@@ -65,14 +66,17 @@ import {
 } from "@/lib/mock-queries";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { getAuthFlowHref, hasCompletedOnboarding } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel, getSchoolShortName } from "@/lib/user-identity";
+import {
+  getSchoolShortName,
+  getStandardVisibilityLevel,
+} from "@/lib/user-identity";
 import { getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, VisibilityLevel } from "@/types";
 
 const freshmanZoneSchema = z.object({
   title: z.string().trim().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().trim().min(10, "본문을 10자 이상 입력해주세요."),
-  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+  visibilityLevel: z.enum(["school", "schoolDepartment"]),
 });
 
 const schoolAdmissionSchema = z.object({
@@ -82,13 +86,13 @@ const schoolAdmissionSchema = z.object({
   scoreType: z.string().trim().min(2, "성적 정보를 입력해주세요."),
   interestDepartment: z.string().trim().min(2, "관심 학과를 입력해주세요."),
   content: z.string().trim().min(10, "질문 내용을 10자 이상 입력해주세요."),
-  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+  visibilityLevel: z.enum(["school", "schoolDepartment"]),
 });
 
 const schoolBoardSchema = z.object({
   title: z.string().trim().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().trim().min(10, "본문을 10자 이상 입력해주세요."),
-  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+  visibilityLevel: z.enum(["school", "schoolDepartment"]),
 });
 
 type SchoolBoardFormValues = z.infer<typeof schoolBoardSchema>;
@@ -225,13 +229,17 @@ export function SchoolPage({
       (detailPostId ? getAdmissionQuestion(detailPostId) ?? null : null),
     [detailPostId, schoolDetailPosts],
   );
+  const defaultSchoolVisibilityLevel = getStandardVisibilityLevel(
+    currentUser.defaultVisibilityLevel,
+    currentUser,
+  );
 
   const schoolBoardForm = useForm<SchoolBoardFormValues>({
     resolver: zodResolver(schoolBoardSchema),
     defaultValues: {
       title: "",
       content: "",
-      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+      visibilityLevel: defaultSchoolVisibilityLevel,
     },
   });
   const freshmanForm = useForm<FreshmanZoneFormValues>({
@@ -239,7 +247,7 @@ export function SchoolPage({
     defaultValues: {
       title: "",
       content: "",
-      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+      visibilityLevel: defaultSchoolVisibilityLevel,
     },
   });
   const admissionForm = useForm<SchoolAdmissionFormValues>({
@@ -251,7 +259,7 @@ export function SchoolPage({
       scoreType: "",
       interestDepartment: "",
       content: "",
-      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+      visibilityLevel: defaultSchoolVisibilityLevel,
     },
   });
 
@@ -874,8 +882,7 @@ export function SchoolPage({
                         scoreType: "",
                         interestDepartment: "",
                         content: "",
-                        visibilityLevel:
-                          currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+                        visibilityLevel: defaultSchoolVisibilityLevel,
                       });
                       setAdmissionComposerOpen(false);
                       await refresh();
@@ -897,8 +904,7 @@ export function SchoolPage({
                 scoreType: "",
                 interestDepartment: "",
                 content: "",
-                visibilityLevel:
-                  currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+                visibilityLevel: defaultSchoolVisibilityLevel,
               });
               setAdmissionComposerOpen(false);
               setSuccessMessage("입시 질문이 등록되었습니다.");
@@ -934,8 +940,11 @@ export function SchoolPage({
               <Label>공개 범위</Label>
               <VisibilityLevelSelect
                 value={admissionForm.watch("visibilityLevel")}
+                levels={STANDARD_VISIBILITY_LEVELS}
                 onChange={(value) =>
-                  admissionForm.setValue("visibilityLevel", value, { shouldValidate: true })
+                  admissionForm.setValue("visibilityLevel", value as "school" | "schoolDepartment", {
+                    shouldValidate: true,
+                  })
                 }
               />
             </div>
@@ -1005,8 +1014,7 @@ export function SchoolPage({
                       schoolBoardForm.reset({
                         title: "",
                         content: "",
-                        visibilityLevel:
-                          currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+                        visibilityLevel: defaultSchoolVisibilityLevel,
                       });
                       setSchoolBoardComposerOpen(false);
                       await refresh();
@@ -1024,8 +1032,7 @@ export function SchoolPage({
               schoolBoardForm.reset({
                 title: "",
                 content: "",
-                visibilityLevel:
-                  currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+                visibilityLevel: defaultSchoolVisibilityLevel,
               });
               setSchoolBoardComposerOpen(false);
               setSuccessMessage("학교 게시판 글이 등록되었습니다.");
@@ -1053,8 +1060,11 @@ export function SchoolPage({
               <Label>공개 범위</Label>
               <VisibilityLevelSelect
                 value={schoolBoardForm.watch("visibilityLevel")}
+                levels={STANDARD_VISIBILITY_LEVELS}
                 onChange={(value) =>
-                  schoolBoardForm.setValue("visibilityLevel", value, { shouldValidate: true })
+                  schoolBoardForm.setValue("visibilityLevel", value as "school" | "schoolDepartment", {
+                    shouldValidate: true,
+                  })
                 }
               />
             </div>
@@ -1124,8 +1134,7 @@ export function SchoolPage({
                       freshmanForm.reset({
                         title: "",
                         content: "",
-                        visibilityLevel:
-                          currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+                        visibilityLevel: defaultSchoolVisibilityLevel,
                       });
                       setComposerOpen(false);
                       await refresh();
@@ -1143,8 +1152,7 @@ export function SchoolPage({
               freshmanForm.reset({
                 title: "",
                 content: "",
-                visibilityLevel:
-                  currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+                visibilityLevel: defaultSchoolVisibilityLevel,
               });
               setComposerOpen(false);
               setSuccessMessage("새내기 게시글이 등록되었습니다.");
@@ -1172,8 +1180,11 @@ export function SchoolPage({
               <Label>공개 범위</Label>
               <VisibilityLevelSelect
                 value={freshmanForm.watch("visibilityLevel")}
+                levels={STANDARD_VISIBILITY_LEVELS}
                 onChange={(value) =>
-                  freshmanForm.setValue("visibilityLevel", value, { shouldValidate: true })
+                  freshmanForm.setValue("visibilityLevel", value as "school" | "schoolDepartment", {
+                    shouldValidate: true,
+                  })
                 }
               />
             </div>

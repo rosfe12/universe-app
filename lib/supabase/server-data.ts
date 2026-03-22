@@ -231,6 +231,7 @@ const COMMUNITY_POST_SUBCATEGORIES = [
   "free",
   "advice",
   "ask",
+  "anonymous",
   "hot",
   "careerInfo",
   "jobPosting",
@@ -499,11 +500,16 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,
     isRestricted: Boolean(row.is_restricted),
     defaultVisibilityLevel:
-      toVisibilityLevel(row.default_visibility_level as string | null | undefined) ??
-      getDefaultVisibilityLevel({
-        userType: toUserType(row.user_type as string | null | undefined),
-        schoolId: row.school_id ? String(row.school_id) : undefined,
-      }),
+      (() => {
+        const fallback = getDefaultVisibilityLevel({
+          userType: toUserType(row.user_type as string | null | undefined),
+          schoolId: row.school_id ? String(row.school_id) : undefined,
+        });
+        const current = toVisibilityLevel(
+          row.default_visibility_level as string | null | undefined,
+        );
+        return current && current !== "anonymous" ? current : fallback;
+      })(),
     createdAt: String(row.created_at ?? new Date().toISOString()),
     bio: row.bio ? String(row.bio) : undefined,
     avatarUrl: row.avatar_url ? String(row.avatar_url) : undefined,
@@ -755,7 +761,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
     reportCount: 0,
     warningCount: 0,
     isRestricted: false,
-    defaultVisibilityLevel: "anonymous",
+    defaultVisibilityLevel: "school",
     createdAt: new Date().toISOString(),
     bio: undefined,
   };

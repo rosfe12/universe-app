@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import {
   getAnonymousHandle,
   getBlocks,
@@ -47,7 +48,10 @@ import {
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
-import { getStudentVerificationBadge } from "@/lib/user-identity";
+import {
+  getStandardVisibilityLevel,
+  getStudentVerificationBadge,
+} from "@/lib/user-identity";
 import type { AppRuntimeSnapshot } from "@/types";
 
 export function ProfilePage({
@@ -220,7 +224,11 @@ export function ProfilePage({
         <Card>
           <CardContent className="space-y-3 py-5">
             <VisibilityLevelSelect
-              value={currentUser.defaultVisibilityLevel ?? "anonymous"}
+              value={getStandardVisibilityLevel(
+                currentUser.defaultVisibilityLevel,
+                currentUser,
+              )}
+              levels={STANDARD_VISIBILITY_LEVELS}
               onChange={async (value) => {
                 setSnapshot((snapshot) => ({
                   ...snapshot,

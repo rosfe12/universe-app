@@ -29,7 +29,7 @@ export const guestUser = {
   reportCount: 0,
   warningCount: 0,
   isRestricted: false,
-  defaultVisibilityLevel: "anonymous",
+  defaultVisibilityLevel: "school",
   createdAt: new Date("2026-03-01T00:00:00+09:00").toISOString(),
   bio: undefined,
   avatarUrl: undefined,

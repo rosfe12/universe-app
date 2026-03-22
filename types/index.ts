@@ -5,6 +5,7 @@ export type CommunitySubcategory =
   | "meetup"
   | "food"
   | "hot"
+  | "anonymous"
   | "freshman"
   | "school"
   | "advice"

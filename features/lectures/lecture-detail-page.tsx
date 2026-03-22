@@ -46,6 +46,7 @@ import {
   DIFFICULTY_LABELS,
   EXAM_STYLE_LABELS,
   GRADING_STYLE_LABELS,
+  STANDARD_VISIBILITY_LEVELS,
   WORKLOAD_LABELS,
 } from "@/lib/constants";
 import { getModerationSemesterRank, validateLectureReviewSubmission } from "@/lib/moderation";
@@ -69,7 +70,7 @@ import {
   getAuthFlowHref,
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel, getUserLevel } from "@/lib/user-identity";
+import { getStandardVisibilityLevel, getUserLevel } from "@/lib/user-identity";
 import { average } from "@/lib/utils";
 import type { AppRuntimeSnapshot, LectureReview, ReportReason } from "@/types";
 
@@ -84,7 +85,7 @@ const reviewSchema = z.object({
   honeyScore: z.coerce.number().min(1).max(5),
   shortComment: z.string().min(4),
   longComment: z.string().min(10),
-  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+  visibilityLevel: z.enum(["school", "schoolDepartment"]),
 });
 
 type ReviewFormValues = z.infer<typeof reviewSchema>;
@@ -135,7 +136,10 @@ export function LectureDetailPage({
       honeyScore: 4,
       shortComment: "",
       longComment: "",
-      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+      visibilityLevel: getStandardVisibilityLevel(
+        currentUser.defaultVisibilityLevel,
+        currentUser,
+      ),
     },
   });
 
@@ -650,12 +654,15 @@ export function LectureDetailPage({
             </div>
             <div className="space-y-2">
               <Label>공개 범위</Label>
-              <VisibilityLevelSelect
-                value={form.watch("visibilityLevel")}
-                onChange={(value) =>
-                  form.setValue("visibilityLevel", value, { shouldValidate: true })
-                }
-              />
+                <VisibilityLevelSelect
+                  value={form.watch("visibilityLevel")}
+                  levels={STANDARD_VISIBILITY_LEVELS}
+                  onChange={(value) =>
+                    form.setValue("visibilityLevel", value as "school" | "schoolDepartment", {
+                      shouldValidate: true,
+                    })
+                  }
+                />
             </div>
             {form.formState.errors.root?.message ? (
               <p className="text-sm text-rose-600">{form.formState.errors.root.message}</p>

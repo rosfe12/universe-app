@@ -14,6 +14,7 @@ import type {
   User,
 } from "@/types";
 import careerBoardSeed from "./career-board-seed.json";
+import anonymousBoardSeed from "./anonymous-board-seed.json";
 
 const BASE_SCHOOL_ID = "school-konkuk";
 
@@ -903,6 +904,20 @@ const curatedCareerSeed = careerBoardSeed as {
   comments: CareerBoardSeedComment[];
 };
 
+const curatedAnonymousBoardSeed = anonymousBoardSeed as {
+  posts: Array<{
+    id: string;
+    title: string;
+    content: string;
+    likes: number;
+    tags: string[];
+  }>;
+  comments: Array<{
+    postId: string;
+    content: string;
+  }>;
+};
+
 const referenceAdmissionPosts: SeedPost[] = [
   {
     id: "admission-ref-1",
@@ -1271,6 +1286,31 @@ const askPosts: SeedPost[] = [
     tags: ["무물", "조별과제"],
   },
 ];
+
+const anonymousSeedSchoolIds = [
+  "school-swu",
+  "school-uos",
+  "school-yonsei",
+  "school-korea",
+  "school-sejong",
+  "school-sookmyung",
+  "school-hongik",
+  "school-soongsil",
+];
+
+const anonymousPosts: SeedPost[] = curatedAnonymousBoardSeed.posts.map((seed, index) => ({
+  id: seed.id,
+  category: "community",
+  subcategory: "anonymous",
+  authorId: collegeReviewerIds[index % collegeReviewerIds.length],
+  schoolId: anonymousSeedSchoolIds[index % anonymousSeedSchoolIds.length],
+  title: seed.title,
+  content: seed.content,
+  createdAt: at(21 - Math.floor(index / 4), `${18 + (index % 4)}:${index % 2 === 0 ? "15" : "45"}:00`),
+  likes: seed.likes,
+  visibilityLevel: "anonymous",
+  tags: seed.tags,
+}));
 
 const ASK_TOPIC_BLUEPRINTS = [
   {
@@ -2064,6 +2104,7 @@ const baseSchoolSeedPosts = [
   ...communityPosts,
   ...advicePosts,
   ...freePosts,
+  ...anonymousPosts,
   ...allAskPosts,
   ...schoolBoardPosts,
   ...referenceCommunityPosts,
@@ -2257,6 +2298,25 @@ const askComments: Comment[] = allAskPosts.map((post, index) => ({
   accepted: false,
   createdAt: new Date(Date.UTC(2026, 2, 22, 10, 0, 0) + index * 31 * 60 * 1000).toISOString(),
 }));
+
+const anonymousComments: Comment[] = curatedAnonymousBoardSeed.comments.reduce<Comment[]>((acc, seed, index) => {
+  const post = anonymousPosts.find((item) => item.id === seed.postId);
+  if (!post) {
+    return acc;
+  }
+
+  acc.push({
+    id: nextCommentId(),
+    postId: post.id,
+    authorId: collegeReviewerIds[(index + 5) % collegeReviewerIds.length],
+    content: seed.content,
+    accepted: false,
+    visibilityLevel: "anonymous",
+    createdAt: shiftIsoMinutes(post.createdAt, 28 + index * 5),
+  });
+
+  return acc;
+}, []);
 
 const schoolBoardComments: Comment[] = schoolBoardPosts.map((post, index) => ({
   id: nextCommentId(),
@@ -2558,6 +2618,7 @@ export const comments: Comment[] = [
   ...communityComments,
   ...adviceComments,
   ...freeComments,
+  ...anonymousComments,
   ...askComments,
   ...schoolBoardComments,
   ...hotComments,
@@ -2576,6 +2637,7 @@ export const posts: Post[] = [
   ...communityPosts,
   ...advicePosts,
   ...freePosts,
+  ...anonymousPosts,
   ...allAskPosts,
   ...allHotPosts,
   ...referenceCommunityPosts,

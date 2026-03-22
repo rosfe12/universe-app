@@ -44,7 +44,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { createPost } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { injectInlineAdSlots, isAdPlacementEnabled } from "@/lib/ads";
-import { CAREER_BOARD_LABELS } from "@/lib/constants";
+import {
+  CAREER_BOARD_LABELS,
+  STANDARD_VISIBILITY_LEVELS,
+} from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
 import { canAccessSchoolFeatures, canWriteCareer, canWriteCommunity } from "@/lib/permissions";
 import {
@@ -70,19 +73,19 @@ import {
   getAuthFlowHref,
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
-import { getDefaultVisibilityLevel } from "@/lib/user-identity";
+import { getStandardVisibilityLevel } from "@/lib/user-identity";
 import { cn, formatRelativeLabel, getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/types";
 
 const communitySchema = z.object({
-  board: z.enum(["free", "advice", "ask", "hot", "careerInfo", "jobPosting"]),
+  board: z.enum(["free", "advice", "ask", "anonymous", "hot", "careerInfo", "jobPosting"]),
   title: z.string().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().min(10, "본문을 10자 이상 입력해주세요."),
   visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
 });
 
 type CommunityFormValues = z.infer<typeof communitySchema>;
-type SharedFilter = "all" | "free" | "advice" | "ask" | "hot" | "career";
+type SharedFilter = "all" | "free" | "advice" | "ask" | "anonymous" | "hot" | "career";
 
 const FILTERS: Array<{
   value: SharedFilter;
@@ -94,6 +97,7 @@ const FILTERS: Array<{
   { value: "advice", label: "고민", icon: MessageCircle },
   { value: "hot", label: "핫갤", icon: Flame },
   { value: "ask", label: "무물", icon: CircleHelp },
+  { value: "anonymous", label: "익명", icon: MessageCircle },
   { value: "career", label: "취업", icon: BriefcaseBusiness },
 ] as const;
 
@@ -117,6 +121,7 @@ function getCardLabel(post: Post) {
   if (post.subcategory === "free") return "자유";
   if (post.subcategory === "advice") return "고민";
   if (post.subcategory === "ask") return "무물";
+  if (post.subcategory === "anonymous") return "익명";
   if (post.subcategory === "hot") return "핫갤";
   return "자유";
 }
@@ -125,6 +130,7 @@ function getDefaultBoard(filter: SharedFilter): CommunityFormValues["board"] {
   if (filter === "free") return "free";
   if (filter === "advice") return "advice";
   if (filter === "ask") return "ask";
+  if (filter === "anonymous") return "anonymous";
   if (filter === "hot") return "hot";
   if (filter === "career") return "careerInfo";
   return "free";
@@ -134,6 +140,7 @@ function getComposeLabel(filter: SharedFilter) {
   if (filter === "all") return "글쓰기";
   if (filter === "free") return "자유 글쓰기";
   if (filter === "ask") return "무물 글쓰기";
+  if (filter === "anonymous") return "익명 글쓰기";
   if (filter === "hot") return "핫갤 글쓰기";
   if (filter === "career") return "취업 글쓰기";
   return "고민 글쓰기";
@@ -150,6 +157,7 @@ function getPopularityScore(post: Post) {
 
 function getFilterForPost(post: Post): SharedFilter {
   if (getCareerBoardKind(post)) return "career";
+  if (post.subcategory === "anonymous") return "anonymous";
   if (post.subcategory === "free") return "free";
   if (post.subcategory === "ask") return "ask";
   if (post.subcategory === "hot") return "hot";
@@ -285,12 +293,20 @@ export function CommunityPage({
   const hotPosts = useMemo(() => getHotGalleryPosts(), []);
   const advicePosts = useMemo(() => getCommunityPosts("advice"), []);
   const askPosts = useMemo(() => getCommunityPosts("ask"), []);
+  const anonymousPosts = useMemo(() => getCommunityPosts("anonymous"), []);
   const careerPosts = useMemo(() => getCareerPosts(), []);
 
   const feedItems = useMemo(() => {
-    const all = [...freePosts, ...advicePosts, ...hotPosts, ...askPosts, ...careerPosts];
+    const all = [
+      ...freePosts,
+      ...advicePosts,
+      ...hotPosts,
+      ...askPosts,
+      ...anonymousPosts,
+      ...careerPosts,
+    ];
     return [...all].sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt));
-  }, [advicePosts, askPosts, careerPosts, freePosts, hotPosts]);
+  }, [advicePosts, anonymousPosts, askPosts, careerPosts, freePosts, hotPosts]);
 
   useEffect(() => {
     if (!detailParam) {
@@ -312,9 +328,10 @@ export function CommunityPage({
     if (activeFilter === "advice") return advicePosts;
     if (activeFilter === "hot") return hotPosts;
     if (activeFilter === "ask") return askPosts;
+    if (activeFilter === "anonymous") return anonymousPosts;
     if (activeFilter === "career") return careerPosts;
     return advicePosts;
-  }, [activeFilter, advicePosts, askPosts, careerPosts, feedItems, freePosts, hotPosts]);
+  }, [activeFilter, advicePosts, anonymousPosts, askPosts, careerPosts, feedItems, freePosts, hotPosts]);
   const sortedItems = useMemo(() => {
     const items = [...filteredItems];
     if (sortMode === "latest") {
@@ -349,7 +366,10 @@ export function CommunityPage({
       board: getDefaultBoard(activeFilter),
       title: "",
       content: "",
-      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+      visibilityLevel: getStandardVisibilityLevel(
+        currentUser.defaultVisibilityLevel,
+        currentUser,
+      ),
     },
   });
 
@@ -370,10 +390,12 @@ export function CommunityPage({
     }
 
     const isCareerBoard = values.board === "careerInfo" || values.board === "jobPosting";
+    const isAnonymousBoard = values.board === "anonymous";
     const communityBoard =
       values.board === "free" ||
       values.board === "advice" ||
       values.board === "ask" ||
+      values.board === "anonymous" ||
       values.board === "hot"
         ? values.board
         : undefined;
@@ -382,6 +404,8 @@ export function CommunityPage({
           CAREER_BOARD_LABELS[values.board as CareerBoardKind],
           values.board === "careerInfo" ? "합격루틴" : "인턴",
         ]
+      : values.board === "anonymous"
+        ? ["익명"]
       : values.board === "hot"
         ? ["19+", "익명"]
         : values.board === "free"
@@ -396,7 +420,9 @@ export function CommunityPage({
       subcategory: communityBoard,
       authorId: currentUser.id,
       schoolId: currentUser.schoolId,
-      visibilityLevel: values.visibilityLevel as VisibilityLevel,
+      visibilityLevel: isAnonymousBoard
+        ? "anonymous"
+        : (values.visibilityLevel as VisibilityLevel),
       title: values.title,
       content: values.content,
       createdAt,
@@ -413,7 +439,7 @@ export function CommunityPage({
               category: "community",
               subcategory: communityBoard,
               schoolId: currentUser.schoolId,
-              visibilityLevel: values.visibilityLevel,
+              visibilityLevel: isAnonymousBoard ? "anonymous" : values.visibilityLevel,
               title: values.title,
               content: values.content,
               tags,
@@ -525,8 +551,8 @@ export function CommunityPage({
             title="표시할 글이 없습니다"
             description="다른 카테고리를 둘러보거나 새 글이 올라오기를 기다려보세요."
           />
-        ) : (
-          <FeedList>
+      ) : (
+        <FeedList>
             {feedSlots.map((slot) => {
             if (slot.kind === "ad") {
               return (
@@ -743,6 +769,18 @@ export function CommunityPage({
                 <Button
                   type="button"
                   size="sm"
+                  variant={form.watch("board") === "anonymous" ? "default" : "outline"}
+                  onClick={() =>
+                    form.setValue("board", "anonymous", {
+                      shouldValidate: true,
+                    })
+                  }
+                >
+                  익명
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   variant={form.watch("board") === "hot" ? "default" : "outline"}
                   onClick={() =>
                     form.setValue("board", "hot", {
@@ -786,13 +824,22 @@ export function CommunityPage({
               <Label htmlFor="content">내용</Label>
               <Textarea id="content" {...form.register("content")} />
             </div>
-            <div className="space-y-2">
-              <Label>공개 범위</Label>
-              <VisibilityLevelSelect
-                value={form.watch("visibilityLevel")}
-                onChange={(value) => form.setValue("visibilityLevel", value, { shouldValidate: true })}
-              />
-            </div>
+            {form.watch("board") === "anonymous" ? (
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                익명 게시판에서는 글과 댓글이 자동으로 익명 처리됩니다.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>공개 범위</Label>
+                <VisibilityLevelSelect
+                  value={form.watch("visibilityLevel")}
+                  levels={STANDARD_VISIBILITY_LEVELS}
+                  onChange={(value) =>
+                    form.setValue("visibilityLevel", value, { shouldValidate: true })
+                  }
+                />
+              </div>
+            )}
             {form.formState.errors.root?.message ? (
               <p className="text-sm text-rose-600">{form.formState.errors.root.message}</p>
             ) : null}
