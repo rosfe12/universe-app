@@ -116,6 +116,7 @@ export interface Post {
   createdAt: string;
   likes: number;
   commentCount: number;
+  viewCount?: number;
   tags?: string[];
   imageUrl?: string;
   meta?: AdmissionQuestionMeta;

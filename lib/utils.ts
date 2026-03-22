@@ -29,3 +29,15 @@ export function average(numbers: number[]) {
   if (numbers.length === 0) return 0;
   return numbers.reduce((sum, current) => sum + current, 0) / numbers.length;
 }
+
+export function getPostViewCount(input: {
+  viewCount?: number;
+  likes: number;
+  commentCount: number;
+}) {
+  if (typeof input.viewCount === "number" && Number.isFinite(input.viewCount)) {
+    return input.viewCount;
+  }
+
+  return Math.max(32, input.likes * 12 + input.commentCount * 18 + 24);
+}

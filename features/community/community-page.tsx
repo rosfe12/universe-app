@@ -68,7 +68,7 @@ import {
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
 import { getDefaultVisibilityLevel } from "@/lib/user-identity";
-import { cn, formatRelativeLabel } from "@/lib/utils";
+import { cn, formatRelativeLabel, getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/types";
 
 const communitySchema = z.object({
@@ -185,7 +185,7 @@ function SharedFeedCard({
         >
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
             {post.subcategory === "hot" ? <span className="text-rose-500">19+</span> : null}
-            {post.subcategory === "hot" && hotScore ? <span>반응 {hotScore}</span> : null}
+            {post.subcategory === "hot" && hotScore ? <span>인기 점수 {hotScore}</span> : null}
           </div>
           <CardTitle className="text-base font-semibold leading-6 text-gray-900">{post.title}</CardTitle>
           <CardDescription className="line-clamp-2 text-sm leading-6 text-gray-500">
@@ -195,7 +195,8 @@ function SharedFeedCard({
       </div>
       <div className="space-y-3 px-4 pb-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-          <span>반응 {post.likes}</span>
+          <span>조회수 {getPostViewCount(post)}</span>
+          <span>좋아요 {post.likes}</span>
           <span>댓글 {post.commentCount}</span>
           <span>{formatRelativeLabel(post.createdAt)}</span>
         </div>

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Heart, MessageCircle } from "lucide-react";
+import { Eye, Heart, MessageCircle } from "lucide-react";
 
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { Badge } from "@/components/ui/badge";
 import { CAREER_BOARD_LABELS, COMMUNITY_CATEGORY_LABELS } from "@/lib/constants";
 import { getCareerBoardKind } from "@/lib/mock-queries";
-import { cn } from "@/lib/utils";
+import { cn, getPostViewCount } from "@/lib/utils";
 import type { Post, ReportReason } from "@/types";
 
 import { PostAuthorRow } from "./post-author-row";
@@ -95,8 +95,12 @@ export function FeedPostCard({
         <div className="flex items-center justify-between gap-3 text-sm text-gray-500">
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1">
+              <Eye className="h-4 w-4" />
+              조회수 {getPostViewCount(post)}
+            </span>
+            <span className="inline-flex items-center gap-1">
               <Heart className="h-4 w-4" />
-              반응 {post.likes}
+              좋아요 {post.likes}
             </span>
             <span className="inline-flex items-center gap-1">
               <MessageCircle className="h-4 w-4" />

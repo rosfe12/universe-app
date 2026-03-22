@@ -27,7 +27,7 @@ import {
   getLectureSummaries,
   getPublicIdentitySummary,
 } from "@/lib/mock-queries";
-import { cn, formatRelativeLabel } from "@/lib/utils";
+import { cn, formatRelativeLabel, getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post } from "@/types";
 
 function SharedDatingCard({ post }: { post: Post }) {
@@ -90,9 +90,13 @@ function SharedDatingCard({ post }: { post: Post }) {
           <div className="space-y-3">
             <p className="line-clamp-2 text-[20px] font-bold leading-7 tracking-tight">{post.title}</p>
             <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{post.content}</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div className="rounded-[18px] bg-white/80 px-3 py-3">
-                <p className="text-[11px] text-muted-foreground">반응</p>
+                <p className="text-[11px] text-muted-foreground">조회수</p>
+                <p className="mt-1 text-lg font-bold">{getPostViewCount(post)}개</p>
+              </div>
+              <div className="rounded-[18px] bg-white/80 px-3 py-3">
+                <p className="text-[11px] text-muted-foreground">좋아요</p>
                 <p className="mt-1 text-lg font-bold">{post.likes}개</p>
               </div>
               <div className="rounded-[18px] bg-white/80 px-3 py-3">

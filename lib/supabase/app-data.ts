@@ -16,6 +16,7 @@ import {
   generateAutoNickname,
   getDefaultVisibilityLevel,
 } from "@/lib/user-identity";
+import { getPostViewCount } from "@/lib/utils";
 import type {
   AdmissionQuestionMeta,
   AppRuntimeSnapshot,
@@ -148,6 +149,15 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
 }
 
 function mapPostRow(row: Record<string, unknown>): Post {
+  const likes =
+    typeof row.like_count === "number"
+      ? row.like_count
+      : typeof row.likes_count === "number"
+        ? row.likes_count
+        : 0;
+  const commentCount = typeof row.comment_count === "number" ? row.comment_count : 0;
+  const metadata = row.metadata as Record<string, unknown> | null | undefined;
+
   return {
     id: String(row.id),
     category: row.category as Post["category"],
@@ -158,22 +168,22 @@ function mapPostRow(row: Record<string, unknown>): Post {
     title: String(row.title),
     content: String(row.content),
     createdAt: String(row.created_at ?? new Date().toISOString()),
-    likes:
-      typeof row.like_count === "number"
-        ? row.like_count
-        : typeof row.likes_count === "number"
-          ? row.likes_count
-          : 0,
-    commentCount: typeof row.comment_count === "number" ? row.comment_count : 0,
+    likes,
+    commentCount,
+    viewCount: getPostViewCount({
+      viewCount: typeof metadata?.viewCount === "number" ? metadata.viewCount : undefined,
+      likes,
+      commentCount,
+    }),
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     autoHidden: Boolean(row.auto_hidden),
     imageUrl: row.image_url ? String(row.image_url) : undefined,
-    tags: Array.isArray((row.metadata as { tags?: string[] } | null)?.tags)
-      ? ((row.metadata as { tags?: string[] }).tags ?? [])
+    tags: Array.isArray((metadata as { tags?: string[] } | null)?.tags)
+      ? ((metadata as { tags?: string[] }).tags ?? [])
       : undefined,
     meta:
       row.category === "admission"
-        ? ((row.metadata ?? undefined) as AdmissionQuestionMeta | undefined)
+        ? ((metadata ?? undefined) as AdmissionQuestionMeta | undefined)
         : undefined,
   };
 }

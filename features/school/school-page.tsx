@@ -9,7 +9,6 @@ import { z } from "zod";
 import {
   BookOpen,
   GraduationCap,
-  MessageCircle,
   Repeat2,
   School,
   Sparkles,
@@ -61,6 +60,7 @@ import {
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { getAuthFlowHref, hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import { getDefaultVisibilityLevel, getSchoolShortName } from "@/lib/user-identity";
+import { getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, VisibilityLevel } from "@/types";
 
 const freshmanZoneSchema = z.object({
@@ -491,9 +491,10 @@ export function SchoolPage({
                         {post.content}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>댓글 {getCommentsByPostId(post.id).length}</span>
+                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                      <span>조회수 {getPostViewCount(post)}</span>
                       <span>좋아요 {post.likes}</span>
+                      <span>댓글 {getCommentsByPostId(post.id).length}</span>
                     </div>
                   </CardContent>
                 </Card>

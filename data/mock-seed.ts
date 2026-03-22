@@ -2383,6 +2383,7 @@ export const posts: Post[] = [
 ].map((post) => ({
   ...post,
   imageUrl: undefined,
+  viewCount: Math.max(32, post.likes * 12 + comments.filter((comment) => comment.postId === post.id).length * 18 + 24),
   commentCount: comments.filter((comment) => comment.postId === post.id).length,
 }));
 

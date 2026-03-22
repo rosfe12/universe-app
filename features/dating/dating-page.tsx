@@ -59,6 +59,7 @@ import {
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
 import { deleteImageByPublicUrl } from "@/lib/supabase/storage";
+import { getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post } from "@/types";
 
 const datingSchema = z.object({
@@ -434,7 +435,8 @@ export function DatingPage({
               </div>
               <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-4">
-                  <span>반응 {post.likes}</span>
+                  <span>조회수 {getPostViewCount(post)}</span>
+                  <span>좋아요 {post.likes}</span>
                   <span>댓글 {post.commentCount}</span>
                 </div>
                 <div className="flex items-center gap-2">
