@@ -35,7 +35,7 @@ values
   ('ccccccc6-cccc-4ccc-8ccc-ccccccccccc6', '총신대학교', 'csu.ac.kr', '서울'),
   ('ccccccc7-cccc-4ccc-8ccc-ccccccccccc7', '추계예술대학교', 'chu.ac.kr', '서울'),
   ('ccccccc8-cccc-4ccc-8ccc-ccccccccccc8', '한국성서대학교', 'bible.ac.kr', '서울'),
-  ('ccccccc9-cccc-4ccc-8ccc-ccccccccccc9', 'KC대학교', 'kc.ac.kr', '서울')
+  ('ccccccc9-cccc-4ccc-8ccc-ccccccccccc9', '강서대학교', 'kc.ac.kr', '서울')
 on conflict (id) do update
 set
   name = excluded.name,

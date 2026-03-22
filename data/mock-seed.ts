@@ -68,7 +68,7 @@ export const schools: School[] = [
   { id: "school-chongshin", name: "총신대학교", domain: "csu.ac.kr", city: "서울" },
   { id: "school-chugye", name: "추계예술대학교", domain: "chu.ac.kr", city: "서울" },
   { id: "school-kbible", name: "한국성서대학교", domain: "bible.ac.kr", city: "서울" },
-  { id: "school-kc", name: "KC대학교", domain: "kc.ac.kr", city: "서울" },
+  { id: "school-kc", name: "강서대학교", domain: "kc.ac.kr", city: "서울" },
 ];
 
 export const users: User[] = [
