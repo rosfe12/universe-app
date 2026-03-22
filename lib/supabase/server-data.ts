@@ -165,8 +165,8 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
       };
     case "messages":
       return {
-        posts: true,
-        comments: true,
+        posts: false,
+        comments: false,
         lectures: false,
         lectureReviews: false,
         tradePosts: true,
@@ -208,6 +208,179 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         currentUserProfile: true,
       };
   }
+}
+
+type RuntimeQueryContext = {
+  scope: RuntimeSnapshotScope;
+  schoolId?: string;
+  userId?: string;
+};
+
+const EMPTY_RESULT = Promise.resolve({ data: [], error: null });
+const HOME_POST_SUBCATEGORIES = [
+  "free",
+  "ask",
+  "careerInfo",
+  "jobPosting",
+  "freshman",
+  "club",
+  "food",
+] as const;
+const COMMUNITY_POST_SUBCATEGORIES = [
+  "free",
+  "advice",
+  "ask",
+  "hot",
+  "careerInfo",
+  "jobPosting",
+];
+const DATING_POST_SUBCATEGORIES = ["dating", "meeting"] as const;
+
+function buildPostQuery(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, context: RuntimeQueryContext) {
+  const base = supabase.from("posts").select("*").order("created_at", { ascending: false });
+
+  switch (context.scope) {
+    case "home":
+      return base.eq("category", "community").in("subcategory", [...HOME_POST_SUBCATEGORIES]).limit(180);
+    case "community":
+      return base.eq("category", "community").in("subcategory", COMMUNITY_POST_SUBCATEGORIES).limit(220);
+    case "admission":
+      return context.schoolId
+        ? base.eq("category", "admission").eq("school_id", context.schoolId).limit(140)
+        : base.eq("category", "admission").limit(140);
+    case "school":
+      return context.schoolId
+        ? base.eq("school_id", context.schoolId).in("category", ["community", "admission"]).limit(180)
+        : EMPTY_RESULT;
+    case "dating":
+      return base.eq("category", "community").in("subcategory", [...DATING_POST_SUBCATEGORIES]).limit(160);
+    case "profile":
+      return context.userId ? base.eq("author_id", context.userId).limit(140) : EMPTY_RESULT;
+    case "notifications":
+      return base.in("category", ["community", "admission"]).limit(160);
+    case "admin":
+    case "full":
+    default:
+      return base.limit(260);
+  }
+}
+
+function buildCommentQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  context: RuntimeQueryContext,
+  postIds: string[],
+) {
+  const base = supabase.from("comments").select("*").order("created_at", { ascending: false });
+
+  if (context.scope === "profile") {
+    return context.userId ? base.eq("author_id", context.userId).limit(180) : EMPTY_RESULT;
+  }
+
+  if (postIds.length === 0) {
+    return EMPTY_RESULT;
+  }
+
+  return base.in("post_id", postIds).limit(420);
+}
+
+function buildLectureQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  context: RuntimeQueryContext,
+) {
+  const base = supabase.from("lectures").select("*").order("name", { ascending: true });
+
+  switch (context.scope) {
+    case "home":
+    case "school":
+    case "lectures":
+    case "trade":
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(120) : base.limit(120);
+    case "notifications":
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(80) : base.limit(80);
+    case "admin":
+    case "full":
+    default:
+      return base.limit(220);
+  }
+}
+
+function buildLectureReviewQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  context: RuntimeQueryContext,
+  lectureIds: string[],
+) {
+  const base = supabase.from("lecture_reviews").select("*").order("created_at", { ascending: false });
+
+  if (context.scope === "profile") {
+    return context.userId ? base.eq("author_id", context.userId).limit(120) : EMPTY_RESULT;
+  }
+
+  if (lectureIds.length === 0) {
+    return EMPTY_RESULT;
+  }
+
+  return base.in("lecture_id", lectureIds).limit(320);
+}
+
+function buildTradePostsQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  context: RuntimeQueryContext,
+) {
+  const base = supabase.from("trade_posts").select("*").order("created_at", { ascending: false });
+
+  switch (context.scope) {
+    case "home":
+    case "school":
+    case "lectures":
+    case "trade":
+    case "notifications":
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(120) : base.limit(120);
+    case "profile":
+      return context.userId ? base.eq("author_id", context.userId).limit(80) : EMPTY_RESULT;
+    case "messages":
+      return base.limit(120);
+    case "admin":
+    case "full":
+    default:
+      return base.limit(220);
+  }
+}
+
+function buildNotificationsQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+) {
+  return supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(120);
+}
+
+function buildReportsQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+) {
+  return supabase.from("reports").select("*").order("created_at", { ascending: false }).limit(120);
+}
+
+function buildBlocksQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+) {
+  return supabase.from("blocks").select("*").order("created_at", { ascending: false }).limit(120);
+}
+
+function buildDatingProfilesQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  context: RuntimeQueryContext,
+) {
+  const base = supabase.from("dating_profiles").select("*").order("created_at", { ascending: false });
+
+  if (context.scope === "profile") {
+    return context.userId ? base.eq("user_id", context.userId).limit(8) : EMPTY_RESULT;
+  }
+
+  return base.limit(120);
+}
+
+function buildMediaAssetsQuery(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+) {
+  return supabase.from("media_assets").select("*").order("created_at", { ascending: false }).limit(80);
 }
 
 function createSupabaseFallbackSnapshot(issue?: string): AppRuntimeSnapshot {
@@ -600,28 +773,32 @@ export async function loadServerRuntimeSnapshot(
       data: { user: authUser },
     } = await supabase.auth.getUser();
 
+    let currentUserProfileResult = authUser
+      ? await supabase.from("users").select("*").eq("id", authUser.id).single()
+      : null;
+    const queryContext: RuntimeQueryContext = {
+      scope,
+      schoolId:
+        currentUserProfileResult?.error || !currentUserProfileResult?.data?.school_id
+          ? undefined
+          : String(currentUserProfileResult.data.school_id),
+      userId: authUser?.id,
+    };
+
     const [
       schoolsResult,
       initialUsersResult,
       postsResult,
-      commentsResult,
       lecturesResult,
-      lectureReviewsResult,
     ] = await Promise.all([
       supabase.from("schools").select("*").order("name", { ascending: true }),
       supabase.rpc("list_user_public_profiles"),
       include.posts
-        ? supabase.from("posts").select("*").order("created_at", { ascending: false })
-        : Promise.resolve(null),
-      include.comments
-        ? supabase.from("comments").select("*").order("created_at", { ascending: false })
-        : Promise.resolve(null),
+        ? buildPostQuery(supabase, queryContext)
+        : EMPTY_RESULT,
       include.lectures
-        ? supabase.from("lectures").select("*").order("name", { ascending: true })
-        : Promise.resolve(null),
-      include.lectureReviews
-        ? supabase.from("lecture_reviews").select("*").order("created_at", { ascending: false })
-        : Promise.resolve(null),
+        ? buildLectureQuery(supabase, queryContext)
+        : EMPTY_RESULT,
     ]);
 
     if (schoolsResult.error) {
@@ -633,17 +810,13 @@ export async function loadServerRuntimeSnapshot(
     if (
       usersResult.error ||
       postsResult?.error ||
-      commentsResult?.error ||
-      lecturesResult?.error ||
-      lectureReviewsResult?.error
+      lecturesResult?.error
     ) {
       return createSupabaseFallbackSnapshot(
         getSupabaseSetupIssue(
           usersResult.error,
           postsResult?.error ?? undefined,
-          commentsResult?.error ?? undefined,
           lecturesResult?.error ?? undefined,
-          lectureReviewsResult?.error ?? undefined,
         ),
       );
     }
@@ -656,75 +829,94 @@ export async function loadServerRuntimeSnapshot(
     ) {
       await ensureProfileRow(supabase, authUser);
       usersResult = await supabase.rpc("list_user_public_profiles");
+      currentUserProfileResult = await supabase.from("users").select("*").eq("id", authUser.id).single();
       if (usersResult.error) {
         return createSupabaseFallbackSnapshot(getSupabaseSetupIssue(usersResult.error));
       }
     }
+
+    const postRows = (postsResult?.data ?? []) as Record<string, unknown>[];
+    const lectureRows = (lecturesResult?.data ?? []) as Record<string, unknown>[];
+    const postIds = postRows.map((row) => String(row.id));
+    const lectureIds = lectureRows.map((row) => String(row.id));
 
     const schools = (schoolsResult.data ?? []).map(mapSchoolRow);
     const users = (usersResult.data ?? []).map((row: Record<string, unknown>) =>
       mapUserRow(row as unknown as Record<string, unknown>, schools),
     );
 
-    const authOnly = authUser
-      ? await Promise.all([
-          include.tradePosts
-            ? supabase.from("trade_posts").select("*").order("created_at", { ascending: false })
-            : Promise.resolve(null),
-          include.notifications
-            ? supabase.from("notifications").select("*").order("created_at", { ascending: false })
-            : Promise.resolve(null),
-          include.reports
-            ? supabase.from("reports").select("*").order("created_at", { ascending: false })
-            : Promise.resolve(null),
-          include.blocks
-            ? supabase.from("blocks").select("*").order("created_at", { ascending: false })
-            : Promise.resolve(null),
-          include.datingProfiles
-            ? supabase.from("dating_profiles").select("*").order("created_at", { ascending: false })
-            : Promise.resolve(null),
-          include.mediaAssets
-            ? supabase.from("media_assets").select("*").order("created_at", { ascending: false })
-            : Promise.resolve(null),
-          include.currentUserProfile
-            ? supabase.from("users").select("*").eq("id", authUser.id).single()
-            : Promise.resolve(null),
-        ])
-      : [null, null, null, null, null, null, null];
-
     const [
+      commentsResult,
+      lectureReviewsResult,
       tradePostsResult,
       notificationsResult,
       reportsResult,
       blocksResult,
       datingProfilesResult,
       mediaAssetsResult,
-      currentUserProfileResult,
-    ] = authOnly;
+    ] = await Promise.all([
+      include.comments
+        ? buildCommentQuery(supabase, queryContext, postIds)
+        : EMPTY_RESULT,
+      include.lectureReviews
+        ? buildLectureReviewQuery(supabase, queryContext, lectureIds)
+        : EMPTY_RESULT,
+      authUser && include.tradePosts
+        ? buildTradePostsQuery(supabase, queryContext)
+        : EMPTY_RESULT,
+      authUser && include.notifications
+        ? buildNotificationsQuery(supabase)
+        : EMPTY_RESULT,
+      authUser && include.reports
+        ? buildReportsQuery(supabase)
+        : EMPTY_RESULT,
+      authUser && include.blocks
+        ? buildBlocksQuery(supabase)
+        : EMPTY_RESULT,
+      authUser && include.datingProfiles
+        ? buildDatingProfilesQuery(supabase, queryContext)
+        : EMPTY_RESULT,
+      authUser && include.mediaAssets
+        ? buildMediaAssetsQuery(supabase)
+        : EMPTY_RESULT,
+    ]);
+
+    if (commentsResult.error || lectureReviewsResult.error) {
+      return createSupabaseFallbackSnapshot(
+        getSupabaseSetupIssue(
+          commentsResult.error ?? undefined,
+          lectureReviewsResult.error ?? undefined,
+        ),
+      );
+    }
 
     const snapshot: AppRuntimeSnapshot = {
       schools,
       users,
-      posts: (postsResult?.data ?? []).map((row) => mapPostRow(row as unknown as Record<string, unknown>)),
-      comments: (commentsResult?.data ?? []).map((row) => mapCommentRow(row as unknown as Record<string, unknown>)),
-      lectures: (lecturesResult?.data ?? []).map((row) => mapLectureRow(row as unknown as Record<string, unknown>)),
-      lectureReviews: (lectureReviewsResult?.data ?? []).map((row) =>
+      posts: postRows.map((row) => mapPostRow(row as unknown as Record<string, unknown>)),
+      comments: ((commentsResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
+        mapCommentRow(row as unknown as Record<string, unknown>),
+      ),
+      lectures: lectureRows.map((row) => mapLectureRow(row as unknown as Record<string, unknown>)),
+      lectureReviews: ((lectureReviewsResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
         mapLectureReviewRow(row as unknown as Record<string, unknown>),
       ),
-      tradePosts: tradePostsResult?.error
-        ? []
-        : (tradePostsResult?.data ?? []).map((row) => mapTradePostRow(row as unknown as Record<string, unknown>)),
+      tradePosts: ((tradePostsResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
+        mapTradePostRow(row as unknown as Record<string, unknown>),
+      ),
       notifications: notificationsResult?.error
         ? []
-        : (notificationsResult?.data ?? []).map((row) =>
+        : ((notificationsResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
             mapNotificationRow(row as unknown as Record<string, unknown>),
           ),
       reports: reportsResult?.error
         ? []
-        : (reportsResult?.data ?? []).map((row) => mapReportRow(row as unknown as Record<string, unknown>)),
+        : ((reportsResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
+            mapReportRow(row as unknown as Record<string, unknown>),
+          ),
       blocks: blocksResult?.error
         ? []
-        : (blocksResult?.data ?? []).map((row) => ({
+        : ((blocksResult?.data ?? []) as Record<string, unknown>[]).map((row) => ({
             id: String((row as Record<string, unknown>).id),
             blockerId: String((row as Record<string, unknown>).blocker_id),
             blockedUserId: String((row as Record<string, unknown>).blocked_user_id),
@@ -732,12 +924,12 @@ export async function loadServerRuntimeSnapshot(
           })),
       datingProfiles: datingProfilesResult?.error
         ? []
-        : (datingProfilesResult?.data ?? []).map((row) =>
+        : ((datingProfilesResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
             mapDatingProfileRow(row as unknown as Record<string, unknown>),
           ),
       mediaAssets: mediaAssetsResult?.error
         ? []
-        : (mediaAssetsResult?.data ?? []).map((row) =>
+        : ((mediaAssetsResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
             mapMediaAssetRow(row as unknown as Record<string, unknown>),
           ),
       currentUser: guestUser,
