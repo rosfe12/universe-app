@@ -127,7 +127,7 @@ export function CareerPage({
       return;
     }
     if (!canWriteCareer(currentUser)) {
-      router.push("/profile");
+      router.push("/onboarding?next=%2Fcommunity%3Ffilter%3Dcareer&mode=verification");
       return;
     }
     setComposerOpen(true);

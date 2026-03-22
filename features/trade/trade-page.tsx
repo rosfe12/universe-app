@@ -417,7 +417,7 @@ export function TradePage({
           title="학교 메일 인증을 마치면 바로 열립니다"
           description="학교 메일 인증을 완료하면 우리학교 수강신청 매칭 글 작성과 댓글 참여가 바로 가능합니다."
           actionLabel="인증하러 가기"
-          href="/profile"
+          href="/onboarding?next=%2Ftrade&mode=verification"
         />
       </AppShell>
     );

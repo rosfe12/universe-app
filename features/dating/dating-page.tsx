@@ -265,7 +265,7 @@ export function DatingPage({
           title="학교 메일 인증을 마치면 바로 열립니다"
           description="안전한 이용을 위해 학교 메일 인증을 끝낸 대학생만 프로필 카드와 글쓰기를 사용할 수 있습니다."
           actionLabel="인증하러 가기"
-          href="/profile"
+          href="/onboarding?next=%2Fdating&mode=verification"
         />
       </AppShell>
     );

@@ -45,6 +45,7 @@ import {
   signOutFromSupabase,
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { getStudentVerificationBadge } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot } from "@/types";
 
@@ -78,6 +79,7 @@ export function ProfilePage({
   const verificationBadge = getStudentVerificationBadge(currentUser);
   const schoolVerified = searchParams.get("schoolVerified") === "1";
   const verificationPending = searchParams.get("verification") === "pending";
+  const canAccessAdmin = isMasterAdminEmail(currentUser.email);
   const [settings, setSettings] = useState({
     comment: true,
     answer: true,
@@ -299,12 +301,16 @@ export function ProfilePage({
               description: "내 알림 피드를 전체 확인",
               href: "/notifications",
             },
-            {
-              icon: Shield,
-              title: "관리자 / 신고 현황",
-              description: "신고 처리 상태 확인",
-              href: "/admin",
-            },
+            ...(canAccessAdmin
+              ? [
+                  {
+                    icon: Shield,
+                    title: "관리자 / 신고 현황",
+                    description: "신고 처리 상태 확인",
+                    href: "/admin",
+                  },
+                ]
+              : []),
           ].map((item) => (
             <Link key={item.title} href={item.href}>
               <Card>
