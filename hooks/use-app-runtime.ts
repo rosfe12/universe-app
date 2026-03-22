@@ -60,6 +60,7 @@ export function useAppRuntime(
 
     if (initialSnapshot) {
       setLoading(false);
+      void bootstrap(false);
     } else {
       void bootstrap(true);
     }

@@ -645,8 +645,8 @@ export function CommunityPage({
         <DialogContent className="max-h-[88vh] overflow-y-auto">
           {detailPost ? (
             <>
-              <DialogHeader>
-                <DialogTitle>{detailPost.title}</DialogTitle>
+              <DialogHeader className="pr-10">
+                <DialogTitle className="leading-8">{detailPost.title}</DialogTitle>
                 <DialogDescription>
                   {getCardLabel(detailPost)} · {getSchoolName(detailPost.schoolId)}
                 </DialogDescription>

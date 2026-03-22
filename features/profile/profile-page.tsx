@@ -44,6 +44,7 @@ import {
 } from "@/lib/mock-queries";
 import {
   hasCompletedOnboarding,
+  invalidateClientRuntimeSnapshots,
   signOutFromSupabase,
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
@@ -183,6 +184,13 @@ export function ProfilePage({
             className="w-full sm:w-auto"
             onClick={async () => {
               const adultVerifiedAt = new Date().toISOString();
+              const previousUser = currentUser;
+              const nextUser = {
+                ...currentUser,
+                adultVerified: true,
+                adultVerifiedAt,
+              };
+
               setSnapshot((snapshot) => ({
                 ...snapshot,
                 currentUser: {
@@ -198,12 +206,30 @@ export function ProfilePage({
               }));
 
               if (source === "supabase" && isAuthenticated) {
-                await upsertUserProfile({
-                  ...currentUser,
-                  adultVerified: true,
-                  adultVerifiedAt,
-                });
+                const { error } = await upsertUserProfile(nextUser);
+                if (error) {
+                  setSnapshot((snapshot) => ({
+                    ...snapshot,
+                    currentUser: {
+                      ...snapshot.currentUser,
+                      adultVerified: previousUser.adultVerified,
+                      adultVerifiedAt: previousUser.adultVerifiedAt,
+                    },
+                    users: snapshot.users.map((user) =>
+                      user.id === snapshot.currentUser.id
+                        ? {
+                            ...user,
+                            adultVerified: previousUser.adultVerified,
+                            adultVerifiedAt: previousUser.adultVerifiedAt,
+                          }
+                        : user,
+                    ),
+                  }));
+                  return;
+                }
+                invalidateClientRuntimeSnapshots();
                 await refresh();
+                router.refresh();
               }
             }}
           >

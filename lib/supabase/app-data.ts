@@ -864,6 +864,19 @@ const lastClientRuntimeSnapshots = new Map<
 >();
 const CLIENT_RUNTIME_SNAPSHOT_TTL_MS = 1500;
 
+export function invalidateClientRuntimeSnapshots(scopes?: RuntimeSnapshotScope[]) {
+  if (!scopes || scopes.length === 0) {
+    clientRuntimeSnapshotPromises.clear();
+    lastClientRuntimeSnapshots.clear();
+    return;
+  }
+
+  for (const scope of scopes) {
+    clientRuntimeSnapshotPromises.delete(scope);
+    lastClientRuntimeSnapshots.delete(scope);
+  }
+}
+
 async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"): Promise<AppRuntimeSnapshot> {
   if (!isSupabaseEnabled()) {
     return createSupabaseFallbackSnapshot();
@@ -1200,7 +1213,7 @@ export async function upsertUserProfile(user: User) {
     data: { user: authUser },
   } = await supabase.auth.getUser();
   const resolvedEmail = authUser?.email ?? user.email;
-  return supabase.from("users").upsert(
+  const result = await supabase.from("users").upsert(
     {
       id: user.id,
       email: resolvedEmail,
@@ -1232,6 +1245,12 @@ export async function upsertUserProfile(user: User) {
     },
     { onConflict: "id" },
   );
+
+  if (!result.error) {
+    invalidateClientRuntimeSnapshots();
+  }
+
+  return result;
 }
 
 export async function createPostRecord(input: {

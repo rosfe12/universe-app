@@ -166,13 +166,14 @@ export function TopNavActions() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="top-[calc(env(safe-area-inset-top)+0.75rem)] w-[calc(100%-1rem)] max-w-[440px] -translate-x-1/2 translate-y-0 gap-3 rounded-[24px] border border-white/80 p-4 sm:w-[calc(100%-2rem)] md:top-1/2 md:w-full md:-translate-y-1/2">
+        <DialogContent className="top-[calc(env(safe-area-inset-top)+0.75rem)] w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 translate-y-0 gap-3 overflow-hidden rounded-[24px] border border-white/80 p-4 md:top-1/2 md:w-full md:-translate-y-1/2">
           <DialogHeader className="space-y-1 pr-8">
             <DialogTitle>검색</DialogTitle>
             <DialogDescription>게시글과 강의정보를 바로 찾을 수 있습니다.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <Input
+              className="text-base md:text-sm"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="제목, 내용, 강의명, 교수명 검색"

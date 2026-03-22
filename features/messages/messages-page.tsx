@@ -343,7 +343,7 @@ export function MessagesPage({
       {!isAuthenticated ? (
         <EmptyState
           title="로그인 후 메시지를 확인할 수 있습니다"
-          description="쪽지와 채팅을 나눠서 확인할 수 있습니다."
+          description="메시지와 채팅을 나눠서 확인할 수 있습니다."
           actionLabel="로그인"
           href="/login?next=/messages"
         />
@@ -357,7 +357,7 @@ export function MessagesPage({
       ) : (
         <Tabs defaultValue="dm" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="dm">쪽지</TabsTrigger>
+            <TabsTrigger value="dm">메시지</TabsTrigger>
             <TabsTrigger value="chat">채팅</TabsTrigger>
           </TabsList>
           <TabsContent value="dm" className="mt-0">
@@ -366,7 +366,7 @@ export function MessagesPage({
             </div>
             {messageThreads.length === 0 ? (
               <EmptyState
-                title="아직 쪽지가 없습니다"
+                title="아직 메시지가 없습니다"
                 description="댓글, 답글, 교환 반응이 들어오면 여기에서 바로 이어집니다."
                 actionLabel="커뮤니티 보기"
                 href="/community"
