@@ -2569,8 +2569,9 @@ export const notifications: Notification[] = [
     title: "입시 질문에 답변이 달렸어요",
     body: "건국대 경영 논술 준비 질문에 새 답변이 도착했습니다.",
     isRead: false,
-    href: "/admission",
+    href: "/school?tab=admission&post=admission-1",
     targetType: "post",
+    targetId: "admission-1",
     createdAt: at(20, "10:10:00"),
   },
   {
