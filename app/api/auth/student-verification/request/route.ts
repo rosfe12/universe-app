@@ -178,7 +178,7 @@ export async function POST(request: Request) {
 
   if (!canUseSchoolVerificationEmail(normalizedSchoolEmail)) {
     return NextResponse.json(
-      { error: "학교 메일은 ac.kr 주소만 인증에 사용할 수 있습니다. 테스트 계정은 개인 메일도 허용됩니다." },
+      { error: "학교 메일 형식을 확인해주세요." },
       { status: 400 },
     );
   }

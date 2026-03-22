@@ -17,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
   canUseSchoolVerificationEmail,
-  isTestVerificationEmail,
   normalizeSchoolEmail,
 } from "@/lib/school-email";
 import { createClient } from "@/lib/supabase/client";
@@ -108,9 +107,7 @@ export function OnboardingPage() {
     ? "학교를 먼저 선택해주세요."
     : !normalizedSchoolEmailValue
       ? "학교 메일을 입력한 뒤 인증 요청을 눌러주세요."
-      : isTestVerificationEmail(normalizedSchoolEmailValue)
-        ? "테스트 계정은 개인 메일로도 인증 요청할 수 있습니다."
-        : !canUseSchoolVerificationEmail(normalizedSchoolEmailValue)
+      : !canUseSchoolVerificationEmail(normalizedSchoolEmailValue)
           ? "학교 메일은 ac.kr 주소만 사용할 수 있습니다."
         : isMatchingPendingState
           ? "이미 요청한 메일이 있다면 다시 요청해 새 메일을 받을 수 있습니다."
@@ -231,7 +228,7 @@ export function OnboardingPage() {
     if (values.userType === "student" && !canUseSchoolVerificationEmail(normalizedSchoolEmail)) {
       setPending(false);
       form.setError("schoolEmail", {
-        message: "학교 메일은 ac.kr 주소만 사용할 수 있습니다. 테스트 계정은 개인 메일도 허용됩니다.",
+        message: "학교 메일 형식을 확인해주세요.",
       });
       return;
     }
