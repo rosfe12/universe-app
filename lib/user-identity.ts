@@ -127,6 +127,10 @@ const USER_LEVELS: UserLevel[] = [
   },
 ];
 
+export function getAllUserLevels() {
+  return USER_LEVELS.slice();
+}
+
 export function getUserLevel(score: number): UserLevel {
   const normalized = clampTrustScore(score);
 
