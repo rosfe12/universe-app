@@ -77,6 +77,7 @@ import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import {
   getAuthFlowHref,
   hasCompletedOnboarding,
+  invalidateClientRuntimeSnapshots,
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
 import {
@@ -175,6 +176,7 @@ export function SchoolPage({
   const [isSwitchingSchool, startSchoolSwitchTransition] = useTransition();
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
   const [schoolPickerQuery, setSchoolPickerQuery] = useState("");
+  const [pendingAdminSchoolId, setPendingAdminSchoolId] = useState<string | null>(null);
   const userSchoolId = currentUser.schoolId;
   const canPreviewAllSchools = isAuthenticated && isMasterAdminEmail(currentUser.email);
   const availableSchools = useMemo(
@@ -188,6 +190,11 @@ export function SchoolPage({
   const schoolId = activeSchool?.id;
   const schoolName = activeSchool?.name ?? (isAdminDashboardMode ? "관리자" : "우리학교");
   const schoolShortName = getSchoolShortName(schoolName);
+  const selectedAdminSchoolId = pendingAdminSchoolId ?? userSchoolId ?? null;
+  const selectedAdminSchool =
+    availableSchools.find((school) => school.id === selectedAdminSchoolId) ?? null;
+  const hasPendingAdminSchoolChange =
+    canPreviewAllSchools && selectedAdminSchoolId !== (userSchoolId ?? null);
   const isApplicantMode = currentUser.userType === "applicant";
   const filteredAvailableSchools = useMemo(() => {
     const normalizedQuery = schoolPickerQuery.trim().toLowerCase();
@@ -344,7 +351,15 @@ export function SchoolPage({
         },
       ];
 
-  const handleSchoolPreviewChange = (nextSchoolId: string | null) => {
+  useEffect(() => {
+    if (!canPreviewAllSchools) {
+      return;
+    }
+
+    setPendingAdminSchoolId(userSchoolId ?? null);
+  }, [canPreviewAllSchools, userSchoolId]);
+
+  const applyAdminSchoolPreview = (nextSchoolId: string | null) => {
     startSchoolSwitchTransition(() => {
       const nextUser = {
         ...currentUser,
@@ -368,12 +383,14 @@ export function SchoolPage({
       void (async () => {
         if (source === "supabase" && isAuthenticated) {
           await upsertUserProfile(nextUser);
+          invalidateClientRuntimeSnapshots();
           await refresh();
         }
         const params = new URLSearchParams(searchParams.toString());
         params.delete("post");
         params.delete("school");
         router.replace(`/school${params.size > 0 ? `?${params.toString()}` : ""}`);
+        router.refresh();
       })();
     });
   };
@@ -480,7 +497,7 @@ export function SchoolPage({
                     onClick={() => setSchoolPickerOpen((open) => !open)}
                   >
                     <span className="truncate text-sm font-medium text-foreground">
-                      {isAdminDashboardMode ? "관리자" : activeSchool?.name ?? "학교 선택"}
+                      {selectedAdminSchool ? selectedAdminSchool.name : "관리자"}
                     </span>
                     <ChevronDown
                       className={`h-4 w-4 text-muted-foreground transition-transform ${schoolPickerOpen ? "rotate-180" : ""}`}
@@ -494,24 +511,36 @@ export function SchoolPage({
                         placeholder="학교 검색"
                         className="bg-background"
                       />
+                      {hasPendingAdminSchoolChange ? (
+                        <div className="flex justify-end">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => applyAdminSchoolPreview(selectedAdminSchoolId)}
+                            disabled={isSwitchingSchool}
+                          >
+                            적용
+                          </Button>
+                        </div>
+                      ) : null}
                       <div className="max-h-72 overflow-y-auto rounded-2xl border border-border">
                         <button
                           type="button"
                           className="flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left text-sm hover:bg-muted/50"
-                          onClick={() => handleSchoolPreviewChange(null)}
+                          onClick={() => setPendingAdminSchoolId(null)}
                         >
                           <span className="font-medium text-foreground">관리자</span>
-                          {isAdminDashboardMode ? <Check className="h-4 w-4 text-primary" /> : null}
+                          {!selectedAdminSchoolId ? <Check className="h-4 w-4 text-primary" /> : null}
                         </button>
                         {filteredAvailableSchools.map((school) => (
                           <button
                             key={school.id}
                             type="button"
                             className="flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left text-sm last:border-b-0 hover:bg-muted/50"
-                            onClick={() => handleSchoolPreviewChange(school.id)}
+                            onClick={() => setPendingAdminSchoolId(school.id)}
                           >
                             <span className="font-medium text-foreground">{school.name}</span>
-                            {school.id === schoolId ? <Check className="h-4 w-4 text-primary" /> : null}
+                            {school.id === selectedAdminSchoolId ? <Check className="h-4 w-4 text-primary" /> : null}
                           </button>
                         ))}
                       </div>
