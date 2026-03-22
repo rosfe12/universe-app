@@ -69,7 +69,18 @@ const freshmanZoneSchema = z.object({
   visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
 });
 
+const schoolAdmissionSchema = z.object({
+  title: z.string().trim().min(4, "제목을 4자 이상 입력해주세요."),
+  region: z.string().trim().min(2, "지역을 입력해주세요."),
+  track: z.enum(["문과", "이과", "예체능", "기타"]),
+  scoreType: z.string().trim().min(2, "성적 정보를 입력해주세요."),
+  interestDepartment: z.string().trim().min(2, "관심 학과를 입력해주세요."),
+  content: z.string().trim().min(10, "질문 내용을 10자 이상 입력해주세요."),
+  visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+});
+
 type FreshmanZoneFormValues = z.infer<typeof freshmanZoneSchema>;
+type SchoolAdmissionFormValues = z.infer<typeof schoolAdmissionSchema>;
 type SchoolSection = "lectures" | "trade" | "club" | "food" | "freshman" | "admission";
 
 const SECTION_VALUES: SchoolSection[] = [
@@ -116,6 +127,7 @@ export function SchoolPage({
   const currentUser = runtimeUser;
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [admissionComposerOpen, setAdmissionComposerOpen] = useState(false);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const currentSchool = getCurrentSchool();
   const schoolId = currentUser.schoolId;
@@ -167,6 +179,18 @@ export function SchoolPage({
       visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
     },
   });
+  const admissionForm = useForm<SchoolAdmissionFormValues>({
+    resolver: zodResolver(schoolAdmissionSchema),
+    defaultValues: {
+      title: "",
+      region: "서울",
+      track: "문과",
+      scoreType: "",
+      interestDepartment: "",
+      content: "",
+      visibilityLevel: currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+    },
+  });
 
   const quickTools = isApplicantMode
     ? [
@@ -174,7 +198,7 @@ export function SchoolPage({
           key: "admission" as const,
           label: "입시 Q&A",
           icon: GraduationCap,
-          href: "/admission",
+          href: "/school?tab=admission",
         },
         {
           key: "freshman" as const,
@@ -218,7 +242,7 @@ export function SchoolPage({
           key: "admission" as const,
           label: "입시 Q&A",
           icon: GraduationCap,
-          href: "/admission",
+          href: "/school?tab=admission",
         },
       ];
 
@@ -313,7 +337,19 @@ export function SchoolPage({
               <Button
                 type="button"
                 className="flex-1"
-                onClick={() => router.push("/admission")}
+                onClick={() => {
+                  if (!admissionWriteEnabled) {
+                    router.push(
+                      getAuthFlowHref({
+                        isAuthenticated,
+                        user: currentUser,
+                        nextPath: "/school?tab=admission",
+                      }),
+                    );
+                    return;
+                  }
+                  setAdmissionComposerOpen(true);
+                }}
               >
                 질문하기
               </Button>
@@ -388,13 +424,34 @@ export function SchoolPage({
               : "space-y-4"
           }
         >
-          <SectionHeader title="입시 Q&A" href="/admission" />
+          <div className="flex items-center justify-between gap-3">
+            <SectionHeader title="입시 Q&A" />
+            <Button
+              type="button"
+              size="sm"
+              variant={isApplicantMode ? "default" : "outline"}
+              onClick={() => {
+                if (!admissionWriteEnabled) {
+                  router.push(
+                    getAuthFlowHref({
+                      isAuthenticated,
+                      user: currentUser,
+                      nextPath: "/school?tab=admission",
+                    }),
+                  );
+                  return;
+                }
+                setAdmissionComposerOpen(true);
+              }}
+            >
+              질문하기
+            </Button>
+          </div>
           {admissionPosts.length === 0 ? (
             <EmptyState
               title={`${schoolShortName} 입시 질문이 아직 없습니다`}
               description="이 학교를 목표로 준비 중이라면 첫 질문을 남겨보세요."
-              actionLabel="질문하러 가기"
-              href="/admission"
+              actionLabel="질문 남기기"
             />
           ) : (
             <FeedList>
@@ -544,6 +601,147 @@ export function SchoolPage({
               />
             </>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={admissionComposerOpen} onOpenChange={setAdmissionComposerOpen}>
+        <DialogContent className="max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{schoolShortName} 입시 질문하기</DialogTitle>
+            <DialogDescription>지망학교 기준으로 궁금한 점을 바로 남길 수 있습니다.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={admissionForm.handleSubmit(async (values) => {
+              admissionForm.clearErrors("root");
+              const createdAt = new Date().toISOString();
+              const validationError = validatePostSubmission(getRuntimeSnapshot(), {
+                authorId: currentUser.id,
+                category: "admission",
+                title: values.title,
+                content: values.content,
+                createdAt,
+              });
+
+              if (validationError) {
+                admissionForm.setError("root", { message: validationError });
+                return;
+              }
+
+              const meta = {
+                region: values.region,
+                track: values.track,
+                scoreType: values.scoreType,
+                interestUniversity: schoolName,
+                interestDepartment: values.interestDepartment,
+              };
+
+              const localPost: Post = {
+                id: `school-admission-local-${admissionPosts.length + 1}`,
+                category: "admission",
+                authorId: currentUser.id,
+                schoolId: currentUser.schoolId,
+                visibilityLevel: values.visibilityLevel as VisibilityLevel,
+                title: values.title,
+                content: values.content,
+                createdAt,
+                likes: 0,
+                commentCount: 0,
+                tags: [values.track, schoolShortName],
+                meta,
+              };
+
+              if (source === "supabase" && isAuthenticated) {
+                startSubmitTransition(() => {
+                  void (async () => {
+                    try {
+                      await createPost({
+                        category: "admission",
+                        schoolId: currentUser.schoolId,
+                        visibilityLevel: values.visibilityLevel,
+                        title: values.title,
+                        content: values.content,
+                        tags: [values.track, schoolShortName],
+                        meta,
+                      });
+                      await refresh();
+                      admissionForm.reset({
+                        title: "",
+                        region: "서울",
+                        track: "문과",
+                        scoreType: "",
+                        interestDepartment: "",
+                        content: "",
+                        visibilityLevel:
+                          currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+                      });
+                      setAdmissionComposerOpen(false);
+                    } catch (error) {
+                      admissionForm.setError("root", {
+                        message: error instanceof Error ? error.message : "입시 질문 등록에 실패했습니다.",
+                      });
+                    }
+                  })();
+                });
+                return;
+              }
+
+              setSnapshot((current) => addPostToSnapshot(current, localPost));
+              admissionForm.reset({
+                title: "",
+                region: "서울",
+                track: "문과",
+                scoreType: "",
+                interestDepartment: "",
+                content: "",
+                visibilityLevel:
+                  currentUser.defaultVisibilityLevel ?? getDefaultVisibilityLevel(currentUser),
+              });
+              setAdmissionComposerOpen(false);
+            })}
+          >
+            <div className="space-y-2">
+              <Label>제목</Label>
+              <Input placeholder="예: 이 학교 교과전형 면접 분위기 궁금해요" {...admissionForm.register("title")} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>지역</Label>
+                <Input {...admissionForm.register("region")} />
+              </div>
+              <div className="space-y-2">
+                <Label>계열</Label>
+                <Input {...admissionForm.register("track")} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>성적 정보</Label>
+              <Input placeholder="예: 내신 2.3 / 수능 수학 2등급" {...admissionForm.register("scoreType")} />
+            </div>
+            <div className="space-y-2">
+              <Label>관심 학과</Label>
+              <Input placeholder="예: 경영학과" {...admissionForm.register("interestDepartment")} />
+            </div>
+            <div className="space-y-2">
+              <Label>내용</Label>
+              <Textarea rows={5} placeholder="궁금한 포인트를 구체적으로 적어주세요." {...admissionForm.register("content")} />
+            </div>
+            <div className="space-y-2">
+              <Label>공개 범위</Label>
+              <VisibilityLevelSelect
+                value={admissionForm.watch("visibilityLevel")}
+                onChange={(value) =>
+                  admissionForm.setValue("visibilityLevel", value, { shouldValidate: true })
+                }
+              />
+            </div>
+            {admissionForm.formState.errors.root?.message ? (
+              <p className="text-xs text-rose-500">{admissionForm.formState.errors.root.message}</p>
+            ) : null}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "등록 중" : "질문 올리기"}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
 
