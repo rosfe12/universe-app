@@ -34,6 +34,7 @@ import {
   getLectureTitle,
   getNotifications,
   getPostById,
+  getPostHref,
   getUserComments,
   getUserLectureReviews,
   getUserPosts,
@@ -86,6 +87,15 @@ export function ProfilePage({
     trade: true,
     marketing: false,
   });
+  const moveToPost = (postId: string) => {
+    router.push(getPostHref(postId));
+  };
+  const moveToLectureReview = (lectureId: string) => {
+    router.push(`/lectures/${lectureId}`);
+  };
+  const moveToTradePost = (postId: string) => {
+    router.push(`/trade?post=${postId}`);
+  };
 
   if (!loading && !isAuthenticated) {
     return (
@@ -377,68 +387,88 @@ export function ProfilePage({
           </TabsList>
           <TabsContent value="posts" className="space-y-3">
             {myPosts.map((post) => (
-              <Card key={post.id}>
-                <CardContent className="space-y-2 py-5">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{post.category}</Badge>
-                    {post.subcategory ? <Badge variant="secondary">{post.subcategory}</Badge> : null}
-                    {post.visibilityLevel ? <Badge variant="secondary">{post.visibilityLevel}</Badge> : null}
-                  </div>
-                  <p className="font-semibold">{post.title}</p>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
-                </CardContent>
+              <Card key={post.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
+                <button type="button" className="w-full cursor-pointer text-left" onClick={() => moveToPost(post.id)}>
+                  <CardContent className="space-y-2 py-5">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{post.category}</Badge>
+                      {post.subcategory ? <Badge variant="secondary">{post.subcategory}</Badge> : null}
+                      {post.visibilityLevel ? <Badge variant="secondary">{post.visibilityLevel}</Badge> : null}
+                    </div>
+                    <p className="font-semibold">{post.title}</p>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
+                  </CardContent>
+                </button>
               </Card>
             ))}
           </TabsContent>
           <TabsContent value="comments" className="space-y-3">
             {myComments.map((comment) => (
-              <Card key={comment.id}>
-                <CardContent className="space-y-2 py-5">
-                  <p className="font-semibold">
-                    {getPostById(comment.postId)?.title ?? comment.postId}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{comment.content}</p>
-                  {comment.visibilityLevel ? (
-                    <Badge variant="secondary">{comment.visibilityLevel}</Badge>
-                  ) : null}
-                  {comment.accepted ? <Badge variant="success">채택됨</Badge> : null}
-                </CardContent>
+              <Card key={comment.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
+                <button
+                  type="button"
+                  className="w-full cursor-pointer text-left"
+                  onClick={() => moveToPost(comment.postId)}
+                >
+                  <CardContent className="space-y-2 py-5">
+                    <p className="font-semibold">
+                      {getPostById(comment.postId)?.title ?? comment.postId}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{comment.content}</p>
+                    {comment.visibilityLevel ? (
+                      <Badge variant="secondary">{comment.visibilityLevel}</Badge>
+                    ) : null}
+                    {comment.accepted ? <Badge variant="success">채택됨</Badge> : null}
+                  </CardContent>
+                </button>
               </Card>
             ))}
           </TabsContent>
           <TabsContent value="reviews" className="space-y-3">
             {myReviews.map((review) => (
-              <Card key={review.id}>
-                <CardContent className="space-y-2 py-5">
-                  <p className="font-semibold">{getLectureTitle(review.lectureId)}</p>
-                  <p className="text-sm text-muted-foreground">{review.shortComment}</p>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">꿀강 {review.honeyScore}/5</Badge>
-                    <Badge variant="outline">{review.semester}</Badge>
-                    {review.visibilityLevel ? (
-                      <Badge variant="secondary">{review.visibilityLevel}</Badge>
-                    ) : null}
-                  </div>
-                </CardContent>
+              <Card key={review.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
+                <button
+                  type="button"
+                  className="w-full cursor-pointer text-left"
+                  onClick={() => moveToLectureReview(review.lectureId)}
+                >
+                  <CardContent className="space-y-2 py-5">
+                    <p className="font-semibold">{getLectureTitle(review.lectureId)}</p>
+                    <p className="text-sm text-muted-foreground">{review.shortComment}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">꿀강 {review.honeyScore}/5</Badge>
+                      <Badge variant="outline">{review.semester}</Badge>
+                      {review.visibilityLevel ? (
+                        <Badge variant="secondary">{review.visibilityLevel}</Badge>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </button>
               </Card>
             ))}
           </TabsContent>
           <TabsContent value="trade" className="space-y-3">
             {myTradePosts.map((post) => (
-              <Card key={post.id}>
-                <CardContent className="space-y-2 py-5">
-                  <p className="font-semibold">
-                    {getLectureTitle(post.haveLectureId)} ↔ {getLectureTitle(post.wantLectureId)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{post.note}</p>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">{post.status}</Badge>
-                    <Badge variant="outline">{post.timeRange}</Badge>
-                    {post.visibilityLevel ? (
-                      <Badge variant="secondary">{post.visibilityLevel}</Badge>
-                    ) : null}
-                  </div>
-                </CardContent>
+              <Card key={post.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
+                <button
+                  type="button"
+                  className="w-full cursor-pointer text-left"
+                  onClick={() => moveToTradePost(post.id)}
+                >
+                  <CardContent className="space-y-2 py-5">
+                    <p className="font-semibold">
+                      {getLectureTitle(post.haveLectureId)} ↔ {getLectureTitle(post.wantLectureId)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{post.note}</p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{post.status}</Badge>
+                      <Badge variant="outline">{post.timeRange}</Badge>
+                      {post.visibilityLevel ? (
+                        <Badge variant="secondary">{post.visibilityLevel}</Badge>
+                      ) : null}
+                    </div>
+                  </CardContent>
+                </button>
               </Card>
             ))}
           </TabsContent>
