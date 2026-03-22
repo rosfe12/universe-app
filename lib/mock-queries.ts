@@ -3,6 +3,7 @@ import {
   CAREER_BOARD_LABELS,
   COMMUNITY_CATEGORY_LABELS,
   MATCH_STRENGTH_LABELS,
+  TRADE_STATUS_LABELS,
   USER_TYPE_LABELS,
   WORKLOAD_LABELS,
 } from "@/lib/constants";
@@ -345,6 +346,34 @@ export function getCareerPosts(kind?: CareerBoardKind) {
   );
 }
 
+export function getCommunityFilterForPost(post: Pick<Post, "category" | "subcategory" | "tags">) {
+  const careerBoard = getCareerBoardKind(post);
+  if (careerBoard) return "career" as const;
+  if (post.subcategory === "free") return "free" as const;
+  if (post.subcategory === "ask") return "ask" as const;
+  if (post.subcategory === "hot") return "hot" as const;
+  return "advice" as const;
+}
+
+export function getPostHref(postId: string) {
+  const post = getPostById(postId);
+  if (!post) return "/home";
+
+  if (post.category === "admission") {
+    return `/admission/${post.id}`;
+  }
+
+  if (post.category === "dating") {
+    return `/dating${post.subcategory ? `?filter=${post.subcategory}` : ""}`;
+  }
+
+  if (post.subcategory === "freshman") return `/school?tab=freshman&post=${post.id}`;
+  if (post.subcategory === "club") return `/school?tab=club&post=${post.id}`;
+  if (post.subcategory === "food") return `/school?tab=food&post=${post.id}`;
+
+  return `/community?filter=${getCommunityFilterForPost(post)}&post=${post.id}`;
+}
+
 export function getCommunityCategoryLabel(
   subcategory?: CommunitySubcategory | "dating" | "meeting",
 ) {
@@ -451,6 +480,10 @@ export function getLectureReviews(lectureId: string) {
 
 export function getTradePosts() {
   return recentFirst(getState().tradePosts.filter((post) => !isHiddenTradePost(post)));
+}
+
+export function getTradeStatusLabel(status: TradePost["status"]) {
+  return TRADE_STATUS_LABELS[status];
 }
 
 export function getTradeMatchCandidates(postId: string) {

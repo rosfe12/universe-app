@@ -16,12 +16,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FeedPostCard } from "@/features/common/feed-post-card";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { TRADE_STATUS_LABELS } from "@/lib/constants";
 import {
   getCommunityPosts,
   getCareerPosts,
   getCurrentSchool,
   getLectureById,
   getLectureSummaries,
+  getPostHref,
   getTradePosts,
 } from "@/lib/mock-queries";
 import type { AppRuntimeSnapshot } from "@/types";
@@ -96,13 +98,7 @@ export function HomePage({
               <FeedPostCard
                 key={post.id}
                 post={post}
-                href={
-                  post.subcategory === "freshman"
-                    ? "/school?tab=freshman"
-                    : post.subcategory === "food"
-                      ? "/school?tab=food"
-                      : "/school?tab=club"
-                }
+                href={getPostHref(post.id)}
               />
             ))}
           </FeedList>
@@ -144,7 +140,7 @@ export function HomePage({
                     <span className="font-semibold text-gray-900">
                       {getLectureById(tradePost.wantLectureId)?.courseName ?? tradePost.wantLectureId}
                     </span>
-                    <span className="text-gray-500">{tradePost.status}</span>
+                    <span className="text-gray-500">{TRADE_STATUS_LABELS[tradePost.status]}</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
                     <span>보유 {getLectureById(tradePost.haveLectureId)?.courseName ?? tradePost.haveLectureId}</span>
@@ -224,7 +220,7 @@ export function HomePage({
         {hasCommunityHighlights ? (
           <FeedList>
             {communityHighlights.map((post) => (
-              <FeedPostCard key={post.id} post={post} href="/community" />
+              <FeedPostCard key={post.id} post={post} href={getPostHref(post.id)} />
             ))}
           </FeedList>
         ) : (

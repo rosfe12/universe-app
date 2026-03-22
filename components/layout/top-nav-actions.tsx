@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getCareerBoardKind } from "@/lib/mock-queries";
+import { getPostHref } from "@/lib/mock-queries";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { cn } from "@/lib/utils";
 
@@ -40,38 +40,6 @@ function getSearchScore(input: {
   if (body.includes(query)) score += 20;
 
   return score;
-}
-
-function getCommunityFilter(postId: string) {
-  const snapshot = getRuntimeSnapshot();
-  const post = snapshot.posts.find((item) => item.id === postId);
-  if (!post) return "all";
-  const careerBoard = getCareerBoardKind(post);
-  if (careerBoard) return "career";
-  if (post.subcategory === "free") return "free";
-  if (post.subcategory === "ask") return "ask";
-  if (post.subcategory === "hot") return "hot";
-  return "advice";
-}
-
-function getPostHref(postId: string) {
-  const snapshot = getRuntimeSnapshot();
-  const post = snapshot.posts.find((item) => item.id === postId);
-  if (!post) return "/home";
-
-  if (post.category === "admission") {
-    return `/admission/${post.id}`;
-  }
-
-  if (post.category === "dating") {
-    return "/dating";
-  }
-
-  if (post.subcategory === "freshman") return "/school?tab=freshman";
-  if (post.subcategory === "club") return "/school?tab=club";
-  if (post.subcategory === "food") return "/school?tab=food";
-
-  return `/community?filter=${getCommunityFilter(post.id)}&post=${post.id}`;
 }
 
 export function TopNavActions() {

@@ -36,6 +36,7 @@ import {
   getHotGalleryPosts,
   getLectureSummaries,
   getNotifications,
+  getPostHref,
   getSchoolHotPosts,
   getTradePosts,
 } from "@/lib/mock-queries";
@@ -149,6 +150,10 @@ function getNotificationHref(item: Notification) {
     return item.href;
   }
 
+  if (item.targetType === "post" && item.targetId) {
+    return getPostHref(item.targetId);
+  }
+
   switch (item.type) {
     case "admissionAnswer":
     case "admissionUnanswered":
@@ -161,13 +166,13 @@ function getNotificationHref(item: Notification) {
     case "reportUpdate":
       return "/profile";
     case "schoolRecommendation":
-      return "/school";
+      return item.targetId ? getPostHref(item.targetId) : "/school";
     case "freshmanTrending":
-      return "/school?tab=freshman";
+      return item.targetId ? getPostHref(item.targetId) : "/school?tab=freshman";
     case "comment":
     case "reply":
     case "trendingPost":
-      return "/community";
+      return item.targetId ? getPostHref(item.targetId) : "/community";
     case "announcement":
       return "/community";
     default:

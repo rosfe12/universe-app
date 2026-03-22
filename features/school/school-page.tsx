@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -114,8 +114,10 @@ export function SchoolPage({
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
+  const detailParam = searchParams.get("post");
   const highlightSection: SchoolSection | null = isSchoolSection(tabParam)
     ? tabParam
     : null;
@@ -161,10 +163,6 @@ export function SchoolPage({
   const freshmanCommentEnabled = freshmanComposeEnabled;
   const admissionWriteEnabled =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion(currentUser);
-  const freshmanDetailPost = useMemo(
-    () => freshmanZonePosts.find((post) => post.id === detailPostId) ?? null,
-    [detailPostId, freshmanZonePosts],
-  );
   const campusInfoCards = useMemo(
     () =>
       [
@@ -172,6 +170,14 @@ export function SchoolPage({
         ...foodPosts.map((post) => ({ ...post, boardLabel: "맛집" as const })),
       ].sort((a, b) => b.likes - a.likes || b.commentCount - a.commentCount),
     [clubPosts, foodPosts],
+  );
+  const schoolDetailPosts = useMemo(
+    () => [...freshmanZonePosts, ...campusInfoCards],
+    [campusInfoCards, freshmanZonePosts],
+  );
+  const detailPost = useMemo(
+    () => schoolDetailPosts.find((post) => post.id === detailPostId) ?? null,
+    [detailPostId, schoolDetailPosts],
   );
 
   const freshmanForm = useForm<FreshmanZoneFormValues>({
@@ -248,6 +254,19 @@ export function SchoolPage({
           href: "/school?tab=admission",
         },
       ];
+
+  useEffect(() => {
+    if (!detailParam) {
+      return;
+    }
+
+    const targetPost = schoolDetailPosts.find((post) => post.id === detailParam);
+    if (!targetPost) {
+      return;
+    }
+
+    setDetailPostId(targetPost.id);
+  }, [detailParam, schoolDetailPosts]);
 
   if (!loading && !isAuthenticated) {
     return (
@@ -522,7 +541,7 @@ export function SchoolPage({
             {campusInfoCards.map((post) => (
               <Link
                 key={`${post.boardLabel}-${post.id}`}
-                href={post.boardLabel === "동아리" ? "/community" : "/school?tab=food"}
+                href={`/school?tab=${post.boardLabel === "동아리" ? "club" : "food"}&post=${post.id}`}
                 className="block min-w-[280px] snap-start"
               >
                 <Card
@@ -574,41 +593,75 @@ export function SchoolPage({
       </section>
 
       <Dialog
-        open={Boolean(freshmanDetailPost)}
-        onOpenChange={(next) => !next && setDetailPostId(null)}
+        open={Boolean(detailPost)}
+        onOpenChange={(next) => {
+          if (next) return;
+          setDetailPostId(null);
+          const nextParams = new URLSearchParams(searchParams.toString());
+          nextParams.delete("post");
+          router.replace(nextParams.size ? `${pathname}?${nextParams.toString()}` : pathname, {
+            scroll: false,
+          });
+        }}
       >
         <DialogContent className="max-h-[88vh] overflow-y-auto">
-          {freshmanDetailPost ? (
+          {detailPost ? (
             <>
               <DialogHeader>
-                <DialogTitle>{freshmanDetailPost.title}</DialogTitle>
-                <DialogDescription>{schoolShortName} 새내기 게시판</DialogDescription>
+                <DialogTitle>{detailPost.title}</DialogTitle>
+                <DialogDescription>
+                  {detailPost.subcategory === "freshman"
+                    ? `${schoolShortName} 새내기 게시판`
+                    : detailPost.subcategory === "club"
+                      ? `${schoolShortName} 동아리`
+                      : `${schoolShortName} 맛집`}
+                </DialogDescription>
               </DialogHeader>
               <Card className="shadow-none">
                 <CardContent className="space-y-4 py-5">
                   <PostAuthorRow
-                    authorId={freshmanDetailPost.authorId}
-                    createdAt={freshmanDetailPost.createdAt}
-                    visibilityLevel={freshmanDetailPost.visibilityLevel}
-                    trailing={<Badge variant="success">새내기존</Badge>}
+                    authorId={detailPost.authorId}
+                    createdAt={detailPost.createdAt}
+                    visibilityLevel={detailPost.visibilityLevel}
+                    trailing={
+                      detailPost.subcategory === "freshman" ? (
+                        <Badge variant="success">새내기존</Badge>
+                      ) : detailPost.subcategory === "club" ? (
+                        <Badge variant="secondary">동아리</Badge>
+                      ) : (
+                        <Badge variant="warning">맛집</Badge>
+                      )
+                    }
                   />
                   <div className="rounded-[22px] bg-secondary/55 px-4 py-4">
-                    <p className="text-sm leading-7 text-muted-foreground">{freshmanDetailPost.content}</p>
+                    <p className="text-sm leading-7 text-muted-foreground">{detailPost.content}</p>
                   </div>
                 </CardContent>
               </Card>
               <CommentThread
-                postId={freshmanDetailPost.id}
-                canCommentOverride={freshmanCommentEnabled}
+                postId={detailPost.id}
+                canCommentOverride={
+                  detailPost.subcategory === "freshman"
+                    ? freshmanCommentEnabled
+                    : isAuthenticated && hasCompletedOnboarding(currentUser)
+                }
                 accountRequiredTitle={
-                  isAuthenticated
-                    ? "새내기존 댓글은 같은 학교 예비입학생만 작성할 수 있습니다"
-                    : "로그인 후 새내기존 댓글을 볼 수 있습니다"
+                  detailPost.subcategory === "freshman"
+                    ? isAuthenticated
+                      ? "새내기존 댓글은 같은 학교 예비입학생만 작성할 수 있습니다"
+                      : "로그인 후 새내기존 댓글을 볼 수 있습니다"
+                    : isAuthenticated
+                      ? "학교 설정을 마치면 바로 댓글을 남길 수 있습니다"
+                      : "로그인 후 학교 생활 글에 댓글을 남길 수 있습니다"
                 }
                 accountRequiredDescription={
-                  isAuthenticated
-                    ? "예비입학생 계정으로 온보딩을 마친 뒤 댓글을 남길 수 있습니다."
-                    : "읽기는 자유롭게, 댓글은 예비입학생 계정 로그인 후 이용할 수 있습니다."
+                  detailPost.subcategory === "freshman"
+                    ? isAuthenticated
+                      ? "예비입학생 계정으로 온보딩을 마친 뒤 댓글을 남길 수 있습니다."
+                      : "읽기는 자유롭게, 댓글은 예비입학생 계정 로그인 후 이용할 수 있습니다."
+                    : isAuthenticated
+                      ? "학교를 선택하고 기본 프로필을 마치면 댓글이 열립니다."
+                      : "읽기는 자유롭게, 댓글은 로그인 후 이용할 수 있습니다."
                 }
               />
             </>
