@@ -527,6 +527,18 @@ function filterAdultGatedPosts(posts: Post[], context: RuntimeQueryContext) {
   return posts.filter((post) => post.subcategory !== "hot");
 }
 
+function normalizeCommunityVisibilityLevel(
+  category: Post["category"],
+  subcategory: Post["subcategory"] | undefined,
+  visibilityLevel: Post["visibilityLevel"],
+) {
+  if (category === "community" && subcategory !== "anonymous" && visibilityLevel === "anonymous") {
+    return "school" as const;
+  }
+
+  return visibilityLevel;
+}
+
 function mapPostRow(row: Record<string, unknown>): Post {
   const likes =
     typeof row.like_count === "number"
@@ -543,7 +555,11 @@ function mapPostRow(row: Record<string, unknown>): Post {
     subcategory: (row.subcategory as Post["subcategory"]) ?? undefined,
     schoolId: row.school_id ? String(row.school_id) : undefined,
     authorId: String(row.author_id),
-    visibilityLevel: toVisibilityLevel(row.visibility_level as string | null | undefined),
+    visibilityLevel: normalizeCommunityVisibilityLevel(
+      row.category as Post["category"],
+      (row.subcategory as Post["subcategory"]) ?? undefined,
+      toVisibilityLevel(row.visibility_level as string | null | undefined),
+    ),
     title: String(row.title),
     content: String(row.content),
     createdAt: String(row.created_at ?? new Date().toISOString()),

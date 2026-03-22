@@ -99,7 +99,7 @@ export const CAREER_BOARD_LABELS = {
 } as const;
 
 export const VISIBILITY_LEVEL_LABELS: Record<VisibilityLevel, string> = {
-  anonymous: "완전 익명",
+  anonymous: "익명",
   school: "학교만 공개",
   schoolDepartment: "학교 + 학과 공개",
   profile: "프로필 공개",

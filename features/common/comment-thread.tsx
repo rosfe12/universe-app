@@ -218,7 +218,11 @@ export function CommentThread({
             <PostAuthorRow
               authorId={comment.authorId}
               createdAt={comment.createdAt}
-              visibilityLevel={comment.visibilityLevel}
+              visibilityLevel={
+                targetPost?.category === "community" && targetPost.subcategory !== "anonymous"
+                  ? "school"
+                  : comment.visibilityLevel
+              }
               minimal
             />
             <div className="space-y-2">
