@@ -460,7 +460,12 @@ export function getAuthFlowHref({
   return nextPath;
 }
 
-export async function loadClientRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
+let clientRuntimeSnapshotPromise: Promise<AppRuntimeSnapshot> | null = null;
+let lastClientRuntimeSnapshot: AppRuntimeSnapshot | null = null;
+let lastClientRuntimeSnapshotAt = 0;
+const CLIENT_RUNTIME_SNAPSHOT_TTL_MS = 1500;
+
+async function fetchClientRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
   if (!isSupabaseEnabled()) {
     return createSupabaseFallbackSnapshot();
   }
@@ -615,6 +620,37 @@ export async function loadClientRuntimeSnapshot(): Promise<AppRuntimeSnapshot> {
       getSupabaseSetupIssue(error instanceof Error ? error : undefined),
     );
   }
+}
+
+export async function loadClientRuntimeSnapshot(options?: {
+  force?: boolean;
+}): Promise<AppRuntimeSnapshot> {
+  const force = options?.force ?? false;
+  const now = Date.now();
+
+  if (
+    !force &&
+    lastClientRuntimeSnapshot &&
+    now - lastClientRuntimeSnapshotAt < CLIENT_RUNTIME_SNAPSHOT_TTL_MS
+  ) {
+    return lastClientRuntimeSnapshot;
+  }
+
+  if (!force && clientRuntimeSnapshotPromise) {
+    return clientRuntimeSnapshotPromise;
+  }
+
+  clientRuntimeSnapshotPromise = fetchClientRuntimeSnapshot()
+    .then((snapshot) => {
+      lastClientRuntimeSnapshot = snapshot;
+      lastClientRuntimeSnapshotAt = Date.now();
+      return snapshot;
+    })
+    .finally(() => {
+      clientRuntimeSnapshotPromise = null;
+    });
+
+  return clientRuntimeSnapshotPromise;
 }
 
 export async function signInWithSupabase(email: string, password: string) {

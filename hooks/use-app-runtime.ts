@@ -30,11 +30,11 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
   useEffect(() => {
     let active = true;
 
-    async function bootstrap(showLoading: boolean) {
+    async function bootstrap(showLoading: boolean, force = false) {
       if (showLoading) {
         setLoading(true);
       }
-      const nextSnapshot = await loadClientRuntimeSnapshot();
+      const nextSnapshot = await loadClientRuntimeSnapshot({ force });
       if (!active) return;
       setSnapshot(nextSnapshot);
       setLoading(false);
@@ -62,7 +62,7 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async () => {
-      await bootstrap(false);
+      await bootstrap(false, true);
     });
 
     return () => {
@@ -77,7 +77,7 @@ export function useAppRuntime(initialSnapshot?: AppRuntimeSnapshot) {
     loading,
     setSnapshot,
     refresh: async () => {
-      const nextSnapshot = await loadClientRuntimeSnapshot();
+      const nextSnapshot = await loadClientRuntimeSnapshot({ force: true });
       setSnapshot(nextSnapshot);
       return nextSnapshot;
     },
