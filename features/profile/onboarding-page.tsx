@@ -299,6 +299,18 @@ export function OnboardingPage() {
       <Card>
         <CardHeader className="space-y-3">
           <p className="text-xs font-semibold tracking-[0.2em] text-primary">유니버스</p>
+          {isVerificationMode ? (
+            <div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-auto px-0 text-sm text-muted-foreground hover:bg-transparent hover:text-foreground"
+                onClick={() => router.push(nextPath)}
+              >
+                돌아가기
+              </Button>
+            </div>
+          ) : null}
           <div>
             <CardTitle className="text-2xl">
               {isVerificationMode ? "학교 메일 인증" : "기본 프로필 설정"}
