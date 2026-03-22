@@ -456,7 +456,8 @@ export function ProfilePage({
               await signOutFromSupabase();
               await refresh();
             }
-            router.push("/home");
+            router.replace("/home");
+            router.refresh();
           }}
         >
           로그아웃

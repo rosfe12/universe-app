@@ -1174,7 +1174,11 @@ export async function signUpWithSupabase({
 
 export async function signOutFromSupabase() {
   const supabase = createClient();
-  return supabase.auth.signOut();
+  const result = await supabase.auth.signOut();
+  if (!result.error) {
+    invalidateClientRuntimeSnapshots();
+  }
+  return result;
 }
 
 export async function requestStudentVerificationEmail(input: {

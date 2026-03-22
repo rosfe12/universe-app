@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { ErrorState } from "@/components/shared/error-state";
-import { LoadingState } from "@/components/shared/loading-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +27,7 @@ import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
   email: z.string().email("이메일 형식이 필요합니다."),
-  password: z.string().min(6, "비밀번호를 6자 이상 입력해주세요."),
+  password: z.string().min(4, "비밀번호를 4자 이상 입력해주세요."),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -103,13 +102,14 @@ export function LoginPage() {
     }
 
     const nextSnapshot = await refresh();
-    router.push(
+    router.replace(
       getAuthFlowHref({
         isAuthenticated: nextSnapshot.isAuthenticated,
         user: nextSnapshot.currentUser,
         nextPath,
       }),
     );
+    router.refresh();
   });
 
   return (
@@ -135,7 +135,6 @@ export function LoginPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5 py-6">
-          {pending || loading ? <LoadingState /> : null}
           {schoolVerified ? (
             <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               학교 메일 인증이 완료되었습니다. 로그인 후 바로 대학생 권한을 사용할 수 있습니다.
@@ -223,14 +222,30 @@ export function LoginPage() {
             <div className="space-y-2">
               <Label>이메일</Label>
               <Input {...form.register("email")} />
+              {form.formState.errors.email ? (
+                <p className="text-xs text-rose-500">{form.formState.errors.email.message}</p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label>비밀번호</Label>
               <Input type="password" {...form.register("password")} />
+              {form.formState.errors.password ? (
+                <p className="text-xs text-rose-500">{form.formState.errors.password.message}</p>
+              ) : null}
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={pending || loading}>
               <Mail className="h-4 w-4" />
-              {adminOnlyFlow ? "관리자 로그인" : mode === "login" ? "로그인" : "회원가입"}
+              {pending
+                ? adminOnlyFlow
+                  ? "로그인 중"
+                  : mode === "login"
+                    ? "로그인 중"
+                    : "가입 중"
+                : adminOnlyFlow
+                  ? "관리자 로그인"
+                  : mode === "login"
+                    ? "로그인"
+                    : "회원가입"}
             </Button>
             {!adminOnlyFlow ? (
               <button
