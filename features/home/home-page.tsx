@@ -69,18 +69,11 @@ export function HomePage({
 
       <section className="space-y-3">
         <SectionHeader
-          title={currentUser.userType === "applicant" ? "🎯 지망학교 지금" : "🏫 우리학교 지금"}
+          title={currentUser.userType === "applicant" ? "🎯 지금 지망학교는" : "🏫 지금 우리 학교는"}
           href="/school"
         />
         <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#eef2ff_0%,#ffffff_58%,#f5f3ff_130%)]">
           <CardContent className="space-y-4 py-5">
-            <div>
-              <p className="mt-2 text-lg font-bold text-foreground">
-                {currentUser.userType === "applicant"
-                  ? `${schoolName} 관련 질문과 새내기 글부터 확인해요`
-                  : `${schoolName} 안에서 바로 반응 붙는 글부터 보여줘요`}
-              </p>
-            </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="default">학교 전용</Badge>
               <Badge variant="outline">새내기</Badge>

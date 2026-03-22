@@ -485,10 +485,7 @@ export function CommunityPage({
             ))}
           </div>
           <Card className="shadow-none">
-            <CardContent className="flex items-center justify-between gap-3 py-4">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">정렬</p>
-              </div>
+            <CardContent className="flex items-center gap-2 py-4">
               <div className="flex gap-2">
                 <Button
                   type="button"

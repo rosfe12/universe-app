@@ -1,8 +1,5 @@
-import { AdmissionPage } from "@/features/admission/admission-page";
-import { getAdmissionPageSnapshot } from "@/features/posts/api/server";
+import { redirect } from "next/navigation";
 
 export default async function Page() {
-  const initialSnapshot = await getAdmissionPageSnapshot();
-
-  return <AdmissionPage initialSnapshot={initialSnapshot} />;
+  redirect("/school?tab=admission");
 }

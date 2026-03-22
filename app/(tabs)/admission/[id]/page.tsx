@@ -1,5 +1,4 @@
-import { AdmissionDetailPage } from "@/features/admission/admission-detail-page";
-import { getAdmissionDetailSnapshot } from "@/features/posts/api/server";
+import { redirect } from "next/navigation";
 
 export default async function Page({
   params,
@@ -7,7 +6,5 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const initialSnapshot = await getAdmissionDetailSnapshot();
-
-  return <AdmissionDetailPage questionId={id} initialSnapshot={initialSnapshot} />;
+  redirect(`/school?tab=admission&post=${id}`);
 }

@@ -53,6 +53,7 @@ import {
 } from "@/lib/permissions";
 import { addPostToSnapshot } from "@/lib/runtime-mutations";
 import {
+  getAdmissionQuestion,
   getAdmissionQuestions,
   getCommentsByPostId,
   getCommunityPosts,
@@ -158,6 +159,20 @@ export function SchoolPage({
   const admissionPosts = getAdmissionQuestions()
     .filter((post) => matchesSchoolAdmission(post, schoolId, schoolName))
     .slice(0, 4);
+  const campusLivePosts = useMemo(() => {
+    const liveFreshmanPosts = freshmanZonePosts.map((post) => ({
+      post,
+      href: `/school?tab=freshman&post=${post.id}`,
+    }));
+    const admissionMix = admissionPosts.slice(0, 2).map((post) => ({
+      post,
+      href: `/school?tab=admission&post=${post.id}`,
+    }));
+
+    return [...liveFreshmanPosts, ...admissionMix]
+      .sort((a, b) => +new Date(b.post.createdAt) - +new Date(a.post.createdAt))
+      .slice(0, 6);
+  }, [admissionPosts, freshmanZonePosts]);
   const freshmanComposeEnabled =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteFreshmanZone(currentUser);
   const freshmanCommentEnabled = freshmanComposeEnabled;
@@ -176,7 +191,9 @@ export function SchoolPage({
     [admissionPosts, campusInfoCards, freshmanZonePosts],
   );
   const detailPost = useMemo(
-    () => schoolDetailPosts.find((post) => post.id === detailPostId) ?? null,
+    () =>
+      schoolDetailPosts.find((post) => post.id === detailPostId) ??
+      (detailPostId ? getAdmissionQuestion(detailPostId) ?? null : null),
     [detailPostId, schoolDetailPosts],
   );
 
@@ -260,7 +277,9 @@ export function SchoolPage({
       return;
     }
 
-    const targetPost = schoolDetailPosts.find((post) => post.id === detailParam);
+    const targetPost =
+      schoolDetailPosts.find((post) => post.id === detailParam) ??
+      getAdmissionQuestion(detailParam);
     if (!targetPost) {
       return;
     }
@@ -425,15 +444,20 @@ export function SchoolPage({
           }
         >
           <SectionHeader title="새내기 게시판" />
-          {freshmanZonePosts.length === 0 ? (
+          {campusLivePosts.length === 0 ? (
             <EmptyState
               title="아직 새내기 글이 없습니다"
               description="오티, 기숙사, 시간표처럼 입학 전에 궁금한 내용을 가장 먼저 올려보세요."
             />
           ) : (
             <FeedList>
-              {freshmanZonePosts.map((post) => (
-                <FeedPostCard key={post.id} post={post} onOpen={() => setDetailPostId(post.id)} />
+              {campusLivePosts.map(({ post, href }) => (
+                <FeedPostCard
+                  key={post.id}
+                  post={post}
+                  href={href}
+                  onOpen={() => setDetailPostId(post.id)}
+                />
               ))}
             </FeedList>
           )}
