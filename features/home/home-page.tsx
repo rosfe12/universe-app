@@ -37,6 +37,13 @@ export function HomePage({
   const currentUser = runtimeUser;
   const currentSchool = getCurrentSchool();
   const hasSelectedSchool = Boolean(currentSchool?.id);
+  const schoolSectionTitle = hasSelectedSchool
+    ? currentUser.userType === "applicant"
+      ? "🎯 지금 지망학교는"
+      : "🏫 지금 우리 학교는"
+    : currentUser.userType === "applicant"
+      ? "🎯 지망학교를 선택하세요"
+      : "🏫 학교를 선택하세요";
   const schoolFeedPosts = [
     ...getCommunityPosts("freshman"),
     ...getCommunityPosts("club"),
@@ -69,23 +76,21 @@ export function HomePage({
 
       <section className="space-y-3">
         <SectionHeader
-          title={
-            currentUser.userType === "applicant"
-              ? "🎯 지금 지망학교는"
-              : "🏫 지금 우리 학교는"
-          }
+          title={schoolSectionTitle}
           href="/school"
         />
-        <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#eef2ff_0%,#ffffff_58%,#f5f3ff_130%)]">
-          <CardContent className="space-y-4 py-5">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="default">학교 전용</Badge>
-              <Badge variant="outline">새내기</Badge>
-              <Badge variant="outline">동아리</Badge>
-              <Badge variant="outline">맛집</Badge>
-            </div>
-          </CardContent>
-        </Card>
+        {hasSelectedSchool ? (
+          <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#eef2ff_0%,#ffffff_58%,#f5f3ff_130%)]">
+            <CardContent className="space-y-4 py-5">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="default">학교 전용</Badge>
+                <Badge variant="outline">새내기</Badge>
+                <Badge variant="outline">동아리</Badge>
+                <Badge variant="outline">맛집</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
         {hasSchoolFeedPosts ? (
           <FeedList>
             {schoolFeedPosts.map((post) => (
@@ -123,14 +128,16 @@ export function HomePage({
           title="🔁 수강신청 교환"
           href="/trade"
         />
-        <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8f7ff_0%,#ffffff_58%,#ede9fe_130%)]">
-          <CardContent className="space-y-3 py-5">
-            <div className="inline-flex items-center gap-2 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
-              <Repeat2 className="h-3.5 w-3.5" />
-              실시간 교환
-            </div>
-          </CardContent>
-        </Card>
+        {hasSelectedSchool ? (
+          <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#f8f7ff_0%,#ffffff_58%,#ede9fe_130%)]">
+            <CardContent className="space-y-3 py-5">
+              <div className="inline-flex items-center gap-2 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+                <Repeat2 className="h-3.5 w-3.5" />
+                실시간 교환
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
         {hasTradeHighlights ? (
           <div className="space-y-3">
             {tradeHighlights.map((tradePost) => (

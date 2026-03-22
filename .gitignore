@@ -10,3 +10,4 @@ dist
 .playwright-cli
 *.tsbuildinfo
 supabase/.temp
+pass/
