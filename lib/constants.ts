@@ -114,6 +114,6 @@ export const MAIN_TABS = [
   { href: "/home", label: "홈" },
   { href: "/community", label: "커뮤니티" },
   { href: "/school", label: "우리학교" },
-  { href: "/admission", label: "입시" },
+  { href: "/notifications", label: "알림" },
   { href: "/profile", label: "마이" },
 ] as const;

@@ -75,9 +75,6 @@ export function HomePage({
         <Card className="overflow-hidden border-white/80 bg-[linear-gradient(135deg,#eef2ff_0%,#ffffff_58%,#f5f3ff_130%)]">
           <CardContent className="space-y-4 py-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-500">
-                메인 피드
-              </p>
               <p className="mt-2 text-lg font-bold text-foreground">
                 {currentUser.userType === "applicant"
                   ? `${schoolName} 관련 질문과 새내기 글부터 확인해요`

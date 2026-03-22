@@ -489,9 +489,6 @@ export function NotificationsPage({
         <CardContent className="space-y-4 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/80">
-                Notification Center
-              </p>
               <h2 className="mt-2 text-[22px] font-bold tracking-tight text-balance">
                 읽지 않은 알림 {unreadCount}개
               </h2>
