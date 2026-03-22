@@ -12,11 +12,13 @@ export function PostAuthorRow({
   createdAt,
   visibilityLevel,
   trailing,
+  minimal = false,
 }: {
   authorId: string;
   createdAt: string;
   visibilityLevel?: VisibilityLevel;
   trailing?: React.ReactNode;
+  minimal?: boolean;
 }) {
   const identity = getPublicIdentitySummary(authorId, visibilityLevel);
   const repeatedlyReported = isRepeatedlyReportedUser(authorId);
@@ -32,7 +34,7 @@ export function PostAuthorRow({
           <span>·</span>
           <span>{formatRelativeLabel(createdAt)}</span>
         </div>
-        {identity.visibilityLevel === "anonymous" || repeatedlyReported ? (
+        {!minimal && (identity.visibilityLevel === "anonymous" || repeatedlyReported) ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
             {identity.visibilityLevel === "anonymous" ? <span>학교·학과 비공개</span> : null}
             {repeatedlyReported ? (

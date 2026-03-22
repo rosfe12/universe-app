@@ -158,7 +158,7 @@ export function CommentThread({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-4 border-b border-gray-100 pb-5">
+      <div className="space-y-1">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -171,61 +171,6 @@ export function CommentThread({
           </div>
           <span className="text-xs text-gray-400">{allowAccept ? "신뢰도 반영" : "최신순"}</span>
         </div>
-          {canComment ? (
-            <form className="space-y-3" onSubmit={onSubmit}>
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
-                <Textarea
-                  rows={2}
-                  placeholder={allowAccept ? "질문에 바로 답변을 남겨보세요" : "댓글을 입력하세요"}
-                  className="min-h-[88px] resize-none border-0 bg-transparent px-1 text-sm leading-6 shadow-none focus-visible:ring-0"
-                  {...form.register("content")}
-                />
-              </div>
-              {form.formState.errors.content ? (
-                <p className="text-xs text-rose-500">{form.formState.errors.content.message}</p>
-              ) : null}
-              {form.formState.errors.root?.message ? (
-                <p className="text-xs text-rose-500">{form.formState.errors.root.message}</p>
-              ) : null}
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <VisibilityLevelSelect
-                    value={form.watch("visibilityLevel")}
-                    onChange={(value) =>
-                      form.setValue("visibilityLevel", value, { shouldValidate: true })
-                    }
-                  />
-                </div>
-                <Button type="submit" size="sm" disabled={isSubmitting || !form.watch("content").trim()}>
-                  {isSubmitting ? "등록 중" : allowAccept ? "답변 등록" : "댓글 작성"}
-                </Button>
-              </div>
-            </form>
-          ) : isReliabilityBlocked ? (
-            <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-4">
-              <p className="mt-3 text-sm font-semibold text-rose-700">
-                현재 계정은 글쓰기와 댓글 작성이 잠시 제한됩니다
-              </p>
-              <p className="mt-1 text-sm text-rose-600">
-                신고 누적이나 제재 이력이 정리되면 다시 참여할 수 있습니다.
-              </p>
-            </div>
-          ) : (
-            <AccountRequiredCard
-              isAuthenticated={isAuthenticated}
-              user={runtimeUser}
-              nextPath={pathname}
-              title={
-                accountRequiredTitle ??
-                (isAuthenticated ? "프로필 설정을 마치면 댓글을 남길 수 있습니다" : "로그인 후 댓글을 남길 수 있습니다")
-              }
-              description={
-                accountRequiredDescription ??
-                (isAuthenticated ? "학교와 유저 타입을 먼저 정하면 대부분의 게시판에서 바로 참여할 수 있습니다." : "읽기는 자유롭게, 댓글은 로그인 후 바로 이어서 작성할 수 있습니다.")
-              }
-              ctaLabel={isAuthenticated ? "프로필 설정 이어가기" : "로그인하고 댓글 쓰기"}
-            />
-          )}
       </div>
 
       {loading && threadComments.length === 0 ? <LoadingStateBlock /> : null}
@@ -258,6 +203,7 @@ export function CommentThread({
               authorId={comment.authorId}
               createdAt={comment.createdAt}
               visibilityLevel={comment.visibilityLevel}
+              minimal
             />
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -268,9 +214,6 @@ export function CommentThread({
               </div>
               <p className="text-sm leading-6 text-gray-700">{comment.content}</p>
               <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-400">
-                  {formatRelativeLabel(comment.createdAt)}
-                </p>
                 {allowAccept ? (
                   <Button
                     size="sm"
@@ -290,7 +233,7 @@ export function CommentThread({
                   >
                     {comment.accepted ? "채택됨" : "답변 채택"}
                   </Button>
-                ) : null}
+                ) : <span />}
               </div>
               <ReportBlockActions
                 compact
@@ -348,6 +291,62 @@ export function CommentThread({
           ))}
         </FeedList>
       ) : null}
+
+      {canComment ? (
+        <form className="space-y-3 border-t border-gray-100 pt-4" onSubmit={onSubmit}>
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+            <Textarea
+              rows={2}
+              placeholder={allowAccept ? "질문에 바로 답변을 남겨보세요" : "댓글을 입력하세요"}
+              className="min-h-[88px] resize-none border-0 bg-transparent px-1 text-sm leading-6 shadow-none focus-visible:ring-0"
+              {...form.register("content")}
+            />
+          </div>
+          {form.formState.errors.content ? (
+            <p className="text-xs text-rose-500">{form.formState.errors.content.message}</p>
+          ) : null}
+          {form.formState.errors.root?.message ? (
+            <p className="text-xs text-rose-500">{form.formState.errors.root.message}</p>
+          ) : null}
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <VisibilityLevelSelect
+                value={form.watch("visibilityLevel")}
+                onChange={(value) =>
+                  form.setValue("visibilityLevel", value, { shouldValidate: true })
+                }
+              />
+            </div>
+            <Button type="submit" size="sm" disabled={isSubmitting || !form.watch("content").trim()}>
+              {isSubmitting ? "등록 중" : allowAccept ? "답변 등록" : "댓글 작성"}
+            </Button>
+          </div>
+        </form>
+      ) : isReliabilityBlocked ? (
+        <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-4">
+          <p className="mt-3 text-sm font-semibold text-rose-700">
+            현재 계정은 글쓰기와 댓글 작성이 잠시 제한됩니다
+          </p>
+          <p className="mt-1 text-sm text-rose-600">
+            신고 누적이나 제재 이력이 정리되면 다시 참여할 수 있습니다.
+          </p>
+        </div>
+      ) : (
+        <AccountRequiredCard
+          isAuthenticated={isAuthenticated}
+          user={runtimeUser}
+          nextPath={pathname}
+          title={
+            accountRequiredTitle ??
+            (isAuthenticated ? "프로필 설정을 마치면 댓글을 남길 수 있습니다" : "로그인 후 댓글을 남길 수 있습니다")
+          }
+          description={
+            accountRequiredDescription ??
+            (isAuthenticated ? "학교와 유저 타입을 먼저 정하면 대부분의 게시판에서 바로 참여할 수 있습니다." : "읽기는 자유롭게, 댓글은 로그인 후 바로 이어서 작성할 수 있습니다.")
+          }
+          ctaLabel={isAuthenticated ? "프로필 설정 이어가기" : "로그인하고 댓글 쓰기"}
+        />
+      )}
     </div>
   );
 }
