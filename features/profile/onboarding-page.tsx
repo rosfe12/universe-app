@@ -14,13 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { createClient } from "@/lib/supabase/client";
@@ -69,6 +62,7 @@ export function OnboardingPage() {
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [authEmail, setAuthEmail] = useState("");
+  const [schoolQuery, setSchoolQuery] = useState("");
 
   const schoolOptions = useMemo(
     () => schools.map((school) => ({ id: school.id, name: school.name })),
@@ -133,6 +127,14 @@ export function OnboardingPage() {
             description: "입시 질문과 재학생 답변을 중심으로 필요한 정보만 빠르게 볼 수 있습니다.",
           };
   const TypeGuideIcon = typeGuide.icon;
+  const filteredSchoolOptions = useMemo(() => {
+    const normalizedQuery = schoolQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return schoolOptions;
+    }
+
+    return schoolOptions.filter((school) => school.name.toLowerCase().includes(normalizedQuery));
+  }, [schoolOptions, schoolQuery]);
 
   useEffect(() => {
     if (loading || pending || !isAuthenticated) return;
@@ -152,6 +154,7 @@ export function OnboardingPage() {
       grade: currentUser.grade ? String(currentUser.grade) : "",
       bio: currentUser.bio ?? "",
     });
+    setSchoolQuery("");
   }, [
     currentUser.bio,
     currentUser.department,
@@ -307,49 +310,53 @@ export function OnboardingPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-3">
-            {["로그인", "유형 선택", "학교 선택", "메일 인증"].map((step, index) => (
-              <div
-                key={step}
-                className={`rounded-[22px] border px-3 py-3.5 text-left ${
-                  index < 4 ? "border-primary/20 bg-primary/10 text-primary" : "bg-secondary"
-                }`}
-              >
-                <span className="block text-[11px] font-semibold tracking-[0.16em] text-primary/70">
-                  STEP {index + 1}
-                </span>
-                <span className="mt-1.5 block text-sm font-semibold leading-5 text-balance text-foreground">
-                  {step}
-                </span>
+          {!isVerificationMode ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {["로그인", "유형 선택", "학교 선택", "메일 인증"].map((step, index) => (
+                  <div
+                    key={step}
+                    className={`rounded-[22px] border px-3 py-3.5 text-left ${
+                      index < 4 ? "border-primary/20 bg-primary/10 text-primary" : "bg-secondary"
+                    }`}
+                  >
+                    <span className="block text-[11px] font-semibold tracking-[0.16em] text-primary/70">
+                      STEP {index + 1}
+                    </span>
+                    <span className="mt-1.5 block text-sm font-semibold leading-5 text-balance text-foreground">
+                      {step}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <Card className="border-dashed bg-secondary/60 shadow-none">
-            <CardContent className="flex items-start gap-3 py-4">
-              <div className="rounded-full bg-emerald-100 p-2.5 text-emerald-700">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <div className="space-y-1">
-                <p className="font-semibold">익명 구조 유지</p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  내부적으로만 계정을 식별하고 화면에는 익명 정보만 노출됩니다.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              <Card className="border-dashed bg-secondary/60 shadow-none">
+                <CardContent className="flex items-start gap-3 py-4">
+                  <div className="rounded-full bg-emerald-100 p-2.5 text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold">익명 구조 유지</p>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      내부적으로만 계정을 식별하고 화면에는 익명 정보만 노출됩니다.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="border-white/80 bg-[linear-gradient(135deg,#f8faff_0%,#ffffff_100%)] shadow-none">
-            <CardContent className="flex items-start gap-3 py-4">
-              <div className="rounded-full bg-primary/10 p-2.5 text-primary">
-                <TypeGuideIcon className="h-4 w-4" />
-              </div>
-              <div className="space-y-1">
-                <p className="font-semibold">{typeGuide.title}</p>
-                <p className="text-sm leading-6 text-muted-foreground">{typeGuide.description}</p>
-              </div>
-            </CardContent>
-          </Card>
+              <Card className="border-white/80 bg-[linear-gradient(135deg,#f8faff_0%,#ffffff_100%)] shadow-none">
+                <CardContent className="flex items-start gap-3 py-4">
+                  <div className="rounded-full bg-primary/10 p-2.5 text-primary">
+                    <TypeGuideIcon className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold">{typeGuide.title}</p>
+                    <p className="text-sm leading-6 text-muted-foreground">{typeGuide.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : null}
 
           <form className="space-y-4" onSubmit={onSubmit}>
             {pending || loading ? <LoadingState /> : null}
@@ -370,21 +377,26 @@ export function OnboardingPage() {
                   control={form.control}
                   name="userType"
                   render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) =>
-                        field.onChange(value as OnboardingFormValues["userType"])
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="유저 타입 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="student">대학생</SelectItem>
-                        <SelectItem value="freshman">예비입학생</SelectItem>
-                        <SelectItem value="applicant">입시생</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { value: "student", label: "대학생" },
+                        { value: "freshman", label: "예비입학생" },
+                        { value: "applicant", label: "입시생" },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`rounded-[18px] border px-3 py-3 text-sm font-medium transition-colors ${
+                            field.value === option.value
+                              ? "border-primary/25 bg-primary/10 text-primary"
+                              : "border-border bg-background text-foreground"
+                          }`}
+                          onClick={() => field.onChange(option.value as OnboardingFormValues["userType"])}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 />
                 {form.formState.errors.userType ? (
@@ -396,22 +408,41 @@ export function OnboardingPage() {
             )}
             <div className="space-y-2">
               <Label>학교</Label>
+              <Input
+                value={schoolQuery}
+                onChange={(event) => setSchoolQuery(event.target.value)}
+                placeholder="학교 검색"
+              />
               <Controller
                 control={form.control}
                 name="schoolId"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="학교 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {schoolOptions.map((school) => (
-                        <SelectItem key={school.id} value={school.id}>
-                          {school.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="max-h-64 overflow-y-auto rounded-[22px] border border-border bg-background">
+                    {filteredSchoolOptions.map((school) => {
+                      const selected = field.value === school.id;
+
+                      return (
+                        <button
+                          key={school.id}
+                          type="button"
+                          className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors ${
+                            selected
+                              ? "bg-primary/10 font-medium text-primary"
+                              : "border-b border-gray-100 text-foreground last:border-b-0 hover:bg-gray-50"
+                          }`}
+                          onClick={() => field.onChange(school.id)}
+                        >
+                          <span>{school.name}</span>
+                          {selected ? <span className="text-xs">선택됨</span> : null}
+                        </button>
+                      );
+                    })}
+                    {filteredSchoolOptions.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-muted-foreground">
+                        검색 결과가 없습니다.
+                      </div>
+                    ) : null}
+                  </div>
                 )}
               />
               {form.formState.errors.schoolId ? (
