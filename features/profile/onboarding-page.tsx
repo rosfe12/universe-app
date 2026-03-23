@@ -210,7 +210,7 @@ export function OnboardingPage() {
 
   const saveProfile = async (
     values: OnboardingFormValues,
-    options?: { requestVerification?: boolean },
+    options?: { redirectOnSuccess?: boolean },
   ) => {
     setErrorMessage("");
 
@@ -274,7 +274,9 @@ export function OnboardingPage() {
 
     await refresh();
     setPending(false);
-    router.push(nextPath);
+    if (options?.redirectOnSuccess !== false) {
+      router.push(nextPath);
+    }
     return true;
   };
 
@@ -330,6 +332,11 @@ export function OnboardingPage() {
   });
 
   const onRequestVerification = form.handleSubmit(async (values) => {
+    const saved = await saveProfile(values, { redirectOnSuccess: false });
+    if (!saved) {
+      return;
+    }
+
     await sendVerificationRequest(values);
   });
 
