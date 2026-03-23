@@ -309,6 +309,30 @@ type RuntimeQueryContext = {
 };
 
 const EMPTY_RESULT = Promise.resolve({ data: [], error: null });
+const HOME_POST_LIMIT = 36;
+const SEARCH_POST_LIMIT = 120;
+const COMMUNITY_POST_LIMIT = 80;
+const ADMISSION_POST_LIMIT = 72;
+const SCHOOL_POST_LIMIT = 72;
+const DATING_POST_LIMIT = 48;
+const PROFILE_POST_LIMIT = 40;
+const NOTIFICATION_POST_LIMIT = 32;
+const FULL_POST_LIMIT = 180;
+const COMMENT_LIMIT = 140;
+const PROFILE_COMMENT_LIMIT = 80;
+const SCHOOL_LECTURE_LIMIT = 40;
+const NOTIFICATION_LECTURE_LIMIT = 20;
+const FULL_LECTURE_LIMIT = 100;
+const LECTURE_REVIEW_LIMIT = 120;
+const PROFILE_LECTURE_REVIEW_LIMIT = 80;
+const SCHOOL_TRADE_LIMIT = 32;
+const PROFILE_TRADE_LIMIT = 24;
+const FULL_TRADE_LIMIT = 80;
+const NOTIFICATION_LIMIT = 40;
+const REPORT_LIMIT = 60;
+const BLOCK_LIMIT = 60;
+const DATING_PROFILE_LIMIT = 32;
+const MEDIA_ASSET_LIMIT = 24;
 const HOME_POST_SUBCATEGORIES = [
   "free",
   "advice",
@@ -332,29 +356,35 @@ function buildPostQuery(supabase: ReturnType<typeof createClient>, context: Runt
 
   switch (context.scope) {
     case "home":
-      return base.eq("category", "community").in("subcategory", [...HOME_POST_SUBCATEGORIES]).limit(80);
+      return base
+        .eq("category", "community")
+        .in("subcategory", [...HOME_POST_SUBCATEGORIES])
+        .limit(HOME_POST_LIMIT);
     case "search":
-      return base.in("category", ["community", "admission"]).limit(180);
+      return base.in("category", ["community", "admission"]).limit(SEARCH_POST_LIMIT);
     case "community":
-      return base.eq("category", "community").in("subcategory", COMMUNITY_POST_SUBCATEGORIES).limit(140);
+      return base
+        .eq("category", "community")
+        .in("subcategory", COMMUNITY_POST_SUBCATEGORIES)
+        .limit(COMMUNITY_POST_LIMIT);
     case "admission":
       return context.schoolId
-        ? base.eq("category", "admission").eq("school_id", context.schoolId).limit(100)
-        : base.eq("category", "admission").limit(100);
+        ? base.eq("category", "admission").eq("school_id", context.schoolId).limit(ADMISSION_POST_LIMIT)
+        : base.eq("category", "admission").limit(ADMISSION_POST_LIMIT);
     case "school":
       return context.schoolId
-        ? base.eq("school_id", context.schoolId).in("category", ["community", "admission"]).limit(120)
+        ? base.eq("school_id", context.schoolId).in("category", ["community", "admission"]).limit(SCHOOL_POST_LIMIT)
         : EMPTY_RESULT;
     case "dating":
-      return base.eq("category", "community").in("subcategory", [...DATING_POST_SUBCATEGORIES]).limit(80);
+      return base.eq("category", "community").in("subcategory", [...DATING_POST_SUBCATEGORIES]).limit(DATING_POST_LIMIT);
     case "profile":
-      return context.userId ? base.eq("author_id", context.userId).limit(80) : EMPTY_RESULT;
+      return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_POST_LIMIT) : EMPTY_RESULT;
     case "notifications":
-      return base.in("category", ["community", "admission"]).limit(80);
+      return base.in("category", ["community", "admission"]).limit(NOTIFICATION_POST_LIMIT);
     case "admin":
     case "full":
     default:
-      return base.limit(220);
+      return base.limit(FULL_POST_LIMIT);
   }
 }
 
@@ -366,14 +396,14 @@ function buildCommentQuery(
   const base = supabase.from("comments").select("*").order("created_at", { ascending: false });
 
   if (context.scope === "profile") {
-    return context.userId ? base.eq("author_id", context.userId).limit(120) : EMPTY_RESULT;
+    return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_COMMENT_LIMIT) : EMPTY_RESULT;
   }
 
   if (postIds.length === 0) {
     return EMPTY_RESULT;
   }
 
-  return base.in("post_id", postIds).limit(240);
+  return base.in("post_id", postIds).limit(COMMENT_LIMIT);
 }
 
 function buildLectureQuery(
@@ -388,13 +418,13 @@ function buildLectureQuery(
     case "school":
     case "lectures":
     case "trade":
-      return context.schoolId ? base.eq("school_id", context.schoolId).limit(80) : base.limit(80);
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(SCHOOL_LECTURE_LIMIT) : base.limit(SCHOOL_LECTURE_LIMIT);
     case "notifications":
-      return context.schoolId ? base.eq("school_id", context.schoolId).limit(40) : base.limit(40);
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(NOTIFICATION_LECTURE_LIMIT) : base.limit(NOTIFICATION_LECTURE_LIMIT);
     case "admin":
     case "full":
     default:
-      return base.limit(140);
+      return base.limit(FULL_LECTURE_LIMIT);
   }
 }
 
@@ -406,14 +436,14 @@ function buildLectureReviewQuery(
   const base = supabase.from("lecture_reviews").select("*").order("created_at", { ascending: false });
 
   if (context.scope === "profile") {
-    return context.userId ? base.eq("author_id", context.userId).limit(80) : EMPTY_RESULT;
+    return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_LECTURE_REVIEW_LIMIT) : EMPTY_RESULT;
   }
 
   if (lectureIds.length === 0) {
     return EMPTY_RESULT;
   }
 
-  return base.in("lecture_id", lectureIds).limit(160);
+  return base.in("lecture_id", lectureIds).limit(LECTURE_REVIEW_LIMIT);
 }
 
 function buildTradePostsQuery(
@@ -428,15 +458,15 @@ function buildTradePostsQuery(
     case "lectures":
     case "trade":
     case "notifications":
-      return context.schoolId ? base.eq("school_id", context.schoolId).limit(80) : base.limit(80);
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(SCHOOL_TRADE_LIMIT) : base.limit(SCHOOL_TRADE_LIMIT);
     case "profile":
-      return context.userId ? base.eq("author_id", context.userId).limit(40) : EMPTY_RESULT;
+      return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_TRADE_LIMIT) : EMPTY_RESULT;
     case "messages":
-      return context.userId ? base.eq("author_id", context.userId).limit(40) : EMPTY_RESULT;
+      return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_TRADE_LIMIT) : EMPTY_RESULT;
     case "admin":
     case "full":
     default:
-      return base.limit(120);
+      return base.limit(FULL_TRADE_LIMIT);
   }
 }
 
@@ -447,24 +477,24 @@ function buildNotificationsQuery(supabase: ReturnType<typeof createClient>, cont
         .select("*")
         .eq("user_id", context.userId)
         .order("created_at", { ascending: false })
-        .limit(80)
+        .limit(NOTIFICATION_LIMIT)
     : EMPTY_RESULT;
 }
 
 function buildReportsQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
   const base = supabase.from("reports").select("*").order("created_at", { ascending: false });
   if (context.scope === "admin" || context.scope === "full") {
-    return base.limit(120);
+    return base.limit(REPORT_LIMIT);
   }
-  return context.userId ? base.eq("reporter_id", context.userId).limit(80) : EMPTY_RESULT;
+  return context.userId ? base.eq("reporter_id", context.userId).limit(REPORT_LIMIT) : EMPTY_RESULT;
 }
 
 function buildBlocksQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
   const base = supabase.from("blocks").select("*").order("created_at", { ascending: false });
   if (context.scope === "admin" || context.scope === "full") {
-    return base.limit(120);
+    return base.limit(BLOCK_LIMIT);
   }
-  return context.userId ? base.eq("blocker_id", context.userId).limit(80) : EMPTY_RESULT;
+  return context.userId ? base.eq("blocker_id", context.userId).limit(BLOCK_LIMIT) : EMPTY_RESULT;
 }
 
 function buildDatingProfilesQuery(
@@ -477,15 +507,15 @@ function buildDatingProfilesQuery(
     return context.userId ? base.eq("user_id", context.userId).limit(8) : EMPTY_RESULT;
   }
 
-  return base.limit(80);
+  return base.limit(DATING_PROFILE_LIMIT);
 }
 
 function buildMediaAssetsQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
   const base = supabase.from("media_assets").select("*").order("created_at", { ascending: false });
   if (context.scope === "admin" || context.scope === "full") {
-    return base.limit(80);
+    return base.limit(MEDIA_ASSET_LIMIT);
   }
-  return context.userId ? base.eq("owner_id", context.userId).limit(40) : EMPTY_RESULT;
+  return context.userId ? base.eq("owner_id", context.userId).limit(MEDIA_ASSET_LIMIT) : EMPTY_RESULT;
 }
 
 function createSupabaseFallbackSnapshot(issue?: string): AppRuntimeSnapshot {
@@ -897,7 +927,7 @@ const lastClientRuntimeSnapshots = new Map<
   RuntimeSnapshotScope,
   { snapshot: AppRuntimeSnapshot; at: number }
 >();
-const CLIENT_RUNTIME_SNAPSHOT_TTL_MS = 1500;
+const CLIENT_RUNTIME_SNAPSHOT_TTL_MS = 8000;
 
 export function invalidateClientRuntimeSnapshots(scopes?: RuntimeSnapshotScope[]) {
   if (!scopes || scopes.length === 0) {
