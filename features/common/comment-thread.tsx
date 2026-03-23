@@ -8,15 +8,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
-import { FeedList } from "@/components/shared/feed-list";
 import { LegendAnswerTag } from "@/components/shared/legend-answer-tag";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { PostAuthorRow } from "@/features/common/post-author-row";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { acceptAdmissionAnswer, createComment } from "@/app/actions/content-actions";
+import { acceptAdmissionAnswer, createComment, deleteComment } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { validateCommentSubmission } from "@/lib/moderation";
 import {
@@ -28,6 +26,7 @@ import {
   addCommentToSnapshot,
   addReportToSnapshot,
   acceptCommentInSnapshot,
+  removeCommentFromSnapshot,
 } from "@/lib/runtime-mutations";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
@@ -43,7 +42,6 @@ import {
   getPublicIdentitySummary,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
-import { formatRelativeLabel } from "@/lib/utils";
 import type { AppRuntimeSnapshot, VisibilityLevel } from "@/types";
 
 const commentSchema = z.object({
@@ -69,9 +67,6 @@ export function CommentThread({
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
   const {
-    comments,
-    reports,
-    blocks,
     currentUser: runtimeUser,
     loading,
     isAuthenticated,
@@ -82,11 +77,8 @@ export function CommentThread({
   const currentUser = runtimeUser;
   const pathname = usePathname();
   const isReliabilityBlocked = isAuthenticated && isReliabilityRestricted(currentUser.trustScore);
-  const threadComments = useMemo(
-    () => getCommentsByPostId(postId),
-    [blocks, comments, postId, reports],
-  );
-  const targetPost = useMemo(() => getPostById(postId), [postId, comments, reports, blocks]);
+  const threadComments = useMemo(() => getCommentsByPostId(postId), [postId]);
+  const targetPost = useMemo(() => getPostById(postId), [postId]);
   const isAnonymousBoard =
     targetPost?.category === "community" && targetPost.subcategory === "anonymous";
   const sortedComments = useMemo(
@@ -237,26 +229,65 @@ export function CommentThread({
                 <p className="text-sm leading-7 text-gray-700 dark:text-gray-200">{comment.content}</p>
                 <div className="flex items-center justify-between gap-3 pt-1">
                   {allowAccept ? (
-                    <Button
-                      size="sm"
-                      variant={comment.accepted ? "secondary" : "outline"}
-                      type="button"
-                      onClick={async () => {
-                        if (source === "supabase" && isAuthenticated) {
-                          await acceptAdmissionAnswer(postId, comment.id);
-                          await refresh();
-                          return;
-                        }
+                    <div className="flex items-center gap-2">
+                      {isAuthenticated && currentUser.id === comment.authorId ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          type="button"
+                          onClick={async () => {
+                            if (source === "supabase") {
+                              await deleteComment(comment.id);
+                              await refresh();
+                              return;
+                            }
 
-                        setSnapshot((current) =>
-                          acceptCommentInSnapshot(current, postId, comment.id),
-                        );
-                      }}
-                    >
-                      {comment.accepted ? "채택됨" : "답변 채택"}
-                    </Button>
+                            setSnapshot((current) => removeCommentFromSnapshot(current, comment.id));
+                          }}
+                        >
+                          댓글 삭제
+                        </Button>
+                      ) : null}
+                      <Button
+                        size="sm"
+                        variant={comment.accepted ? "secondary" : "outline"}
+                        type="button"
+                        onClick={async () => {
+                          if (source === "supabase" && isAuthenticated) {
+                            await acceptAdmissionAnswer(postId, comment.id);
+                            await refresh();
+                            return;
+                          }
+
+                          setSnapshot((current) =>
+                            acceptCommentInSnapshot(current, postId, comment.id),
+                          );
+                        }}
+                      >
+                        {comment.accepted ? "채택됨" : "답변 채택"}
+                      </Button>
+                    </div>
                   ) : (
-                    <span />
+                    isAuthenticated && currentUser.id === comment.authorId ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        type="button"
+                        onClick={async () => {
+                          if (source === "supabase") {
+                            await deleteComment(comment.id);
+                            await refresh();
+                            return;
+                          }
+
+                          setSnapshot((current) => removeCommentFromSnapshot(current, comment.id));
+                        }}
+                      >
+                        댓글 삭제
+                      </Button>
+                    ) : (
+                      <span />
+                    )
                   )}
                   <ReportBlockActions
                     compact

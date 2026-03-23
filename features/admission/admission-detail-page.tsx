@@ -9,12 +9,14 @@ import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { deletePost } from "@/app/actions/content-actions";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
   addBlockToSnapshot,
   addReportToSnapshot,
+  removePostFromSnapshot,
 } from "@/lib/runtime-mutations";
 import {
   createBlockRecord,
@@ -156,6 +158,26 @@ export function AdmissionDetailPage({
               }}
             />
           </div>
+          {isAuthenticated && currentUser.id === question.authorId ? (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={async () => {
+                  if (source === "supabase") {
+                    await deletePost(question.id);
+                    window.location.href = "/school?tab=admission";
+                    return;
+                  }
+
+                  setSnapshot((current) => removePostFromSnapshot(current, question.id));
+                  window.location.href = "/school?tab=admission";
+                }}
+              >
+                글 삭제
+              </Button>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

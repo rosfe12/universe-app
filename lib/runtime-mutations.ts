@@ -207,6 +207,46 @@ export function addCommentToSnapshot(snapshot: AppRuntimeSnapshot, comment: Comm
   return deriveModerationSnapshot(updateUserTrust(withComment, comment.authorId, gain));
 }
 
+export function removePostFromSnapshot(snapshot: AppRuntimeSnapshot, postId: string) {
+  const nextComments = snapshot.comments.filter((comment) => comment.postId !== postId);
+
+  return deriveModerationSnapshot({
+    ...snapshot,
+    posts: snapshot.posts.filter((post) => post.id !== postId),
+    comments: nextComments,
+    reports: snapshot.reports.filter(
+      (report) =>
+        !(
+          (report.targetType === "post" && report.targetId === postId) ||
+          (report.targetType === "comment" &&
+            snapshot.comments.some(
+              (comment) => comment.id === report.targetId && comment.postId === postId,
+            ))
+        ),
+    ),
+  });
+}
+
+export function removeCommentFromSnapshot(snapshot: AppRuntimeSnapshot, commentId: string) {
+  const targetComment = snapshot.comments.find((comment) => comment.id === commentId);
+  if (!targetComment) {
+    return snapshot;
+  }
+
+  return deriveModerationSnapshot({
+    ...snapshot,
+    comments: snapshot.comments.filter((comment) => comment.id !== commentId),
+    posts: snapshot.posts.map((post) =>
+      post.id === targetComment.postId
+        ? { ...post, commentCount: Math.max(0, post.commentCount - 1) }
+        : post,
+    ),
+    reports: snapshot.reports.filter(
+      (report) => !(report.targetType === "comment" && report.targetId === commentId),
+    ),
+  });
+}
+
 export function addLectureReviewToSnapshot(
   snapshot: AppRuntimeSnapshot,
   review: LectureReview,

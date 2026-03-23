@@ -31,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createDatingPost } from "@/app/actions/content-actions";
+import { createDatingPost, deletePost } from "@/app/actions/content-actions";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
@@ -44,6 +44,7 @@ import {
   addBlockToSnapshot,
   addPostToSnapshot,
   addReportToSnapshot,
+  removePostFromSnapshot,
 } from "@/lib/runtime-mutations";
 import {
   getDatingPosts,
@@ -714,6 +715,27 @@ export function DatingPage({
                       );
                     }}
                   />
+                  {isAuthenticated && currentUser.id === detailPost.authorId ? (
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={async () => {
+                          if (source === "supabase") {
+                            await deletePost(detailPost.id);
+                            setDetailPost(null);
+                            await refresh();
+                            return;
+                          }
+
+                          setSnapshot((current) => removePostFromSnapshot(current, detailPost.id));
+                          setDetailPost(null);
+                        }}
+                      >
+                        글 삭제
+                      </Button>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
               <CommentThread postId={detailPost.id} initialSnapshot={initialSnapshot} />

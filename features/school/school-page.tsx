@@ -21,7 +21,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 
-import { createPost } from "@/app/actions/content-actions";
+import { createPost, deletePost } from "@/app/actions/content-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -42,13 +42,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CommentThread } from "@/features/common/comment-thread";
 import { FeedPostCard } from "@/features/common/feed-post-card";
@@ -62,7 +55,7 @@ import {
   canWriteAdmissionQuestion,
   canWriteFreshmanZone,
 } from "@/lib/permissions";
-import { addPostToSnapshot } from "@/lib/runtime-mutations";
+import { addPostToSnapshot, removePostFromSnapshot } from "@/lib/runtime-mutations";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   getAdmissionQuestion,
@@ -937,6 +930,27 @@ export function SchoolPage({
                   <div className="rounded-[22px] bg-secondary/55 px-4 py-4">
                     <p className="text-sm leading-7 text-muted-foreground">{detailPost.content}</p>
                   </div>
+                  {isAuthenticated && currentUser.id === detailPost.authorId ? (
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={async () => {
+                          if (source === "supabase") {
+                            await deletePost(detailPost.id);
+                            setDetailPostId(null);
+                            await refresh();
+                            return;
+                          }
+
+                          setSnapshot((current) => removePostFromSnapshot(current, detailPost.id));
+                          setDetailPostId(null);
+                        }}
+                      >
+                        글 삭제
+                      </Button>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
               <CommentThread

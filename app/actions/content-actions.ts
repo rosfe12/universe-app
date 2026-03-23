@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { findBlockedKeyword } from "@/lib/moderation";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -873,6 +874,60 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 
   revalidateFeed(["/home", "/community", "/school"]);
   return data;
+}
+
+export async function deletePost(postId: string) {
+  const { supabase, authUser } = await requireCurrentUser();
+
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .select("id, author_id")
+    .eq("id", postId)
+    .single();
+
+  if (postError || !post) {
+    throw new Error("삭제할 글을 찾을 수 없습니다.");
+  }
+
+  const canDelete = String(post.author_id) === authUser.id || isMasterAdminEmail(authUser.email);
+  if (!canDelete) {
+    throw new Error("본인 글만 삭제할 수 있습니다.");
+  }
+
+  const { error } = await supabase.from("posts").delete().eq("id", postId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateFeed(["/home", "/community", "/school", "/dating", "/notifications", "/profile"]);
+}
+
+export async function deleteComment(commentId: string) {
+  const { supabase, authUser } = await requireCurrentUser();
+
+  const { data: comment, error: commentError } = await supabase
+    .from("comments")
+    .select("id, author_id")
+    .eq("id", commentId)
+    .single();
+
+  if (commentError || !comment) {
+    throw new Error("삭제할 댓글을 찾을 수 없습니다.");
+  }
+
+  const canDelete = String(comment.author_id) === authUser.id || isMasterAdminEmail(authUser.email);
+  if (!canDelete) {
+    throw new Error("본인 댓글만 삭제할 수 있습니다.");
+  }
+
+  const { error } = await supabase.from("comments").delete().eq("id", commentId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateFeed(["/home", "/community", "/school", "/dating", "/notifications", "/profile"]);
 }
 
 export async function createLectureReview(input: z.input<typeof lectureReviewSchema>) {

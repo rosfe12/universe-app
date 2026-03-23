@@ -41,7 +41,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createPost } from "@/app/actions/content-actions";
+import { createPost, deletePost } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { injectInlineAdSlots, isAdPlacementEnabled } from "@/lib/ads";
 import {
@@ -54,6 +54,7 @@ import {
   addBlockToSnapshot,
   addPostToSnapshot,
   addReportToSnapshot,
+  removePostFromSnapshot,
 } from "@/lib/runtime-mutations";
 import {
   type CareerBoardKind,
@@ -709,6 +710,27 @@ export function CommunityPage({
                       );
                     }}
                   />
+                  {isAuthenticated && currentUser.id === detailPost.authorId ? (
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={async () => {
+                          if (source === "supabase") {
+                            await deletePost(detailPost.id);
+                            setDetailPostId(null);
+                            await refresh();
+                            return;
+                          }
+
+                          setSnapshot((current) => removePostFromSnapshot(current, detailPost.id));
+                          setDetailPostId(null);
+                        }}
+                      >
+                        글 삭제
+                      </Button>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
               <CommentThread postId={detailPost.id} initialSnapshot={initialSnapshot} />

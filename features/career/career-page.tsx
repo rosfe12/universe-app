@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { BriefcaseBusiness, Building2, FileText, MessageCircle } from "lucide-react";
 
-import { createPost } from "@/app/actions/content-actions";
+import { createPost, deletePost } from "@/app/actions/content-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
@@ -37,7 +37,7 @@ import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { CAREER_BOARD_LABELS, STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
 import { canWriteCareer } from "@/lib/permissions";
-import { addBlockToSnapshot, addPostToSnapshot, addReportToSnapshot } from "@/lib/runtime-mutations";
+import { addBlockToSnapshot, addPostToSnapshot, addReportToSnapshot, removePostFromSnapshot } from "@/lib/runtime-mutations";
 import {
   type CareerBoardKind,
   getCareerBoardKind,
@@ -416,6 +416,27 @@ export function CareerPage({
               </DialogHeader>
               <div className="space-y-4">
                 <FeedPostCard post={detailPost} />
+                {isAuthenticated && currentUser.id === detailPost.authorId ? (
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={async () => {
+                        if (source === "supabase") {
+                          await deletePost(detailPost.id);
+                          setDetailPostId(null);
+                          await refresh();
+                          return;
+                        }
+
+                        setSnapshot((current) => removePostFromSnapshot(current, detailPost.id));
+                        setDetailPostId(null);
+                      }}
+                    >
+                      글 삭제
+                    </Button>
+                  </div>
+                ) : null}
                 <CommentThread
                   postId={detailPost.id}
                   initialSnapshot={initialSnapshot}
