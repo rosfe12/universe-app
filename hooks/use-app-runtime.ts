@@ -77,7 +77,6 @@ export function useAppRuntime(
 
       if (initialSnapshot) {
         setLoading(false);
-        await bootstrap(false, true);
         return;
       }
 
@@ -86,7 +85,11 @@ export function useAppRuntime(
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "INITIAL_SESSION") {
+        return;
+      }
+
       // Avoid awaiting Supabase auth-bound queries inside the auth callback.
       window.setTimeout(() => {
         if (!active) {

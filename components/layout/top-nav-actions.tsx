@@ -54,7 +54,7 @@ function isMessageNotification(type: string) {
 
 export function TopNavActions() {
   const runtimeSnapshot = getRuntimeSnapshot();
-  const { notifications, snapshot } = useAppRuntime(runtimeSnapshot);
+  const { notifications } = useAppRuntime(runtimeSnapshot, "chrome");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const unreadMessageCount = notifications.filter(
@@ -70,7 +70,7 @@ export function TopNavActions() {
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
-    const postItems = snapshot.posts
+    const postItems = runtimeSnapshot.posts
       .map((post) => {
         const meta =
           post.category === "admission" ? "입시" : post.category === "dating" ? "연애/미팅" : "커뮤니티";
@@ -98,7 +98,7 @@ export function TopNavActions() {
         href: post.href,
       }));
 
-    const lectureItems = snapshot.lectures
+    const lectureItems = runtimeSnapshot.lectures
       .map((lecture) => {
         const meta = `${lecture.professor} · ${lecture.department} · 강의정보`;
 
@@ -129,7 +129,7 @@ export function TopNavActions() {
       return [...postItems, ...lectureItems].slice(0, 8);
     }
 
-    return snapshot.posts
+    return runtimeSnapshot.posts
       .slice()
       .sort((a, b) => b.likes + b.commentCount * 2 - (a.likes + a.commentCount * 2))
       .slice(0, 6)
@@ -139,7 +139,7 @@ export function TopNavActions() {
         meta: post.category === "admission" ? "입시" : post.category === "dating" ? "연애/미팅" : "커뮤니티",
         href: getPostHref(post.id),
       }));
-  }, [query, snapshot.lectures, snapshot.posts]);
+  }, [query, runtimeSnapshot.lectures, runtimeSnapshot.posts]);
 
   return (
     <>
