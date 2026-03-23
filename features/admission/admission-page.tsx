@@ -49,7 +49,6 @@ import {
 } from "@/lib/runtime-mutations";
 import {
   getAdmissionQuestions,
-  getCurrentSchool,
   getSchoolName,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
@@ -88,6 +87,7 @@ export function AdmissionPage({
     currentUser: runtimeUser,
     source,
     isAuthenticated,
+    schools,
     refresh,
     setSnapshot,
   } = useAppRuntime(initialSnapshot);
@@ -99,7 +99,7 @@ export function AdmissionPage({
   const [isSubmitting, startSubmitTransition] = useTransition();
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion(currentUser);
-  const currentSchool = getCurrentSchool();
+  const currentSchool = schools.find((school) => school.id === currentUser.schoolId) ?? null;
   const questions = useMemo(() => getAdmissionQuestions(), []);
 
   const form = useForm<AdmissionFormValues>({

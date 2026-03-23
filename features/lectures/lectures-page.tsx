@@ -18,7 +18,6 @@ import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
-  getCurrentSchool,
   getSchoolScopedLectureSummaries,
   getSchoolScopedTradePosts,
 } from "@/lib/mock-queries";
@@ -46,10 +45,11 @@ export function LecturesPage({
     loading,
     currentUser: runtimeUser,
     isAuthenticated,
+    schools,
   } = useAppRuntime(initialSnapshot, "lectures");
   const currentUser = runtimeUser;
-  const currentSchool = getCurrentSchool();
   const schoolId = currentUser.schoolId;
+  const currentSchool = schools.find((school) => school.id === schoolId) ?? null;
   const [activeView, setActiveView] = useState<LectureView>(initialView);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);

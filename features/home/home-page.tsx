@@ -20,7 +20,6 @@ import { TRADE_STATUS_LABELS } from "@/lib/constants";
 import {
   getCommunityPosts,
   getCareerPosts,
-  getCurrentSchool,
   getLectureById,
   getPostHref,
   getSchoolScopedCommunityPosts,
@@ -34,9 +33,10 @@ export function HomePage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, currentUser: runtimeUser } = useAppRuntime(initialSnapshot, "home");
+  const { loading, currentUser: runtimeUser, schools } = useAppRuntime(initialSnapshot, "home");
   const currentUser = runtimeUser;
-  const currentSchool = getCurrentSchool();
+  const schoolId = currentUser.schoolId;
+  const currentSchool = schools.find((school) => school.id === schoolId) ?? null;
   const hasSelectedSchool = Boolean(currentSchool?.id);
   const schoolSectionTitle = hasSelectedSchool
     ? currentUser.userType === "applicant"
@@ -46,16 +46,16 @@ export function HomePage({
       ? "🎯 지망학교를 선택하세요"
       : "🏫 학교를 선택하세요";
   const schoolFeedPosts = [
-    ...getSchoolScopedCommunityPosts(currentSchool?.id, "school"),
-    ...getSchoolScopedCommunityPosts(currentSchool?.id, "freshman"),
-    ...getSchoolScopedCommunityPosts(currentSchool?.id, "club"),
-    ...getSchoolScopedCommunityPosts(currentSchool?.id, "food"),
+    ...getSchoolScopedCommunityPosts(schoolId, "school"),
+    ...getSchoolScopedCommunityPosts(schoolId, "freshman"),
+    ...getSchoolScopedCommunityPosts(schoolId, "club"),
+    ...getSchoolScopedCommunityPosts(schoolId, "food"),
   ]
     .sort((a, b) => b.likes + b.commentCount * 2 - (a.likes + a.commentCount * 2))
     .slice(0, 5);
-  const schoolLectureHighlights = getSchoolScopedLectureSummaries(currentSchool?.id)
+  const schoolLectureHighlights = getSchoolScopedLectureSummaries(schoolId)
     .slice(0, 3);
-  const tradeHighlights = getSchoolScopedTradePosts(currentSchool?.id)
+  const tradeHighlights = getSchoolScopedTradePosts(schoolId)
     .slice(0, 3);
   const communityHighlights = [
     ...getCommunityPosts("free").slice(0, 2),

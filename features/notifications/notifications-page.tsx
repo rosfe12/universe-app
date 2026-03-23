@@ -32,7 +32,6 @@ import {
   getAdmissionQuestions,
   getCommentsByPostId,
   getCommunityPosts,
-  getCurrentSchool,
   getHotGalleryPosts,
   getLectureSummaries,
   getNotifications,
@@ -188,8 +187,8 @@ function getDeliveryLabel(item: Notification) {
   return item.sourceKind === "recommendation" ? "오늘 추천" : "오늘 알림";
 }
 
-function buildRecommendedNotifications(userId: string, schoolName?: string) {
-  const schoolHotPost = getSchoolHotPosts()[0];
+function buildRecommendedNotifications(userId: string, schoolName?: string, schoolId?: string) {
+  const schoolHotPost = getSchoolHotPosts(schoolId)[0];
   const hotPost = getHotGalleryPosts("popular")[0];
   const freshmanPost = getCommunityPosts("freshman").find(
     (post) => !schoolHotPost?.schoolId || post.schoolId === schoolHotPost.schoolId,
@@ -350,13 +349,15 @@ export function NotificationsPage({
     loading,
     isAuthenticated,
     refresh,
+    schools,
   } = useAppRuntime(initialSnapshot, "notifications");
   const [tab, setTab] = useState<NotificationTab>("all");
   const [isPending, startTransition] = useTransition();
-  const schoolName = getCurrentSchool()?.name;
+  const schoolId = currentUser.schoolId;
+  const schoolName = schools.find((school) => school.id === schoolId)?.name;
 
   const actualItems = getNotifications(currentUser.id);
-  const recommendedItems = buildRecommendedNotifications(currentUser.id, schoolName);
+  const recommendedItems = buildRecommendedNotifications(currentUser.id, schoolName, schoolId);
 
   useEffect(() => {
     if (!isAuthenticated || !isSupabaseEnabled()) {

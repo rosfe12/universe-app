@@ -56,7 +56,6 @@ import {
 import {
   getBlockedContentCount,
   getAnonymousHandle,
-  getCurrentSchool,
   getHiddenTradePostCount,
   getLectureById,
   getLectures,
@@ -116,6 +115,7 @@ export function TradePage({
     currentUser: runtimeUser,
     source,
     isAuthenticated,
+    schools,
     refresh,
     setSnapshot,
   } = useAppRuntime(initialSnapshot, "trade");
@@ -135,7 +135,7 @@ export function TradePage({
   const [isSendingMessage, startSendMessageTransition] = useTransition();
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessTrade(currentUser);
-  const currentSchool = getCurrentSchool();
+  const currentSchool = schools.find((school) => school.id === schoolId) ?? null;
   const schoolLectureIds = new Set(getSchoolScopedLectureSummaries(schoolId).map((lecture) => lecture.id));
   const schoolLectures = getLectures().filter((lecture) => schoolLectureIds.has(lecture.id));
   const lectureOptions = schoolLectures
