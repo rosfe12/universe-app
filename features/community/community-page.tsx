@@ -639,28 +639,30 @@ export function CommunityPage({
 
       <section className="space-y-3">
         <div className="space-y-3">
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-            {([
-              { value: "school", label: "우리학교" },
-              { value: "all", label: "전체" },
-              { value: "hot", label: "🔥 핫글" },
-            ] as const).map((scope) => (
-              <button
-                key={scope.value}
-                type="button"
-                onClick={() => setFeedScope(scope.value)}
-                className={cn(
-                  "app-chip inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all",
-                  feedScope === scope.value
-                    ? "border-primary bg-primary text-primary-foreground shadow-[0_16px_28px_-18px_rgba(79,70,229,0.95)]"
-                    : "text-foreground",
-                )}
-              >
-                {scope.label}
-              </button>
-            ))}
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-1">
+            <div className="grid grid-cols-3 gap-1">
+              {([
+                { value: "school", label: "우리학교" },
+                { value: "all", label: "전체" },
+                { value: "hot", label: "🔥 핫글" },
+              ] as const).map((scope) => (
+                <button
+                  key={scope.value}
+                  type="button"
+                  onClick={() => setFeedScope(scope.value)}
+                  className={cn(
+                    "inline-flex min-w-0 items-center justify-center rounded-[18px] px-3 py-3 text-sm font-semibold transition-all",
+                    feedScope === scope.value
+                      ? "bg-primary text-primary-foreground shadow-[0_18px_30px_-20px_rgba(79,70,229,0.95)]"
+                      : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+                  )}
+                >
+                  <span className="truncate">{scope.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 pt-1">
             {FILTERS.map((filter) => (
               <button
                 key={filter.value}
@@ -669,8 +671,8 @@ export function CommunityPage({
                 className={cn(
                   "app-chip inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all",
                   activeFilter === filter.value
-                    ? "border-primary bg-primary text-primary-foreground shadow-[0_16px_28px_-18px_rgba(79,70,229,0.95)]"
-                    : "text-foreground",
+                    ? "border-primary/70 bg-primary/15 text-primary shadow-[0_14px_24px_-22px_rgba(79,70,229,0.95)]"
+                    : "border-white/8 bg-transparent text-foreground/90",
                 )}
               >
                 <filter.icon className="h-4 w-4" />
@@ -678,43 +680,26 @@ export function CommunityPage({
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              className={cn(
-                "rounded-full",
-                sortMode === "latest" ? "" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
-              )}
-              variant={sortMode === "latest" ? "default" : "outline"}
-              onClick={() => setSortMode("latest")}
-            >
-              최신순
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              className={cn(
-                "rounded-full",
-                sortMode === "trending" ? "" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
-              )}
-              variant={sortMode === "trending" ? "default" : "outline"}
-              onClick={() => setSortMode("trending")}
-            >
-              급상승
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              className={cn(
-                "rounded-full",
-                sortMode === "popular" ? "" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
-              )}
-              variant={sortMode === "popular" ? "default" : "outline"}
-              onClick={() => setSortMode("popular")}
-            >
-              인기순
-            </Button>
+          <div className="flex items-center gap-1.5 border-b border-white/8 pb-1">
+            {([
+              { value: "latest", label: "최신순" },
+              { value: "trending", label: "급상승" },
+              { value: "popular", label: "인기순" },
+            ] as const).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSortMode(option.value)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-sm font-semibold transition-colors",
+                  sortMode === option.value
+                    ? "bg-white/[0.06] text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
       </section>
