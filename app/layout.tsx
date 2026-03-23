@@ -9,7 +9,7 @@ const appUrl = resolveAppUrl();
 const themeBootScript = `
 (() => {
   try {
-    const themeMode = localStorage.getItem("${APP_THEME_STORAGE_KEY}") || "system";
+    const themeMode = localStorage.getItem("${APP_THEME_STORAGE_KEY}") || "dark";
     const reduceMotion = localStorage.getItem("${APP_MOTION_STORAGE_KEY}") === "true";
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const resolvedTheme =

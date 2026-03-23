@@ -31,7 +31,7 @@ function applyAppPreferences(themeMode: ThemeMode, reduceMotion: boolean, prefer
 }
 
 export function AppSettingsSection() {
-  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [prefersDark, setPrefersDark] = useState(false);
 
@@ -41,7 +41,7 @@ export function AppSettingsSection() {
     const storedMotion = localStorage.getItem(APP_MOTION_STORAGE_KEY);
 
     setPrefersDark(mediaQuery.matches);
-    setThemeMode(storedTheme ?? "system");
+    setThemeMode(storedTheme ?? "dark");
     setReduceMotion(storedMotion === "true");
 
     const handleChange = (event: MediaQueryListEvent) => {

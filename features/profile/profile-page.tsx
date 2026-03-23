@@ -116,7 +116,7 @@ export function ProfilePage({
       <AppShell title="마이" subtitle="로그인 후 내 활동과 신뢰도를 관리합니다">
         <AccountRequiredCard
           isAuthenticated={false}
-          nextPath="/profile"
+          nextPath="/home"
           title="로그인 후 내 활동을 볼 수 있습니다"
           description="내 글, 내 댓글, 내 강의평, 내 매칭과 알림 설정은 로그인 후 사용할 수 있습니다."
         />
@@ -130,7 +130,7 @@ export function ProfilePage({
         <AccountRequiredCard
           isAuthenticated
           user={currentUser}
-          nextPath="/profile"
+          nextPath="/home"
           title="프로필 설정이 아직 끝나지 않았습니다"
           description="유저 타입과 학교를 먼저 선택하면 글쓰기와 댓글이 바로 열립니다."
         />

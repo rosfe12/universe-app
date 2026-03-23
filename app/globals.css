@@ -341,6 +341,14 @@
     color: rgb(165 180 252);
   }
 
+  .app-header-title {
+    color: rgb(17 24 39);
+  }
+
+  html[data-theme="dark"] .app-header-title {
+    color: rgb(248 250 252);
+  }
+
   .text-balance {
     text-wrap: balance;
   }
