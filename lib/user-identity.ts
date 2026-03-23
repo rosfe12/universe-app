@@ -340,9 +340,7 @@ export function getPublicIdentityLabel({
   }
 
   if (visibilityLevel === "school") {
-    return schoolName
-      ? `${getSchoolShortName(schoolName)} · 학교 공개`
-      : "익명 (학교만 공개)";
+    return schoolName ? getSchoolShortName(schoolName) : "익명";
   }
 
   if (visibilityLevel === "profile") {
