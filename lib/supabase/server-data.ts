@@ -37,6 +37,7 @@ const hasSupabaseEnv = Boolean(
 export type RuntimeSnapshotScope =
   | "full"
   | "home"
+  | "search"
   | "community"
   | "school"
   | "lectures"
@@ -72,6 +73,20 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         lectureReviews: false,
         tradePosts: true,
         notifications: false,
+        reports: false,
+        blocks: false,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "search":
+      return {
+        posts: true,
+        comments: false,
+        lectures: true,
+        lectureReviews: false,
+        tradePosts: false,
+        notifications: true,
         reports: false,
         blocks: false,
         datingProfiles: false,
@@ -249,6 +264,8 @@ function buildPostQuery(supabase: Awaited<ReturnType<typeof createServerSupabase
   switch (context.scope) {
     case "home":
       return base.eq("category", "community").in("subcategory", [...HOME_POST_SUBCATEGORIES]).limit(80);
+    case "search":
+      return base.in("category", ["community", "admission"]).limit(180);
     case "community":
       return base.eq("category", "community").in("subcategory", COMMUNITY_POST_SUBCATEGORIES).limit(140);
     case "admission":
@@ -298,6 +315,7 @@ function buildLectureQuery(
 
   switch (context.scope) {
     case "home":
+    case "search":
     case "school":
     case "lectures":
     case "trade":

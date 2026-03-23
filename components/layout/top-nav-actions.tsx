@@ -15,7 +15,6 @@ import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getPostHref } from "@/lib/mock-queries";
-import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { cn } from "@/lib/utils";
 
 function getSearchScore(input: {
@@ -53,8 +52,12 @@ function isMessageNotification(type: string) {
 }
 
 export function TopNavActions() {
-  const runtimeSnapshot = getRuntimeSnapshot();
-  const { notifications } = useAppRuntime(runtimeSnapshot, "chrome");
+  const {
+    notifications,
+    posts,
+    lectures,
+    loading: searchLoading,
+  } = useAppRuntime(undefined, "search");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const unreadMessageCount = notifications.filter(
@@ -70,10 +73,16 @@ export function TopNavActions() {
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
-    const postItems = runtimeSnapshot.posts
+    const postItems = posts
       .map((post) => {
         const meta =
-          post.category === "admission" ? "입시" : post.category === "dating" ? "연애/미팅" : "커뮤니티";
+          post.category === "admission"
+            ? "입시"
+            : post.category === "community" && post.schoolId
+              ? "우리학교"
+              : post.category === "dating"
+                ? "연애/미팅"
+                : "커뮤니티";
 
         return {
           id: post.id,
@@ -98,7 +107,7 @@ export function TopNavActions() {
         href: post.href,
       }));
 
-    const lectureItems = runtimeSnapshot.lectures
+    const lectureItems = lectures
       .map((lecture) => {
         const meta = `${lecture.professor} · ${lecture.department} · 강의정보`;
 
@@ -129,17 +138,24 @@ export function TopNavActions() {
       return [...postItems, ...lectureItems].slice(0, 8);
     }
 
-    return runtimeSnapshot.posts
+    return posts
       .slice()
       .sort((a, b) => b.likes + b.commentCount * 2 - (a.likes + a.commentCount * 2))
       .slice(0, 6)
       .map((post) => ({
         id: `fallback-${post.id}`,
         title: post.title,
-        meta: post.category === "admission" ? "입시" : post.category === "dating" ? "연애/미팅" : "커뮤니티",
+        meta:
+          post.category === "admission"
+            ? "입시"
+            : post.category === "community" && post.schoolId
+              ? "우리학교"
+              : post.category === "dating"
+                ? "연애/미팅"
+                : "커뮤니티",
         href: getPostHref(post.id),
       }));
-  }, [query, runtimeSnapshot.lectures, runtimeSnapshot.posts]);
+  }, [lectures, posts, query]);
 
   return (
     <>
@@ -180,7 +196,9 @@ export function TopNavActions() {
               autoFocus
             />
             <div className="max-h-[min(58vh,420px)] overflow-y-auto overscroll-contain rounded-2xl border border-gray-100">
-              {searchResults.length > 0 ? (
+              {searchLoading ? (
+                <div className="px-4 py-8 text-center text-sm text-gray-500">검색 항목을 불러오는 중입니다.</div>
+              ) : searchResults.length > 0 ? (
                 <div className="divide-y divide-gray-100">
                   {searchResults.map((item) => (
                     <Link
