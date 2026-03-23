@@ -3,15 +3,19 @@
 import Link from "next/link";
 import {
   ArrowUpRight,
+  BarChart3,
   BookOpen,
+  Flame,
   Compass,
   GraduationCap,
+  MessageCircle,
   Repeat2,
   Users2,
   UtensilsCrossed,
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
 import { FeedList } from "@/components/shared/feed-list";
 import { LoadingState } from "@/components/shared/loading-state";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -20,15 +24,19 @@ import { FeedPostCard } from "@/features/common/feed-post-card";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { TRADE_STATUS_LABELS } from "@/lib/constants";
+import { isAdPlacementEnabled } from "@/lib/ads";
 import {
-  getCommunityPosts,
-  getCareerPosts,
+  getAllCommunityFeedPosts,
   getLectureById,
+  getMostCommentedPosts,
+  getMostVotedPosts,
   getPostHref,
+  getSchoolCommunityFeedPosts,
   getSchoolScopedAdmissionQuestions,
   getSchoolScopedCommunityPosts,
   getSchoolScopedLectureSummaries,
   getSchoolScopedTradePosts,
+  getTrendingCommunityPosts,
 } from "@/lib/mock-queries";
 import { getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post } from "@/types";
@@ -56,23 +64,21 @@ export function HomePage({
   const schoolAdmissionPosts = getSchoolScopedAdmissionQuestions(schoolId);
   const schoolLectureHighlights = getSchoolScopedLectureSummaries(schoolId).slice(0, 3);
   const tradeHighlights = getSchoolScopedTradePosts(schoolId).slice(0, 3);
-  const communityHighlights = [
-    ...getCommunityPosts("free").slice(0, 4),
-    ...getCommunityPosts("ask").slice(0, 4),
-    ...getCareerPosts("careerInfo").slice(0, 2),
-  ].sort((a, b) => getEngagementScore(b) - getEngagementScore(a));
+  const hotNowPosts = getTrendingCommunityPosts().slice(0, 6);
+  const allPopularPosts = getAllCommunityFeedPosts().slice(0, 6);
+  const schoolCommunityPosts = getSchoolCommunityFeedPosts(schoolId).slice(0, 6);
+  const mostVotedPosts = getMostVotedPosts().slice(0, 4);
+  const mostCommentedPosts = getMostCommentedPosts().slice(0, 4);
 
   const schoolPopularPosts = [
-    ...schoolBoardPosts,
-    ...schoolFreshmanPosts,
+    ...schoolCommunityPosts,
     ...schoolAdmissionPosts,
   ]
     .sort((a, b) => getEngagementScore(b) - getEngagementScore(a))
     .slice(0, 5);
 
   const todayViewedPosts = [
-    ...schoolPopularPosts,
-    ...communityHighlights,
+    ...hotNowPosts,
     ...schoolClubPosts.slice(0, 2),
     ...schoolFoodPosts.slice(0, 2),
   ]
@@ -153,16 +159,25 @@ export function HomePage({
       <section className="space-y-4">
         <SectionHeader
           eyebrow="추천 피드"
-          title="오늘 많이 보는 글"
+          title="🔥 지금 뜨는 글"
         />
-        {featuredPost ? (
+        {hotNowPosts.length ? (
           <FeedList className="rounded-[32px]">
             <FeedPostCard
-              post={featuredPost}
-              href={getPostHref(featuredPost.id)}
+              post={hotNowPosts[0]}
+              href={getPostHref(hotNowPosts[0].id)}
               variant="featured"
-              emphasis={featuredPost.schoolId === schoolId ? "school" : "trending"}
+              emphasis={hotNowPosts[0].schoolId === schoolId ? "school" : "trending"}
             />
+            {hotNowPosts.slice(1, 4).map((post) => (
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                href={getPostHref(post.id)}
+                variant="dense"
+                emphasis={post.schoolId === schoolId ? "school" : "trending"}
+              />
+            ))}
           </FeedList>
         ) : null}
         <div className="grid grid-cols-2 gap-3">
@@ -202,7 +217,7 @@ export function HomePage({
       <section className="space-y-4">
         <SectionHeader
           eyebrow="Campus"
-          title={isApplicant ? "지금 지망학교는" : "지금 우리 학교는"}
+          title={isApplicant ? "🏫 지망학교 인기글" : "🏫 우리학교 인기글"}
           href="/school"
           actionLabel="학교 보기"
         />
@@ -252,12 +267,12 @@ export function HomePage({
 
       <section className="space-y-4">
         <SectionHeader
-          eyebrow="추천 큐레이션"
-          title="새내기 많이 보는 글"
+          eyebrow="참여"
+          title="🗳 가장 많이 참여한 투표"
         />
-        {newcomerPosts.length ? (
+        {mostVotedPosts.length ? (
           <FeedList>
-            {newcomerPosts.map((post, index) => (
+            {mostVotedPosts.map((post, index) => (
               <FeedPostCard
                 key={post.id}
                 post={post}
@@ -274,6 +289,47 @@ export function HomePage({
             </CardContent>
           </Card>
         )}
+      </section>
+
+      <section className="space-y-4">
+        <SectionHeader
+          eyebrow="대화"
+          title="💬 댓글 반응 좋은 글"
+        />
+        {mostCommentedPosts.length ? (
+          <FeedList>
+            {mostCommentedPosts.map((post, index) => (
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                href={getPostHref(post.id)}
+                variant={index === 0 ? "default" : "dense"}
+                emphasis={post.schoolId === schoolId ? "school" : undefined}
+              />
+            ))}
+          </FeedList>
+        ) : null}
+      </section>
+
+      <section className="space-y-4">
+        <SectionHeader
+          eyebrow="전체"
+          title="🌍 전체 인기글"
+          href="/community"
+        />
+        {allPopularPosts.length ? (
+          <FeedList>
+            {allPopularPosts.map((post) => (
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                href={getPostHref(post.id)}
+                variant="dense"
+                emphasis={post.schoolId === schoolId ? "school" : "trending"}
+              />
+            ))}
+          </FeedList>
+        ) : null}
       </section>
 
       <section className="space-y-4">
@@ -302,28 +358,8 @@ export function HomePage({
               </CardContent>
             </Link>
           ))}
+          {isAdPlacementEnabled("feedInline") ? <AdPlaceholderCard placement="feedInline" /> : null}
         </div>
-      </section>
-
-      <section className="space-y-4">
-        <SectionHeader
-          eyebrow="실시간"
-          title="실시간 반응 좋은 글"
-          href="/community"
-        />
-        {realtimeReactionPosts.length ? (
-          <FeedList>
-            {realtimeReactionPosts.map((post) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                href={getPostHref(post.id)}
-                variant="dense"
-                emphasis={post.schoolId === schoolId ? "school" : "trending"}
-              />
-            ))}
-          </FeedList>
-        ) : null}
       </section>
 
       <section className="space-y-4">

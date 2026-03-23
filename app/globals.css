@@ -343,10 +343,16 @@
 
   .app-header-title {
     color: rgb(17 24 39);
+    text-wrap: balance;
   }
 
   html[data-theme="dark"] .app-header-title {
-    color: rgb(248 250 252);
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.98) 0%, rgba(199, 210, 254, 0.98) 58%, rgba(147, 197, 253, 0.92) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 24px rgba(99, 102, 241, 0.08);
   }
 
   .text-balance {

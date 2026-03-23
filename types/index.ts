@@ -48,10 +48,12 @@ export type NotificationTargetType =
   | "comment"
   | "lecture"
   | "trade"
+  | "poll"
   | "verification"
   | "report"
   | "system";
 export type TradeStatus = "open" | "matching" | "closed";
+export type PostType = "normal" | "poll" | "question" | "balance";
 export type DifficultyLevel = "easy" | "medium" | "hard";
 export type WorkloadLevel = "light" | "medium" | "heavy";
 export type AttendanceLevel = "flexible" | "medium" | "strict";
@@ -111,6 +113,7 @@ export interface Post {
   id: string;
   category: PostCategory;
   subcategory?: CommunitySubcategory | "dating" | "meeting";
+  postType?: PostType;
   schoolId?: string;
   authorId: string;
   visibilityLevel?: VisibilityLevel;
@@ -123,14 +126,18 @@ export interface Post {
   likes: number;
   commentCount: number;
   viewCount?: number;
+  hotScore?: number;
+  pollVoteCount?: number;
   tags?: string[];
   imageUrl?: string;
   meta?: AdmissionQuestionMeta;
+  poll?: Poll | null;
 }
 
 export interface Comment {
   id: string;
   postId: string;
+  parentCommentId?: string;
   authorId: string;
   visibilityLevel?: VisibilityLevel;
   reportCount?: number;
@@ -138,6 +145,24 @@ export interface Comment {
   autoHidden?: boolean;
   content: string;
   accepted: boolean;
+  createdAt: string;
+}
+
+export interface PollOption {
+  id: string;
+  text: string;
+  voteCount: number;
+  percentage: number;
+  selected?: boolean;
+}
+
+export interface Poll {
+  id: string;
+  postId: string;
+  question: string;
+  totalVotes: number;
+  options: PollOption[];
+  votedOptionId?: string;
   createdAt: string;
 }
 

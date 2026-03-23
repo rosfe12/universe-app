@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Eye, Heart, MessageCircle } from "lucide-react";
+import { BarChart3, Eye, Heart, MessageCircle } from "lucide-react";
 
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,9 @@ import type { Post, ReportReason } from "@/types";
 import { PostAuthorRow } from "./post-author-row";
 
 function getPostBadge(post: Post) {
+  if (post.postType === "balance") return { label: "밸런스게임", variant: "warning" as const };
+  if (post.postType === "poll") return { label: "투표", variant: "secondary" as const };
+  if (post.postType === "question") return { label: "질문", variant: "outline" as const };
   if (post.category === "admission") return { label: "입시", variant: "secondary" as const };
   const careerBoard = getCareerBoardKind(post);
   if (careerBoard) {
@@ -79,6 +82,11 @@ export function FeedPostCard({
           </span>
         ) : null}
         {post.subcategory === "hot" ? <span className="text-rose-500">19+</span> : null}
+        {typeof post.hotScore === "number" && post.hotScore >= 18 ? (
+          <span className="rounded-full bg-amber-500/10 px-2.5 py-1 font-medium text-amber-300">
+            HOT
+          </span>
+        ) : null}
       </div>
       <div className={cn("space-y-2", dense && "space-y-1.5")}>
         <h3
@@ -98,6 +106,24 @@ export function FeedPostCard({
         >
           {post.content}
         </p>
+        {post.poll ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3">
+            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+              <span className="font-medium text-violet-300">
+                {post.postType === "balance" ? "밸런스게임" : "투표"}
+              </span>
+              <span>{post.poll.totalVotes}명 참여</span>
+            </div>
+            <p className="mt-2 text-sm font-medium text-foreground">{post.poll.question}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {post.poll.options.slice(0, 3).map((option) => (
+                <span key={option.id} className="rounded-full bg-white/[0.04] px-2.5 py-1 text-xs text-muted-foreground">
+                  {option.text}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -146,6 +172,12 @@ export function FeedPostCard({
               <MessageCircle className="h-4 w-4" />
               {post.commentCount}
             </span>
+            {post.poll ? (
+              <span className="inline-flex items-center gap-1">
+                <BarChart3 className="h-4 w-4" />
+                {post.poll.totalVotes}
+              </span>
+            ) : null}
           </div>
           {showActions ? (
             <ReportBlockActions

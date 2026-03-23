@@ -56,14 +56,20 @@ function getActivityScore(item: {
   createdAt: string;
   likes?: number;
   commentCount?: number;
+  viewCount?: number;
+  pollVoteCount?: number;
 }) {
   const hoursSinceCreated = Math.max(
-    1,
+    0,
     (Date.now() - new Date(item.createdAt).getTime()) / (1000 * 60 * 60),
   );
-  const freshnessBoost = Math.max(0, 72 - hoursSinceCreated);
+  const baseScore =
+    (item.likes ?? 0) * 2 +
+    (item.commentCount ?? 0) * 3 +
+    (item.viewCount ?? 0) * 0.1 +
+    (item.pollVoteCount ?? 0) * 2;
 
-  return (item.likes ?? 0) * 5 + (item.commentCount ?? 0) * 8 + freshnessBoost;
+  return Math.round((baseScore / (hoursSinceCreated + 2)) * 100) / 100;
 }
 
 const popularFirst = <T extends { createdAt: string; likes?: number; commentCount?: number }>(items: T[]) =>
@@ -427,6 +433,23 @@ export function getCommunityPosts(subcategory?: CommunitySubcategory) {
   );
 }
 
+export function getAllCommunityFeedPosts() {
+  return popularFirst(
+    getState().posts.filter(
+      (post) =>
+        post.category === "community" &&
+        !isHiddenPost(post) &&
+        (getCareerBoardKind(post) || ["free", "advice", "ask", "anonymous", "hot"].includes(String(post.subcategory))),
+    ),
+  );
+}
+
+export function getSchoolCommunityFeedPosts(schoolId = currentUser.schoolId) {
+  return popularFirst(
+    getAllCommunityFeedPosts().filter((post) => !schoolId || post.schoolId === schoolId),
+  );
+}
+
 export function getCareerPosts(kind?: CareerBoardKind) {
   return popularFirst(
     getState().posts.filter((post) => {
@@ -476,7 +499,13 @@ export function getCommunityCategoryLabel(
 }
 
 export function getHotScore(post: Pick<Post, "likes" | "commentCount">) {
-  return post.likes * 2 + post.commentCount * 3;
+  return getActivityScore({
+    createdAt: "createdAt" in post ? String((post as Post).createdAt) : new Date().toISOString(),
+    likes: post.likes,
+    commentCount: post.commentCount,
+    viewCount: "viewCount" in post ? Number((post as Post).viewCount ?? 0) : 0,
+    pollVoteCount: "pollVoteCount" in post ? Number((post as Post).pollVoteCount ?? 0) : 0,
+  });
 }
 
 export function getHotGalleryPosts(mode: "popular" | "latest" = "popular") {
@@ -498,6 +527,37 @@ export function getHotGalleryPosts(mode: "popular" | "latest" = "popular") {
       b.commentCount - a.commentCount ||
       +new Date(b.createdAt) - +new Date(a.createdAt),
   );
+}
+
+export function getTrendingCommunityPosts() {
+  return [...getAllCommunityFeedPosts()]
+    .sort(
+      (a, b) =>
+        getHotScore(b) - getHotScore(a) ||
+        b.commentCount - a.commentCount ||
+        +new Date(b.createdAt) - +new Date(a.createdAt),
+    )
+    .slice(0, 24);
+}
+
+export function getMostVotedPosts() {
+  return [...getAllCommunityFeedPosts()]
+    .filter((post) => (post.pollVoteCount ?? 0) > 0)
+    .sort(
+      (a, b) =>
+        (b.pollVoteCount ?? 0) - (a.pollVoteCount ?? 0) ||
+        getHotScore(b) - getHotScore(a),
+    );
+}
+
+export function getMostCommentedPosts() {
+  return [...getAllCommunityFeedPosts()]
+    .sort(
+      (a, b) =>
+        b.commentCount - a.commentCount ||
+        getHotScore(b) - getHotScore(a) ||
+        +new Date(b.createdAt) - +new Date(a.createdAt),
+    );
 }
 
 export function getDatingPosts(kind?: "dating" | "meeting") {

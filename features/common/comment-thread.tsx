@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { MessageCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -99,7 +99,32 @@ export function CommentThread({
       }),
     [allowAccept, threadComments],
   );
+  const rootComments = useMemo(
+    () => sortedComments.filter((comment) => !comment.parentCommentId),
+    [sortedComments],
+  );
+  const repliesByParentId = useMemo(() => {
+    const map = new Map<string, typeof sortedComments>();
+    sortedComments
+      .filter((comment) => comment.parentCommentId)
+      .forEach((comment) => {
+        const parentId = comment.parentCommentId as string;
+        const group = map.get(parentId) ?? [];
+        group.push(comment);
+        map.set(parentId, group);
+      });
+
+    for (const [key, value] of map.entries()) {
+      map.set(
+        key,
+        [...value].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt)),
+      );
+    }
+
+    return map;
+  }, [sortedComments]);
   const [isSubmitting, startSubmitTransition] = useTransition();
+  const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const canComment =
     canCommentOverride ??
     (isAuthenticated && hasCompletedOnboarding(runtimeUser) && !isReliabilityBlocked);
@@ -131,6 +156,7 @@ export function CommentThread({
     const localComment = {
       id: `comment-local-${threadComments.length + 1}`,
       postId,
+      parentCommentId: replyTargetId ?? undefined,
       authorId: currentUser.id,
       visibilityLevel: isAnonymousBoard
         ? "anonymous"
@@ -146,11 +172,13 @@ export function CommentThread({
           try {
             await createComment({
               postId,
+              parentCommentId: replyTargetId ?? undefined,
               content: values.content,
               visibilityLevel: isAnonymousBoard ? "anonymous" : values.visibilityLevel,
             });
             await refresh();
             form.reset();
+            setReplyTargetId(null);
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "댓글 작성에 실패했습니다.",
@@ -164,6 +192,7 @@ export function CommentThread({
     }
 
     form.reset();
+    setReplyTargetId(null);
   });
 
   return (
@@ -205,154 +234,77 @@ export function CommentThread({
         </div>
       ) : null}
 
-      {sortedComments.length > 0 ? (
+      {rootComments.length > 0 ? (
         <div className="divide-y divide-gray-100 border-t border-gray-100">
-          {sortedComments.map((comment) => (
-            <div key={comment.id} className="space-y-3 py-4">
-              <PostAuthorRow
-                authorId={comment.authorId}
-                createdAt={comment.createdAt}
-                visibilityLevel={
-                  targetPost?.category === "community" && targetPost.subcategory !== "anonymous"
-                    ? "school"
-                    : comment.visibilityLevel
-                }
-                minimal
-              />
-              <div className="space-y-2 pl-0.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  {comment.accepted ? <span className="text-xs text-emerald-600">채택됨</span> : null}
-                  {allowAccept && isLegendarySenior(getAuthorTrustScore(comment.authorId)) ? (
-                    <LegendAnswerTag />
-                  ) : null}
-                </div>
-                <p className="text-sm leading-7 text-gray-700 dark:text-gray-200">{comment.content}</p>
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  {allowAccept ? (
-                    <div className="flex items-center gap-2">
-                      {isAuthenticated && currentUser.id === comment.authorId ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          type="button"
-                          onClick={async () => {
-                            if (source === "supabase") {
-                              await deleteComment(comment.id);
-                              await refresh();
-                              return;
-                            }
+          {rootComments.map((comment) => {
+            const replies = repliesByParentId.get(comment.id) ?? [];
 
-                            setSnapshot((current) => removeCommentFromSnapshot(current, comment.id));
-                          }}
-                        >
-                          댓글 삭제
-                        </Button>
-                      ) : null}
-                      <Button
-                        size="sm"
-                        variant={comment.accepted ? "secondary" : "outline"}
-                        type="button"
-                        onClick={async () => {
-                          if (source === "supabase" && isAuthenticated) {
-                            await acceptAdmissionAnswer(postId, comment.id);
-                            await refresh();
-                            return;
-                          }
-
-                          setSnapshot((current) =>
-                            acceptCommentInSnapshot(current, postId, comment.id),
-                          );
+            return (
+              <div key={comment.id} className="space-y-3 py-4">
+                <CommentRow
+                  comment={comment}
+                  postId={postId}
+                  allowAccept={allowAccept}
+                  canComment={canComment}
+                  isAuthenticated={isAuthenticated}
+                  currentUserId={currentUser.id}
+                  source={source}
+                  refresh={refresh}
+                  setSnapshot={setSnapshot}
+                  onReply={() => {
+                    setReplyTargetId((current) => (current === comment.id ? null : comment.id));
+                    form.setFocus("content");
+                  }}
+                />
+                {replies.length ? (
+                  <div className="space-y-3 border-l border-gray-100 pl-4 dark:border-white/10">
+                    {replies.map((reply) => (
+                      <CommentRow
+                        key={reply.id}
+                        comment={reply}
+                        postId={postId}
+                        allowAccept={false}
+                        canComment={canComment}
+                        isAuthenticated={isAuthenticated}
+                        currentUserId={currentUser.id}
+                        source={source}
+                        refresh={refresh}
+                        setSnapshot={setSnapshot}
+                        onReply={() => {
+                          setReplyTargetId((current) => (current === comment.id ? null : comment.id));
+                          form.setFocus("content");
                         }}
-                      >
-                        {comment.accepted ? "채택됨" : "답변 채택"}
-                      </Button>
-                    </div>
-                  ) : (
-                    isAuthenticated && currentUser.id === comment.authorId ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        type="button"
-                        onClick={async () => {
-                          if (source === "supabase") {
-                            await deleteComment(comment.id);
-                            await refresh();
-                            return;
-                          }
-
-                          setSnapshot((current) => removeCommentFromSnapshot(current, comment.id));
-                        }}
-                      >
-                        댓글 삭제
-                      </Button>
-                    ) : (
-                      <span />
-                    )
-                  )}
-                  <ReportBlockActions
-                    compact
-                    targetType="comment"
-                    targetId={comment.id}
-                    targetUserId={comment.authorId}
-                    repeatedlyReported={isRepeatedlyReportedUser(comment.authorId)}
-                    onReport={async ({ targetId, targetType, reason, memo }) => {
-                      if (!targetId || !targetType) return;
-
-                      if (source === "supabase" && isAuthenticated) {
-                        await createReportRecord({
-                          reporterId: currentUser.id,
-                          targetType,
-                          targetId,
-                          reason,
-                          memo,
-                        });
-                        await refresh();
-                        return;
-                      }
-
-                      setSnapshot((current) =>
-                        addReportToSnapshot(current, {
-                          targetType,
-                          targetId,
-                          reporterId: currentUser.id,
-                          reason: reason ?? "other",
-                          memo,
-                        }),
-                      );
-                    }}
-                    onBlock={async ({ targetUserId }) => {
-                      if (!targetUserId) return;
-
-                      if (source === "supabase" && isAuthenticated) {
-                        await createBlockRecord({
-                          blockerId: currentUser.id,
-                          blockedUserId: targetUserId,
-                        });
-                        await refresh();
-                        return;
-                      }
-
-                      setSnapshot((current) =>
-                        addBlockToSnapshot(current, {
-                          blockerId: currentUser.id,
-                          blockedUserId: targetUserId,
-                        }),
-                      );
-                    }}
-                  />
-                </div>
+                        compact
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
 
       {canComment ? (
         <form className="space-y-3 border-t border-gray-100 pt-4" onSubmit={onSubmit}>
+          {replyTargetId ? (
+            <div className="flex items-center justify-between rounded-2xl border border-indigo-500/15 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-700 dark:border-indigo-400/20 dark:bg-indigo-400/10 dark:text-indigo-200">
+              <span>답글 작성 중</span>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setReplyTargetId(null)}>
+                취소
+              </Button>
+            </div>
+          ) : null}
           <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3">
             <Textarea
               rows={2}
-              placeholder={allowAccept ? "질문에 바로 답변을 남겨보세요" : "댓글을 입력하세요"}
+              placeholder={
+                replyTargetId
+                  ? "답글을 입력하세요"
+                  : allowAccept
+                    ? "질문에 바로 답변을 남겨보세요"
+                    : "댓글을 입력하세요"
+              }
               className="min-h-[88px] resize-none border-0 bg-transparent px-1 text-sm leading-6 shadow-none focus-visible:ring-0"
               {...form.register("content")}
             />
@@ -380,7 +332,7 @@ export function CommentThread({
               </div>
             )}
             <Button type="submit" size="sm" disabled={isSubmitting || !form.watch("content").trim()}>
-              {isSubmitting ? "등록 중" : allowAccept ? "답변 등록" : "댓글 작성"}
+              {isSubmitting ? "등록 중" : replyTargetId ? "답글 작성" : allowAccept ? "답변 등록" : "댓글 작성"}
             </Button>
           </div>
         </form>
@@ -409,6 +361,167 @@ export function CommentThread({
           ctaLabel={isAuthenticated ? "프로필 설정 이어가기" : "로그인하고 댓글 쓰기"}
         />
       )}
+    </div>
+  );
+}
+
+function CommentRow({
+  comment,
+  postId,
+  allowAccept,
+  canComment,
+  isAuthenticated,
+  currentUserId,
+  source,
+  refresh,
+  setSnapshot,
+  onReply,
+  compact = false,
+}: {
+  comment: AppRuntimeSnapshot["comments"][number];
+  postId: string;
+  allowAccept: boolean;
+  canComment: boolean;
+  isAuthenticated: boolean;
+  currentUserId: string;
+  source: "mock" | "supabase";
+  refresh: () => Promise<unknown>;
+  setSnapshot: ReturnType<typeof useAppRuntime>["setSnapshot"];
+  onReply: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "space-y-2" : "space-y-2.5"}>
+      <PostAuthorRow
+        authorId={comment.authorId}
+        createdAt={comment.createdAt}
+        visibilityLevel={comment.visibilityLevel}
+        minimal
+      />
+      <div className="space-y-2 pl-0.5">
+        <div className="flex flex-wrap items-center gap-2">
+          {comment.accepted ? <span className="text-xs text-emerald-600">채택됨</span> : null}
+          {allowAccept && isLegendarySenior(getAuthorTrustScore(comment.authorId)) ? (
+            <LegendAnswerTag />
+          ) : null}
+        </div>
+        <p className="text-sm leading-7 text-gray-700 dark:text-gray-200">{comment.content}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-1">
+            {canComment ? (
+              <Button size="sm" variant="ghost" type="button" onClick={onReply}>
+                답글 달기
+              </Button>
+            ) : null}
+            {allowAccept ? (
+              <>
+                {isAuthenticated && currentUserId === comment.authorId ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    type="button"
+                    onClick={async () => {
+                      if (source === "supabase") {
+                        await deleteComment(comment.id);
+                        await refresh();
+                        return;
+                      }
+
+                      setSnapshot((current) => removeCommentFromSnapshot(current, comment.id));
+                    }}
+                  >
+                    댓글 삭제
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant={comment.accepted ? "secondary" : "outline"}
+                  type="button"
+                  onClick={async () => {
+                    if (source === "supabase" && isAuthenticated) {
+                      await acceptAdmissionAnswer(postId, comment.id);
+                      await refresh();
+                      return;
+                    }
+
+                    setSnapshot((current) => acceptCommentInSnapshot(current, postId, comment.id));
+                  }}
+                >
+                  {comment.accepted ? "채택됨" : "답변 채택"}
+                </Button>
+              </>
+            ) : isAuthenticated && currentUserId === comment.authorId ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                type="button"
+                onClick={async () => {
+                  if (source === "supabase") {
+                    await deleteComment(comment.id);
+                    await refresh();
+                    return;
+                  }
+
+                  setSnapshot((current) => removeCommentFromSnapshot(current, comment.id));
+                }}
+              >
+                댓글 삭제
+              </Button>
+            ) : null}
+          </div>
+          <ReportBlockActions
+            compact
+            targetType="comment"
+            targetId={comment.id}
+            targetUserId={comment.authorId}
+            repeatedlyReported={isRepeatedlyReportedUser(comment.authorId)}
+            onReport={async ({ targetId, targetType, reason, memo }) => {
+              if (!targetId || !targetType) return;
+
+              if (source === "supabase" && isAuthenticated) {
+                await createReportRecord({
+                  reporterId: currentUserId,
+                  targetType,
+                  targetId,
+                  reason,
+                  memo,
+                });
+                await refresh();
+                return;
+              }
+
+              setSnapshot((current) =>
+                addReportToSnapshot(current, {
+                  targetType,
+                  targetId,
+                  reporterId: currentUserId,
+                  reason: reason ?? "other",
+                  memo,
+                }),
+              );
+            }}
+            onBlock={async ({ targetUserId }) => {
+              if (!targetUserId) return;
+
+              if (source === "supabase" && isAuthenticated) {
+                await createBlockRecord({
+                  blockerId: currentUserId,
+                  blockedUserId: targetUserId,
+                });
+                await refresh();
+                return;
+              }
+
+              setSnapshot((current) =>
+                addBlockToSnapshot(current, {
+                  blockerId: currentUserId,
+                  blockedUserId: targetUserId,
+                }),
+              );
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 }

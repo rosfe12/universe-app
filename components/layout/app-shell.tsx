@@ -26,7 +26,7 @@ export function AppShell({
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-500 dark:text-indigo-300">
                 CAMVERSE
               </p>
-              <h1 className="app-header-title mt-2 text-[30px] font-semibold tracking-tight text-balance">
+              <h1 className="app-header-title mt-2 text-[28px] font-bold leading-[0.96] tracking-[-0.04em] text-balance sm:text-[30px]">
                 {title}
               </h1>
             </div>

@@ -282,6 +282,10 @@ create table if not exists public.posts (
   scope public.content_scope not null default 'global',
   like_count integer not null default 0,
   comment_count integer not null default 0,
+  view_count integer not null default 0,
+  hot_score double precision not null default 0,
+  poll_vote_count integer not null default 0,
+  post_type text not null default 'normal',
   report_count integer not null default 0,
   admin_hidden boolean not null default false,
   auto_hidden boolean not null default false,
@@ -294,12 +298,14 @@ create table if not exists public.posts (
   constraint posts_content_check check (length(trim(content)) > 0),
   constraint posts_scope_school_check check (
     (scope = 'global') or (school_id is not null)
-  )
+  ),
+  constraint posts_post_type_check check (post_type in ('normal', 'poll', 'question', 'balance'))
 );
 
 create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references public.posts(id) on delete cascade,
+  parent_comment_id uuid references public.comments(id) on delete cascade,
   author_id uuid not null references public.users(id) on delete cascade,
   content text not null,
   like_count integer not null default 0,
@@ -310,6 +316,34 @@ create table if not exists public.comments (
   accepted boolean not null default false,
   visibility_level public.visibility_level not null default 'school',
   constraint comments_content_check check (length(trim(content)) > 0)
+);
+
+create table if not exists public.polls (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null unique references public.posts(id) on delete cascade,
+  question text not null,
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint polls_question_check check (length(trim(question)) > 0)
+);
+
+create table if not exists public.poll_options (
+  id uuid primary key default gen_random_uuid(),
+  poll_id uuid not null references public.polls(id) on delete cascade,
+  option_text text not null,
+  position integer not null,
+  vote_count integer not null default 0,
+  constraint poll_options_text_check check (length(trim(option_text)) > 0),
+  constraint poll_options_position_check check (position between 1 and 4),
+  constraint poll_options_unique_position unique (poll_id, position)
+);
+
+create table if not exists public.poll_votes (
+  id uuid primary key default gen_random_uuid(),
+  poll_id uuid not null references public.polls(id) on delete cascade,
+  option_id uuid not null references public.poll_options(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint poll_votes_unique_user unique (poll_id, user_id)
 );
 
 create table if not exists public.lectures (
@@ -410,9 +444,19 @@ create table if not exists public.reports (
 
 alter table public.posts
   add column if not exists admin_hidden boolean not null default false;
+alter table public.posts
+  add column if not exists view_count integer not null default 0;
+alter table public.posts
+  add column if not exists hot_score double precision not null default 0;
+alter table public.posts
+  add column if not exists poll_vote_count integer not null default 0;
+alter table public.posts
+  add column if not exists post_type text not null default 'normal';
 
 alter table public.comments
   add column if not exists admin_hidden boolean not null default false;
+alter table public.comments
+  add column if not exists parent_comment_id uuid references public.comments(id) on delete cascade;
 
 alter table public.lecture_reviews
   add column if not exists admin_hidden boolean not null default false;
@@ -468,6 +512,19 @@ begin
     alter table public.notifications
       add constraint notifications_delivery_mode_check
       check (delivery_mode in ('instant', 'daily'));
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'posts_post_type_check'
+  ) then
+    alter table public.posts
+      add constraint posts_post_type_check
+      check (post_type in ('normal', 'poll', 'question', 'balance'));
   end if;
 end $$;
 
@@ -544,9 +601,13 @@ create table if not exists public.ops_events (
 create index if not exists idx_posts_school_id on public.posts (school_id);
 create index if not exists idx_posts_scope on public.posts (scope);
 create index if not exists idx_posts_author_created_at on public.posts (author_id, created_at desc);
+create index if not exists idx_posts_hot_score_created_at on public.posts (hot_score desc, created_at desc);
+create index if not exists idx_posts_school_hot_score on public.posts (school_id, hot_score desc, created_at desc);
+create index if not exists idx_posts_created_at on public.posts (created_at desc);
 create index if not exists idx_student_verification_requests_user_status on public.student_verification_requests (user_id, status, requested_at desc);
 create unique index if not exists idx_users_verified_school_email on public.users (school_email) where school_email is not null and student_verification_status = 'verified';
 create index if not exists idx_comments_post_id on public.comments (post_id);
+create index if not exists idx_comments_post_parent_created_at on public.comments (post_id, parent_comment_id, created_at desc);
 create index if not exists idx_comments_author_created_at on public.comments (author_id, created_at desc);
 create index if not exists idx_lecture_reviews_lecture_id on public.lecture_reviews (lecture_id);
 create index if not exists idx_lecture_reviews_author_semester on public.lecture_reviews (author_id, semester);
@@ -554,6 +615,10 @@ create index if not exists idx_lecture_reviews_author_created_at on public.lectu
 create index if not exists idx_trade_posts_school_status on public.trade_posts (school_id, status);
 create index if not exists idx_trade_posts_author_created_at on public.trade_posts (author_id, created_at desc);
 create index if not exists idx_trade_messages_trade_post_created_at on public.trade_messages (trade_post_id, created_at desc);
+create index if not exists idx_polls_post_id on public.polls (post_id);
+create index if not exists idx_poll_options_poll_id on public.poll_options (poll_id, position);
+create index if not exists idx_poll_votes_poll_option on public.poll_votes (poll_id, option_id);
+create index if not exists idx_poll_votes_user_created_at on public.poll_votes (user_id, created_at desc);
 create index if not exists idx_reports_target on public.reports (target_type, target_id);
 create index if not exists idx_reports_reporter_created_at on public.reports (reporter_id, created_at desc);
 create index if not exists idx_notifications_user_created_at on public.notifications (user_id, created_at desc);
@@ -1119,6 +1184,9 @@ alter table public.lectures enable row level security;
 alter table public.lecture_reviews enable row level security;
 alter table public.trade_posts enable row level security;
 alter table public.trade_messages enable row level security;
+alter table public.polls enable row level security;
+alter table public.poll_options enable row level security;
+alter table public.poll_votes enable row level security;
 alter table public.dating_profiles enable row level security;
 alter table public.reports enable row level security;
 alter table public.blocks enable row level security;
@@ -1282,6 +1350,15 @@ with check (
         or posts.school_id is distinct from public.current_user_school_id()
       )
   )
+  and (
+    parent_comment_id is null
+    or exists (
+      select 1
+      from public.comments parent
+      where parent.id = comments.parent_comment_id
+        and parent.post_id = comments.post_id
+    )
+  )
 );
 
 drop policy if exists "comments update own" on public.comments;
@@ -1437,6 +1514,84 @@ with check (
     from public.trade_posts trade_post
     where trade_post.id = trade_post_id
       and trade_post.school_id = public.current_user_school_id()
+  )
+);
+
+drop policy if exists "polls read via post" on public.polls;
+create policy "polls read via post"
+on public.polls
+for select
+to anon, authenticated
+using (public.can_read_post_by_id(post_id));
+
+drop policy if exists "polls insert via owned post" on public.polls;
+create policy "polls insert via owned post"
+on public.polls
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.posts
+    where posts.id = polls.post_id
+      and posts.author_id = auth.uid()
+  )
+);
+
+drop policy if exists "poll_options read via poll" on public.poll_options;
+create policy "poll_options read via poll"
+on public.poll_options
+for select
+to anon, authenticated
+using (
+  exists (
+    select 1
+    from public.polls
+    where polls.id = poll_options.poll_id
+      and public.can_read_post_by_id(polls.post_id)
+  )
+);
+
+drop policy if exists "poll_options insert via owned poll" on public.poll_options;
+create policy "poll_options insert via owned poll"
+on public.poll_options
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.polls
+    join public.posts on posts.id = polls.post_id
+    where polls.id = poll_options.poll_id
+      and posts.author_id = auth.uid()
+  )
+);
+
+drop policy if exists "poll_votes own or admin read" on public.poll_votes;
+create policy "poll_votes own or admin read"
+on public.poll_votes
+for select
+to authenticated
+using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "poll_votes insert own" on public.poll_votes;
+create policy "poll_votes insert own"
+on public.poll_votes
+for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from public.polls
+    where polls.id = poll_votes.poll_id
+      and public.can_read_post_by_id(polls.post_id)
+  )
+  and exists (
+    select 1
+    from public.poll_options
+    where poll_options.id = poll_votes.option_id
+      and poll_options.poll_id = poll_votes.poll_id
   )
 );
 

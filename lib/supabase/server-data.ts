@@ -20,6 +20,7 @@ import type {
   LectureReview,
   MediaAsset,
   Notification,
+  Poll,
   Post,
   Report,
   School,
@@ -583,7 +584,59 @@ function normalizeCommunityVisibilityLevel(
   return visibilityLevel;
 }
 
-function mapPostRow(row: Record<string, unknown>): Post {
+function buildPollMap(
+  pollRows: Record<string, unknown>[],
+  optionRows: Record<string, unknown>[],
+  voteRows: Record<string, unknown>[],
+) {
+  const userVoteByPollId = new Map<string, string>();
+  for (const row of voteRows) {
+    userVoteByPollId.set(String(row.poll_id), String(row.option_id));
+  }
+
+  const optionsByPollId = new Map<string, Array<Record<string, unknown>>>();
+  for (const row of optionRows) {
+    const pollId = String(row.poll_id);
+    optionsByPollId.set(pollId, [...(optionsByPollId.get(pollId) ?? []), row]);
+  }
+
+  const pollMap = new Map<string, Poll>();
+  for (const row of pollRows) {
+    const pollId = String(row.id);
+    const postId = String(row.post_id);
+    const options = [...(optionsByPollId.get(pollId) ?? [])].sort(
+      (a, b) => Number(a.position ?? 0) - Number(b.position ?? 0),
+    );
+    const totalVotes = options.reduce(
+      (sum, option) => sum + (typeof option.vote_count === "number" ? option.vote_count : 0),
+      0,
+    );
+    const votedOptionId = userVoteByPollId.get(pollId);
+
+    pollMap.set(postId, {
+      id: pollId,
+      postId,
+      question: String(row.question),
+      totalVotes,
+      votedOptionId,
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+      options: options.map((option) => {
+        const voteCount = typeof option.vote_count === "number" ? option.vote_count : 0;
+        return {
+          id: String(option.id),
+          text: String(option.option_text),
+          voteCount,
+          percentage: totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0,
+          selected: votedOptionId === String(option.id),
+        };
+      }),
+    });
+  }
+
+  return pollMap;
+}
+
+function mapPostRow(row: Record<string, unknown>, poll?: Poll): Post {
   const likes =
     typeof row.like_count === "number"
       ? row.like_count
@@ -610,10 +663,26 @@ function mapPostRow(row: Record<string, unknown>): Post {
     likes,
     commentCount,
     viewCount: getPostViewCount({
-      viewCount: typeof metadata?.viewCount === "number" ? metadata.viewCount : undefined,
+      viewCount:
+        typeof row.view_count === "number"
+          ? row.view_count
+          : typeof metadata?.viewCount === "number"
+            ? metadata.viewCount
+            : undefined,
       likes,
       commentCount,
     }),
+    hotScore: typeof row.hot_score === "number" ? row.hot_score : 0,
+    pollVoteCount:
+      typeof row.poll_vote_count === "number"
+        ? row.poll_vote_count
+        : poll?.totalVotes ?? 0,
+    postType:
+      row.post_type === "poll" ||
+      row.post_type === "question" ||
+      row.post_type === "balance"
+        ? row.post_type
+        : "normal",
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     adminHidden: Boolean(row.admin_hidden),
     autoHidden: Boolean(row.auto_hidden),
@@ -625,6 +694,7 @@ function mapPostRow(row: Record<string, unknown>): Post {
       row.category === "admission"
         ? ((metadata ?? undefined) as AdmissionQuestionMeta | undefined)
         : undefined,
+    poll: poll ?? null,
   };
 }
 
@@ -632,6 +702,7 @@ function mapCommentRow(row: Record<string, unknown>): Comment {
   return {
     id: String(row.id),
     postId: String(row.post_id),
+    parentCommentId: row.parent_comment_id ? String(row.parent_comment_id) : undefined,
     authorId: String(row.author_id),
     visibilityLevel: toVisibilityLevel(row.visibility_level as string | null | undefined),
     content: String(row.content),
@@ -947,6 +1018,12 @@ export async function loadServerRuntimeSnapshot(
     const lectureRows = (lecturesResult?.data ?? []) as Record<string, unknown>[];
     const postIds = postRows.map((row) => String(row.id));
     const lectureIds = lectureRows.map((row) => String(row.id));
+    const pollsResult =
+      include.posts && postIds.length > 0
+        ? await supabase.from("polls").select("*").in("post_id", postIds)
+        : { data: [], error: null };
+    const pollRows = (pollsResult.data ?? []) as Record<string, unknown>[];
+    const pollIds = pollRows.map((row) => String(row.id));
 
     const schools = (schoolsResult.data ?? []).map(mapSchoolRow);
     const users = (usersResult.data ?? []).map((row: Record<string, unknown>) =>
@@ -962,6 +1039,8 @@ export async function loadServerRuntimeSnapshot(
       blocksResult,
       datingProfilesResult,
       mediaAssetsResult,
+      pollOptionsResult,
+      pollVotesResult,
     ] = await Promise.all([
       include.comments
         ? buildCommentQuery(supabase, queryContext, postIds)
@@ -987,21 +1066,44 @@ export async function loadServerRuntimeSnapshot(
       authUser && include.mediaAssets
         ? buildMediaAssetsQuery(supabase, queryContext)
         : EMPTY_RESULT,
+      pollIds.length > 0
+        ? supabase.from("poll_options").select("*").in("poll_id", pollIds)
+        : EMPTY_RESULT,
+      authUser && pollIds.length > 0
+        ? supabase.from("poll_votes").select("*").eq("user_id", authUser.id).in("poll_id", pollIds)
+        : EMPTY_RESULT,
     ]);
 
-    if (commentsResult.error || lectureReviewsResult.error) {
+    if (
+      commentsResult.error ||
+      lectureReviewsResult.error ||
+      pollsResult.error ||
+      pollOptionsResult.error ||
+      pollVotesResult?.error
+    ) {
       return createSupabaseFallbackSnapshot(
         getSupabaseSetupIssue(
           commentsResult.error ?? undefined,
           lectureReviewsResult.error ?? undefined,
+          pollsResult.error ?? undefined,
+          pollOptionsResult.error ?? undefined,
+          pollVotesResult?.error ?? undefined,
         ),
       );
     }
 
+    const pollMap = buildPollMap(
+      pollRows,
+      (pollOptionsResult?.data ?? []) as Record<string, unknown>[],
+      (pollVotesResult?.data ?? []) as Record<string, unknown>[],
+    );
+
     const snapshot: AppRuntimeSnapshot = {
       schools,
       users,
-      posts: postRows.map((row) => mapPostRow(row as unknown as Record<string, unknown>)),
+      posts: postRows.map((row) =>
+        mapPostRow(row as unknown as Record<string, unknown>, pollMap.get(String(row.id))),
+      ),
       comments: ((commentsResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
         mapCommentRow(row as unknown as Record<string, unknown>),
       ),

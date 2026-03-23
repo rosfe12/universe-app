@@ -51,10 +51,14 @@ const postSchema = z.object({
   imageUrl: z.string().url().optional(),
   tags: z.array(z.string().trim().min(1).max(20)).max(8).optional(),
   meta: z.record(z.string(), z.unknown()).optional(),
+  postType: z.enum(["normal", "poll", "question", "balance"]).default("normal"),
+  pollQuestion: z.string().trim().min(1).max(140).optional(),
+  pollOptions: z.array(z.string().trim().min(1).max(80)).min(2).max(4).optional(),
 });
 
 const commentSchema = z.object({
   postId: z.string().uuid(),
+  parentCommentId: z.string().uuid().optional(),
   content: z.string().trim().min(1).max(1000),
   visibilityLevel: visibilitySchema.optional(),
 });
@@ -272,6 +276,193 @@ function inferScope(input: {
 
 function revalidateFeed(paths: string[]) {
   paths.forEach((path) => revalidatePath(path));
+}
+
+function calculateHotScore(input: {
+  likeCount: number;
+  commentCount: number;
+  viewCount: number;
+  pollVoteCount: number;
+  createdAt: string;
+}) {
+  const hours = Math.max(
+    0,
+    (Date.now() - new Date(input.createdAt).getTime()) / (1000 * 60 * 60),
+  );
+
+  const baseScore =
+    input.likeCount * 2 +
+    input.commentCount * 3 +
+    input.viewCount * 0.1 +
+    input.pollVoteCount * 2;
+
+  return Math.round((baseScore / (hours + 2)) * 100) / 100;
+}
+
+async function recalculatePostHotScore(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  postId: string,
+) {
+  const { data: postRow, error: postError } = await admin
+    .from("posts")
+    .select("id, like_count, comment_count, view_count, poll_vote_count, created_at, school_id, title, category, subcategory, metadata")
+    .eq("id", postId)
+    .single();
+
+  if (postError || !postRow) {
+    throw new Error(postError?.message ?? "게시글 점수를 계산할 수 없습니다.");
+  }
+
+  const nextHotScore = calculateHotScore({
+    likeCount: typeof postRow.like_count === "number" ? postRow.like_count : 0,
+    commentCount: typeof postRow.comment_count === "number" ? postRow.comment_count : 0,
+    viewCount: typeof postRow.view_count === "number" ? postRow.view_count : 0,
+    pollVoteCount:
+      typeof postRow.poll_vote_count === "number" ? postRow.poll_vote_count : 0,
+    createdAt: String(postRow.created_at),
+  });
+
+  const { error: updateError } = await admin
+    .from("posts")
+    .update({ hot_score: nextHotScore })
+    .eq("id", postId);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  return { ...postRow, hot_score: nextHotScore };
+}
+
+async function syncPostCommentCount(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  postId: string,
+) {
+  const { count, error } = await admin
+    .from("comments")
+    .select("id", { count: "exact", head: true })
+    .eq("post_id", postId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const { error: updateError } = await admin
+    .from("posts")
+    .update({ comment_count: count ?? 0 })
+    .eq("id", postId);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+}
+
+async function maybeCreateSchoolHotNotifications(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  post: {
+    id: string;
+    author_id: string;
+    school_id: string | null;
+    hot_score?: number | null;
+    title: string;
+    category: "admission" | "community" | "dating";
+    subcategory?: string | null;
+    metadata?: Record<string, unknown> | null;
+  },
+) {
+  if (!post.school_id || Number(post.hot_score ?? 0) < 18) {
+    return;
+  }
+
+  const recentWindow = windowStart(ONE_DAY_MS);
+  const { data: existingRows } = await admin
+    .from("notifications")
+    .select("id")
+    .eq("type", "school_recommendation")
+    .eq("target_id", post.id)
+    .gte("created_at", recentWindow)
+    .limit(1);
+
+  if ((existingRows ?? []).length > 0) {
+    return;
+  }
+
+  const { data: schoolUsers } = await admin
+    .from("users")
+    .select("id")
+    .eq("school_id", post.school_id)
+    .neq("id", post.author_id)
+    .limit(40);
+
+  if (!schoolUsers?.length) {
+    return;
+  }
+
+  const href = getPostNotificationHref({
+    id: String(post.id),
+    category: post.category,
+    subcategory: post.subcategory ?? undefined,
+    metadata: post.metadata ?? undefined,
+  });
+
+  await insertNotificationsAsSystem(
+    schoolUsers.map((user) => ({
+      user_id: String(user.id),
+      type: "school_recommendation",
+      title: "지금 우리학교에서 반응이 빠르게 붙고 있어요",
+      body: post.title,
+      href,
+      target_type: "post",
+      target_id: String(post.id),
+      source_kind: "activity",
+      delivery_mode: "instant",
+      metadata: {
+        postId: String(post.id),
+        hotScore: Number(post.hot_score ?? 0),
+      },
+    })),
+  );
+}
+
+async function createPollForPost(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  postId: string,
+  question: string,
+  options: string[],
+) {
+  const normalizedOptions = options
+    .map((option) => option.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+
+  if (normalizedOptions.length < 2) {
+    throw new Error("투표 선택지는 2개 이상 필요합니다.");
+  }
+
+  const { data: pollRow, error: pollError } = await admin
+    .from("polls")
+    .insert({
+      post_id: postId,
+      question,
+    })
+    .select("*")
+    .single();
+
+  if (pollError || !pollRow) {
+    throw new Error(pollError?.message ?? "투표를 생성하지 못했습니다.");
+  }
+
+  const { error: optionError } = await admin.from("poll_options").insert(
+    normalizedOptions.map((optionText, index) => ({
+      poll_id: String(pollRow.id),
+      option_text: optionText,
+      position: index + 1,
+    })),
+  );
+
+  if (optionError) {
+    throw new Error(optionError.message);
+  }
 }
 
 function getCommunityFilterFromPost(post: {
@@ -673,6 +864,20 @@ export async function createPost(input: z.input<typeof postSchema>) {
     }
   }
   await guardPostSubmission(supabase, authUser.id, values);
+  const shouldCreatePoll =
+    values.postType === "poll" ||
+    values.postType === "balance" ||
+    Boolean(values.pollQuestion) ||
+    Boolean(values.pollOptions?.length);
+
+  if (shouldCreatePoll) {
+    if (!values.pollQuestion?.trim()) {
+      throw new Error("투표 질문을 입력해주세요.");
+    }
+    if ((values.pollOptions ?? []).filter((option) => option.trim().length > 0).length < 2) {
+      throw new Error("투표 선택지는 2개 이상 필요합니다.");
+    }
+  }
   const schoolId = values.schoolId ?? profile.school_id ?? null;
   const scope = inferScope(values);
   const defaultVisibility =
@@ -695,6 +900,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
       author_id: authUser.id,
       category: values.category,
       subcategory: values.subcategory ?? null,
+      post_type: values.postType,
       title: values.title,
       content: values.content,
       school_id: schoolId,
@@ -712,6 +918,32 @@ export async function createPost(input: z.input<typeof postSchema>) {
   if (error) {
     throw new Error(error.message);
   }
+
+  if (shouldCreatePoll && values.pollQuestion) {
+    const admin = createAdminSupabaseClient();
+    await createPollForPost(
+      admin,
+      String(data.id),
+      values.pollQuestion,
+      values.pollOptions ?? [],
+    );
+  }
+
+  const admin = createAdminSupabaseClient();
+  const scoredPost = await recalculatePostHotScore(admin, String(data.id));
+  await maybeCreateSchoolHotNotifications(admin, {
+    id: String(scoredPost.id),
+    author_id: String(data.author_id),
+    school_id: scoredPost.school_id ? String(scoredPost.school_id) : null,
+    hot_score: Number(scoredPost.hot_score ?? 0),
+    title: String(scoredPost.title),
+    category: scoredPost.category as "admission" | "community" | "dating",
+    subcategory: scoredPost.subcategory ? String(scoredPost.subcategory) : undefined,
+    metadata:
+      scoredPost.metadata && typeof scoredPost.metadata === "object"
+        ? (scoredPost.metadata as Record<string, unknown>)
+        : undefined,
+  });
 
   await awardTrustScore(authUser.id, 5);
 
@@ -731,6 +963,18 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 
   if (postError || !post) {
     throw new Error("댓글을 남길 글을 찾을 수 없습니다.");
+  }
+
+  if (values.parentCommentId) {
+    const { data: parentComment, error: parentCommentError } = await supabase
+      .from("comments")
+      .select("id, post_id, author_id")
+      .eq("id", values.parentCommentId)
+      .single();
+
+    if (parentCommentError || !parentComment || String(parentComment.post_id) !== values.postId) {
+      throw new Error("답글을 남길 댓글을 찾을 수 없습니다.");
+    }
   }
 
   if (profile.user_type === "applicant" && post.category !== "admission") {
@@ -777,6 +1021,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
     .from("comments")
     .insert({
       post_id: values.postId,
+      parent_comment_id: values.parentCommentId ?? null,
       author_id: authUser.id,
       content: values.content,
       visibility_level: resolvedVisibilityLevel,
@@ -787,6 +1032,10 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   if (error) {
     throw new Error(error.message);
   }
+
+  const admin = createAdminSupabaseClient();
+  await syncPostCommentCount(admin, values.postId);
+  const scoredPost = await recalculatePostHotScore(admin, values.postId);
 
   await awardTrustScore(authUser.id, 2);
 
@@ -838,20 +1087,29 @@ export async function createComment(input: z.input<typeof commentSchema>) {
       });
     }
 
-    const { data: priorComments } = await supabase
-      .from("comments")
-      .select("id, author_id")
-      .eq("post_id", values.postId)
-      .neq("author_id", authUser.id)
-      .neq("id", data.id)
-      .order("created_at", { ascending: false })
-      .limit(10);
+    let replyTarget:
+      | {
+          id: string;
+          author_id: string;
+        }
+      | undefined;
 
-    const replyTarget = (priorComments ?? []).find(
-      (comment) => String(comment.author_id) !== String(post.author_id),
-    );
+    if (values.parentCommentId) {
+      const { data: parentComment } = await supabase
+        .from("comments")
+        .select("id, author_id")
+        .eq("id", values.parentCommentId)
+        .single();
 
-    if (replyTarget) {
+      if (parentComment) {
+        replyTarget = {
+          id: String(parentComment.id),
+          author_id: String(parentComment.author_id),
+        };
+      }
+    }
+
+    if (replyTarget && replyTarget.author_id !== authUser.id) {
       notifications.push({
         user_id: String(replyTarget.author_id),
         type: "reply",
@@ -875,6 +1133,20 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   } catch {
     // noop
   }
+
+  await maybeCreateSchoolHotNotifications(admin, {
+    id: String(scoredPost.id),
+    author_id: String(post.author_id),
+    school_id: scoredPost.school_id ? String(scoredPost.school_id) : null,
+    hot_score: Number(scoredPost.hot_score ?? 0),
+    title: String(scoredPost.title),
+    category: scoredPost.category as "admission" | "community" | "dating",
+    subcategory: scoredPost.subcategory ? String(scoredPost.subcategory) : undefined,
+    metadata:
+      scoredPost.metadata && typeof scoredPost.metadata === "object"
+        ? (scoredPost.metadata as Record<string, unknown>)
+        : undefined,
+  });
 
   revalidateFeed(["/home", "/community", "/school"]);
   return data;
@@ -912,7 +1184,7 @@ export async function deleteComment(commentId: string) {
 
   const { data: comment, error: commentError } = await supabase
     .from("comments")
-    .select("id, author_id")
+    .select("id, author_id, post_id")
     .eq("id", commentId)
     .single();
 
@@ -931,7 +1203,133 @@ export async function deleteComment(commentId: string) {
     throw new Error(error.message);
   }
 
+  const admin = createAdminSupabaseClient();
+  await syncPostCommentCount(admin, String(comment.post_id));
+  await recalculatePostHotScore(admin, String(comment.post_id));
+
   revalidateFeed(["/home", "/community", "/school", "/dating", "/notifications", "/profile"]);
+}
+
+export async function votePoll(input: { postId: string; optionId: string }) {
+  const values = z
+    .object({
+      postId: z.string().uuid(),
+      optionId: z.string().uuid(),
+    })
+    .parse(input);
+  const { authUser } = await requireCurrentUser();
+  const admin = createAdminSupabaseClient();
+
+  const { data: pollRow, error: pollError } = await admin
+    .from("polls")
+    .select("id, post_id")
+    .eq("post_id", values.postId)
+    .single();
+
+  if (pollError || !pollRow) {
+    throw new Error("투표를 찾을 수 없습니다.");
+  }
+
+  const { data: optionRow, error: optionError } = await admin
+    .from("poll_options")
+    .select("id, poll_id, vote_count")
+    .eq("id", values.optionId)
+    .eq("poll_id", String(pollRow.id))
+    .single();
+
+  if (optionError || !optionRow) {
+    throw new Error("선택지를 찾을 수 없습니다.");
+  }
+
+  const { data: existingVote } = await admin
+    .from("poll_votes")
+    .select("id")
+    .eq("poll_id", String(pollRow.id))
+    .eq("user_id", authUser.id)
+    .maybeSingle();
+
+  if (existingVote) {
+    throw new Error("이미 투표에 참여했습니다.");
+  }
+
+  const { error: voteInsertError } = await admin.from("poll_votes").insert({
+    poll_id: String(pollRow.id),
+    user_id: authUser.id,
+    option_id: values.optionId,
+  });
+
+  if (voteInsertError) {
+    throw new Error(voteInsertError.message);
+  }
+
+  const { error: optionUpdateError } = await admin
+    .from("poll_options")
+    .update({ vote_count: Number(optionRow.vote_count ?? 0) + 1 })
+    .eq("id", values.optionId);
+
+  if (optionUpdateError) {
+    throw new Error(optionUpdateError.message);
+  }
+
+  const { data: postRow } = await admin
+    .from("posts")
+    .select("poll_vote_count, author_id")
+    .eq("id", values.postId)
+    .single();
+
+  const { error: postUpdateError } = await admin
+    .from("posts")
+    .update({ poll_vote_count: Number(postRow?.poll_vote_count ?? 0) + 1 })
+    .eq("id", values.postId);
+
+  if (postUpdateError) {
+    throw new Error(postUpdateError.message);
+  }
+
+  const scoredPost = await recalculatePostHotScore(admin, values.postId);
+  await maybeCreateSchoolHotNotifications(admin, {
+    id: String(scoredPost.id),
+    author_id: postRow?.author_id ? String(postRow.author_id) : authUser.id,
+    school_id: scoredPost.school_id ? String(scoredPost.school_id) : null,
+    hot_score: Number(scoredPost.hot_score ?? 0),
+    title: String(scoredPost.title),
+    category: scoredPost.category as "admission" | "community" | "dating",
+    subcategory: scoredPost.subcategory ? String(scoredPost.subcategory) : undefined,
+    metadata:
+      scoredPost.metadata && typeof scoredPost.metadata === "object"
+        ? (scoredPost.metadata as Record<string, unknown>)
+        : undefined,
+  });
+
+  revalidateFeed(["/home", "/community", "/school", "/notifications"]);
+  return { success: true };
+}
+
+export async function trackPostView(postId: string) {
+  const values = z.object({ postId: z.string().uuid() }).parse({ postId });
+  const admin = createAdminSupabaseClient();
+  const { data: postRow, error: postError } = await admin
+    .from("posts")
+    .select("id, view_count")
+    .eq("id", values.postId)
+    .single();
+
+  if (postError || !postRow) {
+    throw new Error(postError?.message ?? "게시글을 찾을 수 없습니다.");
+  }
+
+  const { error: updateError } = await admin
+    .from("posts")
+    .update({ view_count: Number(postRow.view_count ?? 0) + 1 })
+    .eq("id", values.postId);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  await recalculatePostHotScore(admin, values.postId);
+  revalidateFeed(["/home", "/community", "/school"]);
+  return { success: true };
 }
 
 export async function createLectureReview(input: z.input<typeof lectureReviewSchema>) {
@@ -1172,15 +1570,17 @@ export async function createDatingPost(input: z.input<typeof datingPostSchema>) 
     visibilityLevel: values.visibilityLevel,
     imageUrl: values.photoUrl,
     tags: [values.vibeTag, "새 글"],
+    postType: "normal",
   });
 
   const { data: post, error: postError } = await supabase
     .from("posts")
     .insert({
       author_id: authUser.id,
-      category: "dating",
-      subcategory: values.subcategory,
-      title: values.title,
+        category: "dating",
+        subcategory: values.subcategory,
+        post_type: "normal",
+        title: values.title,
       content: values.content,
       school_id: profile.school_id,
       scope: "global",

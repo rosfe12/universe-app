@@ -12,9 +12,11 @@ import {
   Eye,
   Flame,
   Heart,
+  Share2,
   MessageCircle,
   Newspaper,
   Sparkles,
+  TrendingUp,
 } from "lucide-react";
 
 import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
@@ -22,6 +24,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FeedList } from "@/components/shared/feed-list";
+import { PollCard } from "@/components/shared/poll-card";
 import { SectionHeader } from "@/components/shared/section-header";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
@@ -42,7 +45,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createPost, deletePost } from "@/app/actions/content-actions";
+import { createPost, deletePost, trackPostView } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { injectInlineAdSlots, isAdPlacementEnabled } from "@/lib/ads";
 import {
@@ -65,8 +68,14 @@ import {
   getHotScore,
   getHotGalleryPosts,
   getLatestCommentPreview,
+  getAllCommunityFeedPosts,
+  getMostCommentedPosts,
+  getMostVotedPosts,
+  getPostHref,
   getSchoolName,
+  getSchoolCommunityFeedPosts,
   getSchoolScopedCommunityPosts,
+  getTrendingCommunityPosts,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
@@ -85,10 +94,14 @@ const communitySchema = z.object({
   title: z.string().min(4, "제목을 4자 이상 입력해주세요."),
   content: z.string().min(10, "본문을 10자 이상 입력해주세요."),
   visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
+  pollEnabled: z.boolean().default(false),
+  pollQuestion: z.string().max(140).optional(),
+  pollOptions: z.array(z.string().max(80)).max(4).optional(),
 });
 
 type CommunityFormValues = z.infer<typeof communitySchema>;
 type SharedFilter = "all" | "free" | "advice" | "ask" | "anonymous" | "hot" | "career";
+type FeedScope = "school" | "all" | "hot";
 
 const FILTERS: Array<{
   value: SharedFilter;
@@ -119,6 +132,9 @@ function getCardVariant(post: Post): BadgeProps["variant"] {
 }
 
 function getCardLabel(post: Post) {
+  if (post.postType === "balance") return "밸런스게임";
+  if (post.postType === "poll") return "투표";
+  if (post.postType === "question") return "질문";
   const careerBoard = getCareerBoardKind(post);
   if (careerBoard) return CAREER_BOARD_LABELS[careerBoard];
   if (post.subcategory === "free") return "자유";
@@ -288,7 +304,10 @@ export function CommunityPage({
   const [activeFilter, setActiveFilter] = useState<SharedFilter>(
     isSharedFilter(filterParam) ? filterParam : "all",
   );
-  const [sortMode, setSortMode] = useState<"popular" | "latest">("latest");
+  const [feedScope, setFeedScope] = useState<FeedScope>(
+    currentUser.schoolId ? "school" : "all",
+  );
+  const [sortMode, setSortMode] = useState<"popular" | "latest" | "trending">("latest");
   const [composerOpen, setComposerOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
   const [sensitivePost, setSensitivePost] = useState<Post | null>(null);
@@ -303,31 +322,33 @@ export function CommunityPage({
     setActiveFilter(isSharedFilter(filterParam) ? filterParam : "all");
   }, [filterParam]);
 
-  const freePosts = useMemo(() => getCommunityPosts("free"), []);
-  const hotPosts = useMemo(() => getHotGalleryPosts(), []);
-  const advicePosts = useMemo(() => getCommunityPosts("advice"), []);
-  const askPosts = useMemo(() => getCommunityPosts("ask"), []);
-  const anonymousPosts = useMemo(() => getCommunityPosts("anonymous"), []);
-  const careerPosts = useMemo(() => getCareerPosts(), []);
+  useEffect(() => {
+    if (!currentUser.schoolId && feedScope === "school") {
+      setFeedScope("all");
+    }
+  }, [currentUser.schoolId, feedScope]);
+
+  const schoolFeedItems = useMemo(
+    () => getSchoolCommunityFeedPosts(currentUser.schoolId),
+    [currentUser.schoolId],
+  );
+  const allFeedItems = useMemo(() => getAllCommunityFeedPosts(), []);
+  const hotFeedItems = useMemo(() => getTrendingCommunityPosts(), []);
+  const mostVotedPosts = useMemo(() => getMostVotedPosts().slice(0, 4), []);
+  const mostCommentedPosts = useMemo(() => getMostCommentedPosts().slice(0, 4), []);
 
   const feedItems = useMemo(() => {
-    const all = [
-      ...freePosts,
-      ...advicePosts,
-      ...hotPosts,
-      ...askPosts,
-      ...anonymousPosts,
-      ...careerPosts,
-    ];
-    return [...all].sort((a, b) => b.likes - a.likes || +new Date(b.createdAt) - +new Date(a.createdAt));
-  }, [advicePosts, anonymousPosts, askPosts, careerPosts, freePosts, hotPosts]);
+    if (feedScope === "hot") return hotFeedItems;
+    if (feedScope === "all") return allFeedItems;
+    return schoolFeedItems;
+  }, [allFeedItems, feedScope, hotFeedItems, schoolFeedItems]);
 
   useEffect(() => {
     if (!detailParam) {
       return;
     }
 
-    const targetPost = feedItems.find((post) => post.id === detailParam);
+    const targetPost = allFeedItems.find((post) => post.id === detailParam);
     if (!targetPost) {
       return;
     }
@@ -344,7 +365,7 @@ export function CommunityPage({
 
     setSensitivePost(null);
     setDetailPostId(targetPost.id);
-  }, [detailParam, feedItems]);
+  }, [allFeedItems, detailParam]);
 
   function openPost(post: Post) {
     if (
@@ -362,18 +383,21 @@ export function CommunityPage({
 
   const filteredItems = useMemo(() => {
     if (activeFilter === "all") return feedItems;
-    if (activeFilter === "free") return freePosts;
-    if (activeFilter === "advice") return advicePosts;
-    if (activeFilter === "hot") return hotPosts;
-    if (activeFilter === "ask") return askPosts;
-    if (activeFilter === "anonymous") return anonymousPosts;
-    if (activeFilter === "career") return careerPosts;
-    return advicePosts;
-  }, [activeFilter, advicePosts, anonymousPosts, askPosts, careerPosts, feedItems, freePosts, hotPosts]);
+    return feedItems.filter((post) => getFilterForPost(post) === activeFilter);
+  }, [activeFilter, feedItems]);
   const sortedItems = useMemo(() => {
     const items = [...filteredItems];
     if (sortMode === "latest") {
       return items.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+    }
+
+    if (sortMode === "trending") {
+      return items.sort(
+        (a, b) =>
+          getHotScore(b) - getHotScore(a) ||
+          b.commentCount - a.commentCount ||
+          +new Date(b.createdAt) - +new Date(a.createdAt),
+      );
     }
 
     return items.sort(
@@ -386,22 +410,18 @@ export function CommunityPage({
   }, [filteredItems, sortMode]);
   const featuredItem = sortedItems[0] ?? null;
   const risingItems = sortedItems.slice(1, 4);
-  const schoolFocusPosts = useMemo(() => {
-    if (!currentUser.schoolId) {
-      return [] as Post[];
-    }
-
-    return [
-      ...getSchoolScopedCommunityPosts(currentUser.schoolId, "school"),
-      ...getSchoolScopedCommunityPosts(currentUser.schoolId, "freshman"),
-    ]
-      .sort(
-        (a, b) =>
-          getPopularityScore(b) - getPopularityScore(a) ||
-          +new Date(b.createdAt) - +new Date(a.createdAt),
-      )
-      .slice(0, 2);
-  }, [currentUser.schoolId]);
+  const schoolFocusPosts = useMemo(
+    () =>
+      schoolFeedItems
+        .filter((post) => post.schoolId === currentUser.schoolId)
+        .sort(
+          (a, b) =>
+            getHotScore(b) - getHotScore(a) ||
+            getPopularityScore(b) - getPopularityScore(a),
+        )
+        .slice(0, 3),
+    [currentUser.schoolId, schoolFeedItems],
+  );
   const topicChips = useMemo(() => {
     const counts = new Map<string, number>();
     sortedItems.slice(0, 16).forEach((post) => {
@@ -418,8 +438,8 @@ export function CommunityPage({
   const feedSlots = useMemo(() => injectInlineAdSlots(sortedItems), [sortedItems]);
 
   const detailPost = useMemo(
-    () => feedItems.find((post) => post.id === detailPostId) ?? null,
-    [detailPostId, feedItems],
+    () => allFeedItems.find((post) => post.id === detailPostId) ?? null,
+    [allFeedItems, detailPostId],
   );
 
   const canComposeCommunity =
@@ -439,6 +459,9 @@ export function CommunityPage({
         currentUser.defaultVisibilityLevel,
         currentUser,
       ),
+      pollEnabled: false,
+      pollQuestion: "",
+      pollOptions: ["", ""],
     },
   });
 
@@ -460,6 +483,8 @@ export function CommunityPage({
 
     const isCareerBoard = values.board === "careerInfo" || values.board === "jobPosting";
     const isAnonymousBoard = values.board === "anonymous";
+    const normalizedPollOptions = (values.pollOptions ?? []).map((option) => option.trim()).filter(Boolean);
+    const hasPoll = values.pollEnabled && normalizedPollOptions.length >= 2 && Boolean(values.pollQuestion?.trim());
     const communityBoard =
       values.board === "free" ||
       values.board === "advice" ||
@@ -468,6 +493,13 @@ export function CommunityPage({
       values.board === "hot"
         ? values.board
         : undefined;
+    const postType = hasPoll
+      ? normalizedPollOptions.length === 2
+        ? "balance"
+        : "poll"
+      : values.board === "ask"
+        ? "question"
+        : "normal";
     const tags = isCareerBoard
       ? [
           CAREER_BOARD_LABELS[values.board as CareerBoardKind],
@@ -487,6 +519,7 @@ export function CommunityPage({
       id: `community-${values.board}-local-${feedItems.length + 1}`,
       category: "community",
       subcategory: communityBoard,
+      postType,
       authorId: currentUser.id,
       schoolId: currentUser.schoolId,
       visibilityLevel: isAnonymousBoard
@@ -497,7 +530,25 @@ export function CommunityPage({
       createdAt,
       likes: 0,
       commentCount: 0,
+      pollVoteCount: hasPoll ? 0 : undefined,
+      hotScore: 0,
       tags,
+      poll: hasPoll
+        ? {
+            id: `poll-local-${feedItems.length + 1}`,
+            postId: `community-${values.board}-local-${feedItems.length + 1}`,
+            question: values.pollQuestion?.trim() ?? "",
+            totalVotes: 0,
+            votedOptionId: undefined,
+            createdAt,
+            options: normalizedPollOptions.map((option, index) => ({
+              id: `poll-option-local-${index + 1}`,
+              text: option,
+              voteCount: 0,
+              percentage: 0,
+            })),
+          }
+        : null,
     };
 
     if (source === "supabase" && isAuthenticated) {
@@ -512,9 +563,15 @@ export function CommunityPage({
               title: values.title,
               content: values.content,
               tags,
+              postType,
+              pollQuestion: hasPoll ? values.pollQuestion?.trim() : undefined,
+              pollOptions: hasPoll ? normalizedPollOptions : undefined,
             });
             setComposerOpen(false);
             form.reset();
+            form.setValue("pollEnabled", false);
+            form.setValue("pollQuestion", "");
+            form.setValue("pollOptions", ["", ""]);
             setActiveFilter(getFilterFromBoard(values.board));
             setSuccessMessage("게시글이 등록되었습니다.");
             await refresh();
@@ -532,9 +589,20 @@ export function CommunityPage({
 
     setComposerOpen(false);
     form.reset();
+    form.setValue("pollEnabled", false);
+    form.setValue("pollQuestion", "");
+    form.setValue("pollOptions", ["", ""]);
     setActiveFilter(getFilterFromBoard(values.board));
     setSuccessMessage("게시글이 등록되었습니다.");
   });
+
+  useEffect(() => {
+    if (!detailPostId || source !== "supabase") {
+      return;
+    }
+
+    void trackPostView(detailPostId).then(() => refresh()).catch(() => undefined);
+  }, [detailPostId, refresh, source]);
 
   if (!loading && !canAccessCommunity) {
     return (
@@ -572,6 +640,27 @@ export function CommunityPage({
       <section className="space-y-3">
         <div className="space-y-3">
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {([
+              { value: "school", label: "우리학교" },
+              { value: "all", label: "전체" },
+              { value: "hot", label: "🔥 핫글" },
+            ] as const).map((scope) => (
+              <button
+                key={scope.value}
+                type="button"
+                onClick={() => setFeedScope(scope.value)}
+                className={cn(
+                  "app-chip inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all",
+                  feedScope === scope.value
+                    ? "border-primary bg-primary text-primary-foreground shadow-[0_16px_28px_-18px_rgba(79,70,229,0.95)]"
+                    : "text-foreground",
+                )}
+              >
+                {scope.label}
+              </button>
+            ))}
+          </div>
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {FILTERS.map((filter) => (
               <button
                 key={filter.value}
@@ -607,6 +696,18 @@ export function CommunityPage({
               size="sm"
               className={cn(
                 "rounded-full",
+                sortMode === "trending" ? "" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
+              )}
+              variant={sortMode === "trending" ? "default" : "outline"}
+              onClick={() => setSortMode("trending")}
+            >
+              급상승
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className={cn(
+                "rounded-full",
                 sortMode === "popular" ? "" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
               )}
               variant={sortMode === "popular" ? "default" : "outline"}
@@ -624,7 +725,13 @@ export function CommunityPage({
             <CardContent className="space-y-4 py-5">
               <SectionHeader
                 eyebrow="탐색 피드"
-                title="지금 뜨는 글"
+                title={
+                  feedScope === "school"
+                    ? "우리학교에서 지금 뜨는 글"
+                    : feedScope === "hot"
+                      ? "지금 반응이 터지는 글"
+                      : "지금 뜨는 글"
+                }
               />
               <button
                 type="button"
@@ -701,6 +808,28 @@ export function CommunityPage({
                       ))}
                     </div>
                   </div>
+                  {mostVotedPosts.length ? (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        투표 참여 많은 글
+                      </p>
+                      <div className="mt-2 space-y-2">
+                        {mostVotedPosts.slice(0, 2).map((post) => (
+                          <button
+                            key={post.id}
+                            type="button"
+                            onClick={() => openPost(post)}
+                            className="app-muted-surface block w-full rounded-[20px] px-4 py-3 text-left"
+                          >
+                            <p className="text-sm font-semibold text-foreground">{post.title}</p>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                              {post.pollVoteCount ?? post.poll?.totalVotes ?? 0}명 참여
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   {schoolFocusPosts.length ? (
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -805,6 +934,35 @@ export function CommunityPage({
         )}
       </section>
 
+      {mostCommentedPosts.length ? (
+        <section className="space-y-4">
+          <SectionHeader eyebrow="반응" title="댓글 반응 좋은 글" />
+          <div className="grid gap-3">
+            {mostCommentedPosts.slice(0, 3).map((post) => (
+              <button
+                key={`comment-focus-${post.id}`}
+                type="button"
+                onClick={() => openPost(post)}
+                className="app-section-surface app-soft-hover rounded-[24px] border-white/10 px-4 py-4 text-left"
+              >
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="rounded-full bg-sky-500/10 px-2.5 py-1 font-medium text-sky-300">
+                    댓글 {post.commentCount}
+                  </span>
+                  {post.schoolId === currentUser.schoolId ? (
+                    <span className="rounded-full bg-indigo-500/10 px-2.5 py-1 font-medium text-indigo-300">
+                      우리 학교
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-3 text-sm font-semibold leading-6 text-foreground">{post.title}</p>
+                <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">{post.content}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {activeFilter === "hot" && isAdPlacementEnabled("hotGalleryFooter") ? (
         <AdPlaceholderCard placement="hotGalleryFooter" />
       ) : null}
@@ -831,6 +989,62 @@ export function CommunityPage({
                     {detailPost.subcategory === "hot" ? <Badge variant="danger">19+</Badge> : null}
                   </div>
                   <p className="text-sm leading-7 text-muted-foreground">{detailPost.content}</p>
+                  {detailPost.poll ? (
+                    <PollCard
+                      poll={detailPost.poll}
+                      post={detailPost}
+                      canVote={isAuthenticated}
+                      onRequireAuth={() =>
+                        router.push(
+                          getAuthFlowHref({
+                            isAuthenticated,
+                            user: currentUser,
+                            nextPath: pathname,
+                          }),
+                        )
+                      }
+                      onVoted={refresh}
+                    />
+                  ) : null}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <Eye className="h-4 w-4" />
+                        {getPostViewCount(detailPost)}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Heart className="h-4 w-4" />
+                        {detailPost.likes}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <MessageCircle className="h-4 w-4" />
+                        {detailPost.commentCount}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        const href = `${window.location.origin}${getPostHref(detailPost.id)}`;
+                        const shareText = `CAMVERSE에서 화제인 글 · ${detailPost.title}`;
+                        if (navigator.share) {
+                          await navigator.share({
+                            title: detailPost.title,
+                            text: shareText,
+                            url: href,
+                          });
+                          return;
+                        }
+
+                        await navigator.clipboard.writeText(href);
+                        setSuccessMessage("링크가 복사되었습니다.");
+                      }}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      공유
+                    </Button>
+                  </div>
                   <ReportBlockActions
                     targetType="post"
                     targetId={detailPost.id}
@@ -1056,6 +1270,76 @@ export function CommunityPage({
             <div className="space-y-2">
               <Label htmlFor="content">내용</Label>
               <Textarea id="content" {...form.register("content")} />
+            </div>
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">투표 추가</p>
+                  <p className="text-xs text-muted-foreground">한 번 터치로 참여를 유도하는 선택형 글</p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={form.watch("pollEnabled") ? "default" : "outline"}
+                  onClick={() => form.setValue("pollEnabled", !form.watch("pollEnabled"))}
+                >
+                  {form.watch("pollEnabled") ? "사용 중" : "추가"}
+                </Button>
+              </div>
+              {form.watch("pollEnabled") ? (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="pollQuestion">투표 질문</Label>
+                    <Input id="pollQuestion" {...form.register("pollQuestion")} placeholder="예: 먼저 연락한다 vs 기다린다?" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>선택지</Label>
+                    <div className="space-y-2">
+                      {(form.watch("pollOptions") ?? ["", ""]).map((_, index) => (
+                        <Input
+                          key={`poll-option-${index}`}
+                          value={form.watch(`pollOptions.${index}` as const) ?? ""}
+                          placeholder={`선택지 ${index + 1}`}
+                          onChange={(event) => {
+                            const nextOptions = [...(form.getValues("pollOptions") ?? ["", ""])];
+                            nextOptions[index] = event.target.value;
+                            form.setValue("pollOptions", nextOptions, { shouldValidate: true });
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(form.getValues("pollOptions")?.length ?? 0) < 4 ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const nextOptions = [...(form.getValues("pollOptions") ?? ["", ""]), ""].slice(0, 4);
+                            form.setValue("pollOptions", nextOptions, { shouldValidate: true });
+                          }}
+                        >
+                          선택지 추가
+                        </Button>
+                      ) : null}
+                      {(form.getValues("pollOptions")?.length ?? 0) > 2 ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            const nextOptions = [...(form.getValues("pollOptions") ?? ["", ""])];
+                            nextOptions.pop();
+                            form.setValue("pollOptions", nextOptions, { shouldValidate: true });
+                          }}
+                        >
+                          마지막 선택지 삭제
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
             {form.watch("board") === "anonymous" ? (
               <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-500">

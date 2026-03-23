@@ -168,6 +168,10 @@ type PostRow = {
   scope: "school" | "global";
   like_count: number;
   comment_count: number;
+  view_count: number;
+  hot_score: number;
+  poll_vote_count: number;
+  post_type: "normal" | "poll" | "question" | "balance";
   report_count: number;
   admin_hidden: boolean;
   auto_hidden: boolean;
@@ -202,6 +206,10 @@ type PostInsert = {
   scope: "school" | "global";
   like_count?: number;
   comment_count?: number;
+  view_count?: number;
+  hot_score?: number;
+  poll_vote_count?: number;
+  post_type?: "normal" | "poll" | "question" | "balance";
   report_count?: number;
   admin_hidden?: boolean;
   auto_hidden?: boolean;
@@ -215,6 +223,7 @@ type PostInsert = {
 type CommentRow = {
   id: string;
   post_id: string;
+  parent_comment_id: string | null;
   author_id: string;
   content: string;
   like_count: number;
@@ -229,6 +238,7 @@ type CommentRow = {
 type CommentInsert = {
   id?: string;
   post_id: string;
+  parent_comment_id?: string | null;
   author_id: string;
   content: string;
   like_count?: number;
@@ -361,6 +371,52 @@ type TradeMessageInsert = {
   trade_post_id: string;
   sender_id: string;
   content: string;
+  created_at?: string;
+};
+
+type PollRow = {
+  id: string;
+  post_id: string;
+  question: string;
+  created_at: string;
+};
+
+type PollInsert = {
+  id?: string;
+  post_id: string;
+  question: string;
+  created_at?: string;
+};
+
+type PollOptionRow = {
+  id: string;
+  poll_id: string;
+  option_text: string;
+  position: number;
+  vote_count: number;
+};
+
+type PollOptionInsert = {
+  id?: string;
+  poll_id: string;
+  option_text: string;
+  position: number;
+  vote_count?: number;
+};
+
+type PollVoteRow = {
+  id: string;
+  poll_id: string;
+  option_id: string;
+  user_id: string;
+  created_at: string;
+};
+
+type PollVoteInsert = {
+  id?: string;
+  poll_id: string;
+  option_id: string;
+  user_id: string;
   created_at?: string;
 };
 
@@ -554,6 +610,9 @@ export interface Database {
       lecture_reviews: SupabaseTable<LectureReviewRow, LectureReviewInsert>;
       trade_posts: SupabaseTable<TradePostRow, TradePostInsert>;
       trade_messages: SupabaseTable<TradeMessageRow, TradeMessageInsert>;
+      polls: SupabaseTable<PollRow, PollInsert>;
+      poll_options: SupabaseTable<PollOptionRow, PollOptionInsert>;
+      poll_votes: SupabaseTable<PollVoteRow, PollVoteInsert>;
       dating_profiles: SupabaseTable<DatingProfileRow, DatingProfileInsert>;
       reports: SupabaseTable<ReportRow, ReportInsert>;
       blocks: SupabaseTable<BlockRow, BlockInsert>;
