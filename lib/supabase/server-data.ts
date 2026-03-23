@@ -210,6 +210,10 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
   }
 }
 
+function shouldRequirePrimaryContent(scope: RuntimeSnapshotScope) {
+  return !["notifications", "profile", "messages"].includes(scope);
+}
+
 type RuntimeQueryContext = {
   scope: RuntimeSnapshotScope;
   schoolId?: string;
@@ -1019,7 +1023,8 @@ export async function loadServerRuntimeSnapshot(
         })()
       : guestUser;
 
-    const requiresPrimaryContent = include.posts || include.lectures;
+    const requiresPrimaryContent =
+      shouldRequirePrimaryContent(scope) && (include.posts || include.lectures);
     if (
       snapshot.schools.length === 0 ||
       (requiresPrimaryContent && snapshot.posts.length === 0 && snapshot.lectures.length === 0)

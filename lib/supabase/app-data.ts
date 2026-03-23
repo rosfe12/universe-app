@@ -5,6 +5,8 @@ import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 import {
   clearSupabaseSessionStorage,
   createClient,
+  getCurrentSupabaseAuthUser,
+  resetSupabaseAuthUserCache,
 } from "@/lib/supabase/client";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
@@ -278,6 +280,10 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         currentUserProfile: true,
       };
   }
+}
+
+function shouldRequirePrimaryContent(scope: RuntimeSnapshotScope) {
+  return !["chrome", "notifications", "profile", "messages"].includes(scope);
 }
 
 type RuntimeQueryContext = {
@@ -900,9 +906,7 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
   try {
     const supabase = createClient();
     const include = getSnapshotIncludeConfig(scope);
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
+    const authUser = await getCurrentSupabaseAuthUser();
 
     let currentUserProfileResult = authUser
       ? await supabase.from("users").select("*").eq("id", authUser.id).single()
@@ -1079,7 +1083,8 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
         })()
       : guestUser;
 
-    const requiresPrimaryContent = include.posts || include.lectures;
+    const requiresPrimaryContent =
+      shouldRequirePrimaryContent(scope) && (include.posts || include.lectures);
     if (
       snapshot.schools.length === 0 ||
       (requiresPrimaryContent && snapshot.posts.length === 0 && snapshot.lectures.length === 0)
@@ -1191,6 +1196,7 @@ export async function signOutFromSupabase() {
   const supabase = createClient();
   const result = await supabase.auth.signOut();
   if (!result.error) {
+    resetSupabaseAuthUserCache();
     clearSupabaseSessionStorage();
     invalidateClientRuntimeSnapshots();
   }

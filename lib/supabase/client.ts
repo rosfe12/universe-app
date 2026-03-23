@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User as SupabaseAuthUser } from "@supabase/supabase-js";
 
 import {
   AUTH_SESSION_MARKER_STORAGE_KEY,
@@ -10,13 +10,9 @@ import {
 import { publicEnv } from "@/lib/env";
 
 let browserClient: SupabaseClient | null = null;
+let authUserPromise: Promise<SupabaseAuthUser | null> | null = null;
 
-const SUPABASE_AUTH_AUXILIARY_KEYS = [
-  SUPABASE_AUTH_STORAGE_KEY,
-  `${SUPABASE_AUTH_STORAGE_KEY}-code-verifier`,
-];
-
-function hasSupabaseAuthCookie() {
+export function hasSupabaseAuthCookie() {
   if (typeof window === "undefined") {
     return false;
   }
@@ -31,27 +27,6 @@ function hasSupabaseAuthCookie() {
     );
 }
 
-function getActiveAuthStorage() {
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
-  return getKeepLoggedInPreference() ? window.localStorage : window.sessionStorage;
-}
-
-const browserAuthStorage = {
-  getItem(key: string) {
-    return getActiveAuthStorage()?.getItem(key) ?? null;
-  },
-  setItem(key: string, value: string) {
-    getActiveAuthStorage()?.setItem(key, value);
-  },
-  removeItem(key: string) {
-    window.localStorage.removeItem(key);
-    window.sessionStorage.removeItem(key);
-  },
-};
-
 export function setSupabaseSessionPersistence(keepLoggedIn: boolean) {
   if (typeof window === "undefined") {
     return;
@@ -63,17 +38,6 @@ export function setSupabaseSessionPersistence(keepLoggedIn: boolean) {
   } else {
     window.sessionStorage.setItem(AUTH_SESSION_MARKER_STORAGE_KEY, "true");
   }
-
-  const sourceStorage = keepLoggedIn ? window.sessionStorage : window.localStorage;
-  const targetStorage = keepLoggedIn ? window.localStorage : window.sessionStorage;
-
-  for (const key of SUPABASE_AUTH_AUXILIARY_KEYS) {
-    const value = sourceStorage.getItem(key);
-    if (value) {
-      targetStorage.setItem(key, value);
-      sourceStorage.removeItem(key);
-    }
-  }
 }
 
 export function clearSupabaseSessionStorage() {
@@ -82,11 +46,6 @@ export function clearSupabaseSessionStorage() {
   }
 
   window.sessionStorage.removeItem(AUTH_SESSION_MARKER_STORAGE_KEY);
-
-  for (const key of SUPABASE_AUTH_AUXILIARY_KEYS) {
-    window.localStorage.removeItem(key);
-    window.sessionStorage.removeItem(key);
-  }
 }
 
 export async function waitForSupabaseAuthCookie(
@@ -105,6 +64,28 @@ export async function waitForSupabaseAuthCookie(
 
     await new Promise((resolve) => window.setTimeout(resolve, 50));
   }
+}
+
+export async function getCurrentSupabaseAuthUser(force = false) {
+  if (!force && authUserPromise) {
+    return authUserPromise;
+  }
+
+  authUserPromise = createClient()
+    .auth.getUser()
+    .then(({ data: { user } }) => user ?? null)
+    .catch(() => null)
+    .finally(() => {
+      window.setTimeout(() => {
+        authUserPromise = null;
+      }, 0);
+    });
+
+  return authUserPromise;
+}
+
+export function resetSupabaseAuthUserCache() {
+  authUserPromise = null;
 }
 
 export function shouldClearNonPersistentSession() {
@@ -131,7 +112,6 @@ export function createClient() {
       name: SUPABASE_AUTH_STORAGE_KEY,
     },
     auth: {
-      storage: browserAuthStorage,
       storageKey: SUPABASE_AUTH_STORAGE_KEY,
       persistSession: true,
       autoRefreshToken: true,

@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 
 import { getRuntimeSnapshot, setRuntimeSnapshot } from "@/lib/runtime-state";
-import { clearSupabaseSessionStorage, createClient, shouldClearNonPersistentSession } from "@/lib/supabase/client";
+import {
+  clearSupabaseSessionStorage,
+  createClient,
+  getCurrentSupabaseAuthUser,
+  hasSupabaseAuthCookie,
+  shouldClearNonPersistentSession,
+} from "@/lib/supabase/client";
 import {
   isSupabaseEnabled,
   loadClientRuntimeSnapshot,
@@ -76,11 +82,17 @@ export function useAppRuntime(
       }
 
       if (initialSnapshot) {
-        setLoading(false);
         if (!initialSnapshot.isAuthenticated) {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
+          setLoading(true);
+          let user = await getCurrentSupabaseAuthUser();
+
+          for (let attempt = 0; !user && attempt < 5; attempt += 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
+            if (!active) {
+              return;
+            }
+            user = await getCurrentSupabaseAuthUser(true);
+          }
 
           if (!active) {
             return;
@@ -88,8 +100,21 @@ export function useAppRuntime(
 
           if (user) {
             await bootstrap(false, true);
+            return;
+          }
+
+          if (typeof window !== "undefined" && hasSupabaseAuthCookie()) {
+            const recoveryKey = `univers-auth-recovery:${scope}:${window.location.pathname}${window.location.search}`;
+            if (window.sessionStorage.getItem(recoveryKey) !== "true") {
+              window.sessionStorage.setItem(recoveryKey, "true");
+              window.location.replace(window.location.href);
+              return;
+            }
+            window.sessionStorage.removeItem(recoveryKey);
           }
         }
+
+        setLoading(false);
         return;
       }
 
