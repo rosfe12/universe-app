@@ -77,6 +77,19 @@ export function useAppRuntime(
 
       if (initialSnapshot) {
         setLoading(false);
+        if (!initialSnapshot.isAuthenticated) {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+
+          if (!active) {
+            return;
+          }
+
+          if (user) {
+            await bootstrap(false, true);
+          }
+        }
         return;
       }
 
