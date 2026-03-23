@@ -1,4 +1,4 @@
-# 유니버스
+# CAMVERSE (캠버스)
 
 캠퍼스 라이프 플랫폼입니다. 우리학교 커뮤니티, 강의 정보, 수강신청 교환, 입시/새내기 흐름, 알림, 메시지 허브를 한 앱 안에서 운영할 수 있도록 구성했습니다.
 
@@ -71,7 +71,7 @@ SUPABASE_SMTP_HOST=smtp.your-provider.com
 SUPABASE_SMTP_PORT=587
 SUPABASE_SMTP_USER=your-smtp-user
 SUPABASE_SMTP_PASSWORD=your-smtp-password
-SUPABASE_SMTP_SENDER_NAME=유니버스
+SUPABASE_SMTP_SENDER_NAME=CAMVERSE
 SUPABASE_SMTP_SENDER_EMAIL=no-reply@your-domain.com
 E2E_TEST_EMAIL=tester@example.com
 E2E_TEST_PASSWORD=secure-password
@@ -126,7 +126,7 @@ curl https://your-domain.com/api/health
   내용을 붙여넣습니다.
 - 버튼 링크는 `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email` 형식을 사용합니다.
 - 앱 SMTP를 사용할 경우 같은 템플릿을 서버 메일 발송에 재사용합니다.
-- 발신자 이름은 `유니버스`, 발신 메일은 운영 도메인 메일을 사용합니다.
+- 발신자 이름은 `CAMVERSE`, 발신 메일은 운영 도메인 메일을 사용합니다.
 
 ## Supabase 연결 순서
 

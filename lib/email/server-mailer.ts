@@ -69,7 +69,7 @@ export async function sendStudentVerificationEmail({
     subject: subject.trim(),
     html,
     text: [
-      "유니버스 대학생 인증을 완료하세요.",
+      "CAMVERSE 대학생 인증을 완료하세요.",
       verificationUrl,
       "",
       "본인이 요청하지 않았다면 이 메일을 무시해도 됩니다.",

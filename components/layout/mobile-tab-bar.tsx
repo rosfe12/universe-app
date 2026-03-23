@@ -32,8 +32,8 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-3 left-1/2 z-30 w-[calc(100%-1.25rem)] max-w-[408px] -translate-x-1/2 rounded-[28px] border border-white/10 bg-slate-950/82 px-2 pb-[calc(env(safe-area-inset-bottom)+0.4rem)] pt-2 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.95)] backdrop-blur-xl">
-      <ul className="grid grid-cols-5 gap-1">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/94 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-18px_40px_-28px_rgba(2,6,23,0.92)] backdrop-blur-xl">
+      <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1">
         {tabs.map((tab) => {
           const Icon = icons[tab.href];
           const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);

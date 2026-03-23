@@ -350,7 +350,10 @@ export function OnboardingPage() {
     <div className="mx-auto max-w-md px-5 py-8">
       <Card>
         <CardHeader className="space-y-3">
-          <p className="text-xs font-semibold tracking-[0.2em] text-primary">유니버스</p>
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-primary">CAMVERSE</p>
+            <p className="text-[11px] font-medium tracking-[0.08em] text-muted-foreground">CAMVERSE (캠버스)</p>
+          </div>
           {isVerificationMode ? (
             <div>
               <Button

@@ -23,8 +23,8 @@ export function AppShell({
         <header className="app-header-surface sticky top-0 z-20 border-b border-white/10 px-4 pb-4 pt-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-[0.16em] text-indigo-500 dark:text-indigo-300">
-                유니버스
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-500 dark:text-indigo-300">
+                CAMVERSE
               </p>
               <h1 className="mt-2 text-[30px] font-semibold tracking-tight text-balance text-gray-950 dark:text-white">
                 {title}
@@ -36,15 +36,17 @@ export function AppShell({
             </div>
           </div>
         </header>
-        <main className="flex-1 space-y-7 px-4 pb-[calc(env(safe-area-inset-bottom)+8rem)] pt-5">
+        <main className="flex-1 space-y-7 px-4 pb-[calc(env(safe-area-inset-bottom)+6.75rem)] pt-5">
           <RuntimeSetupNotice />
           {children}
         </main>
-        <div className="px-4 pb-4">
+        <div
+          className={`px-4 pt-2 ${showTabs ? "pb-[calc(env(safe-area-inset-bottom)+6rem)]" : "pb-4"}`}
+        >
           <AppFooterLinks />
         </div>
-        {showTabs ? <MobileTabBar /> : null}
       </div>
+      {showTabs ? <MobileTabBar /> : null}
     </div>
   );
 }

@@ -7,7 +7,10 @@ export default function SupportPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-5 py-10">
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">유니버스</p>
+        <div className="space-y-1">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-primary">CAMVERSE</p>
+          <p className="text-[11px] font-medium tracking-[0.08em] text-muted-foreground">CAMVERSE (캠버스)</p>
+        </div>
         <h1 className="text-3xl font-bold tracking-tight">문의하기</h1>
       </div>
       <Card>

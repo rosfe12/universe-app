@@ -23,8 +23,8 @@ const themeBootScript = `
 `;
 
 export const metadata: Metadata = {
-  title: "유니버스",
-  description: "캠퍼스 라이프 플랫폼",
+  title: "CAMVERSE – 대학생 커뮤니티",
+  description: "익명으로 연결되는 캠퍼스 네트워크",
   metadataBase: new URL(appUrl),
   icons: {
     icon: [

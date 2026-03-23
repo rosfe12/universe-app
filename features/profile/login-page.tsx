@@ -205,16 +205,19 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
-      <Card className="overflow-hidden">
-        <CardHeader className="space-y-4 bg-[linear-gradient(135deg,#0f172a_0%,#0ea5e9_100%)] text-white">
-          <p className="text-xs font-semibold tracking-[0.2em]">유니버스</p>
+        <Card className="overflow-hidden">
+          <CardHeader className="space-y-4 bg-[linear-gradient(135deg,#0f172a_0%,#0ea5e9_100%)] text-white">
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-[0.24em]">CAMVERSE</p>
+            <p className="text-[11px] font-medium tracking-[0.08em] text-white/72">CAMVERSE (캠버스)</p>
+          </div>
           <div>
             <CardTitle className="text-2xl">
               {adminOnlyFlow
                 ? "관리자 로그인"
                 : mode === "login"
                   ? "캠퍼스 커뮤니티에 로그인"
-                  : "유니버스 회원가입"}
+                  : "CAMVERSE (캠버스) 회원가입"}
             </CardTitle>
             <p className="mt-2 text-sm text-white/80">
               {adminOnlyFlow

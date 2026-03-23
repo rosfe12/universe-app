@@ -105,14 +105,14 @@ export function HomePage({
   const campusInfoCards = [
     {
       title: "동아리/모임 모집",
-      description: schoolClubPosts[0]?.title ?? "지금 들어가기 좋은 모집 글을 바로 이어서 봅니다.",
+      description: schoolClubPosts[0]?.title ?? "",
       href: "/school?tab=club",
       icon: Users2,
       accent: "from-indigo-500/12 to-sky-500/5",
     },
     {
       title: "학교 주변 맛집/정보",
-      description: schoolFoodPosts[0]?.title ?? "식당, 카페, 생활 정보까지 학교 주변 맥락으로 모아둡니다.",
+      description: schoolFoodPosts[0]?.title ?? "",
       href: "/school?tab=food",
       icon: UtensilsCrossed,
       accent: "from-amber-500/12 to-rose-500/5",
@@ -154,7 +154,6 @@ export function HomePage({
         <SectionHeader
           eyebrow="추천 피드"
           title="오늘 많이 보는 글"
-          description="학교 안에서 바로 반응이 붙는 글부터 크게 보여줍니다."
         />
         {featuredPost ? (
           <FeedList className="rounded-[32px]">
@@ -174,9 +173,7 @@ export function HomePage({
                 {hasSelectedSchool ? currentSchool?.name : isApplicant ? "지망학교 선택" : "학교 선택"}
               </p>
               <p className="text-sm leading-6 text-muted-foreground">
-                {hasSelectedSchool
-                  ? `${schoolPopularPosts.length}개의 학교 밀착 글이 바로 이어집니다.`
-                  : "학교를 고르면 바로 학교 중심 피드가 열립니다."}
+                {hasSelectedSchool ? `+${schoolPopularPosts.length}` : "선택 필요"}
               </p>
             </CardContent>
           </Card>
@@ -194,7 +191,7 @@ export function HomePage({
                     </span>
                   ))
                 ) : (
-                  <span className="text-sm text-muted-foreground">지금 뜨는 주제를 곧 보여줍니다.</span>
+                  <span className="text-sm text-muted-foreground">주제 없음</span>
                 )}
               </div>
             </CardContent>
@@ -206,7 +203,6 @@ export function HomePage({
         <SectionHeader
           eyebrow="Campus"
           title={isApplicant ? "지금 지망학교는" : "지금 우리 학교는"}
-          description={hasSelectedSchool ? "학교 안에서 바로 이어지는 글과 질문을 먼저 보여줍니다." : undefined}
           href="/school"
           actionLabel="학교 보기"
         />
@@ -222,7 +218,7 @@ export function HomePage({
               </div>
               <p className="mt-4 text-[15px] font-semibold text-foreground">{menu.title}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {menu.count > 0 ? `+${menu.count}` : "곧 채워집니다"}
+                {menu.count > 0 ? `+${menu.count}` : "준비 중"}
               </p>
             </Link>
           ))}
@@ -243,11 +239,7 @@ export function HomePage({
           <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
             <CardContent className="space-y-3 py-5">
               <p className="text-base font-semibold text-foreground">
-                {hasSelectedSchool
-                  ? "학교 피드가 곧 채워집니다"
-                  : isApplicant
-                    ? "지망학교를 선택하면 입시 질문과 학교 분위기를 먼저 볼 수 있습니다."
-                    : "학교를 선택하면 우리 학교 흐름이 바로 열립니다."}
+                {hasSelectedSchool ? "학교 피드 준비 중" : isApplicant ? "지망학교를 선택하세요" : "학교를 선택하세요"}
               </p>
               <Link href="/school" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                 학교 열기
@@ -262,7 +254,6 @@ export function HomePage({
         <SectionHeader
           eyebrow="추천 큐레이션"
           title="새내기 많이 보는 글"
-          description="입시와 새내기 흐름이 자연스럽게 이어지도록 묶었습니다."
         />
         {newcomerPosts.length ? (
           <FeedList>
@@ -279,9 +270,7 @@ export function HomePage({
         ) : (
           <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
             <CardContent className="py-5">
-              <p className="text-sm leading-6 text-muted-foreground">
-                새내기와 입시 흐름을 바로 보여줄 글이 곧 채워집니다.
-              </p>
+              <p className="text-sm leading-6 text-muted-foreground">게시글 준비 중</p>
             </CardContent>
           </Card>
         )}
@@ -291,7 +280,6 @@ export function HomePage({
         <SectionHeader
           eyebrow="탐색"
           title="동아리·모임과 학교 주변 정보"
-          description="학교 안에서 바로 눌러보게 되는 탐색형 섹션입니다."
         />
         <div className="space-y-3">
           {campusInfoCards.map((item) => (
@@ -306,7 +294,9 @@ export function HomePage({
                     <item.icon className="h-3.5 w-3.5" />
                     {item.title}
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                  {item.description ? (
+                    <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                  ) : null}
                 </div>
                 <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
               </CardContent>
@@ -319,7 +309,6 @@ export function HomePage({
         <SectionHeader
           eyebrow="실시간"
           title="실시간 반응 좋은 글"
-          description="댓글과 반응이 빠르게 붙는 글을 밀도 있게 보여줍니다."
           href="/community"
         />
         {realtimeReactionPosts.length ? (
@@ -341,7 +330,6 @@ export function HomePage({
         <SectionHeader
           eyebrow="핵심 도구"
           title="강의 정보와 수강신청 교환"
-          description="매일 열 이유가 생기는 실용 기능은 아래에 단단하게 붙입니다."
         />
         <div className="space-y-3">
           {tradeHighlights.length ? (
@@ -389,7 +377,7 @@ export function HomePage({
           ) : (
             <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
               <CardContent className="space-y-3 py-5">
-                <p className="text-base font-semibold text-foreground">강의 정보가 곧 채워집니다</p>
+                <p className="text-base font-semibold text-foreground">강의 정보 준비 중</p>
                 <Link href="/lectures" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                   강의 페이지 보기
                   <ArrowUpRight className="h-4 w-4" />

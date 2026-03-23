@@ -29,7 +29,7 @@ const redirectUrls = Array.from(
   ]),
 );
 
-const senderName = process.env.SUPABASE_SMTP_SENDER_NAME || "유니버스";
+const senderName = process.env.SUPABASE_SMTP_SENDER_NAME || "CAMVERSE";
 const senderEmail = process.env.SUPABASE_SMTP_SENDER_EMAIL || "no-reply@your-domain.com";
 const googleEnabled = ["1", "true", "yes", "on"].includes(
   String(process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED || "")

@@ -625,7 +625,6 @@ export function CommunityPage({
               <SectionHeader
                 eyebrow="탐색 피드"
                 title="지금 뜨는 글"
-                description="반응이 빠르게 붙는 글과 우리 학교 흐름을 먼저 보여줍니다."
               />
               <button
                 type="button"
@@ -735,7 +734,7 @@ export function CommunityPage({
         {filteredItems.length === 0 ? (
           <EmptyState
             title="표시할 글이 없습니다"
-            description="다른 카테고리를 둘러보거나 새 글이 올라오기를 기다려보세요."
+            description="게시글이 없습니다."
           />
       ) : (
         <FeedList>
