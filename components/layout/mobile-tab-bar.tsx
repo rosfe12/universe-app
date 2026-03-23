@@ -32,8 +32,8 @@ export function MobileTabBar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-30 w-full max-w-[440px] -translate-x-1/2 border-t border-gray-100 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur supports-[backdrop-filter]:bg-white/90">
-      <ul className="grid grid-cols-5 gap-0.5">
+    <nav className="fixed bottom-3 left-1/2 z-30 w-[calc(100%-1.25rem)] max-w-[408px] -translate-x-1/2 rounded-[28px] border border-white/10 bg-slate-950/82 px-2 pb-[calc(env(safe-area-inset-bottom)+0.4rem)] pt-2 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.95)] backdrop-blur-xl">
+      <ul className="grid grid-cols-5 gap-1">
         {tabs.map((tab) => {
           const Icon = icons[tab.href];
           const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -43,19 +43,20 @@ export function MobileTabBar() {
               <Link
                 href={tab.href}
                 className={cn(
-                  "group flex min-w-0 flex-col items-center gap-1 px-1 py-2 text-[10px] font-medium leading-none text-muted-foreground transition-all",
-                  active && "text-primary",
+                  "group flex min-w-0 flex-col items-center gap-1 px-1 py-2 text-[10px] font-medium leading-none text-slate-400 transition-all",
+                  active && "text-white",
                 )}
               >
                 <span
                   className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-all group-hover:bg-accent",
-                    active && "bg-indigo-50 text-indigo-600",
+                    "flex h-10 w-10 items-center justify-center rounded-2xl text-slate-400 transition-all duration-150 group-hover:bg-white/5 group-hover:text-white",
+                    active &&
+                      "bg-[linear-gradient(135deg,rgba(79,70,229,0.22),rgba(99,102,241,0.42))] text-white shadow-[0_14px_26px_-18px_rgba(99,102,241,0.95)]",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-[18px] w-[18px]" />
                 </span>
-                <span className={cn("truncate text-center leading-none transition-colors", active && "text-primary")}>
+                <span className={cn("truncate text-center leading-none transition-colors", active && "text-white")}>
                   {tab.label}
                 </span>
               </Link>

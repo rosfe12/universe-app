@@ -8,7 +8,12 @@ export function FeedList({
   className?: string;
 }) {
   return (
-    <div className={cn("overflow-hidden rounded-2xl border border-gray-100 bg-white", className)}>
+    <div
+      className={cn(
+        "app-section-surface overflow-hidden rounded-[26px]",
+        className,
+      )}
+    >
       {children}
     </div>
   );

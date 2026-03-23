@@ -244,6 +244,103 @@
 }
 
 @layer utilities {
+  .app-page-backdrop {
+    background:
+      radial-gradient(circle at top, rgba(79, 70, 229, 0.12), transparent 32%),
+      radial-gradient(circle at 82% 12%, rgba(56, 189, 248, 0.08), transparent 24%),
+      linear-gradient(180deg, #f8fafc 0%, #ffffff 22%, #f8fafc 100%);
+  }
+
+  html[data-theme="dark"] .app-page-backdrop {
+    background:
+      radial-gradient(circle at top, rgba(99, 102, 241, 0.18), transparent 30%),
+      radial-gradient(circle at 82% 10%, rgba(59, 130, 246, 0.1), transparent 22%),
+      linear-gradient(180deg, #060b17 0%, #0a1120 22%, #0f172a 100%);
+  }
+
+  .app-shell-surface {
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow: 0 30px 80px -42px rgba(15, 23, 42, 0.28);
+    backdrop-filter: blur(18px);
+  }
+
+  html[data-theme="dark"] .app-shell-surface {
+    background: rgba(8, 15, 31, 0.82);
+    border-color: rgba(148, 163, 184, 0.12);
+    box-shadow: 0 28px 90px -48px rgba(2, 6, 23, 0.92);
+  }
+
+  .app-header-surface {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.88) 100%);
+    backdrop-filter: blur(20px);
+  }
+
+  html[data-theme="dark"] .app-header-surface {
+    background:
+      linear-gradient(180deg, rgba(8, 15, 31, 0.96) 0%, rgba(8, 15, 31, 0.88) 100%);
+  }
+
+  .app-section-surface {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    backdrop-filter: blur(14px);
+  }
+
+  html[data-theme="dark"] .app-section-surface {
+    background: rgba(15, 23, 42, 0.86);
+    border-color: rgba(148, 163, 184, 0.1);
+  }
+
+  .app-muted-surface {
+    background: rgba(248, 250, 252, 0.94);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+  }
+
+  html[data-theme="dark"] .app-muted-surface {
+    background: rgba(15, 23, 42, 0.92);
+    border-color: rgba(148, 163, 184, 0.12);
+  }
+
+  .app-chip {
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(255, 255, 255, 0.76);
+    backdrop-filter: blur(12px);
+  }
+
+  html[data-theme="dark"] .app-chip {
+    border-color: rgba(148, 163, 184, 0.12);
+    background: rgba(15, 23, 42, 0.82);
+  }
+
+  .app-soft-hover {
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      transform 150ms ease;
+  }
+
+  .app-soft-hover:hover {
+    background-color: rgba(248, 250, 252, 0.92);
+  }
+
+  html[data-theme="dark"] .app-soft-hover:hover {
+    background-color: rgba(15, 23, 42, 0.96);
+  }
+
+  .app-kicker {
+    color: rgb(99 102 241);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  html[data-theme="dark"] .app-kicker {
+    color: rgb(165 180 252);
+  }
+
   .text-balance {
     text-wrap: balance;
   }

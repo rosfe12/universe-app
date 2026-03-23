@@ -43,6 +43,8 @@ export function FeedPostCard({
   href,
   onOpen,
   showActions = false,
+  variant = "default",
+  emphasis,
   onReport,
   onBlock,
   repeatedlyReported = false,
@@ -51,20 +53,51 @@ export function FeedPostCard({
   href?: string;
   onOpen?: () => void;
   showActions?: boolean;
+  variant?: "default" | "featured" | "dense";
+  emphasis?: "school" | "trending";
   onReport?: (input: { reason?: ReportReason; memo?: string }) => Promise<void> | void;
   onBlock?: () => Promise<void> | void;
   repeatedlyReported?: boolean;
 }) {
   const badge = getPostBadge(post);
+  const featured = variant === "featured";
+  const dense = variant === "dense";
   const content = (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", dense && "space-y-2")}>
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span>{badge.label}</span>
+        <span className="rounded-full bg-slate-900/5 px-2.5 py-1 font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300">
+          {badge.label}
+        </span>
+        {emphasis === "school" ? (
+          <span className="rounded-full bg-indigo-500/10 px-2.5 py-1 font-medium text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
+            우리 학교
+          </span>
+        ) : null}
+        {emphasis === "trending" ? (
+          <span className="rounded-full bg-amber-500/10 px-2.5 py-1 font-medium text-amber-600 dark:bg-amber-400/10 dark:text-amber-300">
+            급상승
+          </span>
+        ) : null}
         {post.subcategory === "hot" ? <span className="text-rose-500">19+</span> : null}
       </div>
-      <div className="space-y-2">
-        <h3 className="text-base font-semibold leading-6 text-foreground">{post.title}</h3>
-        <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{post.content}</p>
+      <div className={cn("space-y-2", dense && "space-y-1.5")}>
+        <h3
+          className={cn(
+            "text-base font-semibold leading-6 text-foreground",
+            featured && "text-[1.05rem] leading-7",
+            dense && "text-[15px] leading-6",
+          )}
+        >
+          {post.title}
+        </h3>
+        <p
+          className={cn(
+            "line-clamp-2 text-sm leading-6 text-muted-foreground",
+            featured && "line-clamp-3 text-[15px]",
+          )}
+        >
+          {post.content}
+        </p>
       </div>
     </div>
   );
@@ -85,11 +118,18 @@ export function FeedPostCard({
 
   return (
     <article className="border-b border-gray-100 last:border-b-0">
-      <div className="space-y-4 px-4 py-4 transition-colors duration-150 hover:bg-gray-50">
+      <div
+        className={cn(
+          "space-y-4 px-4 py-4 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-white/5",
+          featured && "px-5 py-5",
+          dense && "space-y-3 py-3.5",
+        )}
+      >
         <PostAuthorRow
           authorId={post.authorId}
           createdAt={post.createdAt}
           visibilityLevel={post.visibilityLevel}
+          minimal={dense}
         />
         {interactiveContent}
         <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">

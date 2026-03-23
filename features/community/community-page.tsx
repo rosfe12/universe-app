@@ -22,6 +22,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FeedList } from "@/components/shared/feed-list";
+import { SectionHeader } from "@/components/shared/section-header";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
@@ -65,6 +66,7 @@ import {
   getHotGalleryPosts,
   getLatestCommentPreview,
   getSchoolName,
+  getSchoolScopedCommunityPosts,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
@@ -169,6 +171,7 @@ function SharedFeedCard({
   post,
   hotScore,
   latestComment,
+  schoolHighlighted,
   onOpen,
   onReport,
   onBlock,
@@ -177,6 +180,7 @@ function SharedFeedCard({
   post: Post;
   hotScore?: number;
   latestComment?: string;
+  schoolHighlighted?: boolean;
   onOpen: () => void;
   onReport: (input: { reason?: ReportReason; memo?: string }) => Promise<void> | void;
   onBlock: () => Promise<void> | void;
@@ -184,12 +188,21 @@ function SharedFeedCard({
 }) {
   return (
     <article className="border-b border-gray-100 last:border-b-0">
-      <div className="space-y-3 px-4 py-4 transition-colors duration-150 hover:bg-gray-50">
+      <div className="space-y-3 px-4 py-4 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-white/5">
         <PostAuthorRow
           authorId={post.authorId}
           createdAt={post.createdAt}
           visibilityLevel={post.visibilityLevel}
-          trailing={<span className="text-xs text-gray-400">{getCardLabel(post)}</span>}
+          trailing={
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              {schoolHighlighted ? (
+                <span className="rounded-full bg-indigo-500/10 px-2 py-1 font-medium text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
+                  우리 학교
+                </span>
+              ) : null}
+              <span>{getCardLabel(post)}</span>
+            </div>
+          }
         />
         <button
           type="button"
@@ -197,7 +210,9 @@ function SharedFeedCard({
           className="block w-full space-y-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-            {post.subcategory === "hot" ? <span className="text-rose-500">19+</span> : null}
+            {post.subcategory === "hot" ? (
+              <span className="rounded-full bg-rose-500/10 px-2 py-1 font-medium text-rose-500">19+</span>
+            ) : null}
             {post.subcategory === "hot" && hotScore ? <span>인기 점수 {hotScore}</span> : null}
           </div>
           <CardTitle className="text-base font-semibold leading-6 text-gray-900">{post.title}</CardTitle>
@@ -226,9 +241,9 @@ function SharedFeedCard({
           <button
             type="button"
             onClick={onOpen}
-            className="block w-full rounded-xl bg-gray-50 px-4 py-3 text-left text-sm text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            className="block w-full border-l border-gray-200 pl-3 text-left text-sm text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 dark:border-white/10"
           >
-            <span className="inline-flex items-center gap-1 font-medium text-gray-700">
+            <span className="inline-flex items-center gap-1 font-medium text-gray-700 dark:text-gray-200">
               <MessageCircle className="h-4 w-4" />
               최근 댓글
             </span>
@@ -369,6 +384,37 @@ export function CommunityPage({
         +new Date(b.createdAt) - +new Date(a.createdAt),
     );
   }, [filteredItems, sortMode]);
+  const featuredItem = sortedItems[0] ?? null;
+  const risingItems = sortedItems.slice(1, 4);
+  const schoolFocusPosts = useMemo(() => {
+    if (!currentUser.schoolId) {
+      return [] as Post[];
+    }
+
+    return [
+      ...getSchoolScopedCommunityPosts(currentUser.schoolId, "school"),
+      ...getSchoolScopedCommunityPosts(currentUser.schoolId, "freshman"),
+    ]
+      .sort(
+        (a, b) =>
+          getPopularityScore(b) - getPopularityScore(a) ||
+          +new Date(b.createdAt) - +new Date(a.createdAt),
+      )
+      .slice(0, 2);
+  }, [currentUser.schoolId]);
+  const topicChips = useMemo(() => {
+    const counts = new Map<string, number>();
+    sortedItems.slice(0, 16).forEach((post) => {
+      (post.tags ?? []).forEach((tag) => {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      });
+    });
+
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([tag]) => tag);
+  }, [sortedItems]);
   const feedSlots = useMemo(() => injectInlineAdSlots(sortedItems), [sortedItems]);
 
   const detailPost = useMemo(
@@ -532,10 +578,10 @@ export function CommunityPage({
                 type="button"
                 onClick={() => setActiveFilter(filter.value)}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition-all",
+                  "app-chip inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all",
                   activeFilter === filter.value
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-white/85 bg-white/88 text-foreground",
+                    ? "border-primary bg-primary text-primary-foreground shadow-[0_16px_28px_-18px_rgba(79,70,229,0.95)]"
+                    : "text-foreground",
                 )}
               >
                 <filter.icon className="h-4 w-4" />
@@ -543,30 +589,147 @@ export function CommunityPage({
               </button>
             ))}
           </div>
-          <Card className="shadow-none">
-            <CardContent className="flex items-center gap-2 py-4">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={sortMode === "latest" ? "default" : "outline"}
-                  onClick={() => setSortMode("latest")}
-                >
-                  최신순
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={sortMode === "popular" ? "default" : "outline"}
-                  onClick={() => setSortMode("popular")}
-                >
-                  인기순
-                </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className={cn(
+                "rounded-full",
+                sortMode === "latest" ? "" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
+              )}
+              variant={sortMode === "latest" ? "default" : "outline"}
+              onClick={() => setSortMode("latest")}
+            >
+              최신순
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className={cn(
+                "rounded-full",
+                sortMode === "popular" ? "" : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10",
+              )}
+              variant={sortMode === "popular" ? "default" : "outline"}
+              onClick={() => setSortMode("popular")}
+            >
+              인기순
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {featuredItem ? (
+        <section className="space-y-4">
+          <Card className="app-section-surface overflow-hidden rounded-[30px] border-white/10 shadow-none">
+            <CardContent className="space-y-4 py-5">
+              <SectionHeader
+                eyebrow="탐색 피드"
+                title="지금 뜨는 글"
+                description="반응이 빠르게 붙는 글과 우리 학교 흐름을 먼저 보여줍니다."
+              />
+              <button
+                type="button"
+                onClick={() => openPost(featuredItem)}
+                className="block w-full rounded-[24px] bg-slate-950/5 px-4 py-4 text-left transition-colors hover:bg-slate-950/10 dark:bg-white/5 dark:hover:bg-white/10"
+              >
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="rounded-full bg-indigo-500/10 px-2.5 py-1 font-medium text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
+                    {getCardLabel(featuredItem)}
+                  </span>
+                  {featuredItem.schoolId === currentUser.schoolId ? (
+                    <span className="rounded-full bg-sky-500/10 px-2.5 py-1 font-medium text-sky-600 dark:bg-sky-400/10 dark:text-sky-300">
+                      우리 학교
+                    </span>
+                  ) : null}
+                </div>
+                <h2 className="mt-3 text-[1.05rem] font-semibold leading-7 text-foreground">
+                  {featuredItem.title}
+                </h2>
+                <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">
+                  {featuredItem.content}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <Eye className="h-4 w-4" />
+                    {getPostViewCount(featuredItem)}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Heart className="h-4 w-4" />
+                    {featuredItem.likes}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <MessageCircle className="h-4 w-4" />
+                    {featuredItem.commentCount}
+                  </span>
+                </div>
+              </button>
+
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1.2fr),minmax(0,0.8fr)]">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    급상승
+                  </p>
+                  <div className="space-y-2">
+                    {risingItems.map((post) => (
+                      <button
+                        key={post.id}
+                        type="button"
+                        onClick={() => openPost(post)}
+                        className="app-muted-surface block w-full rounded-[20px] px-4 py-3 text-left"
+                      >
+                        <p className="text-sm font-semibold text-foreground">{post.title}</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          {getCardLabel(post)} · 댓글 {post.commentCount}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      지금 뜨는 주제
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {topicChips.map((topic) => (
+                        <span
+                          key={topic}
+                          className="rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300"
+                        >
+                          {topic}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {schoolFocusPosts.length ? (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        우리 학교에서 많이 보는 글
+                      </p>
+                      <div className="mt-2 space-y-2">
+                        {schoolFocusPosts.map((post) => (
+                          <button
+                            key={post.id}
+                            type="button"
+                            onClick={() => openPost(post)}
+                            className="app-muted-surface block w-full rounded-[20px] px-4 py-3 text-left"
+                          >
+                            <p className="text-sm font-semibold text-foreground">{post.title}</p>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                              {getCardLabel(post)} · {getSchoolName(post.schoolId)}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         {filteredItems.length === 0 ? (
@@ -590,51 +753,52 @@ export function CommunityPage({
               return (
                 <SharedFeedCard
                   key={post.id}
-                post={post}
-                hotScore={post.subcategory === "hot" ? getHotScore(post) : undefined}
-                latestComment={getLatestCommentPreview(post.id)?.content}
-                onOpen={() => openPost(post)}
-                repeatedlyReported={isRepeatedlyReportedUser(post.authorId)}
-                onReport={async ({ reason, memo }) => {
-                  if (source === "supabase" && isAuthenticated) {
-                    await createReportRecord({
-                      reporterId: currentUser.id,
-                      targetType: "post",
-                      targetId: post.id,
-                      reason,
-                      memo,
-                    });
-                    await refresh();
-                    return;
-                  }
+                  post={post}
+                  hotScore={post.subcategory === "hot" ? getHotScore(post) : undefined}
+                  latestComment={getLatestCommentPreview(post.id)?.content}
+                  schoolHighlighted={Boolean(currentUser.schoolId && post.schoolId === currentUser.schoolId)}
+                  onOpen={() => openPost(post)}
+                  repeatedlyReported={isRepeatedlyReportedUser(post.authorId)}
+                  onReport={async ({ reason, memo }) => {
+                    if (source === "supabase" && isAuthenticated) {
+                      await createReportRecord({
+                        reporterId: currentUser.id,
+                        targetType: "post",
+                        targetId: post.id,
+                        reason,
+                        memo,
+                      });
+                      await refresh();
+                      return;
+                    }
 
-                  setSnapshot((current) =>
-                    addReportToSnapshot(current, {
-                      targetType: "post",
-                      targetId: post.id,
-                      reporterId: currentUser.id,
-                      reason: reason ?? "other",
-                      memo,
-                    }),
-                  );
-                }}
-                onBlock={async () => {
-                  if (source === "supabase" && isAuthenticated) {
-                    await createBlockRecord({
-                      blockerId: currentUser.id,
-                      blockedUserId: post.authorId,
-                    });
-                    await refresh();
-                    return;
-                  }
+                    setSnapshot((current) =>
+                      addReportToSnapshot(current, {
+                        targetType: "post",
+                        targetId: post.id,
+                        reporterId: currentUser.id,
+                        reason: reason ?? "other",
+                        memo,
+                      }),
+                    );
+                  }}
+                  onBlock={async () => {
+                    if (source === "supabase" && isAuthenticated) {
+                      await createBlockRecord({
+                        blockerId: currentUser.id,
+                        blockedUserId: post.authorId,
+                      });
+                      await refresh();
+                      return;
+                    }
 
-                  setSnapshot((current) =>
-                    addBlockToSnapshot(current, {
-                      blockerId: currentUser.id,
-                      blockedUserId: post.authorId,
-                    }),
-                  );
-                }}
+                    setSnapshot((current) =>
+                      addBlockToSnapshot(current, {
+                        blockerId: currentUser.id,
+                        blockedUserId: post.authorId,
+                      }),
+                    );
+                  }}
                 />
               );
             })}
