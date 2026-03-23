@@ -290,10 +290,9 @@ type RuntimeQueryContext = {
 const EMPTY_RESULT = Promise.resolve({ data: [], error: null });
 const HOME_POST_SUBCATEGORIES = [
   "free",
+  "advice",
   "ask",
   "school",
-  "careerInfo",
-  "jobPosting",
   "freshman",
   "club",
   "food",
@@ -304,8 +303,6 @@ const COMMUNITY_POST_SUBCATEGORIES = [
   "ask",
   "anonymous",
   "hot",
-  "careerInfo",
-  "jobPosting",
 ];
 const DATING_POST_SUBCATEGORIES = ["dating", "meeting"] as const;
 
