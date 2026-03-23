@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -170,6 +170,12 @@ export function SchoolPage({
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
   const [schoolPickerQuery, setSchoolPickerQuery] = useState("");
   const [pendingAdminSchoolId, setPendingAdminSchoolId] = useState<string | null>(null);
+  const lecturesSectionRef = useRef<HTMLElement | null>(null);
+  const tradeSectionRef = useRef<HTMLElement | null>(null);
+  const schoolBoardSectionRef = useRef<HTMLElement | null>(null);
+  const freshmanSectionRef = useRef<HTMLElement | null>(null);
+  const admissionSectionRef = useRef<HTMLElement | null>(null);
+  const exploreSectionRef = useRef<HTMLElement | null>(null);
   const userSchoolId = currentUser.schoolId;
   const canPreviewAllSchools = isAuthenticated && isMasterAdminEmail(currentUser.email);
   const availableSchools = useMemo(
@@ -290,25 +296,21 @@ export function SchoolPage({
           key: "admission" as const,
           label: "입시 Q&A",
           icon: GraduationCap,
-          href: "/school?tab=admission",
         },
         {
           key: "freshman" as const,
           label: "새내기 게시판",
           icon: Sparkles,
-          href: "/school?tab=freshman",
         },
         {
           key: "lectures" as const,
           label: "강의정보",
           icon: BookOpen,
-          href: "/lectures",
         },
         {
           key: "club" as const,
           label: "동아리",
           icon: Users,
-          href: "/school?tab=club",
         },
       ]
     : [
@@ -316,33 +318,59 @@ export function SchoolPage({
           key: "lectures" as const,
           label: "강의정보",
           icon: BookOpen,
-          href: "/lectures",
         },
         {
           key: "trade" as const,
           label: "수강신청 교환",
           icon: Repeat2,
-          href: "/trade",
         },
         {
           key: "school" as const,
           label: "학교 게시판",
           icon: MessageCircle,
-          href: "/school?tab=school",
         },
         {
           key: "freshman" as const,
           label: "새내기 게시판",
           icon: Sparkles,
-          href: "/school?tab=freshman",
         },
         {
           key: "admission" as const,
           label: "입시 Q&A",
           icon: GraduationCap,
-          href: "/school?tab=admission",
         },
       ];
+
+  const scrollToQuickSection = (key: (typeof quickTools)[number]["key"]) => {
+    const sectionRef =
+      key === "lectures"
+        ? lecturesSectionRef
+        : key === "trade"
+          ? tradeSectionRef
+          : key === "school"
+            ? schoolBoardSectionRef
+            : key === "freshman"
+              ? freshmanSectionRef
+              : key === "admission"
+                ? admissionSectionRef
+                : exploreSectionRef;
+
+    window.setTimeout(() => {
+      sectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 80);
+  };
+
+  const handleQuickToolClick = (key: (typeof quickTools)[number]["key"]) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", key);
+    params.delete("post");
+    router.replace(`/school?${params.toString()}`, { scroll: false });
+    setDetailPostId(null);
+    scrollToQuickSection(key);
+  };
 
   useEffect(() => {
     if (!canPreviewAllSchools) {
@@ -613,26 +641,31 @@ export function SchoolPage({
       {!isAdminDashboardMode ? (
       <section className="space-y-4">
         <SectionHeader title="퀵 메뉴" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2.5">
           {quickTools.map((tool) => (
-            <Link key={tool.key} href={tool.href} className="block">
+            <button
+              key={tool.key}
+              type="button"
+              onClick={() => handleQuickToolClick(tool.key)}
+              className="block text-left"
+            >
               <Card
                 className={
                   highlightSection === tool.key
-                    ? "border-primary/30 bg-primary/5 shadow-[0_20px_46px_-32px_rgba(99,102,241,0.38)]"
+                    ? "border-primary/30 bg-primary/5 shadow-[0_18px_36px_-30px_rgba(99,102,241,0.34)]"
                     : "border-border bg-card shadow-none"
                 }
               >
-                <CardContent className="flex min-h-[118px] flex-col items-start justify-between gap-3 py-5">
-                  <div className="rounded-[18px] bg-primary/10 p-3 text-primary">
-                    <tool.icon className="h-5 w-5" />
+                <CardContent className="flex min-h-[92px] flex-col items-start justify-between gap-2 px-4 py-4">
+                  <div className="rounded-2xl bg-primary/10 p-2.5 text-primary">
+                    <tool.icon className="h-[18px] w-[18px]" />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[17px] font-semibold leading-6 text-foreground">{tool.label}</p>
-                  </div>
+                  <p className="text-[14px] font-semibold leading-5 text-foreground">
+                    {tool.label}
+                  </p>
                 </CardContent>
               </Card>
-            </Link>
+            </button>
           ))}
         </div>
       </section>
@@ -643,6 +676,9 @@ export function SchoolPage({
         <SectionHeader title="캠퍼스 라이브" />
 
         <div
+          ref={(node) => {
+            schoolBoardSectionRef.current = node;
+          }}
           className={
             highlightSection === "school"
               ? "rounded-[32px] border border-blue-200/80 bg-blue-50/35 p-4"
@@ -694,6 +730,9 @@ export function SchoolPage({
         </div>
 
         <div
+          ref={(node) => {
+            freshmanSectionRef.current = node;
+          }}
           className={
             highlightSection === "freshman"
               ? "rounded-[32px] border border-emerald-200/80 bg-emerald-50/40 p-4"
@@ -721,6 +760,9 @@ export function SchoolPage({
         </div>
 
         <div
+          ref={(node) => {
+            admissionSectionRef.current = node;
+          }}
           className={
             highlightSection === "admission"
               ? "rounded-[32px] border border-amber-200/80 bg-amber-50/40 p-4"
@@ -768,7 +810,12 @@ export function SchoolPage({
       ) : null}
 
       {!isAdminDashboardMode ? (
-      <section className="space-y-4">
+      <section
+        ref={(node) => {
+          lecturesSectionRef.current = node;
+        }}
+        className="space-y-4"
+      >
         <SectionHeader title="강의 정보" href="/lectures" />
         {lectures.length === 0 ? (
           <EmptyState
@@ -789,6 +836,9 @@ export function SchoolPage({
 
       {!isApplicantMode && !isAdminDashboardMode ? (
         <section
+          ref={(node) => {
+            tradeSectionRef.current = node;
+          }}
           className={
             highlightSection === "trade"
               ? "rounded-[32px] border border-violet-200/80 bg-violet-50/30 p-4"
@@ -814,7 +864,12 @@ export function SchoolPage({
       ) : null}
 
       {!isAdminDashboardMode ? (
-      <section className="space-y-4">
+      <section
+        ref={(node) => {
+          exploreSectionRef.current = node;
+        }}
+        className="space-y-4"
+      >
         <SectionHeader title="탐색" />
         {campusInfoCards.length === 0 ? (
           <EmptyState
