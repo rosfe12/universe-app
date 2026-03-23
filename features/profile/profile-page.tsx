@@ -456,6 +456,10 @@ export function ProfilePage({
               await signOutFromSupabase();
               await refresh();
             }
+            if (typeof window !== "undefined") {
+              window.location.replace("/home");
+              return;
+            }
             router.replace("/home");
             router.refresh();
           }}

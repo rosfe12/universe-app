@@ -167,7 +167,12 @@ export function LoginPage() {
     }
 
     if (mode === "signup") {
-      router.push(`/onboarding?next=${encodeURIComponent(nextPath)}`);
+      const target = `/onboarding?next=${encodeURIComponent(nextPath)}`;
+      if (typeof window !== "undefined") {
+        window.location.replace(target);
+        return;
+      }
+      router.push(target);
       return;
     }
 
@@ -177,13 +182,18 @@ export function LoginPage() {
       return;
     }
 
-    router.replace(
-      getAuthFlowHref({
-        isAuthenticated: nextSnapshot.isAuthenticated,
-        user: nextSnapshot.currentUser,
-        nextPath,
-      }),
-    );
+    const target = getAuthFlowHref({
+      isAuthenticated: nextSnapshot.isAuthenticated,
+      user: nextSnapshot.currentUser,
+      nextPath,
+    });
+
+    if (typeof window !== "undefined") {
+      window.location.replace(target);
+      return;
+    }
+
+    router.replace(target);
     router.refresh();
   });
 
