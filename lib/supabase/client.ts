@@ -16,6 +16,21 @@ const SUPABASE_AUTH_AUXILIARY_KEYS = [
   `${SUPABASE_AUTH_STORAGE_KEY}-code-verifier`,
 ];
 
+function hasSupabaseAuthCookie() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return document.cookie
+    .split(";")
+    .map((item) => item.trim().split("=")[0] ?? "")
+    .some(
+      (name) =>
+        name === SUPABASE_AUTH_STORAGE_KEY ||
+        name.startsWith(`${SUPABASE_AUTH_STORAGE_KEY}.`),
+    );
+}
+
 function getActiveAuthStorage() {
   if (typeof window === "undefined") {
     return undefined;
@@ -71,6 +86,24 @@ export function clearSupabaseSessionStorage() {
   for (const key of SUPABASE_AUTH_AUXILIARY_KEYS) {
     window.localStorage.removeItem(key);
     window.sessionStorage.removeItem(key);
+  }
+}
+
+export async function waitForSupabaseAuthCookie(
+  present: boolean,
+  timeoutMs = 1500,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (hasSupabaseAuthCookie() === present) {
+      return;
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
   }
 }
 

@@ -27,7 +27,7 @@ import {
   signInWithSupabase,
   signUpWithSupabase,
 } from "@/lib/supabase/app-data";
-import { setSupabaseSessionPersistence } from "@/lib/supabase/client";
+import { setSupabaseSessionPersistence, waitForSupabaseAuthCookie } from "@/lib/supabase/client";
 import { shouldShowTestAccounts } from "@/lib/env";
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { cn } from "@/lib/utils";
@@ -189,6 +189,7 @@ export function LoginPage() {
     });
 
     if (typeof window !== "undefined") {
+      await waitForSupabaseAuthCookie(true);
       window.location.replace(target);
       return;
     }

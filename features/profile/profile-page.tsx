@@ -48,6 +48,7 @@ import {
   signOutFromSupabase,
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
+import { waitForSupabaseAuthCookie } from "@/lib/supabase/client";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   getStandardVisibilityLevel,
@@ -457,6 +458,7 @@ export function ProfilePage({
               await refresh();
             }
             if (typeof window !== "undefined") {
+              await waitForSupabaseAuthCookie(false);
               window.location.replace("/home");
               return;
             }
