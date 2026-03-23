@@ -907,6 +907,7 @@ export function invalidateClientRuntimeSnapshots(scopes?: RuntimeSnapshotScope[]
   if (!scopes || scopes.length === 0) {
     clientRuntimeSnapshotPromises.clear();
     lastClientRuntimeSnapshots.clear();
+    resetSupabaseAuthUserCache();
     return;
   }
 
@@ -914,6 +915,12 @@ export function invalidateClientRuntimeSnapshots(scopes?: RuntimeSnapshotScope[]
     clientRuntimeSnapshotPromises.delete(scope);
     lastClientRuntimeSnapshots.delete(scope);
   }
+
+  resetSupabaseAuthUserCache();
+}
+
+export function resetClientAuthRuntime() {
+  invalidateClientRuntimeSnapshots();
 }
 
 async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"): Promise<AppRuntimeSnapshot> {

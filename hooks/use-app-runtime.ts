@@ -8,6 +8,9 @@ import {
   createClient,
   getCurrentSupabaseAuthUser,
   hasSupabaseAuthCookie,
+  hasPersistedSupabaseSession,
+  persistSupabaseSession,
+  restorePersistedSupabaseSession,
   shouldClearNonPersistentSession,
 } from "@/lib/supabase/client";
 import {
@@ -23,9 +26,7 @@ export function useAppRuntime(
 ) {
   const seedSnapshot = initialSnapshot ?? getRuntimeSnapshot();
   const [snapshot, setSnapshot] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
-  const [loading, setLoading] = useState(
-    !initialSnapshot && seedSnapshot.source === "mock",
-  );
+  const [loading, setLoading] = useState(!initialSnapshot && seedSnapshot.source === "mock");
 
   useEffect(() => {
     if (!initialSnapshot) {
@@ -81,9 +82,17 @@ export function useAppRuntime(
         return;
       }
 
+      await restorePersistedSupabaseSession();
+
+      if (!active) {
+        return;
+      }
+
       if (initialSnapshot) {
         if (!initialSnapshot.isAuthenticated) {
-          setLoading(true);
+          if (hasPersistedSupabaseSession() || hasSupabaseAuthCookie()) {
+            setLoading(true);
+          }
           let user = await getCurrentSupabaseAuthUser();
 
           for (let attempt = 0; !user && attempt < 5; attempt += 1) {
@@ -123,7 +132,11 @@ export function useAppRuntime(
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "INITIAL_SESSION" || session) {
+        persistSupabaseSession(session ?? null);
+      }
+
       if (event === "INITIAL_SESSION") {
         return;
       }

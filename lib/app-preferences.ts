@@ -7,6 +7,8 @@ export const AUTH_SAVED_EMAIL_STORAGE_KEY = "univers-auth-saved-email";
 export const AUTH_SAVED_PASSWORD_STORAGE_KEY = "univers-auth-saved-password";
 export const SUPABASE_AUTH_STORAGE_KEY = "univers-supabase-auth-token";
 export const AUTH_SESSION_MARKER_STORAGE_KEY = "univers-auth-session-active";
+export const AUTH_PERSISTED_LOCAL_SESSION_STORAGE_KEY = "univers-auth-persisted-session";
+export const AUTH_PERSISTED_SESSION_STORAGE_KEY = "univers-auth-session-session";
 
 export function getResolvedThemeMode(themeMode: ThemeMode, prefersDark: boolean) {
   if (themeMode === "system") {
