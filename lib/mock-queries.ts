@@ -412,7 +412,7 @@ export function getCommunityPosts(subcategory?: CommunitySubcategory) {
     "advice",
     "ask",
     "anonymous",
-    ...(currentUser.adultVerified ? (["hot"] as const) : []),
+    "hot",
   ];
   return popularFirst(
     getState().posts.filter(
@@ -480,10 +480,6 @@ export function getHotScore(post: Pick<Post, "likes" | "commentCount">) {
 }
 
 export function getHotGalleryPosts(mode: "popular" | "latest" = "popular") {
-  if (!currentUser.adultVerified) {
-    return [];
-  }
-
   const items = getState().posts.filter(
     (post) =>
       post.category === "community" &&

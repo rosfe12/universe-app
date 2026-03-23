@@ -25,7 +25,34 @@ const MODERATION_BLOCKED_WORDS = [
   "개새",
   "죽어",
   "느금",
+  "야동",
+  "포르노",
+  "자위",
+  "딸딸",
+  "섹파",
+  "보지",
+  "자지",
+  "애널",
+  "오럴",
+  "노콘",
+  "원나잇",
+  "섹스",
 ] as const;
+
+const MODERATION_SENSITIVE_WORDS = [
+  "19금",
+  "야한",
+  "잠자리",
+  "스킨십",
+  "관계",
+  "성인용품",
+  "피임",
+  "콘돔",
+  "성병",
+  "성경험",
+] as const;
+
+export type ContentModerationLevel = "general" | "sensitive" | "obscene";
 
 export type PositiveTrustAction =
   | "post"
@@ -196,6 +223,23 @@ export function getPositiveTrustGain(
 export function findBlockedKeyword(text: string) {
   const normalized = normalizeText(text);
   return MODERATION_BLOCKED_WORDS.find((keyword) => normalized.includes(keyword));
+}
+
+export function findSensitiveKeyword(text: string) {
+  const normalized = normalizeText(text);
+  return MODERATION_SENSITIVE_WORDS.find((keyword) => normalized.includes(keyword));
+}
+
+export function classifyContentLevel(text: string): ContentModerationLevel {
+  if (findBlockedKeyword(text)) {
+    return "obscene";
+  }
+
+  if (findSensitiveKeyword(text)) {
+    return "sensitive";
+  }
+
+  return "general";
 }
 
 export function validatePostSubmission(

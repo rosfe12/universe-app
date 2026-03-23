@@ -38,6 +38,7 @@ export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
   spam: "스팸/광고",
   harassment: "성희롱/부적절한 접근",
   fraud: "사기/거래 유도",
+  sexual_content: "음란/성적 콘텐츠",
   other: "기타",
 };
 

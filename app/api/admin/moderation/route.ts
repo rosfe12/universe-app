@@ -18,6 +18,11 @@ const patchSchema = z.discriminatedUnion("action", [
     userId: z.string().uuid(),
   }),
   z.object({
+    action: z.literal("hide_content"),
+    targetType: moderatedTargetTypeSchema,
+    targetId: z.string().uuid(),
+  }),
+  z.object({
     action: z.literal("restore_content"),
     targetType: moderatedTargetTypeSchema,
     targetId: z.string().uuid(),
@@ -79,6 +84,14 @@ export async function PATCH(request: Request) {
       }).catch(() => null);
     } else {
       const { targetType, targetId } = parsed.data;
+      const tableName =
+        targetType === "post"
+          ? "posts"
+          : targetType === "comment"
+            ? "comments"
+            : targetType === "review"
+              ? "lecture_reviews"
+              : "dating_profiles";
       const nextStatus = parsed.data.action === "restore_content" ? "dismissed" : "confirmed";
       const statusFilter =
         parsed.data.action === "restore_content"
@@ -96,6 +109,35 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: reportUpdateError.message }, { status: 500 });
       }
 
+      if (parsed.data.action === "restore_content") {
+        const { error: restoreError } = await admin
+          .from(tableName)
+          .update({ admin_hidden: false })
+          .eq("id", targetId);
+
+        if (restoreError) {
+          return NextResponse.json({ error: restoreError.message }, { status: 500 });
+        }
+
+        const { error: refreshError } = await admin.rpc("refresh_target_report_state", {
+          p_target_type: targetType,
+          p_target_id: targetId,
+        });
+
+        if (refreshError) {
+          return NextResponse.json({ error: refreshError.message }, { status: 500 });
+        }
+      } else {
+        const { error: hideError } = await admin
+          .from(tableName)
+          .update({ admin_hidden: true, auto_hidden: true })
+          .eq("id", targetId);
+
+        if (hideError) {
+          return NextResponse.json({ error: hideError.message }, { status: 500 });
+        }
+      }
+
       await insertAdminAuditLog(admin, {
         adminUserId: user.id,
         action: parsed.data.action,
@@ -103,8 +145,10 @@ export async function PATCH(request: Request) {
         targetId,
         summary:
           parsed.data.action === "restore_content"
-            ? "자동 숨김 콘텐츠를 다시 노출했습니다."
-            : "자동 숨김 콘텐츠를 유지 처리했습니다.",
+            ? "숨김 콘텐츠를 복구했습니다."
+            : parsed.data.action === "hide_content"
+              ? "콘텐츠를 빠르게 숨김 처리했습니다."
+              : "콘텐츠 숨김을 유지 처리했습니다.",
         metadata: {
           targetType,
           targetId,

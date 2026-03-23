@@ -37,6 +37,7 @@ import { PostAuthorRow } from "@/features/common/post-author-row";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { PROFILE_VISIBILITY_LEVELS } from "@/lib/constants";
 import {
+  classifyContentLevel,
   validateDatingWriteAccess,
   validatePostSubmission,
 } from "@/lib/moderation";
@@ -98,6 +99,7 @@ export function DatingPage({
   const currentUser = runtimeUser;
   const [open, setOpen] = useState(false);
   const [detailPost, setDetailPost] = useState<Post | null>(null);
+  const [sensitivePost, setSensitivePost] = useState<Post | null>(null);
   const [items, setItems] = useState(getDatingPosts());
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
@@ -126,6 +128,17 @@ export function DatingPage({
       visibilityLevel: "profile",
     },
   });
+
+  function openPost(post: Post) {
+    if (classifyContentLevel(`${post.title} ${post.content}`) === "sensitive") {
+      setSensitivePost(post);
+      setDetailPost(null);
+      return;
+    }
+
+    setSensitivePost(null);
+    setDetailPost(post);
+  }
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
@@ -418,7 +431,7 @@ export function DatingPage({
               />
               <button
                 type="button"
-                onClick={() => setDetailPost(post)}
+                onClick={() => openPost(post)}
                 className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -436,7 +449,7 @@ export function DatingPage({
               {post.imageUrl ? (
                 <button
                   type="button"
-                  onClick={() => setDetailPost(post)}
+                  onClick={() => openPost(post)}
                   className="block w-full overflow-hidden rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                 >
                   <Image
@@ -471,7 +484,7 @@ export function DatingPage({
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="ghost" onClick={() => setDetailPost(post)}>
+                  <Button size="sm" variant="ghost" onClick={() => openPost(post)}>
                   상세 보기
                   </Button>
                   <ReportBlockActions
@@ -741,6 +754,32 @@ export function DatingPage({
               <CommentThread postId={detailPost.id} initialSnapshot={initialSnapshot} />
             </>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(sensitivePost)} onOpenChange={(next) => !next && setSensitivePost(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>민감한 내용이 포함될 수 있습니다</DialogTitle>
+            <DialogDescription>
+              연애나 관계 관련 간접 표현이 포함된 글입니다. 노골적인 음란 표현은 허용되지 않습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setSensitivePost(null)}>
+              닫기
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!sensitivePost) return;
+                setDetailPost(sensitivePost);
+                setSensitivePost(null);
+              }}
+            >
+              계속 보기
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </AppShell>

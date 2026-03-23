@@ -541,14 +541,6 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
   };
 }
 
-function filterAdultGatedPosts(posts: Post[], context: RuntimeQueryContext) {
-  if (context.adultVerified) {
-    return posts;
-  }
-
-  return posts.filter((post) => post.subcategory !== "hot");
-}
-
 function normalizeCommunityVisibilityLevel(
   category: Post["category"],
   subcategory: Post["subcategory"] | undefined,
@@ -593,6 +585,7 @@ function mapPostRow(row: Record<string, unknown>): Post {
       commentCount,
     }),
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
+    adminHidden: Boolean(row.admin_hidden),
     autoHidden: Boolean(row.auto_hidden),
     imageUrl: row.image_url ? String(row.image_url) : undefined,
     tags: Array.isArray((metadata as { tags?: string[] } | null)?.tags)
@@ -614,6 +607,7 @@ function mapCommentRow(row: Record<string, unknown>): Comment {
     content: String(row.content),
     accepted: Boolean(row.accepted),
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
+    adminHidden: Boolean(row.admin_hidden),
     autoHidden: Boolean(row.auto_hidden),
     createdAt: String(row.created_at ?? new Date().toISOString()),
   };
@@ -649,6 +643,7 @@ function mapLectureReviewRow(row: Record<string, unknown>): LectureReview {
     honeyScore: typeof row.honey_score === "number" ? row.honey_score : 0,
     helpfulCount: typeof row.helpful_count === "number" ? row.helpful_count : 0,
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
+    adminHidden: Boolean(row.admin_hidden),
     autoHidden: Boolean(row.auto_hidden),
     shortComment: String(row.short_comment),
     longComment: String(row.long_comment),
@@ -771,6 +766,7 @@ function mapDatingProfileRow(row: Record<string, unknown>): DatingProfile {
     department: row.department ? String(row.department) : undefined,
     grade: typeof row.grade === "number" ? row.grade : 1,
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
+    adminHidden: Boolean(row.admin_hidden),
     autoHidden: Boolean(row.auto_hidden),
   };
 }
@@ -975,10 +971,7 @@ export async function loadServerRuntimeSnapshot(
     const snapshot: AppRuntimeSnapshot = {
       schools,
       users,
-      posts: filterAdultGatedPosts(
-        postRows.map((row) => mapPostRow(row as unknown as Record<string, unknown>)),
-        queryContext,
-      ),
+      posts: postRows.map((row) => mapPostRow(row as unknown as Record<string, unknown>)),
       comments: ((commentsResult?.data ?? []) as Record<string, unknown>[]).map((row) =>
         mapCommentRow(row as unknown as Record<string, unknown>),
       ),

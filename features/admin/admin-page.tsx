@@ -13,8 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
+  hideContentInSnapshot,
   confirmReportsForTargetInSnapshot,
   dismissReportsForTargetInSnapshot,
+  restoreContentInSnapshot,
   updateReportStatusInSnapshot,
   warnUserInSnapshot,
 } from "@/lib/runtime-mutations";
@@ -160,7 +162,7 @@ async function updateAdminModerationAction(
         userId: string;
       }
     | {
-        action: "restore_content" | "confirm_content";
+        action: "hide_content" | "restore_content" | "confirm_content";
         targetType: "post" | "comment" | "review" | "profile";
         targetId: string;
       },
@@ -315,7 +317,7 @@ export function AdminPage({
     input:
       | { action: "warn_user"; userId: string }
       | {
-          action: "restore_content" | "confirm_content";
+          action: "hide_content" | "restore_content" | "confirm_content";
           targetType: "post" | "comment" | "review" | "profile";
           targetId: string;
         },
@@ -514,6 +516,10 @@ export function AdminPage({
         <TabsContent value="reports" className="space-y-3">
           {reportItems.map((item) => {
             const targetUserId = getReportTargetUserId(item.targetType, item.targetId);
+            const contentTargetType =
+              item.targetType === "user"
+                ? null
+                : (item.targetType as "post" | "comment" | "review" | "profile");
 
             return (
               <Card key={item.id}>
@@ -565,6 +571,57 @@ export function AdminPage({
                       {REPORT_STATUS_LABELS[status]}
                     </Button>
                   ))}
+                  {contentTargetType ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={
+                          moderationPendingKey === `hide_content:${contentTargetType}:${item.targetId}`
+                        }
+                        onClick={() => {
+                          if (source === "supabase") {
+                            void mutateModerationAction({
+                              action: "hide_content",
+                              targetType: contentTargetType,
+                              targetId: item.targetId,
+                            });
+                            return;
+                          }
+
+                          setSnapshot((snapshot) =>
+                            hideContentInSnapshot(snapshot, contentTargetType, item.targetId),
+                          );
+                        }}
+                      >
+                        빠른 숨김
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={
+                          moderationPendingKey ===
+                          `restore_content:${contentTargetType}:${item.targetId}`
+                        }
+                        onClick={() => {
+                          if (source === "supabase") {
+                            void mutateModerationAction({
+                              action: "restore_content",
+                              targetType: contentTargetType,
+                              targetId: item.targetId,
+                            });
+                            return;
+                          }
+
+                          setSnapshot((snapshot) =>
+                            restoreContentInSnapshot(snapshot, contentTargetType, item.targetId),
+                          );
+                        }}
+                      >
+                        복구
+                      </Button>
+                    </>
+                  ) : null}
                   {targetUserId ? (
                     <Button
                       size="sm"
@@ -656,11 +713,15 @@ export function AdminPage({
                     }
 
                     setSnapshot((snapshot) =>
-                      dismissReportsForTargetInSnapshot(snapshot, item.targetType, item.id),
+                      restoreContentInSnapshot(
+                        dismissReportsForTargetInSnapshot(snapshot, item.targetType, item.id),
+                        item.targetType,
+                        item.id,
+                      ),
                     );
                   }}
                 >
-                  숨김 해제
+                  복구
                 </Button>
                 <Button
                   size="sm"
@@ -676,7 +737,11 @@ export function AdminPage({
                     }
 
                     setSnapshot((snapshot) =>
-                      confirmReportsForTargetInSnapshot(snapshot, item.targetType, item.id),
+                      hideContentInSnapshot(
+                        confirmReportsForTargetInSnapshot(snapshot, item.targetType, item.id),
+                        item.targetType,
+                        item.id,
+                      ),
                     );
                   }}
                 >

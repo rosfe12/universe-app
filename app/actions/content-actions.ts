@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
-import { findBlockedKeyword } from "@/lib/moderation";
+import { classifyContentLevel, findBlockedKeyword } from "@/lib/moderation";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getDefaultVisibilityLevel, isReliabilityRestricted } from "@/lib/user-identity";
@@ -22,6 +22,7 @@ const reportReasonSchema = z.enum([
   "spam",
   "harassment",
   "fraud",
+  "sexual_content",
   "other",
 ]);
 
@@ -247,15 +248,6 @@ function requireVerifiedStudentProfile(
   }
 }
 
-function requireAdultVerifiedProfile(
-  profile: CurrentProfile,
-  featureLabel: string,
-) {
-  if (!profile.adult_verified) {
-    throw new Error(`${featureLabel}은 성인 인증을 완료한 사용자만 사용할 수 있습니다.`);
-  }
-}
-
 function inferScope(input: {
   category: "admission" | "community" | "dating";
   subcategory?: string;
@@ -371,9 +363,14 @@ async function guardPostSubmission(
   authUserId: string,
   values: z.infer<typeof postSchema>,
 ) {
-  const keyword = findBlockedKeyword(`${values.title} ${values.content}`);
+  const contentText = `${values.title} ${values.content}`;
+  const keyword = findBlockedKeyword(contentText);
   if (keyword) {
     throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+  }
+
+  if (classifyContentLevel(contentText) === "obscene") {
+    throw new Error("노골적인 성적 표현은 등록할 수 없습니다.");
   }
 
   const { data, error } = await supabase
@@ -420,6 +417,10 @@ async function guardCommentSubmission(
     throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
   }
 
+  if (classifyContentLevel(values.content) === "obscene") {
+    throw new Error("노골적인 성적 표현은 댓글에 사용할 수 없습니다.");
+  }
+
   const { data, error } = await supabase
     .from("comments")
     .select("content, post_id, created_at")
@@ -456,9 +457,14 @@ async function guardLectureReviewSubmission(
   authUserId: string,
   values: z.infer<typeof lectureReviewSchema>,
 ) {
-  const keyword = findBlockedKeyword(`${values.shortComment} ${values.longComment}`);
+  const reviewText = `${values.shortComment} ${values.longComment}`;
+  const keyword = findBlockedKeyword(reviewText);
   if (keyword) {
     throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+  }
+
+  if (classifyContentLevel(reviewText) === "obscene") {
+    throw new Error("노골적인 성적 표현은 리뷰에 사용할 수 없습니다.");
   }
 
   const { data, error } = await supabase
@@ -486,6 +492,10 @@ async function guardTradePostSubmission(
   const keyword = findBlockedKeyword(values.note);
   if (keyword) {
     throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+  }
+
+  if (classifyContentLevel(values.note) === "obscene") {
+    throw new Error("노골적인 성적 표현은 매칭 메모에 사용할 수 없습니다.");
   }
 
   const { data, error } = await supabase
@@ -657,9 +667,6 @@ export async function createPost(input: z.input<typeof postSchema>) {
   if (values.category === "dating") {
     requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
   }
-  if (values.subcategory === "hot") {
-    requireAdultVerifiedProfile(profile, "핫갤 글쓰기");
-  }
   if (values.subcategory === "freshman") {
     if (profile.user_type !== "freshman" || !profile.school_id) {
       throw new Error("새내기존 글쓰기는 같은 학교 예비입학생만 사용할 수 있습니다.");
@@ -728,9 +735,6 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 
   if (profile.user_type === "applicant" && post.category !== "admission") {
     throw new Error("입시생은 입시 게시판에만 댓글을 남길 수 있습니다.");
-  }
-  if (post.subcategory === "hot") {
-    requireAdultVerifiedProfile(profile, "핫갤 댓글");
   }
   if (post.category === "community") {
     const { data: postDetail, error: postDetailError } = await supabase
@@ -1039,6 +1043,10 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
   const keyword = findBlockedKeyword(values.content);
   if (keyword) {
     throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+  }
+
+  if (classifyContentLevel(values.content) === "obscene") {
+    throw new Error("노골적인 성적 표현은 대화에 사용할 수 없습니다.");
   }
 
   const { data, error } = await supabase

@@ -18,7 +18,14 @@ type UserType = "student" | "applicant" | "freshman";
 type StudentVerificationStatus = "none" | "unverified" | "pending" | "verified" | "rejected";
 type VerificationRequestStatus = "pending" | "verified" | "expired" | "cancelled";
 type ReportStatus = "pending" | "reviewed" | "reviewing" | "confirmed" | "dismissed";
-type ReportReason = "misinformation" | "abuse" | "spam" | "harassment" | "fraud" | "other";
+type ReportReason =
+  | "misinformation"
+  | "abuse"
+  | "spam"
+  | "harassment"
+  | "fraud"
+  | "sexual_content"
+  | "other";
 type ReportTargetType = "post" | "comment" | "review" | "profile" | "user";
 
 type SchoolRow = {
@@ -162,6 +169,7 @@ type PostRow = {
   like_count: number;
   comment_count: number;
   report_count: number;
+  admin_hidden: boolean;
   auto_hidden: boolean;
   created_at: string;
   visibility_level: VisibilityLevel;
@@ -195,6 +203,7 @@ type PostInsert = {
   like_count?: number;
   comment_count?: number;
   report_count?: number;
+  admin_hidden?: boolean;
   auto_hidden?: boolean;
   created_at?: string;
   visibility_level?: VisibilityLevel;
@@ -210,6 +219,7 @@ type CommentRow = {
   content: string;
   like_count: number;
   report_count: number;
+  admin_hidden: boolean;
   auto_hidden: boolean;
   created_at: string;
   accepted: boolean;
@@ -223,6 +233,7 @@ type CommentInsert = {
   content: string;
   like_count?: number;
   report_count?: number;
+  admin_hidden?: boolean;
   auto_hidden?: boolean;
   created_at?: string;
   accepted?: boolean;
@@ -270,6 +281,7 @@ type LectureReviewRow = {
   long_comment: string;
   semester: string;
   report_count: number;
+  admin_hidden: boolean;
   auto_hidden: boolean;
   created_at: string;
   presentation: boolean;
@@ -292,6 +304,7 @@ type LectureReviewInsert = {
   long_comment: string;
   semester: string;
   report_count?: number;
+  admin_hidden?: boolean;
   auto_hidden?: boolean;
   created_at?: string;
   presentation?: boolean;
@@ -363,6 +376,7 @@ type DatingProfileRow = {
   visibility_level: VisibilityLevel;
   report_count: number;
   created_at: string;
+  admin_hidden: boolean;
   auto_hidden: boolean;
   is_visible: boolean;
 };
@@ -379,6 +393,7 @@ type DatingProfileInsert = {
   visibility_level?: VisibilityLevel;
   report_count?: number;
   created_at?: string;
+  admin_hidden?: boolean;
   auto_hidden?: boolean;
   is_visible?: boolean;
 };

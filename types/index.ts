@@ -25,6 +25,7 @@ export type ReportReason =
   | "spam"
   | "harassment"
   | "fraud"
+  | "sexual_content"
   | "other";
 export type NotificationType =
   | "comment"
@@ -114,6 +115,7 @@ export interface Post {
   authorId: string;
   visibilityLevel?: VisibilityLevel;
   reportCount?: number;
+  adminHidden?: boolean;
   autoHidden?: boolean;
   title: string;
   content: string;
@@ -132,6 +134,7 @@ export interface Comment {
   authorId: string;
   visibilityLevel?: VisibilityLevel;
   reportCount?: number;
+  adminHidden?: boolean;
   autoHidden?: boolean;
   content: string;
   accepted: boolean;
@@ -156,6 +159,7 @@ export interface LectureReview {
   reviewerId: string;
   visibilityLevel?: VisibilityLevel;
   reportCount?: number;
+  adminHidden?: boolean;
   autoHidden?: boolean;
   difficulty: DifficultyLevel;
   workload: WorkloadLevel;
@@ -244,6 +248,7 @@ export interface DatingProfile {
   isVisible: boolean;
   visibilityLevel?: VisibilityLevel;
   reportCount?: number;
+  adminHidden?: boolean;
   autoHidden?: boolean;
   schoolId: string;
   department?: string;

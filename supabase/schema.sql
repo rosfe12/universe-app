@@ -46,7 +46,7 @@ begin
     create type public.report_target_type as enum ('post', 'comment', 'review', 'profile', 'user');
   end if;
   if not exists (select 1 from pg_type where typname = 'report_reason') then
-    create type public.report_reason as enum ('misinformation', 'abuse', 'spam', 'harassment', 'fraud', 'other');
+    create type public.report_reason as enum ('misinformation', 'abuse', 'spam', 'harassment', 'fraud', 'sexual_content', 'other');
   end if;
   if not exists (select 1 from pg_type where typname = 'report_status') then
     create type public.report_status as enum ('pending', 'reviewed', 'reviewing', 'confirmed', 'dismissed');
@@ -96,6 +96,14 @@ begin
   alter type public.notification_type add value if not exists 'verification_approved';
   alter type public.notification_type add value if not exists 'report_update';
   alter type public.notification_type add value if not exists 'announcement';
+exception
+  when duplicate_object then null;
+end
+$$;
+
+do $$
+begin
+  alter type public.report_reason add value if not exists 'sexual_content';
 exception
   when duplicate_object then null;
 end
@@ -275,6 +283,7 @@ create table if not exists public.posts (
   like_count integer not null default 0,
   comment_count integer not null default 0,
   report_count integer not null default 0,
+  admin_hidden boolean not null default false,
   auto_hidden boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   visibility_level public.visibility_level not null default 'school',
@@ -295,6 +304,7 @@ create table if not exists public.comments (
   content text not null,
   like_count integer not null default 0,
   report_count integer not null default 0,
+  admin_hidden boolean not null default false,
   auto_hidden boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   accepted boolean not null default false,
@@ -330,6 +340,7 @@ create table if not exists public.lecture_reviews (
   long_comment text not null,
   semester text not null,
   report_count integer not null default 0,
+  admin_hidden boolean not null default false,
   auto_hidden boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   presentation boolean not null default false,
@@ -378,6 +389,7 @@ create table if not exists public.dating_profiles (
   photo_url text,
   visibility_level public.visibility_level not null default 'profile',
   report_count integer not null default 0,
+  admin_hidden boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   auto_hidden boolean not null default false,
   is_visible boolean not null default true,
@@ -395,6 +407,18 @@ create table if not exists public.reports (
   created_at timestamptz not null default timezone('utc', now()),
   constraint reports_unique_target unique (reporter_id, target_type, target_id)
 );
+
+alter table public.posts
+  add column if not exists admin_hidden boolean not null default false;
+
+alter table public.comments
+  add column if not exists admin_hidden boolean not null default false;
+
+alter table public.lecture_reviews
+  add column if not exists admin_hidden boolean not null default false;
+
+alter table public.dating_profiles
+  add column if not exists admin_hidden boolean not null default false;
 
 create table if not exists public.blocks (
   id uuid primary key default gen_random_uuid(),
@@ -908,22 +932,22 @@ begin
   if p_target_type = 'post' then
     update public.posts
     set report_count = active_count,
-        auto_hidden = active_count >= 3
+        auto_hidden = coalesce(admin_hidden, false) or active_count >= 3
     where id = p_target_id;
   elsif p_target_type = 'comment' then
     update public.comments
     set report_count = active_count,
-        auto_hidden = active_count >= 3
+        auto_hidden = coalesce(admin_hidden, false) or active_count >= 3
     where id = p_target_id;
   elsif p_target_type = 'review' then
     update public.lecture_reviews
     set report_count = active_count,
-        auto_hidden = active_count >= 3
+        auto_hidden = coalesce(admin_hidden, false) or active_count >= 3
     where id = p_target_id;
   elsif p_target_type = 'profile' then
     update public.dating_profiles
     set report_count = active_count,
-        auto_hidden = active_count >= 3
+        auto_hidden = coalesce(admin_hidden, false) or active_count >= 3
     where id = p_target_id;
   end if;
 

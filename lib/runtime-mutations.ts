@@ -106,7 +106,7 @@ export function deriveModerationSnapshot(snapshot: AppRuntimeSnapshot) {
     return {
       ...post,
       reportCount,
-      autoHidden: shouldAutoHide(reportCount),
+      autoHidden: Boolean(post.adminHidden) || shouldAutoHide(reportCount),
     };
   });
 
@@ -115,7 +115,7 @@ export function deriveModerationSnapshot(snapshot: AppRuntimeSnapshot) {
     return {
       ...comment,
       reportCount,
-      autoHidden: shouldAutoHide(reportCount),
+      autoHidden: Boolean(comment.adminHidden) || shouldAutoHide(reportCount),
     };
   });
 
@@ -124,7 +124,7 @@ export function deriveModerationSnapshot(snapshot: AppRuntimeSnapshot) {
     return {
       ...review,
       reportCount,
-      autoHidden: shouldAutoHide(reportCount),
+      autoHidden: Boolean(review.adminHidden) || shouldAutoHide(reportCount),
     };
   });
 
@@ -158,7 +158,7 @@ export function deriveModerationSnapshot(snapshot: AppRuntimeSnapshot) {
     return {
       ...profile,
       reportCount,
-      autoHidden: shouldAutoHide(reportCount),
+      autoHidden: Boolean(profile.adminHidden) || shouldAutoHide(reportCount),
     };
   });
 
@@ -439,6 +439,80 @@ export function confirmReportsForTargetInSnapshot(
         updateReportStatusInSnapshot(currentSnapshot, report.id, "confirmed"),
       snapshot,
     );
+}
+
+export function hideContentInSnapshot(
+  snapshot: AppRuntimeSnapshot,
+  targetType: Exclude<ReportTargetType, "user">,
+  targetId: string,
+) {
+  return deriveModerationSnapshot({
+    ...snapshot,
+    posts:
+      targetType === "post"
+        ? snapshot.posts.map((post) =>
+            post.id === targetId ? { ...post, adminHidden: true, autoHidden: true } : post,
+          )
+        : snapshot.posts,
+    comments:
+      targetType === "comment"
+        ? snapshot.comments.map((comment) =>
+            comment.id === targetId
+              ? { ...comment, adminHidden: true, autoHidden: true }
+              : comment,
+          )
+        : snapshot.comments,
+    lectureReviews:
+      targetType === "review"
+        ? snapshot.lectureReviews.map((review) =>
+            review.id === targetId
+              ? { ...review, adminHidden: true, autoHidden: true }
+              : review,
+          )
+        : snapshot.lectureReviews,
+    datingProfiles:
+      targetType === "profile"
+        ? snapshot.datingProfiles.map((profile) =>
+            profile.id === targetId
+              ? { ...profile, adminHidden: true, autoHidden: true }
+              : profile,
+          )
+        : snapshot.datingProfiles,
+  });
+}
+
+export function restoreContentInSnapshot(
+  snapshot: AppRuntimeSnapshot,
+  targetType: Exclude<ReportTargetType, "user">,
+  targetId: string,
+) {
+  return deriveModerationSnapshot({
+    ...snapshot,
+    posts:
+      targetType === "post"
+        ? snapshot.posts.map((post) =>
+            post.id === targetId ? { ...post, adminHidden: false } : post,
+          )
+        : snapshot.posts,
+    comments:
+      targetType === "comment"
+        ? snapshot.comments.map((comment) =>
+            comment.id === targetId ? { ...comment, adminHidden: false } : comment,
+          )
+        : snapshot.comments,
+    lectureReviews:
+      targetType === "review"
+        ? snapshot.lectureReviews.map((review) =>
+            review.id === targetId ? { ...review, adminHidden: false } : review,
+          )
+        : snapshot.lectureReviews,
+    datingProfiles:
+      targetType === "profile"
+        ? snapshot.datingProfiles.map((profile) =>
+            profile.id === targetId ? { ...profile, adminHidden: false } : profile,
+          )
+        : snapshot.datingProfiles,
+  });
 }
 
 export function warnUserInSnapshot(snapshot: AppRuntimeSnapshot, userId: string) {
