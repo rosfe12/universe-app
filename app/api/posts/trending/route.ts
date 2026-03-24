@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { measureServerOperation } from "@/lib/ops";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
@@ -21,11 +22,22 @@ export async function GET(request: Request) {
     query = query.eq("school_id", school);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await measureServerOperation(
+    "api.posts.trending",
+    async () => await query,
+    { school, limit },
+  );
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ posts: data ?? [] });
+  return NextResponse.json(
+    { posts: data ?? [] },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=45, stale-while-revalidate=180",
+      },
+    },
+  );
 }

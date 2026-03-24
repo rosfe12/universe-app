@@ -48,6 +48,8 @@ const commentSchema = z.object({
   content: z.string().min(2, "댓글을 입력해주세요."),
   visibilityLevel: z.enum(["anonymous", "school", "schoolDepartment", "profile"]),
 });
+const INITIAL_VISIBLE_ROOT_COMMENTS = 24;
+const ROOT_COMMENT_PAGE_SIZE = 24;
 
 type CommentFormValues = z.infer<typeof commentSchema>;
 
@@ -125,6 +127,7 @@ export function CommentThread({
   }, [sortedComments]);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
+  const [visibleRootComments, setVisibleRootComments] = useState(INITIAL_VISIBLE_ROOT_COMMENTS);
   const canComment =
     canCommentOverride ??
     (isAuthenticated && hasCompletedOnboarding(runtimeUser) && !isReliabilityBlocked);
@@ -236,7 +239,7 @@ export function CommentThread({
 
       {rootComments.length > 0 ? (
         <div className="divide-y divide-gray-100 border-t border-gray-100">
-          {rootComments.map((comment) => {
+          {rootComments.slice(0, visibleRootComments).map((comment) => {
             const replies = repliesByParentId.get(comment.id) ?? [];
 
             return (
@@ -282,6 +285,19 @@ export function CommentThread({
               </div>
             );
           })}
+        </div>
+      ) : null}
+
+      {rootComments.length > visibleRootComments ? (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setVisibleRootComments((current) => current + ROOT_COMMENT_PAGE_SIZE)}
+          >
+            댓글 더 보기
+          </Button>
         </div>
       ) : null}
 

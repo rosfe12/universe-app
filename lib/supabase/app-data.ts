@@ -9,6 +9,7 @@ import {
   resetSupabaseAuthUserCache,
 } from "@/lib/supabase/client";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
+import { logPerformanceEvent } from "@/lib/ops";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
 import { getMockRuntimeSnapshot, guestUser } from "@/lib/runtime-state";
 import {
@@ -16,6 +17,25 @@ import {
   isGoogleAuthEnabled,
   resolveAppUrl,
 } from "@/lib/env";
+import {
+  BLOCK_SELECT,
+  collectRuntimeUserIds,
+  COMMENT_SELECT,
+  CURRENT_USER_PROFILE_SELECT,
+  DATING_PROFILE_SELECT,
+  getClientRuntimeSnapshotTtlMs,
+  LECTURE_REVIEW_SELECT,
+  LECTURE_SELECT,
+  MEDIA_ASSET_SELECT,
+  NOTIFICATION_SELECT,
+  POLL_OPTION_SELECT,
+  POLL_SELECT,
+  POLL_VOTE_SELECT,
+  POST_SELECT,
+  REPORT_SELECT,
+  SCHOOL_SELECT,
+  TRADE_POST_SELECT,
+} from "@/lib/supabase/runtime-query";
 import { getSupabaseSetupIssue } from "@/lib/supabase/setup-issue";
 import {
   generateAutoNickname,
@@ -310,30 +330,35 @@ type RuntimeQueryContext = {
 };
 
 const EMPTY_RESULT = Promise.resolve({ data: [], error: null });
-const HOME_POST_LIMIT = 36;
-const SEARCH_POST_LIMIT = 120;
-const COMMUNITY_POST_LIMIT = 80;
-const ADMISSION_POST_LIMIT = 72;
-const SCHOOL_POST_LIMIT = 72;
-const DATING_POST_LIMIT = 48;
+const HOME_POST_LIMIT = 24;
+const SEARCH_POST_LIMIT = 72;
+const COMMUNITY_POST_LIMIT = 56;
+const ADMISSION_POST_LIMIT = 48;
+const SCHOOL_POST_LIMIT = 48;
+const DATING_POST_LIMIT = 32;
 const PROFILE_POST_LIMIT = 40;
 const NOTIFICATION_POST_LIMIT = 32;
-const FULL_POST_LIMIT = 180;
-const COMMENT_LIMIT = 140;
+const FULL_POST_LIMIT = 120;
+const COMMENT_LIMIT = 96;
 const PROFILE_COMMENT_LIMIT = 80;
-const SCHOOL_LECTURE_LIMIT = 40;
-const NOTIFICATION_LECTURE_LIMIT = 20;
-const FULL_LECTURE_LIMIT = 100;
-const LECTURE_REVIEW_LIMIT = 120;
+const SCHOOL_LECTURE_LIMIT = 24;
+const NOTIFICATION_LECTURE_LIMIT = 12;
+const FULL_LECTURE_LIMIT = 64;
+const LECTURE_REVIEW_LIMIT = 80;
 const PROFILE_LECTURE_REVIEW_LIMIT = 80;
-const SCHOOL_TRADE_LIMIT = 32;
+const SCHOOL_TRADE_LIMIT = 20;
 const PROFILE_TRADE_LIMIT = 24;
-const FULL_TRADE_LIMIT = 80;
-const NOTIFICATION_LIMIT = 40;
+const FULL_TRADE_LIMIT = 48;
+const NOTIFICATION_LIMIT = 24;
 const REPORT_LIMIT = 60;
 const BLOCK_LIMIT = 60;
 const DATING_PROFILE_LIMIT = 32;
 const MEDIA_ASSET_LIMIT = 24;
+
+function asRecordRows(value: unknown) {
+  return (value ?? []) as unknown as Record<string, unknown>[];
+}
+
 const HOME_POST_SUBCATEGORIES = [
   "free",
   "advice",
@@ -353,7 +378,7 @@ const COMMUNITY_POST_SUBCATEGORIES = [
 const DATING_POST_SUBCATEGORIES = ["dating", "meeting"] as const;
 
 function buildPostQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
-  const base = supabase.from("posts").select("*").order("created_at", { ascending: false });
+  const base = supabase.from("posts").select(POST_SELECT).order("created_at", { ascending: false });
 
   switch (context.scope) {
     case "home":
@@ -394,7 +419,7 @@ function buildCommentQuery(
   context: RuntimeQueryContext,
   postIds: string[],
 ) {
-  const base = supabase.from("comments").select("*").order("created_at", { ascending: false });
+  const base = supabase.from("comments").select(COMMENT_SELECT).order("created_at", { ascending: false });
 
   if (context.scope === "profile") {
     return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_COMMENT_LIMIT) : EMPTY_RESULT;
@@ -411,7 +436,7 @@ function buildLectureQuery(
   supabase: ReturnType<typeof createClient>,
   context: RuntimeQueryContext,
 ) {
-  const base = supabase.from("lectures").select("*").order("name", { ascending: true });
+  const base = supabase.from("lectures").select(LECTURE_SELECT).order("name", { ascending: true });
 
   switch (context.scope) {
     case "home":
@@ -434,7 +459,7 @@ function buildLectureReviewQuery(
   context: RuntimeQueryContext,
   lectureIds: string[],
 ) {
-  const base = supabase.from("lecture_reviews").select("*").order("created_at", { ascending: false });
+  const base = supabase.from("lecture_reviews").select(LECTURE_REVIEW_SELECT).order("created_at", { ascending: false });
 
   if (context.scope === "profile") {
     return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_LECTURE_REVIEW_LIMIT) : EMPTY_RESULT;
@@ -451,7 +476,7 @@ function buildTradePostsQuery(
   supabase: ReturnType<typeof createClient>,
   context: RuntimeQueryContext,
 ) {
-  const base = supabase.from("trade_posts").select("*").order("created_at", { ascending: false });
+  const base = supabase.from("trade_posts").select(TRADE_POST_SELECT).order("created_at", { ascending: false });
 
   switch (context.scope) {
     case "home":
@@ -475,7 +500,7 @@ function buildNotificationsQuery(supabase: ReturnType<typeof createClient>, cont
   return context.userId
     ? supabase
         .from("notifications")
-        .select("*")
+        .select(NOTIFICATION_SELECT)
         .eq("user_id", context.userId)
         .order("created_at", { ascending: false })
         .limit(NOTIFICATION_LIMIT)
@@ -483,7 +508,7 @@ function buildNotificationsQuery(supabase: ReturnType<typeof createClient>, cont
 }
 
 function buildReportsQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
-  const base = supabase.from("reports").select("*").order("created_at", { ascending: false });
+  const base = supabase.from("reports").select(REPORT_SELECT).order("created_at", { ascending: false });
   if (context.scope === "admin" || context.scope === "full") {
     return base.limit(REPORT_LIMIT);
   }
@@ -491,7 +516,7 @@ function buildReportsQuery(supabase: ReturnType<typeof createClient>, context: R
 }
 
 function buildBlocksQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
-  const base = supabase.from("blocks").select("*").order("created_at", { ascending: false });
+  const base = supabase.from("blocks").select(BLOCK_SELECT).order("created_at", { ascending: false });
   if (context.scope === "admin" || context.scope === "full") {
     return base.limit(BLOCK_LIMIT);
   }
@@ -502,7 +527,7 @@ function buildDatingProfilesQuery(
   supabase: ReturnType<typeof createClient>,
   context: RuntimeQueryContext,
 ) {
-  const base = supabase.from("dating_profiles").select("*").order("created_at", { ascending: false });
+  const base = supabase.from("dating_profiles").select(DATING_PROFILE_SELECT).order("created_at", { ascending: false });
 
   if (context.scope === "profile") {
     return context.userId ? base.eq("user_id", context.userId).limit(8) : EMPTY_RESULT;
@@ -512,7 +537,7 @@ function buildDatingProfilesQuery(
 }
 
 function buildMediaAssetsQuery(supabase: ReturnType<typeof createClient>, context: RuntimeQueryContext) {
-  const base = supabase.from("media_assets").select("*").order("created_at", { ascending: false });
+  const base = supabase.from("media_assets").select(MEDIA_ASSET_SELECT).order("created_at", { ascending: false });
   if (context.scope === "admin" || context.scope === "full") {
     return base.limit(MEDIA_ASSET_LIMIT);
   }
@@ -998,7 +1023,6 @@ const lastClientRuntimeSnapshots = new Map<
   RuntimeSnapshotScope,
   { snapshot: AppRuntimeSnapshot; at: number }
 >();
-const CLIENT_RUNTIME_SNAPSHOT_TTL_MS = 8000;
 
 export function invalidateClientRuntimeSnapshots(scopes?: RuntimeSnapshotScope[]) {
   if (!scopes || scopes.length === 0) {
@@ -1028,77 +1052,61 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
   try {
     const supabase = createClient();
     const include = getSnapshotIncludeConfig(scope);
+    const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
     const authUser = await getCurrentSupabaseAuthUser();
 
     let currentUserProfileResult = authUser
-      ? await supabase.from("users").select("*").eq("id", authUser.id).single()
+      ? await supabase.from("users").select(CURRENT_USER_PROFILE_SELECT).eq("id", authUser.id).single()
       : null;
+    const currentUserProfileRow =
+      currentUserProfileResult?.error || !currentUserProfileResult?.data
+        ? null
+        : (currentUserProfileResult.data as unknown as Record<string, unknown>);
     const queryContext: RuntimeQueryContext = {
       scope,
-      schoolId:
-        currentUserProfileResult?.error || !currentUserProfileResult?.data?.school_id
-          ? undefined
-          : String(currentUserProfileResult.data.school_id),
+      schoolId: currentUserProfileRow?.school_id ? String(currentUserProfileRow.school_id) : undefined,
       userId: authUser?.id,
-      adultVerified: Boolean(currentUserProfileResult?.data?.adult_verified),
+      adultVerified: Boolean(currentUserProfileRow?.adult_verified),
     };
 
-    const [
-      schoolsResult,
-      initialUsersResult,
-      postsResult,
-      lecturesResult,
-    ] = await Promise.all([
-      supabase.from("schools").select("*").order("name", { ascending: true }),
-      supabase.rpc("list_user_public_profiles"),
-      include.posts
-        ? buildPostQuery(supabase, queryContext)
-        : EMPTY_RESULT,
-      include.lectures
-        ? buildLectureQuery(supabase, queryContext)
-        : EMPTY_RESULT,
+    const [schoolsResult, postsResult, lecturesResult] = await Promise.all([
+      supabase.from("schools").select(SCHOOL_SELECT).order("name", { ascending: true }),
+      include.posts ? buildPostQuery(supabase, queryContext) : EMPTY_RESULT,
+      include.lectures ? buildLectureQuery(supabase, queryContext) : EMPTY_RESULT,
     ]);
-    let usersResult = initialUsersResult;
 
     if (
       schoolsResult.error ||
-      usersResult.error ||
       postsResult?.error ||
       lecturesResult?.error
     ) {
       return createSupabaseFallbackSnapshot(
         getSupabaseSetupIssue(
           schoolsResult.error,
-          usersResult.error,
           postsResult?.error ?? undefined,
           lecturesResult?.error ?? undefined,
         ),
       );
     }
 
-    if (
-      authUser &&
-      !(usersResult.data ?? []).some(
-        (row: { id: string }) => row.id === authUser.id,
-      )
-    ) {
+    if (authUser && currentUserProfileResult?.error) {
       await ensureClientProfileRow(supabase, authUser);
-      usersResult = await supabase.rpc("list_user_public_profiles");
-      currentUserProfileResult = await supabase.from("users").select("*").eq("id", authUser.id).single();
-      if (usersResult.error) {
-        return createSupabaseFallbackSnapshot(getSupabaseSetupIssue(usersResult.error));
-      }
+      currentUserProfileResult = await supabase
+        .from("users")
+        .select(CURRENT_USER_PROFILE_SELECT)
+        .eq("id", authUser.id)
+        .single();
     }
 
-    const postRows = (postsResult?.data ?? []) as Record<string, unknown>[];
-    const lectureRows = (lecturesResult?.data ?? []) as Record<string, unknown>[];
+    const postRows = asRecordRows(postsResult?.data);
+    const lectureRows = asRecordRows(lecturesResult?.data);
     const postIds = postRows.map((row) => String(row.id));
     const lectureIds = lectureRows.map((row) => String(row.id));
     const pollsResult =
       include.posts && postIds.length > 0
-        ? await supabase.from("polls").select("*").in("post_id", postIds)
+        ? await supabase.from("polls").select(POLL_SELECT).in("post_id", postIds)
         : { data: [], error: null };
-    const pollRows = (pollsResult.data ?? []) as Record<string, unknown>[];
+    const pollRows = asRecordRows(pollsResult.data);
     const pollIds = pollRows.map((row) => String(row.id));
 
     const [
@@ -1138,10 +1146,10 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
         ? buildMediaAssetsQuery(supabase, queryContext)
         : EMPTY_RESULT,
       pollIds.length > 0
-        ? supabase.from("poll_options").select("*").in("poll_id", pollIds)
+        ? supabase.from("poll_options").select(POLL_OPTION_SELECT).in("poll_id", pollIds)
         : EMPTY_RESULT,
       authUser && pollIds.length > 0
-        ? supabase.from("poll_votes").select("*").eq("user_id", authUser.id).in("poll_id", pollIds)
+        ? supabase.from("poll_votes").select(POLL_VOTE_SELECT).eq("user_id", authUser.id).in("poll_id", pollIds)
         : EMPTY_RESULT,
     ]);
 
@@ -1164,32 +1172,48 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
     }
 
     const schools = (schoolsResult.data ?? []).map(mapSchoolRow);
-    const users = (usersResult.data ?? []).map((row: Record<string, unknown>) =>
-      mapUserRow(row, schools),
-    );
+    const relatedUserIds = collectRuntimeUserIds({
+      currentUserId: authUser?.id,
+      postRows,
+      commentRows: asRecordRows(commentsResult?.data),
+      lectureReviewRows: asRecordRows(lectureReviewsResult?.data),
+      tradePostRows: asRecordRows(tradePostsResult?.data),
+      datingProfileRows: asRecordRows(datingProfilesResult?.data),
+      blockRows: asRecordRows(blocksResult?.data),
+    });
+    const usersResult =
+      relatedUserIds.length > 0
+        ? await supabase.rpc("list_user_public_profiles_by_ids", { user_ids: relatedUserIds })
+        : { data: [], error: null };
+
+    if (usersResult.error) {
+      return createSupabaseFallbackSnapshot(getSupabaseSetupIssue(usersResult.error));
+    }
+
+    const users = (usersResult.data ?? []).map((row: Record<string, unknown>) => mapUserRow(row, schools));
     const pollMap = buildPollMap(
       pollRows,
-      (pollOptionsResult?.data ?? []) as Record<string, unknown>[],
-      (pollVotesResult?.data ?? []) as Record<string, unknown>[],
+      asRecordRows(pollOptionsResult?.data),
+      asRecordRows(pollVotesResult?.data),
     );
 
     const snapshot: AppRuntimeSnapshot = {
       schools,
       users,
       posts: postRows.map((row) => mapPostRow(row, pollMap.get(String(row.id)))),
-      comments: ((commentsResult?.data ?? []) as Record<string, unknown>[]).map(mapCommentRow),
+      comments: asRecordRows(commentsResult?.data).map(mapCommentRow),
       lectures: lectureRows.map(mapLectureRow),
-      lectureReviews: ((lectureReviewsResult?.data ?? []) as Record<string, unknown>[]).map(mapLectureReviewRow),
-      tradePosts: ((tradePostsResult?.data ?? []) as Record<string, unknown>[]).map(mapTradePostRow),
+      lectureReviews: asRecordRows(lectureReviewsResult?.data).map(mapLectureReviewRow),
+      tradePosts: asRecordRows(tradePostsResult?.data).map(mapTradePostRow),
       notifications: notificationsResult?.error
         ? []
-        : ((notificationsResult?.data ?? []) as Record<string, unknown>[]).map(mapNotificationRow),
+        : asRecordRows(notificationsResult?.data).map(mapNotificationRow),
       reports: reportsResult?.error
         ? []
-        : ((reportsResult?.data ?? []) as Record<string, unknown>[]).map(mapReportRow),
+        : asRecordRows(reportsResult?.data).map(mapReportRow),
       blocks: blocksResult?.error
         ? []
-        : ((blocksResult?.data ?? []) as Record<string, unknown>[]).map((row) => ({
+        : asRecordRows(blocksResult?.data).map((row) => ({
             id: String(row.id),
             blockerId: String(row.blocker_id),
             blockedUserId: String(row.blocked_user_id),
@@ -1197,10 +1221,10 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
           })),
       datingProfiles: datingProfilesResult?.error
         ? []
-        : ((datingProfilesResult?.data ?? []) as Record<string, unknown>[]).map(mapDatingProfileRow),
+        : asRecordRows(datingProfilesResult?.data).map(mapDatingProfileRow),
       mediaAssets: mediaAssetsResult?.error
         ? []
-        : ((mediaAssetsResult?.data ?? []) as Record<string, unknown>[]).map(mapMediaAssetRow),
+        : asRecordRows(mediaAssetsResult?.data).map(mapMediaAssetRow),
       currentUser: guestUser,
       source: "supabase",
       isAuthenticated: Boolean(authUser),
@@ -1210,9 +1234,7 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
 
     snapshot.currentUser = authUser
       ? (() => {
-          const privateProfileRow = currentUserProfileResult?.error
-            ? null
-            : (currentUserProfileResult?.data as Record<string, unknown> | null);
+          const privateProfileRow = currentUserProfileRow;
 
           if (privateProfileRow) {
             return {
@@ -1242,6 +1264,17 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
       return createSupabaseFallbackSnapshot(getSupabaseSetupIssue());
     }
 
+    logPerformanceEvent("runtime.client.snapshot_ready", {
+      scope,
+      durationMs: Math.round((typeof performance !== "undefined" ? performance.now() : Date.now()) - startedAt),
+      postCount: snapshot.posts.length,
+      commentCount: snapshot.comments.length,
+      lectureCount: snapshot.lectures.length,
+      tradeCount: snapshot.tradePosts.length,
+      notificationCount: snapshot.notifications.length,
+      userCount: snapshot.users.length,
+    });
+
     return deriveModerationSnapshot(snapshot);
   } catch (error) {
     return createSupabaseFallbackSnapshot(
@@ -1257,13 +1290,14 @@ export async function loadClientRuntimeSnapshot(options?: {
   const force = options?.force ?? false;
   const scope = options?.scope ?? "full";
   const now = Date.now();
+  const ttlMs = getClientRuntimeSnapshotTtlMs(scope);
   const cachedSnapshot = lastClientRuntimeSnapshots.get(scope);
   const inFlightSnapshot = clientRuntimeSnapshotPromises.get(scope);
 
   if (
     !force &&
     cachedSnapshot &&
-    now - cachedSnapshot.at < CLIENT_RUNTIME_SNAPSHOT_TTL_MS
+    now - cachedSnapshot.at < ttlMs
   ) {
     return cachedSnapshot.snapshot;
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getRuntimeSnapshot, setRuntimeSnapshot } from "@/lib/runtime-state";
 import {
@@ -18,6 +18,7 @@ import {
   loadClientRuntimeSnapshot,
   type RuntimeSnapshotScope,
 } from "@/lib/supabase/app-data";
+import { logPerformanceEvent } from "@/lib/ops";
 import type { AppRuntimeSnapshot } from "@/types";
 
 export function useAppRuntime(
@@ -25,6 +26,7 @@ export function useAppRuntime(
   scope: RuntimeSnapshotScope = "full",
 ) {
   const seedSnapshot = initialSnapshot ?? getRuntimeSnapshot();
+  const mountedAtRef = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
   const [snapshot, setSnapshot] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
   const [loading, setLoading] = useState(!initialSnapshot && seedSnapshot.source === "mock");
 
@@ -40,6 +42,23 @@ export function useAppRuntime(
   useEffect(() => {
     setRuntimeSnapshot(snapshot);
   }, [snapshot]);
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    logPerformanceEvent("runtime.client.render_ready", {
+      scope,
+      durationMs: Math.round(now - mountedAtRef.current),
+      source: snapshot.source,
+      postCount: snapshot.posts.length,
+      commentCount: snapshot.comments.length,
+      lectureCount: snapshot.lectures.length,
+      notificationCount: snapshot.notifications.length,
+    });
+  }, [loading, scope, snapshot.comments.length, snapshot.lectures.length, snapshot.notifications.length, snapshot.posts.length, snapshot.source]);
 
   useEffect(() => {
     let active = true;

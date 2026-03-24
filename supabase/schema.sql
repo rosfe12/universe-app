@@ -604,11 +604,14 @@ create index if not exists idx_posts_author_created_at on public.posts (author_i
 create index if not exists idx_posts_hot_score_created_at on public.posts (hot_score desc, created_at desc);
 create index if not exists idx_posts_school_hot_score on public.posts (school_id, hot_score desc, created_at desc);
 create index if not exists idx_posts_created_at on public.posts (created_at desc);
+create index if not exists idx_posts_category_subcategory_created_at on public.posts (category, subcategory, created_at desc);
+create index if not exists idx_posts_school_category_created_at on public.posts (school_id, category, created_at desc);
 create index if not exists idx_student_verification_requests_user_status on public.student_verification_requests (user_id, status, requested_at desc);
 create unique index if not exists idx_users_verified_school_email on public.users (school_email) where school_email is not null and student_verification_status = 'verified';
 create index if not exists idx_comments_post_id on public.comments (post_id);
 create index if not exists idx_comments_post_parent_created_at on public.comments (post_id, parent_comment_id, created_at desc);
 create index if not exists idx_comments_author_created_at on public.comments (author_id, created_at desc);
+create index if not exists idx_comments_post_created_at on public.comments (post_id, created_at desc);
 create index if not exists idx_lecture_reviews_lecture_id on public.lecture_reviews (lecture_id);
 create index if not exists idx_lecture_reviews_author_semester on public.lecture_reviews (author_id, semester);
 create index if not exists idx_lecture_reviews_author_created_at on public.lecture_reviews (author_id, created_at desc);
@@ -623,6 +626,7 @@ create index if not exists idx_reports_target on public.reports (target_type, ta
 create index if not exists idx_reports_reporter_created_at on public.reports (reporter_id, created_at desc);
 create index if not exists idx_notifications_user_created_at on public.notifications (user_id, created_at desc);
 create index if not exists idx_notifications_user_source_created_at on public.notifications (user_id, source_kind, created_at desc);
+create index if not exists idx_notifications_user_read_created_at on public.notifications (user_id, is_read, created_at desc);
 create index if not exists idx_media_assets_owner on public.media_assets (owner_type, owner_id);
 create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs (created_at desc);
 create index if not exists idx_admin_audit_logs_target on public.admin_audit_logs (target_type, target_id);
@@ -1166,7 +1170,60 @@ as $$
   from public.users u
 $$;
 
+drop function if exists public.list_user_public_profiles_by_ids(uuid[]);
+create function public.list_user_public_profiles_by_ids(user_ids uuid[])
+returns table (
+  id uuid,
+  email text,
+  name text,
+  nickname text,
+  user_type public.user_type,
+  school_id uuid,
+  department text,
+  grade integer,
+  verified boolean,
+  student_verification_status public.student_verification_status,
+  trust_score integer,
+  report_count integer,
+  warning_count integer,
+  is_restricted boolean,
+  default_visibility_level public.visibility_level,
+  created_at timestamptz,
+  bio text,
+  avatar_url text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    u.id,
+    null::text as email,
+    u.name,
+    u.nickname,
+    u.user_type,
+    u.school_id,
+    u.department,
+    u.grade,
+    u.verified,
+    u.student_verification_status,
+    u.trust_score,
+    u.report_count,
+    u.warning_count,
+    u.is_restricted,
+    u.default_visibility_level,
+    u.created_at,
+    u.bio,
+    u.avatar_url
+  from public.users u
+  where user_ids is not null
+    and cardinality(user_ids) > 0
+    and u.id = any(user_ids)
+$$;
+
 grant execute on function public.list_user_public_profiles() to anon, authenticated;
+grant execute on function public.list_user_public_profiles_by_ids(uuid[]) to anon, authenticated;
 grant execute on function public.current_user_school_id() to authenticated;
 grant execute on function public.current_user_type() to authenticated;
 grant execute on function public.current_student_verification_status() to authenticated;

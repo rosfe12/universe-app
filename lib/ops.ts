@@ -2,6 +2,7 @@ import { hasAdminSupabaseEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type LogLevel = "info" | "warn" | "error";
+const SLOW_OPERATION_MS = 250;
 
 export function logServerEvent(
   level: "info" | "warn" | "error",
@@ -71,5 +72,44 @@ async function persistOpsEvent(
         timestamp: new Date().toISOString(),
       }),
     );
+  }
+}
+
+export function logPerformanceEvent(
+  event: string,
+  metadata?: Record<string, unknown>,
+) {
+  console.info(
+    JSON.stringify({
+      level: "info",
+      event,
+      metadata: metadata ?? {},
+      timestamp: new Date().toISOString(),
+    }),
+  );
+}
+
+export async function measureServerOperation<T>(
+  event: string,
+  operation: () => PromiseLike<T> | T,
+  metadata?: Record<string, unknown>,
+) {
+  const startedAt = Date.now();
+
+  try {
+    const result = await operation();
+    const durationMs = Date.now() - startedAt;
+    if (durationMs >= SLOW_OPERATION_MS) {
+      logPerformanceEvent(event, { ...(metadata ?? {}), durationMs });
+    }
+    return result;
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+    logServerEvent("error", event, {
+      ...(metadata ?? {}),
+      durationMs,
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    throw error;
   }
 }

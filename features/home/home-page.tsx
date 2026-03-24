@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   BarChart3,
@@ -51,6 +52,7 @@ export function HomePage({
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
   const { loading, currentUser: runtimeUser, schools } = useAppRuntime(initialSnapshot, "home");
+  const [showDeferredSections, setShowDeferredSections] = useState(false);
   const currentUser = runtimeUser;
   const schoolId = currentUser.schoolId;
   const currentSchool = schools.find((school) => school.id === schoolId) ?? null;
@@ -151,6 +153,11 @@ export function HomePage({
       count: schoolClubPosts.length + schoolFoodPosts.length,
     },
   ] as const;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowDeferredSections(true), 180);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
     <AppShell title="홈">
@@ -265,72 +272,89 @@ export function HomePage({
         )}
       </section>
 
-      <section className="space-y-4">
-        <SectionHeader
-          eyebrow="참여"
-          title="🗳 가장 많이 참여한 투표"
-        />
-        {mostVotedPosts.length ? (
-          <FeedList>
-            {mostVotedPosts.map((post, index) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                href={getPostHref(post.id)}
-                variant={index === 0 ? "default" : "dense"}
-                emphasis={post.schoolId === schoolId ? "school" : undefined}
-              />
-            ))}
-          </FeedList>
-        ) : (
-          <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
-            <CardContent className="py-5">
-              <p className="text-sm leading-6 text-muted-foreground">게시글 준비 중</p>
-            </CardContent>
-          </Card>
-        )}
-      </section>
+      {showDeferredSections ? (
+        <>
+          <section className="space-y-4">
+            <SectionHeader
+              eyebrow="참여"
+              title="🗳 가장 많이 참여한 투표"
+            />
+            {mostVotedPosts.length ? (
+              <FeedList>
+                {mostVotedPosts.map((post, index) => (
+                  <FeedPostCard
+                    key={post.id}
+                    post={post}
+                    href={getPostHref(post.id)}
+                    variant={index === 0 ? "default" : "dense"}
+                    emphasis={post.schoolId === schoolId ? "school" : undefined}
+                  />
+                ))}
+              </FeedList>
+            ) : (
+              <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
+                <CardContent className="py-5">
+                  <p className="text-sm leading-6 text-muted-foreground">게시글 준비 중</p>
+                </CardContent>
+              </Card>
+            )}
+          </section>
 
-      <section className="space-y-4">
-        <SectionHeader
-          eyebrow="대화"
-          title="💬 댓글 반응 좋은 글"
-        />
-        {mostCommentedPosts.length ? (
-          <FeedList>
-            {mostCommentedPosts.map((post, index) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                href={getPostHref(post.id)}
-                variant={index === 0 ? "default" : "dense"}
-                emphasis={post.schoolId === schoolId ? "school" : undefined}
-              />
-            ))}
-          </FeedList>
-        ) : null}
-      </section>
+          <section className="space-y-4">
+            <SectionHeader
+              eyebrow="대화"
+              title="💬 댓글 반응 좋은 글"
+            />
+            {mostCommentedPosts.length ? (
+              <FeedList>
+                {mostCommentedPosts.map((post, index) => (
+                  <FeedPostCard
+                    key={post.id}
+                    post={post}
+                    href={getPostHref(post.id)}
+                    variant={index === 0 ? "default" : "dense"}
+                    emphasis={post.schoolId === schoolId ? "school" : undefined}
+                  />
+                ))}
+              </FeedList>
+            ) : null}
+          </section>
 
-      <section className="space-y-4">
-        <SectionHeader
-          eyebrow="전체"
-          title="🌍 전체 인기글"
-          href="/community"
-        />
-        {allPopularPosts.length ? (
-          <FeedList>
-            {allPopularPosts.map((post) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                href={getPostHref(post.id)}
-                variant="dense"
-                emphasis={post.schoolId === schoolId ? "school" : "trending"}
-              />
-            ))}
-          </FeedList>
-        ) : null}
-      </section>
+          <section className="space-y-4">
+            <SectionHeader
+              eyebrow="전체"
+              title="🌍 전체 인기글"
+              href="/community"
+            />
+            {allPopularPosts.length ? (
+              <FeedList>
+                {allPopularPosts.map((post) => (
+                  <FeedPostCard
+                    key={post.id}
+                    post={post}
+                    href={getPostHref(post.id)}
+                    variant="dense"
+                    emphasis={post.schoolId === schoolId ? "school" : "trending"}
+                  />
+                ))}
+              </FeedList>
+            ) : null}
+          </section>
+        </>
+      ) : (
+        <section className="space-y-3">
+          <div className="app-section-surface rounded-[28px] border-white/10 px-4 py-5">
+            <div className="space-y-3">
+              <div className="h-4 w-24 rounded-full bg-white/8" />
+              <div className="h-5 w-40 rounded-full bg-white/10" />
+              <div className="grid grid-cols-1 gap-3">
+                <div className="h-28 rounded-[22px] bg-white/[0.04]" />
+                <div className="h-28 rounded-[22px] bg-white/[0.04]" />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="space-y-4">
         <SectionHeader
