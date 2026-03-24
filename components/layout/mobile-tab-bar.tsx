@@ -42,21 +42,35 @@ export function MobileTabBar() {
             <li key={tab.href}>
               <Link
                 href={tab.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group flex min-w-0 flex-col items-center gap-1 px-1 py-2 text-[10px] font-medium leading-none text-slate-400 transition-all",
-                  active && "text-white",
+                  "group relative flex min-w-0 flex-col items-center gap-1 rounded-[22px] px-1 py-2 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
+                  active
+                    ? "bg-[linear-gradient(180deg,rgba(99,102,241,0.16),rgba(79,70,229,0.08))] text-white"
+                    : "hover:bg-white/[0.03]",
                 )}
               >
                 <span
                   className={cn(
+                    "absolute inset-x-5 top-0 h-[3px] rounded-full bg-transparent transition-all duration-150",
+                    active && "bg-indigo-400/90 shadow-[0_0_18px_rgba(129,140,248,0.55)]",
+                  )}
+                />
+                <span
+                  className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-2xl text-slate-400 transition-all duration-150 group-hover:bg-white/5 group-hover:text-white",
                     active &&
-                      "bg-[linear-gradient(135deg,rgba(79,70,229,0.22),rgba(99,102,241,0.42))] text-white shadow-[0_14px_26px_-18px_rgba(99,102,241,0.95)]",
+                      "bg-[linear-gradient(135deg,rgba(79,70,229,0.28),rgba(99,102,241,0.52))] text-white shadow-[0_14px_26px_-18px_rgba(99,102,241,0.95)]",
                   )}
                 >
                   <Icon className="h-[18px] w-[18px]" />
                 </span>
-                <span className={cn("truncate text-center leading-none transition-colors", active && "text-white")}>
+                <span
+                  className={cn(
+                    "truncate text-center leading-none transition-colors",
+                    active ? "font-semibold text-white" : "text-slate-400",
+                  )}
+                >
                   {tab.label}
                 </span>
               </Link>
