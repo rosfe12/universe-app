@@ -1271,6 +1271,20 @@ export async function votePoll(input: { postId: string; optionId: string }) {
     throw new Error(optionUpdateError.message);
   }
 
+  const { data: optionRowsAfterUpdate, error: optionRowsAfterUpdateError } = await admin
+    .from("poll_options")
+    .select("vote_count")
+    .eq("poll_id", String(pollRow.id));
+
+  if (optionRowsAfterUpdateError) {
+    throw new Error(optionRowsAfterUpdateError.message);
+  }
+
+  const pollVoteCount = (optionRowsAfterUpdate ?? []).reduce(
+    (sum, option) => sum + Number(option.vote_count ?? 0),
+    0,
+  );
+
   const { data: postRow } = await admin
     .from("posts")
     .select("poll_vote_count, author_id")
@@ -1279,7 +1293,7 @@ export async function votePoll(input: { postId: string; optionId: string }) {
 
   const { error: postUpdateError } = await admin
     .from("posts")
-    .update({ poll_vote_count: Number(postRow?.poll_vote_count ?? 0) + 1 })
+    .update({ poll_vote_count: pollVoteCount })
     .eq("id", values.postId);
 
   if (postUpdateError) {
@@ -1318,16 +1332,19 @@ export async function trackPostView(postId: string) {
     throw new Error(postError?.message ?? "게시글을 찾을 수 없습니다.");
   }
 
+  const nextViewCount = Number(postRow.view_count ?? 0) + 1;
   const { error: updateError } = await admin
     .from("posts")
-    .update({ view_count: Number(postRow.view_count ?? 0) + 1 })
+    .update({ view_count: nextViewCount })
     .eq("id", values.postId);
 
   if (updateError) {
     throw new Error(updateError.message);
   }
 
-  await recalculatePostHotScore(admin, values.postId);
+  if (nextViewCount % 5 === 0) {
+    await recalculatePostHotScore(admin, values.postId);
+  }
   revalidateFeed(["/home", "/community", "/school"]);
   return { success: true };
 }

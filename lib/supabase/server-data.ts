@@ -1,5 +1,8 @@
 import { unstable_noStore as noStore } from "next/cache";
-import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
+import type {
+  PostgrestError,
+  User as SupabaseAuthUser,
+} from "@supabase/supabase-js";
 
 import { publicEnv } from "@/lib/env";
 import { measureServerOperation } from "@/lib/ops";
@@ -259,30 +262,31 @@ type RuntimeQueryContext = {
 };
 
 const EMPTY_RESULT = Promise.resolve({ data: [], error: null });
-const HOME_POST_LIMIT = 24;
-const SEARCH_POST_LIMIT = 72;
-const COMMUNITY_POST_LIMIT = 56;
-const ADMISSION_POST_LIMIT = 48;
-const SCHOOL_POST_LIMIT = 48;
-const DATING_POST_LIMIT = 32;
-const PROFILE_POST_LIMIT = 40;
-const NOTIFICATION_POST_LIMIT = 32;
+const HOME_POST_LIMIT = 18;
+const SEARCH_POST_LIMIT = 48;
+const COMMUNITY_POST_LIMIT = 40;
+const ADMISSION_POST_LIMIT = 36;
+const SCHOOL_POST_LIMIT = 32;
+const DATING_POST_LIMIT = 24;
+const PROFILE_POST_LIMIT = 32;
+const NOTIFICATION_POST_LIMIT = 16;
 const FULL_POST_LIMIT = 120;
-const COMMENT_LIMIT = 96;
-const PROFILE_COMMENT_LIMIT = 80;
-const SCHOOL_LECTURE_LIMIT = 24;
-const NOTIFICATION_LECTURE_LIMIT = 12;
+const COMMENT_LIMIT = 64;
+const PROFILE_COMMENT_LIMIT = 48;
+const SCHOOL_LECTURE_LIMIT = 16;
+const NOTIFICATION_LECTURE_LIMIT = 8;
 const FULL_LECTURE_LIMIT = 64;
-const LECTURE_REVIEW_LIMIT = 80;
-const PROFILE_LECTURE_REVIEW_LIMIT = 80;
-const SCHOOL_TRADE_LIMIT = 20;
-const PROFILE_TRADE_LIMIT = 24;
+const LECTURE_REVIEW_LIMIT = 48;
+const PROFILE_LECTURE_REVIEW_LIMIT = 48;
+const SCHOOL_TRADE_LIMIT = 12;
+const PROFILE_TRADE_LIMIT = 16;
 const FULL_TRADE_LIMIT = 48;
-const NOTIFICATION_LIMIT = 24;
+const NOTIFICATION_LIMIT = 16;
 const REPORT_LIMIT = 60;
 const BLOCK_LIMIT = 60;
-const DATING_PROFILE_LIMIT = 32;
-const MEDIA_ASSET_LIMIT = 24;
+const DATING_PROFILE_LIMIT = 20;
+const MEDIA_ASSET_LIMIT = 12;
+const SCHOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function asRecordRows(value: unknown) {
   return (value ?? []) as unknown as Record<string, unknown>[];
@@ -309,6 +313,48 @@ const COMMUNITY_POST_SUBCATEGORIES = [
 ];
 const DATING_POST_SUBCATEGORIES = ["dating", "meeting"] as const;
 const serverRuntimeSnapshotCache = new Map<string, { snapshot: AppRuntimeSnapshot; at: number }>();
+let cachedSchoolRows: { data: Record<string, unknown>[]; at: number } | null = null;
+let schoolRowsInFlight:
+  | Promise<{ data: Record<string, unknown>[] | null; error: PostgrestError | null }>
+  | null = null;
+
+async function loadCachedSchoolRows(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+) {
+  if (cachedSchoolRows && Date.now() - cachedSchoolRows.at < SCHOOL_CACHE_TTL_MS) {
+    return { data: cachedSchoolRows.data, error: null };
+  }
+
+  if (schoolRowsInFlight) {
+    return schoolRowsInFlight;
+  }
+
+  schoolRowsInFlight = measureServerOperation(
+    "runtime.schools",
+    async () => {
+      const result = await supabase
+        .from("schools")
+        .select(SCHOOL_SELECT)
+        .order("name", { ascending: true });
+
+      if (!result.error && result.data) {
+        cachedSchoolRows = {
+          data: asRecordRows(result.data),
+          at: Date.now(),
+        };
+      }
+
+      return {
+        data: result.error ? null : asRecordRows(result.data),
+        error: result.error ?? null,
+      };
+    },
+  ).finally(() => {
+    schoolRowsInFlight = null;
+  });
+
+  return schoolRowsInFlight;
+}
 
 function buildPostQuery(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, context: RuntimeQueryContext) {
   const base = supabase.from("posts").select(POST_SELECT).order("created_at", { ascending: false });
@@ -1039,14 +1085,14 @@ export async function loadServerRuntimeSnapshot(
       "runtime.primary_queries",
       () =>
         Promise.all([
-          supabase.from("schools").select(SCHOOL_SELECT).order("name", { ascending: true }),
+          loadCachedSchoolRows(supabase),
           include.posts ? buildPostQuery(supabase, queryContext) : EMPTY_RESULT,
           include.lectures ? buildLectureQuery(supabase, queryContext) : EMPTY_RESULT,
         ]),
       { scope, schoolId: queryContext.schoolId },
     );
 
-    if (schoolsResult.error) {
+    if (schoolsResult.error || !schoolsResult.data) {
       return createSupabaseFallbackSnapshot(getSupabaseSetupIssue(schoolsResult.error));
     }
 
@@ -1125,7 +1171,7 @@ export async function loadServerRuntimeSnapshot(
       );
     }
 
-    const schools = (schoolsResult.data ?? []).map(mapSchoolRow);
+    const schools = schoolsResult.data.map(mapSchoolRow);
     const relatedUserIds = collectRuntimeUserIds({
       currentUserId: authUser?.id,
       postRows,

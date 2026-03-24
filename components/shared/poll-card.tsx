@@ -53,30 +53,32 @@ export function PollCard({
     }
 
     setErrorMessage(null);
+    const previousPoll = localPoll;
+    const optimisticOptions = localPoll.options.map((option) =>
+      option.id === optionId
+        ? { ...option, voteCount: option.voteCount + 1, selected: true }
+        : { ...option, selected: false },
+    );
+    const optimisticTotal = optimisticOptions.reduce((sum, option) => sum + option.voteCount, 0);
+    setLocalPoll({
+      ...localPoll,
+      votedOptionId: optionId,
+      totalVotes: optimisticTotal,
+      options: optimisticOptions.map((option) => ({
+        ...option,
+        percentage:
+          optimisticTotal > 0
+            ? Math.round((option.voteCount / optimisticTotal) * 100)
+            : 0,
+      })),
+    });
     startTransition(() => {
       void (async () => {
         try {
           await votePoll({ postId: localPoll.postId, optionId });
-          const optimisticOptions = localPoll.options.map((option) =>
-            option.id === optionId
-              ? { ...option, voteCount: option.voteCount + 1, selected: true }
-              : { ...option, selected: false },
-          );
-          const optimisticTotal = optimisticOptions.reduce((sum, option) => sum + option.voteCount, 0);
-          setLocalPoll({
-            ...localPoll,
-            votedOptionId: optionId,
-            totalVotes: optimisticTotal,
-            options: optimisticOptions.map((option) => ({
-              ...option,
-              percentage:
-                optimisticTotal > 0
-                  ? Math.round((option.voteCount / optimisticTotal) * 100)
-                  : 0,
-            })),
-          });
           await onVoted?.();
         } catch (error) {
+          setLocalPoll(previousPoll);
           setErrorMessage(error instanceof Error ? error.message : "투표에 실패했습니다.");
         }
       })();

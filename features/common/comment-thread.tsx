@@ -50,6 +50,7 @@ const commentSchema = z.object({
 });
 const INITIAL_VISIBLE_ROOT_COMMENTS = 24;
 const ROOT_COMMENT_PAGE_SIZE = 24;
+const INITIAL_VISIBLE_REPLIES = 3;
 
 type CommentFormValues = z.infer<typeof commentSchema>;
 
@@ -128,6 +129,7 @@ export function CommentThread({
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const [visibleRootComments, setVisibleRootComments] = useState(INITIAL_VISIBLE_ROOT_COMMENTS);
+  const [expandedReplyParents, setExpandedReplyParents] = useState<string[]>([]);
   const canComment =
     canCommentOverride ??
     (isAuthenticated && hasCompletedOnboarding(runtimeUser) && !isReliabilityBlocked);
@@ -261,7 +263,14 @@ export function CommentThread({
                 />
                 {replies.length ? (
                   <div className="space-y-3 border-l border-gray-100 pl-4 dark:border-white/10">
-                    {replies.map((reply) => (
+                    {replies
+                      .slice(
+                        0,
+                        expandedReplyParents.includes(comment.id)
+                          ? replies.length
+                          : INITIAL_VISIBLE_REPLIES,
+                      )
+                      .map((reply) => (
                       <CommentRow
                         key={reply.id}
                         comment={reply}
@@ -280,6 +289,21 @@ export function CommentThread({
                         compact
                       />
                     ))}
+                    {replies.length > INITIAL_VISIBLE_REPLIES &&
+                    !expandedReplyParents.includes(comment.id) ? (
+                      <div className="pl-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setExpandedReplyParents((current) => [...current, comment.id])
+                          }
+                        >
+                          답글 {replies.length - INITIAL_VISIBLE_REPLIES}개 더 보기
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

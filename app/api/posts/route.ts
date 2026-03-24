@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { measureServerOperation } from "@/lib/ops";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
+export const runtime = "nodejs";
+export const preferredRegion = "hnd1";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const school = searchParams.get("school");
@@ -11,7 +14,7 @@ export async function GET(request: Request) {
 
   let query = admin
     .from("posts")
-    .select("id, school_id, category, subcategory, post_type, title, content, like_count, comment_count, view_count, hot_score, poll_vote_count, created_at")
+    .select("id, school_id, category, subcategory, post_type, title, like_count, comment_count, view_count, hot_score, poll_vote_count, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
 
