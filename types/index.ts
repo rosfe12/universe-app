@@ -332,6 +332,28 @@ export interface AdminAuditLog {
   createdAt: string;
 }
 
+export interface AdminMember {
+  id: string;
+  email: string;
+  nickname: string;
+  name?: string;
+  userType: UserType;
+  schoolId?: string;
+  schoolName?: string;
+  department?: string;
+  grade?: number;
+  verified: boolean;
+  adultVerified: boolean;
+  studentVerificationStatus: StudentVerificationStatus;
+  schoolEmail?: string;
+  trustScore: number;
+  reportCount: number;
+  warningCount: number;
+  isRestricted: boolean;
+  role?: "admin" | "moderator";
+  createdAt: string;
+}
+
 export interface LectureSummary extends Lecture {
   reviewCount: number;
   averageHoneyScore: number;

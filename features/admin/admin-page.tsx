@@ -10,6 +10,7 @@ import { TrustScoreBadge } from "@/components/shared/trust-score-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
@@ -32,7 +33,12 @@ import {
   getReportTargetUserId,
 } from "@/lib/mock-queries";
 import { REPORT_REASON_LABELS, REPORT_STATUS_LABELS } from "@/lib/constants";
-import type { AdminAuditLog, AppRuntimeSnapshot, StudentVerificationRequest } from "@/types";
+import type {
+  AdminAuditLog,
+  AdminMember,
+  AppRuntimeSnapshot,
+  StudentVerificationRequest,
+} from "@/types";
 
 async function loadAdminVerificationRequests() {
   const response = await fetch("/api/admin/verification-requests", {
@@ -119,6 +125,50 @@ async function loadAdminAuditLogs() {
 
   return {
     items: payload?.auditLogs ?? [],
+    error: "",
+  };
+}
+
+async function loadAdminMembers(input: { page: number; query: string }) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(input.page));
+  if (input.query.trim()) {
+    searchParams.set("q", input.query.trim());
+  }
+
+  const response = await fetch(`/api/admin/members?${searchParams.toString()}`, {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        members?: AdminMember[];
+        total?: number;
+        page?: number;
+        pageSize?: number;
+        hasNext?: boolean;
+        error?: string;
+      }
+    | null;
+
+  if (!response.ok) {
+    return {
+      items: [] as AdminMember[],
+      total: 0,
+      page: input.page,
+      pageSize: 20,
+      hasNext: false,
+      error: payload?.error ?? "회원 목록을 불러오지 못했습니다.",
+    };
+  }
+
+  return {
+    items: payload?.members ?? [],
+    total: payload?.total ?? 0,
+    page: payload?.page ?? input.page,
+    pageSize: payload?.pageSize ?? 20,
+    hasNext: Boolean(payload?.hasNext),
     error: "",
   };
 }
@@ -216,6 +266,15 @@ export function AdminPage({
   const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState("");
+  const [memberItems, setMemberItems] = useState<AdminMember[]>([]);
+  const [memberLoading, setMemberLoading] = useState(false);
+  const [memberError, setMemberError] = useState("");
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberQueryInput, setMemberQueryInput] = useState("");
+  const [memberPage, setMemberPage] = useState(1);
+  const [memberTotal, setMemberTotal] = useState(0);
+  const [memberPageSize, setMemberPageSize] = useState(20);
+  const [memberHasNext, setMemberHasNext] = useState(false);
   const [verificationPendingId, setVerificationPendingId] = useState<string | null>(null);
   const [reportPendingId, setReportPendingId] = useState<string | null>(null);
   const [moderationPendingKey, setModerationPendingKey] = useState<string | null>(null);
@@ -226,6 +285,18 @@ export function AdminPage({
   const failedVerificationCount = verificationItems.filter(
     (item) => item.deliveryStatus === "failed",
   ).length;
+
+  async function refreshMemberList(page = memberPage, query = memberQuery) {
+    setMemberLoading(true);
+    const result = await loadAdminMembers({ page, query });
+    setMemberItems(result.items);
+    setMemberTotal(result.total);
+    setMemberPage(result.page);
+    setMemberPageSize(result.pageSize);
+    setMemberHasNext(result.hasNext);
+    setMemberError(result.error);
+    setMemberLoading(false);
+  }
 
   useEffect(() => {
     let active = true;
@@ -260,8 +331,26 @@ export function AdminPage({
       setAuditLoading(false);
     }
 
+    async function refreshMembers() {
+      setMemberLoading(true);
+      const result = await loadAdminMembers({ page: 1, query: "" });
+
+      if (!active) {
+        return;
+      }
+
+      setMemberItems(result.items);
+      setMemberTotal(result.total);
+      setMemberPage(result.page);
+      setMemberPageSize(result.pageSize);
+      setMemberHasNext(result.hasNext);
+      setMemberError(result.error);
+      setMemberLoading(false);
+    }
+
     void loadVerificationRequests();
     void refreshAuditLogs();
+    void refreshMembers();
 
     return () => {
       active = false;
@@ -285,6 +374,7 @@ export function AdminPage({
       }
       if (!result.error) {
         await refresh();
+        void refreshMemberList();
       }
     } finally {
       setVerificationPendingId(null);
@@ -308,6 +398,7 @@ export function AdminPage({
         setAuditError("");
       }
       await refresh();
+      void refreshMemberList();
     } finally {
       setReportPendingId(null);
     }
@@ -340,6 +431,7 @@ export function AdminPage({
         setAuditError("");
       }
       await refresh();
+      void refreshMemberList();
     } finally {
       setModerationPendingKey(null);
     }
@@ -407,8 +499,9 @@ export function AdminPage({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="reports" className="space-y-4">
+      <Tabs defaultValue="members" className="space-y-4">
         <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="members">회원 목록</TabsTrigger>
           <TabsTrigger value="verification">학생 인증</TabsTrigger>
           <TabsTrigger value="reports">신고 목록</TabsTrigger>
           <TabsTrigger value="audit">운영 이력</TabsTrigger>
@@ -416,6 +509,94 @@ export function AdminPage({
           <TabsTrigger value="reported-users">신고 많은 사용자</TabsTrigger>
           <TabsTrigger value="low-trust">낮은 신뢰도</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="members" className="space-y-3">
+          <Card className="border-slate-200 bg-slate-50/80">
+            <CardContent className="space-y-3 py-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-slate-950">가입 회원</p>
+                  <p className="text-sm text-slate-900/70">
+                    전체 {memberTotal}명 · 페이지 {memberPage}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={memberLoading}
+                  onClick={() => {
+                    void refreshMemberList(1, memberQuery);
+                  }}
+                >
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  새로고침
+                </Button>
+              </div>
+              <form
+                className="flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setMemberQuery(memberQueryInput.trim());
+                  void refreshMemberList(1, memberQueryInput.trim());
+                }}
+              >
+                <Input
+                  value={memberQueryInput}
+                  onChange={(event) => setMemberQueryInput(event.target.value)}
+                  placeholder="이메일, 닉네임, 이름 검색"
+                />
+                <Button type="submit" disabled={memberLoading}>
+                  검색
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+          {memberLoading ? <LoadingState /> : null}
+          {memberError ? (
+            <Card className="border-rose-200 bg-rose-50/80">
+              <CardContent className="py-4 text-sm text-rose-700">{memberError}</CardContent>
+            </Card>
+          ) : null}
+          {!memberLoading && memberItems.length === 0 ? (
+            <Card>
+              <CardContent className="py-6 text-sm text-muted-foreground">
+                조회되는 회원이 없습니다.
+              </CardContent>
+            </Card>
+          ) : null}
+          {memberItems.map((member) => (
+            <MemberCard key={member.id} item={member} />
+          ))}
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={memberLoading || memberPage <= 1}
+              onClick={() => {
+                const nextPage = Math.max(memberPage - 1, 1);
+                void refreshMemberList(nextPage, memberQuery);
+              }}
+            >
+              이전
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              {(memberPage - 1) * memberPageSize + 1}
+              {" - "}
+              {Math.min(memberPage * memberPageSize, memberTotal)}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={memberLoading || !memberHasNext}
+              onClick={() => {
+                void refreshMemberList(memberPage + 1, memberQuery);
+              }}
+            >
+              다음
+            </Button>
+          </div>
+        </TabsContent>
 
         <TabsContent value="verification" className="space-y-3">
           {verificationLoading ? <LoadingState /> : null}
@@ -922,6 +1103,44 @@ function SummaryCard({
   );
 }
 
+function MemberCard({
+  item,
+}: {
+  item: AdminMember;
+}) {
+  return (
+    <Card>
+      <CardContent className="space-y-3 py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="font-semibold">{item.nickname}</p>
+            <p className="text-sm text-muted-foreground">{item.email}</p>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            {item.role ? <Badge variant="default">{item.role}</Badge> : null}
+            {item.isRestricted ? <Badge variant="danger">restricted</Badge> : null}
+            {item.verified ? <Badge variant="success">학교 인증</Badge> : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline">{getUserTypeLabel(item.userType)}</Badge>
+          <Badge variant="secondary">{item.schoolName ?? "학교 미지정"}</Badge>
+          {item.department ? <Badge variant="secondary">{item.department}</Badge> : null}
+          {item.grade ? <Badge variant="secondary">{item.grade}학년</Badge> : null}
+          {item.adultVerified ? <Badge variant="secondary">성인 인증</Badge> : null}
+          <TrustScoreBadge score={item.trustScore} />
+          <Badge variant="secondary">신고 {item.reportCount}건</Badge>
+          <Badge variant="secondary">경고 {item.warningCount}회</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          가입 {item.createdAt.slice(0, 16)}
+          {item.schoolEmail ? ` · 학교 메일 ${item.schoolEmail}` : ""}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function UserModerationCard({
   title,
   subtitle,
@@ -979,6 +1198,12 @@ function getVerificationStatusVariant(status: StudentVerificationRequest["status
   if (status === "pending") return "warning";
   if (status === "expired") return "danger";
   return "outline";
+}
+
+function getUserTypeLabel(userType: AdminMember["userType"]) {
+  if (userType === "student") return "대학생";
+  if (userType === "freshman") return "예비입학생";
+  return "입시생";
 }
 
 function getDeliveryStatusLabel(
