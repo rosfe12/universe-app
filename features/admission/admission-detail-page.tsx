@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
+import { ShareActionGroup } from "@/components/shared/share-action-group";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +30,7 @@ import {
   getSchoolName,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
+import { createPostSharePayload } from "@/lib/share-utils";
 import type { AppRuntimeSnapshot } from "@/types";
 
 export function AdmissionDetailPage({
@@ -44,6 +48,7 @@ export function AdmissionDetailPage({
     refresh,
     setSnapshot,
   } = useAppRuntime(initialSnapshot);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const question = getAdmissionQuestion(questionId);
 
   if (!question) {
@@ -56,7 +61,6 @@ export function AdmissionDetailPage({
   return (
     <AppShell
       title="입시 질문 상세"
-      subtitle="입시 질문과 답변을 한눈에 확인해보세요"
       topAction={
         <Button asChild size="icon" variant="ghost">
           <Link href="/school?tab=admission" aria-label="뒤로">
@@ -65,6 +69,9 @@ export function AdmissionDetailPage({
         </Button>
       }
     >
+      {successMessage ? (
+        <ActionFeedbackBanner message={successMessage} onClose={() => setSuccessMessage(null)} />
+      ) : null}
       {loading ? <LoadingState /> : null}
       <Card>
         <CardHeader className="space-y-4">
@@ -106,6 +113,12 @@ export function AdmissionDetailPage({
                 대학생 답변 우선 노출
               </Badge>
             </div>
+            <ShareActionGroup
+              payload={createPostSharePayload(question)}
+              onFeedback={setSuccessMessage}
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <ReportBlockActions
               compact
               targetType="post"

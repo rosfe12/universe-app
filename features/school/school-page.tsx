@@ -29,6 +29,7 @@ import { FeedList } from "@/components/shared/feed-list";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { LoadingState } from "@/components/shared/loading-state";
 import { SectionHeader } from "@/components/shared/section-header";
+import { ShareActionGroup } from "@/components/shared/share-action-group";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ import {
   getStandardVisibilityLevel,
 } from "@/lib/user-identity";
 import { getPostViewCount } from "@/lib/utils";
+import { createPostSharePayload } from "@/lib/share-utils";
 import type { AppRuntimeSnapshot, Post, VisibilityLevel } from "@/types";
 
 const freshmanZoneSchema = z.object({
@@ -985,6 +987,9 @@ export function SchoolPage({
                   <div className="rounded-[22px] bg-secondary/55 px-4 py-4">
                     <p className="text-sm leading-7 text-muted-foreground">{detailPost.content}</p>
                   </div>
+                  <ShareActionGroup
+                    payload={createPostSharePayload(detailPost)}
+                  />
                   {isAuthenticated && currentUser.id === detailPost.authorId ? (
                     <div className="flex justify-end">
                       <Button

@@ -12,7 +12,6 @@ import {
   Eye,
   Flame,
   Heart,
-  Share2,
   MessageCircle,
   Newspaper,
   Sparkles,
@@ -31,6 +30,7 @@ import { PostAuthorRow } from "@/features/common/post-author-row";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
+import { ShareActionGroup } from "@/components/shared/share-action-group";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -88,6 +88,7 @@ import {
 import { getStandardVisibilityLevel } from "@/lib/user-identity";
 import { cn, formatRelativeLabel, getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/types";
+import { createPostSharePayload } from "@/lib/share-utils";
 
 const communitySchema = z.object({
   board: z.enum(["free", "advice", "ask", "anonymous", "hot", "careerInfo", "jobPosting"]),
@@ -1006,29 +1007,9 @@ export function CommunityPage({
                         {detailPost.commentCount}
                       </span>
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={async () => {
-                        const href = `${window.location.origin}${getPostHref(detailPost.id)}`;
-                        const shareText = `CAMVERSE에서 화제인 글 · ${detailPost.title}`;
-                        if (navigator.share) {
-                          await navigator.share({
-                            title: detailPost.title,
-                            text: shareText,
-                            url: href,
-                          });
-                          return;
-                        }
-
-                        await navigator.clipboard.writeText(href);
-                        setSuccessMessage("링크가 복사되었습니다.");
-                      }}
-                    >
-                      <Share2 className="h-4 w-4" />
-                      공유
-                    </Button>
+                  <ShareActionGroup
+                      payload={createPostSharePayload(detailPost)}
+                    />
                   </div>
                   <ReportBlockActions
                     targetType="post"

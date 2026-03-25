@@ -9,6 +9,7 @@ import {
   ChevronRight,
   GraduationCap,
   Shield,
+  UserPlus2,
   UserRound,
 } from "lucide-react";
 
@@ -349,6 +350,12 @@ export function ProfilePage({
               title: "알림 페이지",
               description: "내 알림 피드를 전체 확인",
               href: "/notifications",
+            },
+            {
+              icon: UserPlus2,
+              title: "친구 초대",
+              description: "카카오톡이나 링크로 CAMVERSE를 공유합니다",
+              href: "/invite",
             },
             ...(canAccessAdmin
               ? [

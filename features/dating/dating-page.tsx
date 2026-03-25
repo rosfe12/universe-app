@@ -16,6 +16,7 @@ import { FloatingComposeButton } from "@/components/shared/floating-compose-butt
 import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ReportBlockActions } from "@/components/shared/report-block-actions";
+import { ShareActionGroup } from "@/components/shared/share-action-group";
 import { TrustScoreBadge } from "@/components/shared/trust-score-badge";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,7 @@ import {
 } from "@/lib/supabase/app-data";
 import { deleteImageByPublicUrl } from "@/lib/supabase/storage";
 import { getPostViewCount } from "@/lib/utils";
+import { createPostSharePayload } from "@/lib/share-utils";
 import type { AppRuntimeSnapshot, Post } from "@/types";
 
 const datingSchema = z.object({
@@ -682,6 +684,9 @@ export function DatingPage({
                     <Badge variant="warning">개인 연락처 요구 시 신고</Badge>
                     <Badge variant="outline">차단 시 즉시 피드 숨김</Badge>
                   </div>
+                  <ShareActionGroup
+                    payload={createPostSharePayload(detailPost)}
+                  />
                   <ReportBlockActions
                     targetType="post"
                     targetId={detailPost.id}

@@ -7,6 +7,7 @@ import {
   USER_TYPE_LABELS,
   WORKLOAD_LABELS,
 } from "@/lib/constants";
+import { buildPostHref } from "@/lib/post-links";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import {
   generateAutoNickname,
@@ -472,21 +473,7 @@ export function getCommunityFilterForPost(post: Pick<Post, "category" | "subcate
 export function getPostHref(postId: string) {
   const post = getPostById(postId);
   if (!post) return "/home";
-
-  if (post.category === "admission") {
-    return `/school?tab=admission&post=${post.id}`;
-  }
-
-  if (post.category === "dating") {
-    return `/dating${post.subcategory ? `?filter=${post.subcategory}` : ""}`;
-  }
-
-  if (post.subcategory === "school") return `/school?tab=school&post=${post.id}`;
-  if (post.subcategory === "freshman") return `/school?tab=freshman&post=${post.id}`;
-  if (post.subcategory === "club") return `/school?tab=club&post=${post.id}`;
-  if (post.subcategory === "food") return `/school?tab=food&post=${post.id}`;
-
-  return `/community?filter=${getCommunityFilterForPost(post)}&post=${post.id}`;
+  return buildPostHref(post);
 }
 
 export function getCommunityCategoryLabel(

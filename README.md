@@ -58,6 +58,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000
 NEXT_PUBLIC_AUTH_SITE_URL=http://127.0.0.1:3000
+NEXT_PUBLIC_KAKAO_JS_KEY=your-kakao-javascript-key
 NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false
 NEXT_PUBLIC_SHOW_TEST_ACCOUNTS=false
 NEXT_PUBLIC_SUPPORT_EMAIL=support@your-domain.com
@@ -115,6 +116,26 @@ npm run verify:deploy-config
 ```bash
 curl https://your-domain.com/api/health
 ```
+
+## 카카오톡 공유 설정
+
+- 카카오 디벨로퍼스에서 앱 생성이 필요합니다.
+- 프론트에는 `NEXT_PUBLIC_KAKAO_JS_KEY`만 사용합니다.
+- Admin 키나 REST API 키는 프론트에 넣지 않습니다.
+- 카카오 디벨로퍼스 `플랫폼 > Web`에 운영/개발 도메인을 등록합니다.
+  - 예: `https://universeapp.kr`
+  - 예: `http://127.0.0.1:3000`
+- 카카오 디벨로퍼스 `카카오 로그인/JavaScript 키 사용` 환경에서 JavaScript SDK 도메인을 등록합니다.
+- 제품 링크로 사용할 웹 도메인도 동일하게 등록해야 공유 링크가 정상 동작합니다.
+- 환경변수:
+
+```bash
+NEXT_PUBLIC_KAKAO_JS_KEY=your-kakao-javascript-key
+NEXT_PUBLIC_APP_URL=https://universeapp.kr
+```
+
+- 게시글 상세와 `/invite` 페이지에서 카카오톡 공유와 링크 복사를 함께 제공합니다.
+- SDK를 불러오지 못하면 Web Share API를 먼저 시도하고, 그것도 불가능하면 링크를 복사합니다.
 
 학교 메일 인증 템플릿:
 

@@ -16,6 +16,7 @@ import { FeedList } from "@/components/shared/feed-list";
 import { FloatingComposeButton } from "@/components/shared/floating-compose-button";
 import { LoadingState } from "@/components/shared/loading-state";
 import { SectionHeader } from "@/components/shared/section-header";
+import { ShareActionGroup } from "@/components/shared/share-action-group";
 import { VisibilityLevelSelect } from "@/components/shared/visibility-level-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ import {
 } from "@/lib/supabase/app-data";
 import { getStandardVisibilityLevel } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot, Post, VisibilityLevel } from "@/types";
+import { createPostSharePayload } from "@/lib/share-utils";
 
 const boardSchema = z.object({
   board: z.enum(["careerInfo", "jobPosting"]),
@@ -416,6 +418,9 @@ export function CareerPage({
               </DialogHeader>
               <div className="space-y-4">
                 <FeedPostCard post={detailPost} />
+                <ShareActionGroup
+                  payload={createPostSharePayload(detailPost)}
+                />
                 {isAuthenticated && currentUser.id === detailPost.authorId ? (
                   <div className="flex justify-end">
                     <Button
