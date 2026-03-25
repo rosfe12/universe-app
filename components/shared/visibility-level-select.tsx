@@ -8,7 +8,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  VISIBILITY_LEVEL_DESCRIPTIONS,
   VISIBILITY_LEVEL_LABELS,
 } from "@/lib/constants";
 import type { VisibilityLevel } from "@/types";
@@ -32,7 +31,7 @@ export function VisibilityLevelSelect({
       <SelectContent>
         {levels.map((level) => (
           <SelectItem key={level} value={level}>
-            {VISIBILITY_LEVEL_LABELS[level]} · {VISIBILITY_LEVEL_DESCRIPTIONS[level]}
+            {VISIBILITY_LEVEL_LABELS[level]}
           </SelectItem>
         ))}
       </SelectContent>

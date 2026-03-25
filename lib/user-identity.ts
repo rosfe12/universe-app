@@ -327,12 +327,10 @@ export function getStudentVerificationBadge(
 export function getPublicIdentityLabel({
   schoolName,
   department,
-  grade,
   visibilityLevel,
 }: {
   schoolName?: string;
   department?: string;
-  grade?: number | null;
   visibilityLevel: VisibilityLevel;
 }) {
   if (visibilityLevel === "anonymous") {
@@ -344,20 +342,12 @@ export function getPublicIdentityLabel({
   }
 
   if (visibilityLevel === "profile") {
-    return [
-      schoolName ? getSchoolShortName(schoolName) : "익명",
-      department,
-      grade ? `${grade}학년` : null,
-    ]
+    return [schoolName ? getSchoolShortName(schoolName) : "익명", department]
       .filter(Boolean)
       .join(" ");
   }
 
-  return [
-    schoolName ? getSchoolShortName(schoolName) : "익명",
-    department,
-    grade ? `${grade}학년` : null,
-  ]
+  return [schoolName ? getSchoolShortName(schoolName) : "익명", department]
     .filter(Boolean)
     .join(" ");
 }

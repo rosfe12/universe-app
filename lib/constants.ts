@@ -102,14 +102,14 @@ export const CAREER_BOARD_LABELS = {
 export const VISIBILITY_LEVEL_LABELS: Record<VisibilityLevel, string> = {
   anonymous: "익명",
   school: "학교만 공개",
-  schoolDepartment: "학교 + 학과 공개",
+  schoolDepartment: "학교+학과 공개",
   profile: "프로필 공개",
 };
 
 export const VISIBILITY_LEVEL_DESCRIPTIONS: Record<VisibilityLevel, string> = {
   anonymous: "학교와 학과를 숨기고 신뢰도만 노출",
-  school: "학교만 공개하고 학과와 학년은 숨김",
-  schoolDepartment: "학교, 학과, 학년까지 공개",
+  school: "학교만 공개",
+  schoolDepartment: "학교와 학과 공개",
   profile: "미팅 전용 프로필 카드 정보 공개",
 };
 

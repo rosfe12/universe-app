@@ -261,7 +261,6 @@ export function getPublicIdentitySummary(
     label: getPublicIdentityLabel({
       schoolName: getSchoolName(user.schoolId),
       department: user.department,
-      grade: user.grade,
       visibilityLevel: resolvedVisibilityLevel,
     }),
     trustScore: user.trustScore,
