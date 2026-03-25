@@ -46,8 +46,8 @@ export function createInviteLink(code: string) {
 
 export function createInviteSharePayload(code: string) {
   return {
-    title: "CAMVERSE 초대",
-    description: "대학생만 들어올 수 있는 커뮤니티인데 같이 써보자",
+    title: "대학생만을 위한 커뮤니티 [CAMVERSE-캠버스]로 초대합니다",
+    description: "CAMVERSE 초대",
     imageUrl: toAbsoluteAppUrl(DEFAULT_SHARE_IMAGE),
     linkUrl: createInviteLink(code),
     buttonTitle: "초대 링크 열기",
