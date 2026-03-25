@@ -10,12 +10,14 @@ export function AppShell({
   title,
   showTabs = true,
   topAction,
+  showTopNavActions = true,
 }: {
   children: ReactNode;
   title: string;
   subtitle?: string;
   showTabs?: boolean;
   topAction?: ReactNode;
+  showTopNavActions?: boolean;
 }) {
   return (
     <div className="app-page-backdrop min-h-screen md:px-4 md:py-5">
@@ -32,7 +34,7 @@ export function AppShell({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {topAction}
-              <TopNavActions />
+              {showTopNavActions ? <TopNavActions /> : null}
             </div>
           </div>
         </header>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Link2 } from "lucide-react";
@@ -10,22 +10,39 @@ import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner
 import { ShareActionGroup } from "@/components/shared/share-action-group";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { getCurrentSupabaseAuthUser } from "@/lib/supabase/client";
 import { buildInviteCode, createInviteSharePayload } from "@/lib/share-utils";
 
 export function InvitePage() {
   const searchParams = useSearchParams();
-  const { currentUser, isAuthenticated } = useAppRuntime(undefined, "chrome");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [inviteUserId, setInviteUserId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    let active = true;
+
+    void (async () => {
+      const authUser = await getCurrentSupabaseAuthUser();
+      if (!active) {
+        return;
+      }
+
+      setInviteUserId(authUser?.id);
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const inviteCode = useMemo(() => {
-    return searchParams.get("code") || buildInviteCode(isAuthenticated ? currentUser.id : undefined);
-  }, [currentUser.id, isAuthenticated, searchParams]);
+    return searchParams.get("code") || buildInviteCode(inviteUserId);
+  }, [inviteUserId, searchParams]);
 
   const sharePayload = useMemo(() => createInviteSharePayload(inviteCode), [inviteCode]);
 
   return (
-    <AppShell title="친구 초대" showTabs={false}>
+    <AppShell title="친구 초대" showTabs={false} showTopNavActions={false}>
       {feedback ? <ActionFeedbackBanner message={feedback} onClose={() => setFeedback(null)} /> : null}
       <Card className="overflow-hidden border-white/10 bg-white/[0.04]">
         <CardContent className="space-y-5 py-6">

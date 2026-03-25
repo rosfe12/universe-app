@@ -59,10 +59,37 @@ export async function loadKakaoSdk() {
   }
 
   sdkPromise = new Promise<KakaoSdk | null>((resolve) => {
+    const finish = (value: KakaoSdk | null) => {
+      if (!value) {
+        sdkPromise = null;
+      }
+      resolve(value);
+    };
+    const timeoutId = window.setTimeout(() => finish(window.Kakao ?? null), 5000);
     const existing = document.querySelector<HTMLScriptElement>('script[data-kakao-sdk="true"]');
     if (existing) {
-      existing.addEventListener("load", () => resolve(window.Kakao ?? null), { once: true });
-      existing.addEventListener("error", () => resolve(null), { once: true });
+      if (window.Kakao) {
+        window.clearTimeout(timeoutId);
+        finish(window.Kakao);
+        return;
+      }
+
+      existing.addEventListener(
+        "load",
+        () => {
+          window.clearTimeout(timeoutId);
+          finish(window.Kakao ?? null);
+        },
+        { once: true },
+      );
+      existing.addEventListener(
+        "error",
+        () => {
+          window.clearTimeout(timeoutId);
+          finish(null);
+        },
+        { once: true },
+      );
       return;
     }
 
@@ -70,9 +97,25 @@ export async function loadKakaoSdk() {
     script.src = KAKAO_SDK_SRC;
     script.async = true;
     script.defer = true;
+    script.crossOrigin = "anonymous";
     script.dataset.kakaoSdk = "true";
-    script.addEventListener("load", () => resolve(window.Kakao ?? null), { once: true });
-    script.addEventListener("error", () => resolve(null), { once: true });
+    script.addEventListener(
+      "load",
+      () => {
+        window.clearTimeout(timeoutId);
+        finish(window.Kakao ?? null);
+      },
+      { once: true },
+    );
+    script.addEventListener(
+      "error",
+      () => {
+        window.clearTimeout(timeoutId);
+        script.remove();
+        finish(null);
+      },
+      { once: true },
+    );
     document.head.appendChild(script);
   });
 
