@@ -54,6 +54,29 @@ const { data: requests } = await adminClient
   .select("id, verification_user_id")
   .eq("user_id", userId);
 
+const { data: verificationDocuments } = await adminClient
+  .from("verification_documents")
+  .select("id, file_path")
+  .eq("user_id", userId);
+
+const filePaths = (verificationDocuments ?? [])
+  .map((row) => row.file_path)
+  .filter((value) => typeof value === "string" && value.length > 0);
+
+if (filePaths.length > 0) {
+  await adminClient.storage.from("verification-documents").remove(filePaths).catch(() => null);
+}
+
+await adminClient
+  .from("verification_documents")
+  .delete()
+  .eq("user_id", userId);
+
+await adminClient
+  .from("student_verifications")
+  .delete()
+  .eq("user_id", userId);
+
 for (const request of requests ?? []) {
   if (request.verification_user_id && request.verification_user_id !== userId) {
     await adminClient.auth.admin.deleteUser(request.verification_user_id).catch(() => null);
@@ -86,7 +109,14 @@ const { error: updateError } = await adminClient
     department: null,
     grade: null,
     school_email: null,
+    student_number: null,
+    admission_year: null,
     student_verification_status: "unverified",
+    verification_state: "guest",
+    verification_score: 0,
+    verification_requested_at: null,
+    verification_reviewed_at: null,
+    verification_rejection_reason: null,
     school_email_verified_at: null,
     verified: false,
     default_visibility_level: "anonymous",
