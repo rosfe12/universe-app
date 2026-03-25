@@ -662,6 +662,14 @@ export function AdminPage({
     },
   ];
 
+  function confirmAdminAction(message: string) {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return window.confirm(message);
+  }
+
   async function refreshMemberList(
     page = memberPage,
     query = memberQuery,
@@ -1487,6 +1495,9 @@ export function AdminPage({
                 });
               }}
               onUnrestrict={() => {
+                if (!confirmAdminAction("활동 정지를 해제하시겠습니까?")) {
+                  return;
+                }
                 void mutateModerationAction({
                   action: "unrestrict_user",
                   userId: member.id,
@@ -1585,6 +1596,9 @@ export function AdminPage({
                 void mutateRole(item.userId, "moderator");
               }}
               onClearRole={() => {
+                if (!confirmAdminAction("관리 권한을 해제하시겠습니까?")) {
+                  return;
+                }
                 void mutateRole(item.userId, "none");
               }}
             />
@@ -2403,6 +2417,9 @@ export function AdminPage({
                     type="button"
                     variant="outline"
                     onClick={() => {
+                      if (!confirmAdminAction("활동 정지를 해제하시겠습니까?")) {
+                        return;
+                      }
                       void mutateModerationAction({
                         action: "unrestrict_user",
                         userId: selectedMember.id,

@@ -87,10 +87,15 @@ export async function PATCH(request: Request) {
         throw error;
       }
     } else {
-      const { error } = await admin.from("user_roles").upsert({
-        user_id: userId,
-        role,
-      });
+      const { error } = await admin.from("user_roles").upsert(
+        {
+          user_id: userId,
+          role,
+        },
+        {
+          onConflict: "user_id",
+        },
+      );
       if (error) {
         throw error;
       }
