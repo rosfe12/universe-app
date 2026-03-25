@@ -1558,9 +1558,10 @@ for select
 to authenticated
 using (
   not auto_hidden
-  and public.is_verified_student()
+  and (public.is_verified_student() or public.is_admin())
   and (
     auth.uid() = author_id
+    or public.is_admin()
     or school_id = public.current_user_school_id()
   )
 );
@@ -1572,8 +1573,13 @@ for insert
 to authenticated
 with check (
   auth.uid() = author_id
-  and public.is_verified_student()
-  and school_id = public.current_user_school_id()
+  and (
+    public.is_admin()
+    or (
+      public.is_verified_student()
+      and school_id = public.current_user_school_id()
+    )
+  )
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
 );
 
@@ -1599,12 +1605,14 @@ for select
 to authenticated
 using (
   auth.uid() = sender_id
+  or public.is_admin()
   or exists (
     select 1
     from public.trade_posts trade_post
     where trade_post.id = trade_post_id
       and (
         trade_post.author_id = auth.uid()
+        or public.is_admin()
         or trade_post.school_id = public.current_user_school_id()
       )
   )
@@ -1617,12 +1625,17 @@ for insert
 to authenticated
 with check (
   auth.uid() = sender_id
-  and public.is_verified_student()
-  and exists (
-    select 1
-    from public.trade_posts trade_post
-    where trade_post.id = trade_post_id
-      and trade_post.school_id = public.current_user_school_id()
+  and (
+    public.is_admin()
+    or (
+      public.is_verified_student()
+      and exists (
+        select 1
+        from public.trade_posts trade_post
+        where trade_post.id = trade_post_id
+          and trade_post.school_id = public.current_user_school_id()
+      )
+    )
   )
 );
 

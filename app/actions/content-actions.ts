@@ -1445,6 +1445,7 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
   requireVerifiedStudentProfile(profile, "수강신청 교환 대화", authUser.email);
+  const admin = createAdminSupabaseClient();
 
   const { data: tradePost, error: tradePostError } = await supabase
     .from("trade_posts")
@@ -1484,7 +1485,7 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
   }
 
   if (tradePost.status === "open") {
-    await supabase
+    await admin
       .from("trade_posts")
       .update({ status: "matching" })
       .eq("id", values.tradePostId)
@@ -1492,7 +1493,6 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
   }
 
   try {
-    const admin = createAdminSupabaseClient();
     const { data: participantRows } = await admin
       .from("trade_messages")
       .select("sender_id")

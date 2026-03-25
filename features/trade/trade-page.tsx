@@ -266,6 +266,7 @@ export function TradePage({
       startSendMessageTransition(() => {
         void (async () => {
           try {
+            const shouldPromoteToMatching = detailItem.status === "open";
             const created = await createTradeMessage({
               tradePostId: detailItem.id,
               content,
@@ -281,6 +282,19 @@ export function TradePage({
                 createdAt: String(created.created_at),
               },
             ]);
+            if (shouldPromoteToMatching) {
+              setTradeItems((current) =>
+                current.map((item) =>
+                  item.id === detailItem.id ? { ...item, status: "matching" } : item,
+                ),
+              );
+              setSnapshot((current) => ({
+                ...current,
+                tradePosts: current.tradePosts.map((item) =>
+                  item.id === detailItem.id ? { ...item, status: "matching" } : item,
+                ),
+              }));
+            }
             setTradeMessageInput("");
             await refresh();
           } catch (error) {
@@ -303,6 +317,19 @@ export function TradePage({
         createdAt: new Date().toISOString(),
       },
     ]);
+    if (detailItem.status === "open") {
+      setTradeItems((current) =>
+        current.map((item) =>
+          item.id === detailItem.id ? { ...item, status: "matching" } : item,
+        ),
+      );
+      setSnapshot((current) => ({
+        ...current,
+        tradePosts: current.tradePosts.map((item) =>
+          item.id === detailItem.id ? { ...item, status: "matching" } : item,
+        ),
+      }));
+    }
     setTradeMessageInput("");
   };
 
