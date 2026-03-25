@@ -399,7 +399,7 @@ async function loadCachedSchoolRows(supabase: ReturnType<typeof createClient>) {
     const result = await supabase
       .from("schools")
       .select(SCHOOL_SELECT)
-      .order("name", { ascending: true });
+      .order("course_name", { ascending: true });
 
     if (!result.error && result.data) {
       cachedSchoolRows = {
@@ -478,7 +478,7 @@ function buildLectureQuery(
   supabase: ReturnType<typeof createClient>,
   context: RuntimeQueryContext,
 ) {
-  const base = supabase.from("lectures").select(LECTURE_SELECT).order("name", { ascending: true });
+  const base = supabase.from("lectures").select(LECTURE_SELECT).order("course_name", { ascending: true });
 
   switch (context.scope) {
     case "home":
