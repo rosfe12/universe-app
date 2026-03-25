@@ -2,9 +2,16 @@ import type {
   School,
   StudentVerificationStatus,
   User,
+  VerificationState,
   VisibilityLevel,
 } from "@/types";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
+import {
+  deriveVerificationState,
+  getVerificationRestrictionMessage,
+  getVerificationStateLabel,
+  isStudentVerificationComplete,
+} from "@/lib/student-verification";
 
 const SCHOOL_CODE_OVERRIDES: Record<string, string> = {
   건국대학교: "KU",
@@ -235,10 +242,10 @@ export function getProfileVisibilityLevel(
 
 export function getStudentVerificationStatus(
   user?:
-    | Pick<User, "userType" | "studentVerificationStatus" | "verified">
+    | Pick<User, "userType" | "studentVerificationStatus" | "verified" | "verificationState" | "schoolEmailVerifiedAt">
     | ({ email?: User["email"] } & Pick<
         User,
-        "userType" | "studentVerificationStatus" | "verified"
+        "userType" | "studentVerificationStatus" | "verified" | "verificationState" | "schoolEmailVerifiedAt"
       >)
     | null,
 ): StudentVerificationStatus {
@@ -246,16 +253,48 @@ export function getStudentVerificationStatus(
   const email = "email" in user ? user.email : undefined;
   if (isMasterAdminEmail(email)) return "verified";
   if (user.userType !== "student") return "none";
-  if (user.studentVerificationStatus) return user.studentVerificationStatus;
-  return user.verified ? "verified" : "unverified";
+  const state = deriveVerificationState({
+    userType: user.userType,
+    verificationState: user.verificationState,
+    studentVerificationStatus: user.studentVerificationStatus,
+    verified: user.verified,
+    schoolEmailVerifiedAt: user.schoolEmailVerifiedAt,
+  });
+
+  if (state === "student_verified") return "verified";
+  if (state === "manual_review" || state === "email_verified") return "pending";
+  if (state === "rejected") return "rejected";
+  return "unverified";
+}
+
+export function getVerificationState(
+  user?:
+    | Pick<User, "userType" | "studentVerificationStatus" | "verified" | "verificationState" | "schoolEmailVerifiedAt">
+    | ({ email?: User["email"] } & Pick<
+        User,
+        "userType" | "studentVerificationStatus" | "verified" | "verificationState" | "schoolEmailVerifiedAt"
+      >)
+    | null,
+): VerificationState {
+  if (!user) return "guest";
+  const email = "email" in user ? user.email : undefined;
+  if (isMasterAdminEmail(email)) return "student_verified";
+
+  return deriveVerificationState({
+    userType: user.userType,
+    verificationState: user.verificationState,
+    studentVerificationStatus: user.studentVerificationStatus,
+    verified: user.verified,
+    schoolEmailVerifiedAt: user.schoolEmailVerifiedAt,
+  });
 }
 
 export function isVerifiedStudent(
   user?:
-    | Pick<User, "id" | "userType" | "schoolId" | "studentVerificationStatus" | "verified">
+    | Pick<User, "id" | "userType" | "schoolId" | "studentVerificationStatus" | "verified" | "verificationState" | "schoolEmailVerifiedAt">
     | ({ email?: User["email"] } & Pick<
         User,
-        "id" | "userType" | "schoolId" | "studentVerificationStatus" | "verified"
+        "id" | "userType" | "schoolId" | "studentVerificationStatus" | "verified" | "verificationState" | "schoolEmailVerifiedAt"
       >)
     | null,
 ) {
@@ -265,62 +304,68 @@ export function isVerifiedStudent(
   return (
     user.userType === "student" &&
     Boolean(user.schoolId) &&
-    getStudentVerificationStatus(user) === "verified"
+    isStudentVerificationComplete(getVerificationState(user))
   );
 }
 
 export function getStudentVerificationBadge(
   user?:
-    | Pick<User, "userType" | "studentVerificationStatus" | "verified">
+    | Pick<User, "userType" | "studentVerificationStatus" | "verified" | "verificationState" | "schoolEmailVerifiedAt">
     | ({ email?: User["email"] } & Pick<
         User,
-        "userType" | "studentVerificationStatus" | "verified"
+        "userType" | "studentVerificationStatus" | "verified" | "verificationState" | "schoolEmailVerifiedAt"
       >)
     | null,
 ) {
   const status = getStudentVerificationStatus(user);
+  const state = getVerificationState(user);
 
   if (status === "verified") {
     return {
       status,
-      label: "학교 메일 인증 완료",
+      label: getVerificationStateLabel(state),
       shortLabel: "완료",
       tone: "positive" as const,
+      restrictionMessage: getVerificationRestrictionMessage(state),
     };
   }
 
   if (status === "pending") {
     return {
       status,
-      label: "학교 메일 인증 대기",
-      shortLabel: "대기",
+      label: getVerificationStateLabel(state),
+      shortLabel: state === "manual_review" ? "검토 중" : "메일 확인",
       tone: "warning" as const,
+      restrictionMessage: getVerificationRestrictionMessage(state),
     };
   }
 
   if (status === "rejected") {
     return {
       status,
-      label: "학교 메일 인증 반려",
+      label: getVerificationStateLabel(state),
       shortLabel: "반려",
       tone: "warning" as const,
+      restrictionMessage: getVerificationRestrictionMessage(state),
     };
   }
 
   if (status === "unverified") {
     return {
       status,
-      label: "학교 메일 미인증",
-      shortLabel: "미인증",
+      label: getVerificationStateLabel(state),
+      shortLabel: "인증 필요",
       tone: "warning" as const,
+      restrictionMessage: getVerificationRestrictionMessage(state),
     };
   }
 
   return {
     status,
-    label: "학생 인증 해당 없음",
+    label: getVerificationStateLabel(state),
     shortLabel: "해당 없음",
     tone: "neutral" as const,
+    restrictionMessage: getVerificationRestrictionMessage(state),
   };
 }
 

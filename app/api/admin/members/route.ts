@@ -132,7 +132,7 @@ export async function GET(request: Request) {
         admin
           .from("users")
           .select(
-            "id, email, nickname, name, user_type, school_id, department, grade, verified, adult_verified, student_verification_status, school_email, trust_score, report_count, warning_count, is_restricted, created_at",
+            "id, email, nickname, name, user_type, school_id, department, grade, verified, adult_verified, student_verification_status, verification_state, verification_score, verification_rejection_reason, student_number, admission_year, school_email, trust_score, report_count, warning_count, is_restricted, created_at",
           )
           .in("id", userIds),
         admin
@@ -204,6 +204,21 @@ export async function GET(request: Request) {
           row.student_verification_status === "rejected"
             ? row.student_verification_status
             : "unverified",
+        verificationState:
+          row.verification_state === "guest" ||
+          row.verification_state === "email_verified" ||
+          row.verification_state === "student_verified" ||
+          row.verification_state === "manual_review" ||
+          row.verification_state === "rejected"
+            ? row.verification_state
+            : undefined,
+        verificationScore:
+          typeof row.verification_score === "number" ? row.verification_score : undefined,
+        studentNumber: row.student_number ? String(row.student_number) : undefined,
+        admissionYear: typeof row.admission_year === "number" ? row.admission_year : undefined,
+        verificationRejectionReason: row.verification_rejection_reason
+          ? String(row.verification_rejection_reason)
+          : undefined,
         schoolEmail: row.school_email ? String(row.school_email) : undefined,
         trustScore: typeof row.trust_score === "number" ? row.trust_score : 0,
         reportCount: typeof row.report_count === "number" ? row.report_count : 0,

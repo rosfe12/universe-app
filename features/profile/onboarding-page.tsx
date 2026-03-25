@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CheckCircle2, ChevronDown, ChevronUp, GraduationCap, School2, Sparkles } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, GraduationCap, School2, Sparkles, Trash2 } from "lucide-react";
 
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { ErrorState } from "@/components/shared/error-state";
@@ -21,9 +21,12 @@ import {
 } from "@/lib/school-email";
 import { createClient } from "@/lib/supabase/client";
 import {
+  deleteStudentVerificationDocument,
+  getCurrentStudentVerification,
   hasCompletedOnboarding,
   isSupabaseEnabled,
   requestStudentVerificationEmail,
+  uploadStudentVerificationDocument,
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
 import {
@@ -31,12 +34,16 @@ import {
   getDefaultVisibilityLevel,
   getStudentVerificationBadge,
 } from "@/lib/user-identity";
+import { getVerificationRestrictionMessage } from "@/lib/student-verification";
+import type { StudentVerification } from "@/types";
 
 const onboardingSchema = z.object({
   userType: z.enum(["student", "applicant", "freshman"]),
   schoolId: z.string().min(1),
   schoolEmail: z.string().email("학교 메일 형식이 필요합니다.").optional().or(z.literal("")),
+  studentNumber: z.string().optional(),
   department: z.string().optional(),
+  admissionYear: z.string().optional(),
   grade: z.string().optional(),
   bio: z.string().optional(),
 }).superRefine((value, ctx) => {
@@ -45,6 +52,27 @@ const onboardingSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["schoolEmail"],
       message: "대학생은 학교 메일 인증 정보가 필요합니다.",
+    });
+  }
+  if (value.userType === "student" && !value.studentNumber?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["studentNumber"],
+      message: "학번을 입력해주세요.",
+    });
+  }
+  if (value.userType === "student" && !value.department?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["department"],
+      message: "학과를 입력해주세요.",
+    });
+  }
+  if (value.userType === "student" && !value.admissionYear?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["admissionYear"],
+      message: "입학년도를 입력해주세요.",
     });
   }
 });
@@ -62,6 +90,8 @@ export function OnboardingPage() {
   const [authEmail, setAuthEmail] = useState("");
   const [schoolQuery, setSchoolQuery] = useState("");
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
+  const [verificationInfo, setVerificationInfo] = useState<StudentVerification | null>(null);
+  const [documentPending, setDocumentPending] = useState(false);
 
   const schoolOptions = useMemo(
     () => schools.map((school) => ({ id: school.id, name: school.name })),
@@ -74,7 +104,9 @@ export function OnboardingPage() {
       userType: isVerificationMode ? "student" : currentUser.userType,
       schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
       schoolEmail: currentUser.schoolEmail ?? "",
+      studentNumber: currentUser.studentNumber ?? "",
       department: currentUser.department ?? "",
+      admissionYear: currentUser.admissionYear ? String(currentUser.admissionYear) : "",
       grade: currentUser.grade ? String(currentUser.grade) : "",
       bio: currentUser.bio ?? "",
     },
@@ -82,48 +114,66 @@ export function OnboardingPage() {
   const selectedSchool = schools.find((school) => school.id === form.watch("schoolId"));
   const selectedUserType = form.watch("userType");
   const schoolEmailValue = form.watch("schoolEmail");
+  const studentNumberValue = form.watch("studentNumber");
+  const departmentValue = form.watch("department");
+  const admissionYearValue = form.watch("admissionYear");
   const normalizedSchoolEmailValue = normalizeSchoolEmail(schoolEmailValue);
   const currentSchoolEmail = normalizeSchoolEmail(currentUser.schoolEmail);
+  const isMatchingStudentInfo =
+    selectedUserType === "student" &&
+    currentUser.schoolId === selectedSchool?.id &&
+    currentSchoolEmail === normalizedSchoolEmailValue &&
+    (currentUser.studentNumber ?? "") === (studentNumberValue?.trim() ?? "") &&
+    (currentUser.department ?? "") === (departmentValue?.trim() ?? "") &&
+    String(currentUser.admissionYear ?? "") === (admissionYearValue?.trim() ?? "");
   const isMatchingVerifiedState =
     selectedUserType === "student" &&
-    currentUser.studentVerificationStatus === "verified" &&
-    currentUser.schoolId === selectedSchool?.id &&
-    currentSchoolEmail === normalizedSchoolEmailValue;
+    currentUser.verificationState === "student_verified" &&
+    isMatchingStudentInfo;
   const isMatchingPendingState =
     selectedUserType === "student" &&
-    currentUser.studentVerificationStatus === "pending" &&
-    currentUser.schoolId === selectedSchool?.id &&
-    currentSchoolEmail === normalizedSchoolEmailValue;
+    (currentUser.verificationState === "email_verified" ||
+      currentUser.verificationState === "manual_review") &&
+    isMatchingStudentInfo;
   const isMatchingRejectedState =
     selectedUserType === "student" &&
-    currentUser.studentVerificationStatus === "rejected" &&
-    currentUser.schoolId === selectedSchool?.id &&
-    currentSchoolEmail === normalizedSchoolEmailValue;
+    currentUser.verificationState === "rejected" &&
+    isMatchingStudentInfo;
   const canRequestCollegeVerification =
     selectedUserType === "student" &&
     Boolean(selectedSchool?.id) &&
-    Boolean(normalizedSchoolEmailValue);
+    Boolean(normalizedSchoolEmailValue) &&
+    Boolean(studentNumberValue?.trim()) &&
+    Boolean(departmentValue?.trim()) &&
+    Boolean(admissionYearValue?.trim());
   const verificationInputHint = !selectedSchool?.id
     ? "학교를 먼저 선택해주세요."
     : !normalizedSchoolEmailValue
       ? "학교 메일을 입력한 뒤 인증 요청을 눌러주세요."
+      : !studentNumberValue?.trim()
+        ? "학번을 입력해주세요."
+        : !departmentValue?.trim()
+          ? "학과를 입력해주세요."
+          : !admissionYearValue?.trim()
+            ? "입학년도를 입력해주세요."
       : !canUseSchoolVerificationEmail(normalizedSchoolEmailValue)
           ? "학교 메일은 ac.kr 주소만 사용할 수 있습니다."
         : isMatchingPendingState
-          ? "이미 요청한 메일이 있다면 다시 요청해 새 메일을 받을 수 있습니다."
-          : "인증 메일은 버튼을 눌렀을 때만 발송됩니다.";
+          ? "현재 인증 상태가 진행 중입니다. 아래 자료 업로드가 필요할 수 있습니다."
+          : "인증 요청 버튼을 누르면 학교 메일 인증이 시작됩니다.";
   const verificationPreview = getStudentVerificationBadge({
     userType: selectedUserType,
-    studentVerificationStatus:
+    studentVerificationStatus: currentUser.studentVerificationStatus,
+    verificationState:
       selectedUserType !== "student"
-        ? "none"
+        ? "guest"
         : isMatchingVerifiedState
-          ? "verified"
-          : isMatchingPendingState
-            ? "pending"
-            : isMatchingRejectedState
-              ? "rejected"
-              : "unverified",
+          ? "student_verified"
+          : isMatchingRejectedState
+            ? "rejected"
+            : isMatchingPendingState
+              ? (currentUser.verificationState ?? "email_verified")
+              : "guest",
     verified: isMatchingVerifiedState,
   });
   const currentLoginEmail =
@@ -170,7 +220,9 @@ export function OnboardingPage() {
       userType: isVerificationMode ? "student" : currentUser.userType,
       schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
       schoolEmail: currentUser.schoolEmail ?? "",
+      studentNumber: currentUser.studentNumber ?? "",
       department: currentUser.department ?? "",
+      admissionYear: currentUser.admissionYear ? String(currentUser.admissionYear) : "",
       grade: currentUser.grade ? String(currentUser.grade) : "",
       bio: currentUser.bio ?? "",
     });
@@ -180,8 +232,11 @@ export function OnboardingPage() {
     currentUser.bio,
     currentUser.department,
     currentUser.grade,
+    currentUser.studentNumber,
+    currentUser.admissionYear,
     currentUser.schoolEmail,
     currentUser.schoolId,
+    currentUser.verificationState,
     currentUser.userType,
     form,
     isVerificationMode,
@@ -208,6 +263,23 @@ export function OnboardingPage() {
     };
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !isSupabaseEnabled() || selectedUserType !== "student") {
+      setVerificationInfo(null);
+      return;
+    }
+
+    let active = true;
+    void getCurrentStudentVerification().then((result) => {
+      if (!active) return;
+      setVerificationInfo(result.data ?? null);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, selectedUserType]);
+
   const saveProfile = async (
     values: OnboardingFormValues,
     options?: { redirectOnSuccess?: boolean },
@@ -224,9 +296,13 @@ export function OnboardingPage() {
     const normalizedSchoolEmail = normalizeSchoolEmail(values.schoolEmail);
     const keepsVerifiedStudentState =
       values.userType === "student" &&
-      currentUser.studentVerificationStatus === "verified" &&
-      currentUser.schoolId === values.schoolId &&
-      normalizeSchoolEmail(currentUser.schoolEmail) === normalizedSchoolEmail;
+      currentUser.verificationState === "student_verified" &&
+      isMatchingStudentInfo;
+    const keepsExistingVerificationState =
+      values.userType === "student" &&
+      isMatchingStudentInfo &&
+      currentUser.verificationState &&
+      currentUser.verificationState !== "guest";
 
     if (values.userType === "student" && !canUseSchoolVerificationEmail(normalizedSchoolEmail)) {
       setPending(false);
@@ -252,12 +328,37 @@ export function OnboardingPage() {
       schoolEmailVerifiedAt: keepsVerifiedStudentState
         ? currentUser.schoolEmailVerifiedAt
         : undefined,
+      studentNumber: values.userType === "student" ? values.studentNumber?.trim() : undefined,
+      admissionYear:
+        values.userType === "student" && values.admissionYear
+          ? Number(values.admissionYear)
+          : undefined,
       studentVerificationStatus:
         keepsVerifiedStudentState
           ? "verified"
-          : values.userType === "student"
-            ? "unverified"
-          : "none",
+          : keepsExistingVerificationState
+            ? currentUser.studentVerificationStatus
+            : values.userType === "student"
+              ? "unverified"
+              : "none",
+      verificationState:
+        keepsVerifiedStudentState
+          ? "student_verified"
+          : keepsExistingVerificationState
+            ? currentUser.verificationState
+            : values.userType === "student"
+              ? "guest"
+              : "guest",
+      verificationScore: keepsExistingVerificationState ? currentUser.verificationScore : 0,
+      verificationRequestedAt: keepsExistingVerificationState
+        ? currentUser.verificationRequestedAt
+        : undefined,
+      verificationReviewedAt: keepsExistingVerificationState
+        ? currentUser.verificationReviewedAt
+        : undefined,
+      verificationRejectionReason: keepsExistingVerificationState
+        ? currentUser.verificationRejectionReason
+        : undefined,
       verified: keepsVerifiedStudentState,
       bio: values.bio?.trim() || undefined,
       defaultVisibilityLevel: getDefaultVisibilityLevel({
@@ -309,6 +410,9 @@ export function OnboardingPage() {
     const verificationResult = await requestStudentVerificationEmail({
       schoolId: values.schoolId,
       schoolEmail: normalizedSchoolEmail,
+      studentNumber: values.studentNumber?.trim() ?? "",
+      department: values.department?.trim() ?? "",
+      admissionYear: Number(values.admissionYear),
       nextPath,
     });
 
@@ -320,11 +424,44 @@ export function OnboardingPage() {
     }
 
     await refresh();
+    const latestVerification = await getCurrentStudentVerification();
+    setVerificationInfo(latestVerification.data ?? null);
     const redirectTarget = verificationResult.data?.alreadyVerified
       ? appendSearchParam(nextPath, "schoolVerified", "1")
       : appendSearchParam(nextPath, "verification", "pending");
     router.push(redirectTarget);
     return true;
+  };
+
+  const handleVerificationDocumentUpload = async (file?: File | null) => {
+    if (!file) return;
+    setDocumentPending(true);
+    setErrorMessage("");
+    try {
+      await uploadStudentVerificationDocument({ file, documentType: "student_proof" });
+      const latestVerification = await getCurrentStudentVerification();
+      setVerificationInfo(latestVerification.data ?? null);
+      await refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "추가 인증 자료 업로드에 실패했습니다.");
+    } finally {
+      setDocumentPending(false);
+    }
+  };
+
+  const handleVerificationDocumentDelete = async (documentId: string) => {
+    setDocumentPending(true);
+    setErrorMessage("");
+    try {
+      await deleteStudentVerificationDocument(documentId);
+      const latestVerification = await getCurrentStudentVerification();
+      setVerificationInfo(latestVerification.data ?? null);
+      await refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "추가 인증 자료 삭제에 실패했습니다.");
+    } finally {
+      setDocumentPending(false);
+    }
   };
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -553,50 +690,185 @@ export function OnboardingPage() {
               ) : null}
             </div>
             {form.watch("userType") === "student" ? (
-              <div className="space-y-2">
-                <Label>학교 메일</Label>
-                <Input
-                  placeholder="예: your-id@university.ac.kr"
-                  disabled={pending}
-                  {...form.register("schoolEmail")}
-                />
-                {form.formState.errors.schoolEmail ? (
-                  <p className="text-sm text-rose-600">
-                    {form.formState.errors.schoolEmail.message}
-                  </p>
-                ) : null}
-                <div className="rounded-[22px] bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">
-                  현재 로그인 이메일: {currentLoginEmail || "로그인 이메일 확인 중"}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>학교 메일</Label>
+                  <Input
+                    placeholder="예: your-id@university.ac.kr"
+                    disabled={pending}
+                    {...form.register("schoolEmail")}
+                  />
+                  {form.formState.errors.schoolEmail ? (
+                    <p className="text-sm text-rose-600">
+                      {form.formState.errors.schoolEmail.message}
+                    </p>
+                  ) : null}
+                  <div className="rounded-[22px] bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">
+                    현재 로그인 이메일: {currentLoginEmail || "로그인 이메일 확인 중"}
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label>학번</Label>
+                    <Input placeholder="예: 20241234" disabled={pending} {...form.register("studentNumber")} />
+                    {form.formState.errors.studentNumber ? (
+                      <p className="text-sm text-rose-600">
+                        {form.formState.errors.studentNumber.message}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>입학년도</Label>
+                    <Input placeholder="예: 2024" disabled={pending} {...form.register("admissionYear")} />
+                    {form.formState.errors.admissionYear ? (
+                      <p className="text-sm text-rose-600">
+                        {form.formState.errors.admissionYear.message}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>학과</Label>
+                  <Input placeholder="예: 경영학과" disabled={pending} {...form.register("department")} />
+                  {form.formState.errors.department ? (
+                    <p className="text-sm text-rose-600">
+                      {form.formState.errors.department.message}
+                    </p>
+                  ) : null}
+                </div>
+
                 <div className="rounded-[22px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm">
                   <p className="font-medium text-foreground">{verificationPreview.label}</p>
                   <p className="mt-1 text-muted-foreground">
-                    메일 인증이 완료되야 대학생 권한으로 전환됩니다.
+                    {getVerificationRestrictionMessage(
+                      verificationInfo?.verificationState ?? currentUser.verificationState,
+                    )}
                   </p>
+                  {verificationInfo?.decisionReason ? (
+                    <p className="mt-2 text-xs text-muted-foreground">{verificationInfo.decisionReason}</p>
+                  ) : null}
+                  {verificationInfo?.rejectionReason ? (
+                    <p className="mt-2 text-xs text-rose-600">{verificationInfo.rejectionReason}</p>
+                  ) : null}
                 </div>
+
                 <Button
                   type="button"
                   className="w-full"
                   disabled={!canRequestCollegeVerification || pending}
                   onClick={() => void onRequestVerification()}
                 >
-                  {isMatchingPendingState
-                    ? "학교 메일 인증 다시 요청"
-                    : "학교 메일 인증 요청"}
+                  {isMatchingPendingState ? "대학생 인증 다시 요청" : "대학생 인증 요청"}
                 </Button>
                 <p className="text-xs text-muted-foreground">{verificationInputHint}</p>
+
+                {verificationInfo?.autoChecks?.length ? (
+                  <div className="rounded-[22px] border border-border bg-background px-4 py-4">
+                    <p className="text-sm font-semibold text-foreground">자동 판정 항목</p>
+                    <div className="mt-3 space-y-2">
+                      {verificationInfo.autoChecks.map((check) => (
+                        <div key={check.code} className="flex items-start justify-between gap-3 text-sm">
+                          <div>
+                            <p className="font-medium text-foreground">{check.label}</p>
+                            {check.detail ? (
+                              <p className="text-xs text-muted-foreground">{check.detail}</p>
+                            ) : null}
+                          </div>
+                          <span className={check.passed ? "text-emerald-600" : "text-rose-600"}>
+                            {check.passed ? `+${check.weight}` : "실패"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {verificationInfo?.requiresDocumentUpload ||
+                currentUser.verificationState === "manual_review" ||
+                currentUser.verificationState === "rejected" ? (
+                  <div className="rounded-[22px] border border-border bg-background px-4 py-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-foreground">추가 인증 자료 업로드</p>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        학생증, 포털 재학 화면 캡처 등 학생 확인이 가능한 자료를 올려주세요.
+                        주민번호, 바코드, QR 등 민감정보는 가리고 업로드하는 것을 권장합니다.
+                      </p>
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      <Input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp,.pdf"
+                        disabled={documentPending}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.currentTarget.value = "";
+                          void handleVerificationDocumentUpload(file);
+                        }}
+                      />
+                      <div className="space-y-2">
+                        {(verificationInfo?.documents ?? []).filter((item) => item.status !== "deleted").map((document) => (
+                          <div
+                            key={document.id}
+                            className="flex items-center justify-between gap-3 rounded-[18px] border border-border px-3 py-3 text-sm"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-foreground">
+                                {document.fileName ?? "추가 인증 자료"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {document.uploadedAt.slice(0, 16)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {document.fileUrl ? (
+                                <Button asChild type="button" size="sm" variant="outline">
+                                  <a href={document.fileUrl} target="_blank" rel="noreferrer">
+                                    보기
+                                  </a>
+                                </Button>
+                              ) : null}
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                disabled={documentPending}
+                                onClick={() => void handleVerificationDocumentDelete(document.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        {!(verificationInfo?.documents ?? []).some((item) => item.status !== "deleted") ? (
+                          <div className="rounded-[18px] border border-dashed border-border px-3 py-4 text-xs text-muted-foreground">
+                            아직 업로드한 추가 인증 자료가 없습니다.
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>학과</Label>
-                <Input placeholder="예: 경영학과" disabled={pending} {...form.register("department")} />
+            {form.watch("userType") !== "student" ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>학과</Label>
+                  <Input placeholder="예: 경영학과" disabled={pending} {...form.register("department")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>학년</Label>
+                  <Input placeholder="예: 3" disabled={pending} {...form.register("grade")} />
+                </div>
               </div>
+            ) : (
               <div className="space-y-2">
                 <Label>학년</Label>
                 <Input placeholder="예: 3" disabled={pending} {...form.register("grade")} />
               </div>
-            </div>
+            )}
             <div className="space-y-2">
               <Label>한줄 소개</Label>
               <Textarea

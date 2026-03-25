@@ -15,15 +15,19 @@ import { logServerEvent } from "@/lib/ops";
 import type { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
+const VERIFICATION_DOCUMENTS_BUCKET = "verification-documents";
 
 const patchSchema = z.discriminatedUnion("action", [
   z.object({
     requestId: z.string().uuid(),
     action: z.literal("approve"),
+    autoDeleteDocuments: z.boolean().optional(),
   }),
   z.object({
     requestId: z.string().uuid(),
     action: z.literal("reject"),
+    reason: z.string().trim().max(500).optional(),
+    autoDeleteDocuments: z.boolean().optional(),
   }),
   z.object({
     requestId: z.string().uuid(),
@@ -66,6 +70,33 @@ async function updateDeliveryState(
     .eq("id", requestId);
 }
 
+async function deleteVerificationDocuments(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  verificationId: string,
+  deletedBy: string,
+) {
+  const { data: documents } = await admin
+    .from("verification_documents")
+    .select("id, file_path, status")
+    .eq("verification_id", verificationId)
+    .neq("status", "deleted");
+
+  if (!documents?.length) {
+    return;
+  }
+
+  const paths = documents.map((item) => String(item.file_path));
+  await admin.storage.from(VERIFICATION_DOCUMENTS_BUCKET).remove(paths).catch(() => null);
+  await admin
+    .from("verification_documents")
+    .update({
+      status: "deleted",
+      deleted_at: new Date().toISOString(),
+      deleted_by: deletedBy,
+    })
+    .in("id", documents.map((item) => String(item.id)));
+}
+
 async function listVerificationRequests(admin: ReturnType<typeof createAdminSupabaseClient>) {
   const { data, error } = await admin
     .from("student_verification_requests")
@@ -94,7 +125,12 @@ async function listVerificationRequests(admin: ReturnType<typeof createAdminSupa
         trust_score,
         report_count,
         warning_count,
-        student_verification_status
+        student_verification_status,
+        verification_state,
+        verification_score,
+        verification_rejection_reason,
+        student_number,
+        admission_year
       )
     `)
     .order("requested_at", { ascending: false })
@@ -104,9 +140,81 @@ async function listVerificationRequests(admin: ReturnType<typeof createAdminSupa
     throw error;
   }
 
-  return (data ?? []).map((row) => {
+  const requestIds = (data ?? []).map((row) => String(row.id));
+  const { data: verificationRows, error: verificationError } =
+    requestIds.length > 0
+      ? await admin
+          .from("student_verifications")
+          .select("*")
+          .in("request_id", requestIds)
+      : { data: [], error: null };
+
+  if (verificationError) {
+    throw verificationError;
+  }
+
+  const verificationIds = (verificationRows ?? []).map((row) => String(row.id));
+  const { data: documentRows, error: documentsError } =
+    verificationIds.length > 0
+      ? await admin
+          .from("verification_documents")
+          .select("*")
+          .in("verification_id", verificationIds)
+          .order("uploaded_at", { ascending: false })
+      : { data: [], error: null };
+
+  if (documentsError) {
+    throw documentsError;
+  }
+
+  const documentsByVerificationId = new Map<string, Array<Record<string, unknown>>>();
+  for (const row of documentRows ?? []) {
+    const key = String(row.verification_id);
+    documentsByVerificationId.set(key, [...(documentsByVerificationId.get(key) ?? []), row]);
+  }
+
+  const verificationByRequestId = new Map(
+    (verificationRows ?? []).map((row) => [String(row.request_id), row]),
+  );
+
+  return Promise.all((data ?? []).map(async (row) => {
     const school = Array.isArray(row.schools) ? row.schools[0] : row.schools;
     const userProfile = Array.isArray(row.users) ? row.users[0] : row.users;
+    const verification = verificationByRequestId.get(String(row.id));
+    const documents = verification
+      ? await Promise.all(
+          (documentsByVerificationId.get(String(verification.id)) ?? []).map(async (documentRow) => {
+            let fileUrl: string | undefined;
+            if (documentRow.status !== "deleted") {
+              const signed = await admin.storage
+                .from(VERIFICATION_DOCUMENTS_BUCKET)
+                .createSignedUrl(String(documentRow.file_path), 60 * 60);
+              fileUrl = signed.data?.signedUrl;
+            }
+
+            return {
+              id: String(documentRow.id),
+              verificationId: String(documentRow.verification_id),
+              userId: String(documentRow.user_id),
+              documentType: String(documentRow.document_type ?? "student_proof"),
+              fileName: documentRow.file_name ? String(documentRow.file_name) : undefined,
+              filePath: String(documentRow.file_path),
+              fileUrl,
+              mimeType: documentRow.mime_type ? String(documentRow.mime_type) : undefined,
+              sizeBytes:
+                typeof documentRow.size_bytes === "number" ? documentRow.size_bytes : undefined,
+              status:
+                documentRow.status === "reviewed" || documentRow.status === "deleted"
+                  ? documentRow.status
+                  : "uploaded",
+              notes: documentRow.notes ? String(documentRow.notes) : undefined,
+              uploadedAt: String(documentRow.uploaded_at),
+              reviewedAt: documentRow.reviewed_at ? String(documentRow.reviewed_at) : undefined,
+              deletedAt: documentRow.deleted_at ? String(documentRow.deleted_at) : undefined,
+            };
+          }),
+        )
+      : [];
 
     return {
       id: String(row.id),
@@ -147,8 +255,53 @@ async function listVerificationRequests(admin: ReturnType<typeof createAdminSupa
       warningCount:
         typeof userProfile?.warning_count === "number" ? userProfile.warning_count : 0,
       studentVerificationStatus: userProfile?.student_verification_status ?? "unverified",
+      verificationState:
+        verification?.verification_state ??
+        userProfile?.verification_state ??
+        "guest",
+      verificationScore:
+        typeof verification?.score === "number"
+          ? verification.score
+          : typeof userProfile?.verification_score === "number"
+            ? userProfile.verification_score
+            : 0,
+      studentNumber:
+        verification?.student_number
+          ? String(verification.student_number)
+          : userProfile?.student_number
+            ? String(userProfile.student_number)
+            : undefined,
+      admissionYear:
+        typeof verification?.admission_year === "number"
+          ? verification.admission_year
+          : typeof userProfile?.admission_year === "number"
+            ? userProfile.admission_year
+            : undefined,
+      decisionReason: verification?.decision_reason ? String(verification.decision_reason) : undefined,
+      rejectionReason:
+        verification?.rejection_reason
+          ? String(verification.rejection_reason)
+          : userProfile?.verification_rejection_reason
+            ? String(userProfile.verification_rejection_reason)
+            : undefined,
+      autoChecks: Array.isArray(verification?.auto_checks)
+        ? verification.auto_checks.map((item: unknown) => ({
+            code: String((item as Record<string, unknown>).code ?? ""),
+            label: String((item as Record<string, unknown>).label ?? ""),
+            passed: Boolean((item as Record<string, unknown>).passed),
+            weight:
+              typeof (item as Record<string, unknown>).weight === "number"
+                ? Number((item as Record<string, unknown>).weight)
+                : 0,
+            detail:
+              typeof (item as Record<string, unknown>).detail === "string"
+                ? String((item as Record<string, unknown>).detail)
+                : undefined,
+          }))
+        : [],
+      documents,
     };
-  });
+  }));
 }
 
 export async function GET(request: Request) {
@@ -187,6 +340,16 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "인증 요청을 찾을 수 없습니다." }, { status: 404 });
     }
 
+    const { data: verification, error: verificationError } = await admin
+      .from("student_verifications")
+      .select("id, verification_state, decision_reason, rejection_reason")
+      .eq("request_id", target.id)
+      .maybeSingle();
+
+    if (verificationError) {
+      return NextResponse.json({ error: "학생 인증 상세를 찾을 수 없습니다." }, { status: 404 });
+    }
+
     const now = new Date().toISOString();
 
     if (action === "resend") {
@@ -205,6 +368,24 @@ export async function PATCH(request: Request) {
           delivered_at: null,
         })
         .eq("id", target.id);
+
+      if (verification?.id) {
+        await admin
+          .from("student_verifications")
+          .update({
+            verification_state: "guest",
+            score: 0,
+            requires_document_upload: false,
+            auto_checks: [],
+            decision_reason: "학교 메일 재확인 대기",
+            rejection_reason: null,
+            requested_at: requestedAt,
+            email_verified_at: null,
+            reviewed_at: null,
+            reviewed_by: null,
+          })
+          .eq("id", verification.id);
+      }
 
       const origin = resolveAuthSiteUrl(new URL(request.url).origin);
 
@@ -332,12 +513,17 @@ export async function PATCH(request: Request) {
         },
       }).catch(() => null);
     } else if (action === "approve") {
-      const [{ error: userError }, { error: requestError }] = await Promise.all([
+      const autoDeleteDocuments = parsed.data.autoDeleteDocuments ?? true;
+      const [{ error: userError }, { error: requestError }, verificationUpdate] = await Promise.all([
         admin
           .from("users")
           .update({
             school_id: target.school_id,
             school_email: target.school_email,
+            verification_state: "student_verified",
+            verification_reviewed_at: now,
+            verification_rejection_reason: null,
+            verification_score: 100,
             student_verification_status: "verified",
             school_email_verified_at: now,
             verified: true,
@@ -350,13 +536,38 @@ export async function PATCH(request: Request) {
             verified_at: now,
           })
           .eq("id", target.id),
+        verification?.id
+          ? admin
+              .from("student_verifications")
+              .update({
+                verification_state: "student_verified",
+                requires_document_upload: false,
+                reviewed_at: now,
+                reviewed_by: user.id,
+                rejection_reason: null,
+                decision_reason:
+                  verification.decision_reason ??
+                  "관리자 검수로 학생 인증이 승인되었습니다.",
+              })
+              .eq("id", verification.id)
+          : Promise.resolve({ error: null }),
       ]);
 
-      if (userError || requestError) {
+      if (userError || requestError || verificationUpdate.error) {
         return NextResponse.json(
-          { error: userError?.message ?? requestError?.message ?? "인증 승인에 실패했습니다." },
+          {
+            error:
+              userError?.message ??
+              requestError?.message ??
+              verificationUpdate.error?.message ??
+              "인증 승인에 실패했습니다.",
+          },
           { status: 500 },
         );
+      }
+
+      if (verification?.id && autoDeleteDocuments) {
+        await deleteVerificationDocuments(admin, verification.id, user.id);
       }
 
       const { error: notificationError } = await admin
@@ -364,8 +575,8 @@ export async function PATCH(request: Request) {
         .insert({
           user_id: target.user_id,
           type: "verification_approved",
-          title: "학교 메일 인증이 승인되었어요",
-          body: "대학생 전용 기능이 열렸습니다. 강의평, 수강신청 교환, 미팅 기능을 바로 이용할 수 있어요.",
+          title: "대학생 인증이 승인되었어요",
+          body: "학생 인증이 완료되어 글쓰기, 댓글, 쪽지와 채팅까지 사용할 수 있습니다.",
           href: "/profile",
           target_type: "verification",
           target_id: target.id,
@@ -394,12 +605,17 @@ export async function PATCH(request: Request) {
         },
       }).catch(() => null);
     } else {
-      const [{ error: userError }, { error: requestError }] = await Promise.all([
+      const rejectionReason = parsed.data.reason?.trim() || "학생 확인 자료가 부족하거나 학교 규칙과 일치하지 않았습니다.";
+      const autoDeleteDocuments = parsed.data.autoDeleteDocuments ?? false;
+      const [{ error: userError }, { error: requestError }, verificationUpdate] = await Promise.all([
         admin
           .from("users")
           .update({
+            verification_state: "rejected",
+            verification_reviewed_at: now,
+            verification_rejection_reason: rejectionReason,
             student_verification_status: "rejected",
-            school_email_verified_at: null,
+            school_email_verified_at: now,
             verified: false,
           })
           .eq("id", target.user_id),
@@ -410,17 +626,39 @@ export async function PATCH(request: Request) {
             verified_at: null,
           })
           .eq("id", target.id),
+        verification?.id
+          ? admin
+              .from("student_verifications")
+              .update({
+                verification_state: "rejected",
+                reviewed_at: now,
+                reviewed_by: user.id,
+                rejection_reason: rejectionReason,
+                decision_reason: verification?.decision_reason ?? rejectionReason,
+              })
+              .eq("id", verification.id)
+          : Promise.resolve({ error: null }),
       ]);
 
       if (target.verification_user_id && target.verification_user_id !== target.user_id) {
         await admin.auth.admin.deleteUser(target.verification_user_id).catch(() => null);
       }
 
-      if (userError || requestError) {
+      if (userError || requestError || verificationUpdate.error) {
         return NextResponse.json(
-          { error: userError?.message ?? requestError?.message ?? "인증 반려에 실패했습니다." },
+          {
+            error:
+              userError?.message ??
+              requestError?.message ??
+              verificationUpdate.error?.message ??
+              "인증 반려에 실패했습니다.",
+          },
           { status: 500 },
         );
+      }
+
+      if (verification?.id && autoDeleteDocuments) {
+        await deleteVerificationDocuments(admin, verification.id, user.id);
       }
 
       await insertAdminAuditLog(admin, {
@@ -433,6 +671,7 @@ export async function PATCH(request: Request) {
           requestId: target.id,
           userId: target.user_id,
           schoolId: target.school_id,
+          rejectionReason,
         },
       }).catch(() => null);
     }

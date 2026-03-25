@@ -21,6 +21,9 @@ begin
   if not exists (select 1 from pg_type where typname = 'student_verification_status') then
     create type public.student_verification_status as enum ('none', 'unverified', 'pending', 'verified', 'rejected');
   end if;
+  if not exists (select 1 from pg_type where typname = 'verification_state') then
+    create type public.verification_state as enum ('guest', 'email_verified', 'student_verified', 'manual_review', 'rejected');
+  end if;
   if not exists (select 1 from pg_type where typname = 'verification_request_status') then
     create type public.verification_request_status as enum ('pending', 'verified', 'expired', 'cancelled');
   end if;
@@ -135,6 +138,45 @@ create table if not exists public.schools (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.school_email_rules (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  domain citext not null,
+  email_regex text,
+  priority integer not null default 100,
+  is_active boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint school_email_rules_unique unique (school_id, domain)
+);
+
+create table if not exists public.school_student_rules (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null unique references public.schools(id) on delete cascade,
+  student_id_regex text,
+  admission_year_regex text,
+  admission_year_min integer,
+  admission_year_max integer,
+  expected_student_number_length integer,
+  score_email_domain integer not null default 35,
+  score_email_regex integer not null default 20,
+  score_student_id integer not null default 20,
+  score_admission_year integer not null default 15,
+  score_department integer not null default 10,
+  is_active boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.school_departments (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  name text not null,
+  aliases jsonb not null default '[]'::jsonb,
+  normalized_name text not null,
+  is_active boolean not null default true,
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint school_departments_unique unique (school_id, normalized_name)
+);
+
 create or replace function public.generate_user_nickname(
   p_user_id uuid,
   p_school_id uuid default null
@@ -180,8 +222,15 @@ create table if not exists public.users (
   adult_verified boolean not null default false,
   adult_verified_at timestamptz,
   student_verification_status public.student_verification_status not null default 'unverified',
+  verification_state public.verification_state not null default 'guest',
+  verification_score integer not null default 0,
+  verification_requested_at timestamptz,
+  verification_reviewed_at timestamptz,
+  verification_rejection_reason text,
   school_email citext,
   school_email_verified_at timestamptz,
+  student_number text,
+  admission_year integer,
   default_visibility_level public.visibility_level not null default 'school',
   bio text,
   avatar_url text,
@@ -202,10 +251,31 @@ alter table public.users
   add column if not exists student_verification_status public.student_verification_status not null default 'unverified';
 
 alter table public.users
+  add column if not exists verification_state public.verification_state not null default 'guest';
+
+alter table public.users
+  add column if not exists verification_score integer not null default 0;
+
+alter table public.users
+  add column if not exists verification_requested_at timestamptz;
+
+alter table public.users
+  add column if not exists verification_reviewed_at timestamptz;
+
+alter table public.users
+  add column if not exists verification_rejection_reason text;
+
+alter table public.users
   add column if not exists school_email citext;
 
 alter table public.users
   add column if not exists school_email_verified_at timestamptz;
+
+alter table public.users
+  add column if not exists student_number text;
+
+alter table public.users
+  add column if not exists admission_year integer;
 
 alter table public.users
   add column if not exists adult_verified boolean not null default false;
@@ -280,6 +350,17 @@ set school_email_verified_at = coalesce(school_email_verified_at, created_at)
 where student_verification_status = 'verified'
   and school_email_verified_at is null;
 
+update public.users
+set verification_state = case
+  when user_type <> 'student' then 'guest'::public.verification_state
+  when verified or student_verification_status = 'verified' then 'student_verified'::public.verification_state
+  when student_verification_status = 'rejected' then 'rejected'::public.verification_state
+  when school_email_verified_at is not null then 'email_verified'::public.verification_state
+  else 'guest'::public.verification_state
+end
+where verification_state is null
+   or verification_state = 'guest'::public.verification_state;
+
 create table if not exists public.user_roles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.users(id) on delete cascade,
@@ -304,6 +385,45 @@ create table if not exists public.student_verification_requests (
   expires_at timestamptz not null default (timezone('utc', now()) + interval '1 day')
 );
 
+create table if not exists public.student_verifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  school_id uuid not null references public.schools(id) on delete cascade,
+  request_id uuid references public.student_verification_requests(id) on delete set null,
+  school_email citext not null,
+  student_number text,
+  department_name text,
+  admission_year integer,
+  verification_state public.verification_state not null default 'guest',
+  score integer not null default 0,
+  requires_document_upload boolean not null default false,
+  auto_checks jsonb not null default '[]'::jsonb,
+  decision_reason text,
+  rejection_reason text,
+  requested_at timestamptz not null default timezone('utc', now()),
+  email_verified_at timestamptz,
+  reviewed_at timestamptz,
+  reviewed_by uuid references public.users(id) on delete set null
+);
+
+create table if not exists public.verification_documents (
+  id uuid primary key default gen_random_uuid(),
+  verification_id uuid not null references public.student_verifications(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  document_type text not null default 'student_proof',
+  file_name text,
+  file_path text not null,
+  mime_type text,
+  size_bytes bigint,
+  status text not null default 'uploaded',
+  notes text,
+  uploaded_at timestamptz not null default timezone('utc', now()),
+  reviewed_at timestamptz,
+  deleted_at timestamptz,
+  deleted_by uuid references public.users(id) on delete set null,
+  constraint verification_documents_status_check check (status in ('uploaded', 'reviewed', 'deleted'))
+);
+
 alter table public.student_verification_requests
   add column if not exists verification_user_id uuid;
 alter table public.student_verification_requests
@@ -314,6 +434,53 @@ alter table public.student_verification_requests
   add column if not exists delivery_error text;
 alter table public.student_verification_requests
   add column if not exists delivered_at timestamptz;
+
+insert into public.school_email_rules (school_id, domain, email_regex)
+select
+  schools.id,
+  schools.domain,
+  '^[A-Za-z0-9._%+-]+@' || regexp_replace(lower(schools.domain::text), '([.\\-])', '\\\1', 'g') || '$'
+from public.schools
+on conflict (school_id, domain) do update
+set email_regex = excluded.email_regex,
+    is_active = true;
+
+insert into public.school_student_rules (
+  school_id,
+  student_id_regex,
+  admission_year_regex,
+  admission_year_min,
+  admission_year_max,
+  expected_student_number_length
+)
+select
+  schools.id,
+  '^[0-9]{8,10}$',
+  '^(19|20)[0-9]{2}$',
+  1995,
+  extract(year from timezone('utc', now()))::integer,
+  10
+from public.schools
+on conflict (school_id) do nothing;
+
+insert into public.school_departments (school_id, name, normalized_name)
+select distinct
+  item.school_id,
+  item.department_name,
+  lower(regexp_replace(item.department_name, '\s+', '', 'g'))
+from (
+  select school_id, trim(department) as department_name
+  from public.lectures
+  where department is not null and length(trim(department)) > 0
+  union
+  select school_id, trim(department) as department_name
+  from public.users
+  where school_id is not null and department is not null and length(trim(department)) > 0
+) as item
+where item.school_id is not null
+  and item.department_name is not null
+  and length(item.department_name) > 0
+on conflict (school_id, normalized_name) do nothing;
 
 create table if not exists public.posts (
   id uuid primary key default gen_random_uuid(),
@@ -657,6 +824,13 @@ create index if not exists idx_posts_created_at on public.posts (created_at desc
 create index if not exists idx_posts_category_subcategory_created_at on public.posts (category, subcategory, created_at desc);
 create index if not exists idx_posts_school_category_created_at on public.posts (school_id, category, created_at desc);
 create index if not exists idx_student_verification_requests_user_status on public.student_verification_requests (user_id, status, requested_at desc);
+create index if not exists idx_student_verifications_user_requested_at on public.student_verifications (user_id, requested_at desc);
+create index if not exists idx_student_verifications_request_id on public.student_verifications (request_id);
+create index if not exists idx_student_verifications_state_requested_at on public.student_verifications (verification_state, requested_at desc);
+create index if not exists idx_verification_documents_verification_uploaded_at on public.verification_documents (verification_id, uploaded_at desc);
+create index if not exists idx_verification_documents_user_uploaded_at on public.verification_documents (user_id, uploaded_at desc);
+create index if not exists idx_school_email_rules_school_priority on public.school_email_rules (school_id, priority asc);
+create index if not exists idx_school_departments_school_normalized_name on public.school_departments (school_id, normalized_name);
 create unique index if not exists idx_users_verified_school_email on public.users (school_email) where school_email is not null and student_verification_status = 'verified';
 create unique index if not exists idx_users_referral_code on public.users (referral_code) where referral_code is not null;
 create index if not exists idx_comments_post_id on public.comments (post_id);
@@ -712,9 +886,20 @@ begin
 
   if new.user_type <> 'student' then
     new.student_verification_status := 'none';
+    new.verification_state := 'guest';
+    new.verification_score := 0;
     new.school_email_verified_at := null;
     new.verified := false;
     return new;
+  end if;
+
+  if new.verification_state is null then
+    new.verification_state := case
+      when new.student_verification_status = 'verified' then 'student_verified'::public.verification_state
+      when new.student_verification_status = 'rejected' then 'rejected'::public.verification_state
+      when new.school_email_verified_at is not null then 'email_verified'::public.verification_state
+      else 'guest'::public.verification_state
+    end;
   end if;
 
   if new.student_verification_status is null or new.student_verification_status = 'none' then
@@ -724,13 +909,37 @@ begin
     end;
   end if;
 
-  if new.school_email is not null and new.school_id is not null and not exists (
-    select 1
-    from public.schools
-    where id = new.school_id
-      and split_part(lower(new.school_email::text), '@', 2) = lower(domain::text)
-  ) then
-    raise exception '학교 메일 도메인이 학교 정보와 일치하지 않습니다.';
+  if new.school_email is not null and new.school_id is not null then
+    if exists (
+      select 1
+      from public.school_email_rules
+      where school_id = new.school_id
+        and is_active
+    ) then
+      if not exists (
+        select 1
+        from public.school_email_rules
+        where school_id = new.school_id
+          and is_active
+          and split_part(lower(new.school_email::text), '@', 2) = lower(domain::text)
+      ) then
+        raise exception '학교 메일 도메인이 학교 정보와 일치하지 않습니다.';
+      end if;
+    elsif not exists (
+      select 1
+      from public.schools
+      where id = new.school_id
+        and split_part(lower(new.school_email::text), '@', 2) = lower(domain::text)
+    ) then
+      raise exception '학교 메일 도메인이 학교 정보와 일치하지 않습니다.';
+    end if;
+  end if;
+
+  if new.verification_state = 'student_verified' and not actor_can_override then
+    new.verification_state := case
+      when new.school_email is not null then 'guest'::public.verification_state
+      else 'guest'::public.verification_state
+    end;
   end if;
 
   if new.student_verification_status = 'verified' and not actor_can_override then
@@ -740,10 +949,26 @@ begin
     end;
   end if;
 
-  if new.student_verification_status = 'verified' then
+  if new.verification_state = 'student_verified' then
+    new.student_verification_status := 'verified';
     new.school_email_verified_at := coalesce(new.school_email_verified_at, timezone('utc', now()));
     new.verified := true;
+    new.verification_reviewed_at := coalesce(new.verification_reviewed_at, timezone('utc', now()));
+  elsif new.verification_state = 'manual_review' then
+    new.student_verification_status := 'pending';
+    new.verified := false;
+  elsif new.verification_state = 'email_verified' then
+    new.student_verification_status := 'pending';
+    new.school_email_verified_at := coalesce(new.school_email_verified_at, timezone('utc', now()));
+    new.verified := false;
+  elsif new.verification_state = 'rejected' then
+    new.student_verification_status := 'rejected';
+    new.verified := false;
   else
+    new.student_verification_status := case
+      when new.school_email is not null then 'pending'::public.student_verification_status
+      else 'unverified'::public.student_verification_status
+    end;
     new.school_email_verified_at := null;
     new.verified := false;
   end if;
@@ -841,6 +1066,18 @@ as $$
   where id = auth.uid()
 $$;
 
+create or replace function public.current_verification_state()
+returns public.verification_state
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select verification_state
+  from public.users
+  where id = auth.uid()
+$$;
+
 create or replace function public.current_auth_email()
 returns citext
 language sql
@@ -908,7 +1145,7 @@ set search_path = public
 as $$
   select coalesce(
     public.current_user_type() = 'student'
-    and public.current_student_verification_status() = 'verified',
+    and public.current_verification_state() = 'student_verified',
     false
   )
 $$;
@@ -957,6 +1194,11 @@ as $$
     from public.posts
     where id = p_post_id
       and public.can_read_post(scope, school_id)
+      and (
+        subcategory is distinct from 'anonymous'
+        or public.is_verified_student()
+        or public.is_admin()
+      )
   )
 $$;
 
@@ -1278,6 +1520,7 @@ grant execute on function public.list_user_public_profiles_by_ids(uuid[]) to ano
 grant execute on function public.current_user_school_id() to authenticated;
 grant execute on function public.current_user_type() to authenticated;
 grant execute on function public.current_student_verification_status() to authenticated;
+grant execute on function public.current_verification_state() to authenticated;
 grant execute on function public.is_student() to authenticated;
 grant execute on function public.is_verified_student() to authenticated;
 grant execute on function public.is_admin() to authenticated;
@@ -1286,6 +1529,11 @@ alter table public.schools enable row level security;
 alter table public.users enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.student_verification_requests enable row level security;
+alter table public.school_email_rules enable row level security;
+alter table public.school_student_rules enable row level security;
+alter table public.school_departments enable row level security;
+alter table public.student_verifications enable row level security;
+alter table public.verification_documents enable row level security;
 alter table public.posts enable row level security;
 alter table public.comments enable row level security;
 alter table public.lectures enable row level security;
@@ -1381,6 +1629,71 @@ to authenticated
 using (public.is_admin())
 with check (public.is_admin());
 
+drop policy if exists "school email rules read" on public.school_email_rules;
+create policy "school email rules read"
+on public.school_email_rules
+for select
+to authenticated
+using (true);
+
+drop policy if exists "school student rules read" on public.school_student_rules;
+create policy "school student rules read"
+on public.school_student_rules
+for select
+to authenticated
+using (true);
+
+drop policy if exists "school departments read" on public.school_departments;
+create policy "school departments read"
+on public.school_departments
+for select
+to authenticated
+using (true);
+
+drop policy if exists "student verifications own read" on public.student_verifications;
+create policy "student verifications own read"
+on public.student_verifications
+for select
+to authenticated
+using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "student verifications own insert" on public.student_verifications;
+create policy "student verifications own insert"
+on public.student_verifications
+for insert
+to authenticated
+with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "student verifications own update" on public.student_verifications;
+create policy "student verifications own update"
+on public.student_verifications
+for update
+to authenticated
+using (user_id = auth.uid() or public.is_admin())
+with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "verification documents own read" on public.verification_documents;
+create policy "verification documents own read"
+on public.verification_documents
+for select
+to authenticated
+using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "verification documents own insert" on public.verification_documents;
+create policy "verification documents own insert"
+on public.verification_documents
+for insert
+to authenticated
+with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "verification documents own update" on public.verification_documents;
+create policy "verification documents own update"
+on public.verification_documents
+for update
+to authenticated
+using (user_id = auth.uid() or public.is_admin())
+with check (user_id = auth.uid() or public.is_admin());
+
 drop policy if exists "posts read by scope" on public.posts;
 create policy "posts read by scope"
 on public.posts
@@ -1389,6 +1702,7 @@ to anon, authenticated
 using (
   not auto_hidden
   and public.can_read_post(scope, school_id)
+  and (subcategory is distinct from 'anonymous' or public.is_verified_student() or public.is_admin())
   and (category <> 'dating' or public.is_verified_student())
 );
 
@@ -1400,6 +1714,7 @@ to authenticated
 with check (
   auth.uid() = author_id
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
+  and (public.is_verified_student() or public.is_admin())
   and (category <> 'dating' or public.is_verified_student())
   and (
     scope = 'global'
@@ -1448,6 +1763,7 @@ to authenticated
 with check (
   auth.uid() = author_id
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
+  and (public.is_verified_student() or public.is_admin())
   and public.can_read_post_by_id(post_id)
   and not exists (
     select 1
@@ -1913,6 +2229,12 @@ on conflict (id) do update
 set name = excluded.name,
     public = excluded.public;
 
+insert into storage.buckets (id, name, public)
+values ('verification-documents', 'verification-documents', false)
+on conflict (id) do update
+set name = excluded.name,
+    public = excluded.public;
+
 do $$
 begin
   begin
@@ -1925,6 +2247,14 @@ begin
     execute 'create policy "media authenticated update" on storage.objects for update to authenticated using (bucket_id = ''media'' and (((storage.foldername(name))[1] = ''posts'' and (storage.foldername(name))[2] = auth.uid()::text) or ((storage.foldername(name))[1] = ''profiles'' and (storage.foldername(name))[2] = auth.uid()::text))) with check (bucket_id = ''media'' and (((storage.foldername(name))[1] = ''posts'' and (storage.foldername(name))[2] = auth.uid()::text) or ((storage.foldername(name))[1] = ''profiles'' and (storage.foldername(name))[2] = auth.uid()::text)))';
     execute 'drop policy if exists "media authenticated delete" on storage.objects';
     execute 'create policy "media authenticated delete" on storage.objects for delete to authenticated using (bucket_id = ''media'' and (((storage.foldername(name))[1] = ''posts'' and (storage.foldername(name))[2] = auth.uid()::text) or ((storage.foldername(name))[1] = ''profiles'' and (storage.foldername(name))[2] = auth.uid()::text)))';
+    execute 'drop policy if exists "verification documents own read" on storage.objects';
+    execute 'create policy "verification documents own read" on storage.objects for select to authenticated using (bucket_id = ''verification-documents'' and (((storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text) or public.is_admin()))';
+    execute 'drop policy if exists "verification documents own insert" on storage.objects';
+    execute 'create policy "verification documents own insert" on storage.objects for insert to authenticated with check (bucket_id = ''verification-documents'' and (storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text)';
+    execute 'drop policy if exists "verification documents own update" on storage.objects';
+    execute 'create policy "verification documents own update" on storage.objects for update to authenticated using (bucket_id = ''verification-documents'' and (((storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text) or public.is_admin())) with check (bucket_id = ''verification-documents'' and (((storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text) or public.is_admin()))';
+    execute 'drop policy if exists "verification documents own delete" on storage.objects';
+    execute 'create policy "verification documents own delete" on storage.objects for delete to authenticated using (bucket_id = ''verification-documents'' and (((storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text) or public.is_admin()))';
   exception
     when insufficient_privilege then
       raise notice 'Skipping storage.objects policy setup due to insufficient privilege';

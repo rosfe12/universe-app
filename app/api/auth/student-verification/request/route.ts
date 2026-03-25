@@ -8,6 +8,7 @@ import { hasAppSmtpConfig, publicEnv, resolveAuthSiteUrl } from "@/lib/env";
 import { sendStudentVerificationEmail } from "@/lib/email/server-mailer";
 import { logServerEvent } from "@/lib/ops";
 import { canUseSchoolVerificationEmail, normalizeSchoolEmail } from "@/lib/school-email";
+import { normalizeDepartmentName, normalizeStudentNumber } from "@/lib/student-verification";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -18,6 +19,9 @@ const VERIFICATION_REQUEST_DAILY_CAP = 5;
 const requestSchema = z.object({
   schoolId: z.string().uuid(),
   schoolEmail: z.string().email(),
+  studentNumber: z.string().trim().min(4).max(20),
+  department: z.string().trim().min(1).max(80),
+  admissionYear: z.number().int().min(1990).max(new Date().getFullYear() + 1),
   nextPath: z.string().optional(),
 });
 
@@ -90,6 +94,62 @@ async function updateDeliveryState(
     .eq("id", requestId);
 }
 
+async function upsertVerificationSubmission(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  input: {
+    requestId: string;
+    userId: string;
+    schoolId: string;
+    schoolEmail: string;
+    studentNumber: string;
+    department: string;
+    admissionYear: number;
+  },
+) {
+  const { data: existing } = await admin
+    .from("student_verifications")
+    .select("id")
+    .eq("request_id", input.requestId)
+    .maybeSingle();
+
+  const payload = {
+    user_id: input.userId,
+    school_id: input.schoolId,
+    request_id: input.requestId,
+    school_email: input.schoolEmail,
+    student_number: input.studentNumber,
+    department_name: input.department,
+    admission_year: input.admissionYear,
+    verification_state: "guest",
+    score: 0,
+    requires_document_upload: false,
+    auto_checks: [],
+    decision_reason: "학교 메일 확인 대기",
+    rejection_reason: null,
+    requested_at: new Date().toISOString(),
+    email_verified_at: null,
+    reviewed_at: null,
+    reviewed_by: null,
+  };
+
+  if (existing?.id) {
+    await admin.from("student_verifications").update(payload).eq("id", existing.id);
+    return String(existing.id);
+  }
+
+  const { data, error } = await admin
+    .from("student_verifications")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "학생 인증 정보를 저장할 수 없습니다.");
+  }
+
+  return String(data.id);
+}
+
 async function findVerificationAuthUserIdByEmail(
   admin: ReturnType<typeof createAdminSupabaseClient>,
   email: string,
@@ -146,6 +206,8 @@ export async function POST(request: Request) {
   const input = parsed.data;
   const nextPath = sanitizeNextPath(input.nextPath);
   const normalizedSchoolEmail = normalizeSchoolEmail(input.schoolEmail);
+  const normalizedStudentNumber = normalizeStudentNumber(input.studentNumber);
+  const normalizedDepartment = input.department.trim();
   const admin = createAdminSupabaseClient();
 
   const [{ data: profile, error: profileError }, { data: school, error: schoolError }] =
@@ -153,7 +215,7 @@ export async function POST(request: Request) {
       admin
         .from("users")
         .select(
-          "id, user_type, school_id, school_email, student_verification_status, is_restricted",
+          "id, user_type, school_id, school_email, department, student_number, admission_year, verification_state, student_verification_status, is_restricted",
         )
         .eq("id", authUser.id)
         .single(),
@@ -281,9 +343,12 @@ export async function POST(request: Request) {
   }
 
   if (
-    profile.student_verification_status === "verified" &&
+    profile.verification_state === "student_verified" &&
     profile.school_id === input.schoolId &&
-    normalizeSchoolEmail(profile.school_email ?? "") === normalizedSchoolEmail
+    normalizeSchoolEmail(profile.school_email ?? "") === normalizedSchoolEmail &&
+    normalizeStudentNumber(profile.student_number ?? "") === normalizedStudentNumber &&
+    normalizeDepartmentName(profile.department ?? "") === normalizeDepartmentName(normalizedDepartment) &&
+    Number(profile.admission_year ?? 0) === input.admissionYear
   ) {
     return NextResponse.json({ ok: true, alreadyVerified: true });
   }
@@ -314,6 +379,14 @@ export async function POST(request: Request) {
     .update({
       school_id: input.schoolId,
       school_email: normalizedSchoolEmail,
+      department: normalizedDepartment,
+      student_number: normalizedStudentNumber,
+      admission_year: input.admissionYear,
+      verification_state: "guest",
+      verification_score: 0,
+      verification_requested_at: new Date().toISOString(),
+      verification_reviewed_at: null,
+      verification_rejection_reason: null,
       student_verification_status: "pending",
       school_email_verified_at: null,
       verified: false,
@@ -377,6 +450,16 @@ export async function POST(request: Request) {
       delivered_at: null,
     })
     .eq("id", verificationRequestId);
+
+  await upsertVerificationSubmission(admin, {
+    requestId: verificationRequestId,
+    userId: authUser.id,
+    schoolId: input.schoolId,
+    schoolEmail: normalizedSchoolEmail,
+    studentNumber: normalizedStudentNumber,
+    department: normalizedDepartment,
+    admissionYear: input.admissionYear,
+  });
 
   const origin = resolveAuthSiteUrl(new URL(request.url).origin);
 

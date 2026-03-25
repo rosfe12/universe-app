@@ -21,13 +21,14 @@ export async function GET(
       postsResult,
       commentsResult,
       reportsResult,
+      studentVerificationsResult,
       auditLogs,
     ] = await Promise.all([
       admin.auth.admin.getUserById(userId),
       admin
         .from("users")
         .select(
-          "id, email, nickname, name, user_type, school_id, department, grade, verified, adult_verified, student_verification_status, school_email, trust_score, report_count, warning_count, is_restricted, created_at",
+          "id, email, nickname, name, user_type, school_id, department, grade, verified, adult_verified, student_verification_status, verification_state, verification_score, verification_rejection_reason, student_number, admission_year, school_email, trust_score, report_count, warning_count, is_restricted, created_at",
         )
         .eq("id", userId)
         .maybeSingle(),
@@ -53,6 +54,12 @@ export async function GET(
         .eq("target_type", "user")
         .order("created_at", { ascending: false })
         .limit(8),
+      admin
+        .from("student_verifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("requested_at", { ascending: false })
+        .limit(5),
       listAdminAuditLogs(admin),
     ]);
 
@@ -73,6 +80,9 @@ export async function GET(
     }
     if (reportsResult.error) {
       throw reportsResult.error;
+    }
+    if (studentVerificationsResult.error) {
+      throw studentVerificationsResult.error;
     }
 
     if (!profileResult.data) {
@@ -131,6 +141,28 @@ export async function GET(
           profileResult.data.student_verification_status === "rejected"
             ? profileResult.data.student_verification_status
             : "unverified",
+        verificationState:
+          profileResult.data.verification_state === "guest" ||
+          profileResult.data.verification_state === "email_verified" ||
+          profileResult.data.verification_state === "student_verified" ||
+          profileResult.data.verification_state === "manual_review" ||
+          profileResult.data.verification_state === "rejected"
+            ? profileResult.data.verification_state
+            : undefined,
+        verificationScore:
+          typeof profileResult.data.verification_score === "number"
+            ? profileResult.data.verification_score
+            : undefined,
+        studentNumber: profileResult.data.student_number
+          ? String(profileResult.data.student_number)
+          : undefined,
+        admissionYear:
+          typeof profileResult.data.admission_year === "number"
+            ? profileResult.data.admission_year
+            : undefined,
+        verificationRejectionReason: profileResult.data.verification_rejection_reason
+          ? String(profileResult.data.verification_rejection_reason)
+          : undefined,
         schoolEmail: profileResult.data.school_email
           ? String(profileResult.data.school_email)
           : undefined,
@@ -186,6 +218,47 @@ export async function GET(
       auditLogs: auditLogs.filter(
         (item) => item.targetType === "user" && item.targetId === userId,
       ),
+      studentVerifications: (studentVerificationsResult.data ?? []).map((item) => ({
+        id: String(item.id),
+        userId: String(item.user_id),
+        schoolId: String(item.school_id),
+        requestId: item.request_id ? String(item.request_id) : undefined,
+        schoolEmail: String(item.school_email),
+        studentNumber: item.student_number ? String(item.student_number) : undefined,
+        departmentName: item.department_name ? String(item.department_name) : undefined,
+        admissionYear: typeof item.admission_year === "number" ? item.admission_year : undefined,
+        verificationState:
+          item.verification_state === "guest" ||
+          item.verification_state === "email_verified" ||
+          item.verification_state === "student_verified" ||
+          item.verification_state === "manual_review" ||
+          item.verification_state === "rejected"
+            ? item.verification_state
+            : "guest",
+        score: typeof item.score === "number" ? item.score : 0,
+        requiresDocumentUpload: Boolean(item.requires_document_upload),
+        autoChecks: Array.isArray(item.auto_checks)
+          ? item.auto_checks.map((check: unknown) => ({
+              code: String((check as Record<string, unknown>).code ?? ""),
+              label: String((check as Record<string, unknown>).label ?? ""),
+              passed: Boolean((check as Record<string, unknown>).passed),
+              weight:
+                typeof (check as Record<string, unknown>).weight === "number"
+                  ? Number((check as Record<string, unknown>).weight)
+                  : 0,
+              detail:
+                typeof (check as Record<string, unknown>).detail === "string"
+                  ? String((check as Record<string, unknown>).detail)
+                  : undefined,
+            }))
+          : [],
+        decisionReason: item.decision_reason ? String(item.decision_reason) : undefined,
+        rejectionReason: item.rejection_reason ? String(item.rejection_reason) : undefined,
+        requestedAt: String(item.requested_at),
+        emailVerifiedAt: item.email_verified_at ? String(item.email_verified_at) : undefined,
+        reviewedAt: item.reviewed_at ? String(item.reviewed_at) : undefined,
+        reviewedBy: item.reviewed_by ? String(item.reviewed_by) : undefined,
+      })),
     };
 
     return NextResponse.json(detail);

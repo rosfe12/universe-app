@@ -54,6 +54,7 @@ import {
 } from "@/lib/constants";
 import { classifyContentLevel, validatePostSubmission } from "@/lib/moderation";
 import { canAccessSchoolFeatures, canWriteCareer, canWriteCommunity } from "@/lib/permissions";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   addBlockToSnapshot,
   addPostToSnapshot,
@@ -512,8 +513,14 @@ export function CommunityPage({
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCommunity(currentUser);
   const canComposeCareer =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCareer(currentUser);
+  const canAccessAnonymousBoard =
+    (isAuthenticated && canWriteCommunity(currentUser)) || isMasterAdminEmail(currentUser.email);
   const canCompose =
     activeFilter === "career" ? canComposeCareer : canComposeCommunity;
+  const availableFilters = useMemo(
+    () => FILTERS.filter((filter) => filter.value !== "anonymous" || canAccessAnonymousBoard),
+    [canAccessAnonymousBoard],
+  );
 
   const form = useForm<CommunityFormValues>({
     resolver: zodResolver(communitySchema),
@@ -532,6 +539,12 @@ export function CommunityPage({
   });
   const composingBoard = form.watch("board");
   const composingGuide = getBoardGuide(composingBoard);
+
+  useEffect(() => {
+    if (activeFilter === "anonymous" && !canAccessAnonymousBoard) {
+      setActiveFilter("all");
+    }
+  }, [activeFilter, canAccessAnonymousBoard]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
@@ -731,7 +744,7 @@ export function CommunityPage({
             </div>
           </div>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 pt-1">
-            {FILTERS.map((filter) => (
+            {availableFilters.map((filter) => (
               <button
                 key={filter.value}
                 type="button"
@@ -1246,18 +1259,20 @@ export function CommunityPage({
                 >
                   무물
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={form.watch("board") === "anonymous" ? "default" : "outline"}
-                  onClick={() =>
-                    form.setValue("board", "anonymous", {
-                      shouldValidate: true,
-                    })
-                  }
-                >
-                  익명
-                </Button>
+                {canAccessAnonymousBoard ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={form.watch("board") === "anonymous" ? "default" : "outline"}
+                    onClick={() =>
+                      form.setValue("board", "anonymous", {
+                        shouldValidate: true,
+                      })
+                    }
+                  >
+                    익명
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   size="sm"

@@ -23,6 +23,9 @@ import {
   getTradePosts,
 } from "@/lib/mock-queries";
 import { createClient } from "@/lib/supabase/client";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
+import { getVerificationRestrictionMessage } from "@/lib/student-verification";
+import { isVerifiedStudent } from "@/lib/user-identity";
 import type { ReactNode } from "react";
 import type { AppRuntimeSnapshot } from "@/types";
 
@@ -149,6 +152,7 @@ export function MessagesPage({
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
   const { loading, isAuthenticated, currentUser, source } = useAppRuntime(initialSnapshot, "messages");
+  const canUseMessaging = isVerifiedStudent(currentUser) || isMasterAdminEmail(currentUser.email);
   const notifications = getNotifications(currentUser.id);
   const [chatThreads, setChatThreads] = useState<MessageThreadItem[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -347,6 +351,13 @@ export function MessagesPage({
           description="메시지와 채팅을 나눠서 확인할 수 있습니다."
           actionLabel="로그인"
           href="/login?next=/messages"
+        />
+      ) : !canUseMessaging ? (
+        <EmptyState
+          title="대학생 인증을 완료하면 메시지와 채팅을 사용할 수 있습니다"
+          description={getVerificationRestrictionMessage(currentUser.verificationState)}
+          actionLabel="대학생 인증 진행"
+          href="/onboarding?next=/messages&mode=verification"
         />
       ) : messageThreads.length === 0 && chatThreads.length === 0 ? (
         <EmptyState

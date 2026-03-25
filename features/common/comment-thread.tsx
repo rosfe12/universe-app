@@ -31,10 +31,13 @@ import {
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
+import { getVerificationRestrictionMessage } from "@/lib/student-verification";
 import {
   getStandardVisibilityLevel,
   isLegendarySenior,
   isReliabilityRestricted,
+  isVerifiedStudent,
 } from "@/lib/user-identity";
 import {
   getCommentsByPostId,
@@ -130,9 +133,14 @@ export function CommentThread({
   const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
   const [visibleRootComments, setVisibleRootComments] = useState(INITIAL_VISIBLE_ROOT_COMMENTS);
   const [expandedReplyParents, setExpandedReplyParents] = useState<string[]>([]);
+  const canUseStudentFeatures =
+    isVerifiedStudent(runtimeUser) || isMasterAdminEmail(runtimeUser.email);
   const canComment =
     canCommentOverride ??
-    (isAuthenticated && hasCompletedOnboarding(runtimeUser) && !isReliabilityBlocked);
+    (isAuthenticated &&
+      hasCompletedOnboarding(runtimeUser) &&
+      !isReliabilityBlocked &&
+      canUseStudentFeatures);
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
@@ -392,13 +400,17 @@ export function CommentThread({
           nextPath={pathname}
           title={
             accountRequiredTitle ??
-            (isAuthenticated ? "프로필 설정을 마치면 댓글을 남길 수 있습니다" : "로그인 후 댓글을 남길 수 있습니다")
+            (isAuthenticated
+              ? "대학생 인증을 완료하면 댓글을 남길 수 있습니다"
+              : "로그인 후 댓글을 남길 수 있습니다")
           }
           description={
             accountRequiredDescription ??
-            (isAuthenticated ? "학교와 유저 타입을 먼저 정하면 대부분의 게시판에서 바로 참여할 수 있습니다." : "읽기는 자유롭게, 댓글은 로그인 후 바로 이어서 작성할 수 있습니다.")
+            (isAuthenticated
+              ? getVerificationRestrictionMessage(runtimeUser.verificationState)
+              : "읽기는 자유롭게, 댓글은 로그인 후 바로 이어서 작성할 수 있습니다.")
           }
-          ctaLabel={isAuthenticated ? "프로필 설정 이어가기" : "로그인하고 댓글 쓰기"}
+          ctaLabel={isAuthenticated ? "대학생 인증 진행" : "로그인하고 댓글 쓰기"}
         />
       )}
     </div>

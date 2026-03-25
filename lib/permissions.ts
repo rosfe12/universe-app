@@ -10,11 +10,11 @@ function canParticipate(user: User) {
 }
 
 export function canWriteAdmissionQuestion(user: User) {
-  return canParticipate(user);
+  return canParticipate(user) && isVerifiedStudent(user);
 }
 
 export function canWriteAdmissionAnswer(user: User) {
-  return canParticipate(user);
+  return canParticipate(user) && isVerifiedStudent(user);
 }
 
 export function canWriteLectureReview(user: User) {
@@ -34,13 +34,13 @@ export function canAccessDating(user: User) {
 }
 
 export function canWriteCommunity(user: User) {
-  return canParticipate(user) && user.userType === "student";
+  return canParticipate(user) && isVerifiedStudent(user);
 }
 
 export function canWriteFreshmanZone(user: User) {
-  return canParticipate(user) && user.userType === "freshman" && Boolean(user.schoolId);
+  return canParticipate(user) && isVerifiedStudent(user);
 }
 
 export function canWriteCareer(user: User) {
-  return canParticipate(user) && (user.userType === "student" || user.userType === "freshman");
+  return canParticipate(user) && isVerifiedStudent(user);
 }

@@ -137,6 +137,15 @@ type CurrentProfile = {
   verified: boolean;
   adult_verified: boolean;
   adult_verified_at: string | null;
+  verification_state:
+    | "guest"
+    | "email_verified"
+    | "student_verified"
+    | "manual_review"
+    | "rejected"
+    | null;
+  verification_score: number | null;
+  verification_rejection_reason: string | null;
   student_verification_status:
     | "none"
     | "unverified"
@@ -145,6 +154,8 @@ type CurrentProfile = {
     | "rejected"
     | null;
   school_email: string | null;
+  student_number: string | null;
+  admission_year: number | null;
   is_restricted: boolean;
   trust_score: number;
   default_visibility_level: "anonymous" | "school" | "schoolDepartment" | "profile";
@@ -181,7 +192,7 @@ async function requireCurrentUser() {
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select(
-      "id, user_type, school_id, department, grade, verified, adult_verified, adult_verified_at, student_verification_status, school_email, is_restricted, trust_score, default_visibility_level",
+      "id, user_type, school_id, department, grade, verified, adult_verified, adult_verified_at, verification_state, verification_score, verification_rejection_reason, student_verification_status, school_email, student_number, admission_year, is_restricted, trust_score, default_visibility_level",
     )
     .eq("id", user.id)
     .single();
@@ -249,11 +260,10 @@ function requireVerifiedStudentProfile(
   }
 
   if (
-    !profile.verified ||
-    profile.student_verification_status !== "verified" ||
+    profile.verification_state !== "student_verified" ||
     !profile.school_id
   ) {
-    throw new Error(`${featureLabel}은 학교 메일 인증을 완료한 대학생만 사용할 수 있습니다.`);
+    throw new Error(`${featureLabel}은 대학생 인증을 완료한 학생만 사용할 수 있습니다.`);
   }
 }
 
@@ -857,15 +867,10 @@ export async function createPost(input: z.input<typeof postSchema>) {
   const values = postSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
-  if (profile.user_type === "applicant" && values.category !== "admission") {
-    throw new Error("입시생은 입시 게시판만 작성할 수 있습니다.");
-  }
-  if (values.category === "dating") {
-    requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기", authUser.email);
-  }
+  requireVerifiedStudentProfile(profile, "글쓰기", authUser.email);
   if (values.subcategory === "freshman") {
-    if (profile.user_type !== "freshman" || !profile.school_id) {
-      throw new Error("새내기존 글쓰기는 같은 학교 예비입학생만 사용할 수 있습니다.");
+    if (!profile.school_id) {
+      throw new Error("같은 학교 사용자만 새내기 게시판을 작성할 수 있습니다.");
     }
   }
   await guardPostSubmission(supabase, authUser.id, values);
@@ -960,6 +965,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   const values = commentSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
+  requireVerifiedStudentProfile(profile, "댓글 작성", authUser.email);
   const { data: post, error: postError } = await supabase
     .from("posts")
     .select("id, author_id, category, subcategory, metadata")
@@ -982,9 +988,6 @@ export async function createComment(input: z.input<typeof commentSchema>) {
     }
   }
 
-  if (profile.user_type === "applicant" && post.category !== "admission") {
-    throw new Error("입시생은 입시 게시판에만 댓글을 남길 수 있습니다.");
-  }
   if (post.category === "community") {
     const { data: postDetail, error: postDetailError } = await supabase
       .from("posts")
@@ -998,11 +1001,10 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 
     if (postDetail.subcategory === "freshman") {
       if (
-        profile.user_type !== "freshman" ||
         !profile.school_id ||
         postDetail.school_id !== profile.school_id
       ) {
-        throw new Error("새내기존 댓글은 같은 학교 예비입학생만 작성할 수 있습니다.");
+        throw new Error("같은 학교 사용자만 새내기 게시판 댓글을 작성할 수 있습니다.");
       }
     }
   }

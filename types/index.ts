@@ -61,6 +61,12 @@ export type ExamStyle = "multipleChoice" | "essay" | "project" | "mixed";
 export type GradingStyle = "tough" | "medium" | "generous";
 export type MatchStrength = "high" | "medium" | "low";
 export type VisibilityLevel = "anonymous" | "school" | "schoolDepartment" | "profile";
+export type VerificationState =
+  | "guest"
+  | "email_verified"
+  | "student_verified"
+  | "manual_review"
+  | "rejected";
 export type StudentVerificationStatus =
   | "none"
   | "unverified"
@@ -74,6 +80,85 @@ export interface School {
   name: string;
   domain: string;
   city: string;
+}
+
+export interface SchoolEmailRule {
+  id: string;
+  schoolId: string;
+  domain: string;
+  emailRegex?: string;
+  priority: number;
+  isActive: boolean;
+}
+
+export interface SchoolStudentRule {
+  id: string;
+  schoolId: string;
+  studentIdRegex?: string;
+  admissionYearRegex?: string;
+  admissionYearMin?: number;
+  admissionYearMax?: number;
+  expectedStudentNumberLength?: number;
+  scoreEmailDomain?: number;
+  scoreEmailRegex?: number;
+  scoreStudentId?: number;
+  scoreAdmissionYear?: number;
+  scoreDepartment?: number;
+}
+
+export interface SchoolDepartment {
+  id: string;
+  schoolId: string;
+  name: string;
+  aliases?: string[];
+  isActive: boolean;
+}
+
+export interface VerificationAutoCheck {
+  code: string;
+  label: string;
+  passed: boolean;
+  weight: number;
+  detail?: string;
+}
+
+export interface VerificationDocument {
+  id: string;
+  verificationId: string;
+  userId: string;
+  documentType: string;
+  fileName?: string;
+  filePath: string;
+  fileUrl?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  status: "uploaded" | "reviewed" | "deleted";
+  notes?: string;
+  uploadedAt: string;
+  reviewedAt?: string;
+  deletedAt?: string;
+}
+
+export interface StudentVerification {
+  id: string;
+  userId: string;
+  schoolId: string;
+  requestId?: string;
+  schoolEmail: string;
+  studentNumber?: string;
+  departmentName?: string;
+  admissionYear?: number;
+  verificationState: VerificationState;
+  score: number;
+  requiresDocumentUpload: boolean;
+  autoChecks: VerificationAutoCheck[];
+  decisionReason?: string;
+  rejectionReason?: string;
+  requestedAt: string;
+  emailVerifiedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  documents?: VerificationDocument[];
 }
 
 export interface User {
@@ -92,8 +177,15 @@ export interface User {
   adultVerified?: boolean;
   adultVerifiedAt?: string;
   studentVerificationStatus?: StudentVerificationStatus;
+  verificationState?: VerificationState;
+  verificationScore?: number;
+  verificationRequestedAt?: string;
+  verificationReviewedAt?: string;
+  verificationRejectionReason?: string;
   schoolEmail?: string;
   schoolEmailVerifiedAt?: string;
+  studentNumber?: string;
+  admissionYear?: number;
   trustScore: number;
   reportCount?: number;
   warningCount?: number;
@@ -315,6 +407,14 @@ export interface StudentVerificationRequest {
   reportCount: number;
   warningCount: number;
   studentVerificationStatus: StudentVerificationStatus;
+  verificationState?: VerificationState;
+  verificationScore?: number;
+  studentNumber?: string;
+  admissionYear?: number;
+  decisionReason?: string;
+  rejectionReason?: string;
+  autoChecks?: VerificationAutoCheck[];
+  documents?: VerificationDocument[];
 }
 
 export interface AdminAuditLog {
@@ -348,6 +448,11 @@ export interface AdminMember {
   verified: boolean;
   adultVerified: boolean;
   studentVerificationStatus: StudentVerificationStatus;
+  verificationState?: VerificationState;
+  verificationScore?: number;
+  studentNumber?: string;
+  admissionYear?: number;
+  verificationRejectionReason?: string;
   schoolEmail?: string;
   trustScore: number;
   reportCount: number;
@@ -395,6 +500,7 @@ export interface AdminMemberDetail {
   recentComments: AdminMemberCommentSummary[];
   receivedReports: AdminMemberReportSummary[];
   auditLogs: AdminAuditLog[];
+  studentVerifications?: StudentVerification[];
 }
 
 export interface AdminSchoolStat {
@@ -494,6 +600,9 @@ export interface TradeMatchInsight {
 
 export interface AppCollections {
   schools: School[];
+  schoolEmailRules?: SchoolEmailRule[];
+  schoolStudentRules?: SchoolStudentRule[];
+  schoolDepartments?: SchoolDepartment[];
   users: User[];
   posts: Post[];
   comments: Comment[];

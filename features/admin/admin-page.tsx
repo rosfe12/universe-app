@@ -104,6 +104,10 @@ async function loadAdminVerificationRequests() {
 async function updateAdminVerificationRequest(
   requestId: string,
   action: "approve" | "reject" | "resend",
+  options?: {
+    reason?: string;
+    autoDeleteDocuments?: boolean;
+  },
 ) {
   const response = await fetch("/api/admin/verification-requests", {
     method: "PATCH",
@@ -114,6 +118,8 @@ async function updateAdminVerificationRequest(
     body: JSON.stringify({
       requestId,
       action,
+      reason: options?.reason,
+      autoDeleteDocuments: options?.autoDeleteDocuments,
     }),
   });
   const payload = (await response.json().catch(() => null)) as
@@ -915,11 +921,15 @@ export function AdminPage({
   async function mutateVerificationRequest(
     requestId: string,
     action: "approve" | "reject" | "resend",
+    options?: {
+      reason?: string;
+      autoDeleteDocuments?: boolean;
+    },
   ) {
     setVerificationError("");
     setVerificationPendingId(requestId);
     try {
-      const result = await updateAdminVerificationRequest(requestId, action);
+      const result = await updateAdminVerificationRequest(requestId, action, options);
       setVerificationItems(result.items);
       setCanManageVerifications(result.canManage);
       setVerificationError(result.error ?? "");
@@ -1709,8 +1719,14 @@ export function AdminPage({
               canManage={canManageVerifications}
               pendingAction={verificationPendingId === item.id ? "pending" : undefined}
               onApprove={() => {
+                if (!confirmAdminAction("학생 인증 요청을 승인하시겠습니까?")) {
+                  return;
+                }
+                const autoDeleteDocuments = confirmAdminAction(
+                  "승인 후 업로드된 인증 문서를 자동 삭제하시겠습니까?",
+                );
                 if (source === "supabase") {
-                  void mutateVerificationRequest(item.id, "approve");
+                  void mutateVerificationRequest(item.id, "approve", { autoDeleteDocuments });
                   return;
                 }
 
@@ -1731,8 +1747,21 @@ export function AdminPage({
                 if (!confirmAdminAction("학생 인증 요청을 반려하시겠습니까?")) {
                   return;
                 }
+                const reason = window.prompt(
+                  "반려 사유를 입력해주세요.",
+                  item.rejectionReason ?? "학생 확인 자료가 부족하거나 학교 규칙과 일치하지 않았습니다.",
+                );
+                if (reason === null) {
+                  return;
+                }
+                const autoDeleteDocuments = confirmAdminAction(
+                  "반려 후 업로드된 인증 문서를 자동 삭제하시겠습니까?",
+                );
                 if (source === "supabase") {
-                  void mutateVerificationRequest(item.id, "reject");
+                  void mutateVerificationRequest(item.id, "reject", {
+                    reason,
+                    autoDeleteDocuments,
+                  });
                   return;
                 }
 
@@ -2471,6 +2500,21 @@ export function AdminPage({
                   <span>{selectedMember.schoolEmail ?? "미입력"}</span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">학생 인증</span>
+                  <span>{getVerificationStateLabel(selectedMember.verificationState)}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">인증 점수</span>
+                  <span>{selectedMember.verificationScore ?? 0}점</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">학번 / 입학년도</span>
+                  <span>
+                    {selectedMember.studentNumber ?? "미입력"}
+                    {selectedMember.admissionYear ? ` · ${selectedMember.admissionYear}` : ""}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">신뢰 점수</span>
                   <TrustScoreBadge score={selectedMember.trustScore} />
                 </div>
@@ -2541,6 +2585,24 @@ export function AdminPage({
               ) : null}
               {selectedMemberDetail ? (
                 <div className="grid gap-3 md:grid-cols-2">
+                  <AdminMemberActivitySection
+                    title="학생 인증 이력"
+                    emptyLabel="학생 인증 이력이 없습니다."
+                    items={(selectedMemberDetail.studentVerifications ?? []).map((item) => ({
+                      id: item.id,
+                      title: `${getVerificationStateLabel(item.verificationState)} · ${item.score}점`,
+                      body: [
+                        item.studentNumber ? `학번 ${item.studentNumber}` : null,
+                        item.departmentName ?? null,
+                        item.admissionYear ? `${item.admissionYear}학번` : null,
+                        item.decisionReason ?? item.rejectionReason ?? null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · "),
+                      meta: item.requestedAt.slice(0, 16),
+                      danger: item.verificationState === "rejected",
+                    }))}
+                  />
                   <AdminMemberActivitySection
                     title="최근 작성 글"
                     emptyLabel="작성 글이 없습니다."
@@ -2628,6 +2690,10 @@ function VerificationRequestCard({
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline">{item.schoolEmail}</Badge>
+          <Badge variant="secondary">{getVerificationStateLabel(item.verificationState)}</Badge>
+          <Badge variant="secondary">점수 {item.verificationScore ?? 0}</Badge>
+          {item.studentNumber ? <Badge variant="secondary">학번 {item.studentNumber}</Badge> : null}
+          {item.admissionYear ? <Badge variant="secondary">{item.admissionYear}학번</Badge> : null}
           <Badge variant={getDeliveryStatusVariant(item.deliveryStatus)}>
             {getDeliveryStatusLabel(item.deliveryMethod, item.deliveryStatus)}
           </Badge>
@@ -2638,6 +2704,58 @@ function VerificationRequestCard({
         <p className="text-sm text-muted-foreground">
           요청 {item.requestedAt.slice(0, 16)} · 만료 {item.expiresAt.slice(0, 16)}
         </p>
+        {item.decisionReason ? (
+          <p className="text-sm text-muted-foreground">{item.decisionReason}</p>
+        ) : null}
+        {item.rejectionReason ? (
+          <p className="text-sm text-rose-600">{item.rejectionReason}</p>
+        ) : null}
+        {item.autoChecks?.length ? (
+          <div className="space-y-2 rounded-[18px] border border-border/60 bg-secondary/40 px-3 py-3">
+            <p className="text-xs font-semibold text-muted-foreground">자동 판정</p>
+            <div className="space-y-2">
+              {item.autoChecks.map((check) => (
+                <div key={check.code} className="flex items-start justify-between gap-3 text-xs">
+                  <div>
+                    <p className="font-medium text-foreground">{check.label}</p>
+                    {check.detail ? (
+                      <p className="text-muted-foreground">{check.detail}</p>
+                    ) : null}
+                  </div>
+                  <span className={check.passed ? "text-emerald-600" : "text-rose-600"}>
+                    {check.passed ? `+${check.weight}` : "실패"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        {item.documents?.length ? (
+          <div className="space-y-2 rounded-[18px] border border-border/60 bg-secondary/40 px-3 py-3">
+            <p className="text-xs font-semibold text-muted-foreground">업로드 문서</p>
+            <div className="space-y-2">
+              {item.documents
+                .filter((document) => document.status !== "deleted")
+                .map((document) => (
+                  <div key={document.id} className="flex items-center justify-between gap-3 text-xs">
+                    <span className="truncate text-foreground">
+                      {document.fileName ?? "추가 인증 자료"}
+                    </span>
+                    {document.fileUrl ? (
+                      <Link
+                        href={document.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline-offset-4 hover:underline"
+                      >
+                        보기
+                      </Link>
+                    ) : null}
+                  </div>
+                ))}
+            </div>
+          </div>
+        ) : null}
         {item.deliveryError ? (
           <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
             발송 오류 · {item.deliveryError}
@@ -3111,6 +3229,16 @@ function getVerificationStatusVariant(status: StudentVerificationRequest["status
   if (status === "pending") return "warning";
   if (status === "expired") return "danger";
   return "outline";
+}
+
+function getVerificationStateLabel(
+  state?: StudentVerificationRequest["verificationState"],
+) {
+  if (state === "student_verified") return "학생 인증 완료";
+  if (state === "email_verified") return "메일 확인";
+  if (state === "manual_review") return "수동 검토";
+  if (state === "rejected") return "반려";
+  return "대기";
 }
 
 function getUserTypeLabel(userType: AdminMember["userType"]) {

@@ -34,6 +34,10 @@ import {
   generateAutoNickname,
   getDefaultVisibilityLevel,
 } from "@/lib/user-identity";
+import {
+  deriveVerificationState,
+  toVerificationState,
+} from "@/lib/student-verification";
 import { buildInviteCode, normalizeReferralCode } from "@/lib/referral-code";
 import { getPostViewCount } from "@/lib/utils";
 import type {
@@ -53,6 +57,7 @@ import type {
   TradePost,
   User,
   UserType,
+  VerificationState,
   VisibilityLevel,
 } from "@/types";
 
@@ -570,6 +575,29 @@ const toStudentVerificationStatus = (
   return verified ? "verified" : "unverified";
 };
 
+const toVerificationStateValue = (
+  value?: string | null,
+  input?: {
+    userType?: UserType | null;
+    studentVerificationStatus?: string | null;
+    verified?: boolean;
+    schoolEmailVerifiedAt?: string | null;
+  },
+): VerificationState => {
+  const direct = toVerificationState(value);
+  if (direct) {
+    return direct;
+  }
+
+  return deriveVerificationState({
+    userType: input?.userType,
+    verificationState: value,
+    studentVerificationStatus: input?.studentVerificationStatus,
+    verified: input?.verified,
+    schoolEmailVerifiedAt: input?.schoolEmailVerifiedAt,
+  });
+};
+
 const toVisibilityLevel = (
   value?: string | null,
 ): VisibilityLevel | undefined => {
@@ -596,9 +624,19 @@ function mapSchoolRow(row: Record<string, unknown>): School {
 
 function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
   const school = schools.find((item) => item.id === String(row.school_id ?? ""));
+  const userType = toUserType(row.user_type as string | null | undefined);
   const studentVerificationStatus = toStudentVerificationStatus(
     row.student_verification_status as string | null | undefined,
     Boolean(row.verified),
+  );
+  const verificationState = toVerificationStateValue(
+    row.verification_state as string | null | undefined,
+    {
+      userType,
+      studentVerificationStatus,
+      verified: Boolean(row.verified),
+      schoolEmailVerifiedAt: row.school_email_verified_at as string | null | undefined,
+    },
   );
 
   return {
@@ -616,18 +654,32 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     referralCode: row.referral_code ? String(row.referral_code) : undefined,
     referredByCode: row.referred_by_code ? String(row.referred_by_code) : undefined,
     referredByUserId: row.referred_by_user_id ? String(row.referred_by_user_id) : undefined,
-    userType: toUserType(row.user_type as string | null | undefined),
+    userType,
     schoolId: row.school_id ? String(row.school_id) : undefined,
     department: row.department ? String(row.department) : undefined,
     grade: typeof row.grade === "number" ? row.grade : undefined,
-    verified: studentVerificationStatus === "verified" || Boolean(row.verified),
+    verified: verificationState === "student_verified" || Boolean(row.verified),
     adultVerified: Boolean(row.adult_verified),
     adultVerifiedAt: row.adult_verified_at ? String(row.adult_verified_at) : undefined,
     studentVerificationStatus,
+    verificationState,
+    verificationScore:
+      typeof row.verification_score === "number" ? row.verification_score : 0,
+    verificationRequestedAt: row.verification_requested_at
+      ? String(row.verification_requested_at)
+      : undefined,
+    verificationReviewedAt: row.verification_reviewed_at
+      ? String(row.verification_reviewed_at)
+      : undefined,
+    verificationRejectionReason: row.verification_rejection_reason
+      ? String(row.verification_rejection_reason)
+      : undefined,
     schoolEmail: row.school_email ? String(row.school_email) : undefined,
     schoolEmailVerifiedAt: row.school_email_verified_at
       ? String(row.school_email_verified_at)
       : undefined,
+    studentNumber: row.student_number ? String(row.student_number) : undefined,
+    admissionYear: typeof row.admission_year === "number" ? row.admission_year : undefined,
     trustScore: typeof row.trust_score === "number" ? row.trust_score : 0,
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,

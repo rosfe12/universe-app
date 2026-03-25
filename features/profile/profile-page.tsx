@@ -192,23 +192,26 @@ export function ProfilePage({
       <section className="space-y-2 border-b border-gray-100 pb-5">
           {schoolVerified ? (
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              학교 메일 인증이 완료되었습니다. 대학생 전용 기능이 바로 열립니다.
+              대학생 인증이 완료되었습니다. 글쓰기와 댓글, 쪽지, 채팅이 바로 열립니다.
             </div>
           ) : null}
           {verificationPending ? (
             <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              학교 메일로 인증 링크를 보냈습니다. 받은 메일에서 인증을 마치면 권한이 열립니다.
+              학교 메일 확인이 완료되면 학생 정보 자동 판정이 진행됩니다.
             </div>
           ) : null}
-          <p className="text-sm font-semibold text-gray-900">학생 인증 상태</p>
+          <p className="text-sm font-semibold text-gray-900">대학생 인증 상태</p>
           <p className="text-sm text-gray-500">
             {currentUser.schoolEmail
               ? `인증 대상 메일: ${currentUser.schoolEmail}`
               : "학교 메일이 아직 등록되지 않았습니다."}
           </p>
           <p className="text-sm text-gray-500">
-            강의평, 수강신청 매칭, 미팅 기능은 학교 메일 인증이 끝나면 바로 열립니다.
+            {verificationBadge.restrictionMessage}
           </p>
+          {currentUser.verificationRejectionReason ? (
+            <p className="text-sm text-rose-600">{currentUser.verificationRejectionReason}</p>
+          ) : null}
           {verificationBadge.status !== "verified" ? (
             <Button
               type="button"
@@ -216,7 +219,7 @@ export function ProfilePage({
               className="w-full sm:w-auto"
               onClick={() => router.push("/onboarding?next=/profile&mode=verification")}
             >
-              학교 메일 다시 인증
+              대학생 인증 진행
             </Button>
           ) : null}
       </section>

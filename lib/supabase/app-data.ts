@@ -45,6 +45,10 @@ import {
   getDefaultVisibilityLevel,
   getStandardVisibilityLevel,
 } from "@/lib/user-identity";
+import {
+  deriveVerificationState,
+  toVerificationState,
+} from "@/lib/student-verification";
 import { buildInviteCode, clearRememberedReferralCode, normalizeReferralCode } from "@/lib/referral-code";
 import { getPostViewCount } from "@/lib/utils";
 import type {
@@ -64,6 +68,9 @@ import type {
   ReportStatus,
   School,
   StudentVerificationStatus,
+  StudentVerification,
+  VerificationDocument,
+  VerificationState,
   TradePost,
   User,
   UserType,
@@ -99,6 +106,29 @@ const toStudentVerificationStatus = (
   }
 
   return verified ? "verified" : "unverified";
+};
+
+const toVerificationStateValue = (
+  value?: string | null,
+  input?: {
+    userType?: UserType | null;
+    studentVerificationStatus?: string | null;
+    verified?: boolean;
+    schoolEmailVerifiedAt?: string | null;
+  },
+): VerificationState => {
+  const direct = toVerificationState(value);
+  if (direct) {
+    return direct;
+  }
+
+  return deriveVerificationState({
+    userType: input?.userType,
+    verificationState: value,
+    studentVerificationStatus: input?.studentVerificationStatus,
+    verified: input?.verified,
+    schoolEmailVerifiedAt: input?.schoolEmailVerifiedAt,
+  });
 };
 
 const toVisibilityLevel = (
@@ -608,9 +638,19 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
   const school = schools.find(
     (item) => item.id === String(row.school_id ?? ""),
   );
+  const userType = toUserType(row.user_type as string | null | undefined);
   const studentVerificationStatus = toStudentVerificationStatus(
     row.student_verification_status as string | null | undefined,
     Boolean(row.verified),
+  );
+  const verificationState = toVerificationStateValue(
+    row.verification_state as string | null | undefined,
+    {
+      userType,
+      studentVerificationStatus,
+      verified: Boolean(row.verified),
+      schoolEmailVerifiedAt: row.school_email_verified_at as string | null | undefined,
+    },
   );
 
   return {
@@ -628,18 +668,32 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     referralCode: row.referral_code ? String(row.referral_code) : undefined,
     referredByCode: row.referred_by_code ? String(row.referred_by_code) : undefined,
     referredByUserId: row.referred_by_user_id ? String(row.referred_by_user_id) : undefined,
-    userType: toUserType(row.user_type as string | null | undefined),
+    userType,
     schoolId: row.school_id ? String(row.school_id) : undefined,
     department: row.department ? String(row.department) : undefined,
     grade: typeof row.grade === "number" ? row.grade : undefined,
-    verified: studentVerificationStatus === "verified" || Boolean(row.verified),
+    verified: verificationState === "student_verified" || Boolean(row.verified),
     adultVerified: Boolean(row.adult_verified),
     adultVerifiedAt: row.adult_verified_at ? String(row.adult_verified_at) : undefined,
     studentVerificationStatus,
+    verificationState,
+    verificationScore:
+      typeof row.verification_score === "number" ? row.verification_score : 0,
+    verificationRequestedAt: row.verification_requested_at
+      ? String(row.verification_requested_at)
+      : undefined,
+    verificationReviewedAt: row.verification_reviewed_at
+      ? String(row.verification_reviewed_at)
+      : undefined,
+    verificationRejectionReason: row.verification_rejection_reason
+      ? String(row.verification_rejection_reason)
+      : undefined,
     schoolEmail: row.school_email ? String(row.school_email) : undefined,
     schoolEmailVerifiedAt: row.school_email_verified_at
       ? String(row.school_email_verified_at)
       : undefined,
+    studentNumber: row.student_number ? String(row.student_number) : undefined,
+    admissionYear: typeof row.admission_year === "number" ? row.admission_year : undefined,
     trustScore: typeof row.trust_score === "number" ? row.trust_score : 0,
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,
@@ -1503,6 +1557,9 @@ export async function signOutFromSupabase() {
 export async function requestStudentVerificationEmail(input: {
   schoolId: string;
   schoolEmail: string;
+  studentNumber: string;
+  department: string;
+  admissionYear: number;
   nextPath?: string;
 }) {
   const response = await fetch("/api/auth/student-verification/request", {
@@ -1528,6 +1585,124 @@ export async function requestStudentVerificationEmail(input: {
     data: payload ?? { ok: true },
     error: null,
   };
+}
+
+function mapVerificationDocumentRow(row: Record<string, unknown>): VerificationDocument {
+  return {
+    id: String(row.id),
+    verificationId: String(row.verification_id),
+    userId: String(row.user_id),
+    documentType: String(row.document_type ?? "student_proof"),
+    fileName: row.file_name ? String(row.file_name) : undefined,
+    filePath: String(row.file_path),
+    fileUrl: row.file_url ? String(row.file_url) : undefined,
+    mimeType: row.mime_type ? String(row.mime_type) : undefined,
+    sizeBytes: typeof row.size_bytes === "number" ? row.size_bytes : undefined,
+    status:
+      row.status === "reviewed" || row.status === "deleted" ? row.status : "uploaded",
+    notes: row.notes ? String(row.notes) : undefined,
+    uploadedAt: String(row.uploaded_at ?? new Date().toISOString()),
+    reviewedAt: row.reviewed_at ? String(row.reviewed_at) : undefined,
+    deletedAt: row.deleted_at ? String(row.deleted_at) : undefined,
+  };
+}
+
+function mapStudentVerificationRow(row: Record<string, unknown>): StudentVerification {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    schoolId: String(row.school_id),
+    requestId: row.request_id ? String(row.request_id) : undefined,
+    schoolEmail: String(row.school_email),
+    studentNumber: row.student_number ? String(row.student_number) : undefined,
+    departmentName: row.department_name ? String(row.department_name) : undefined,
+    admissionYear: typeof row.admission_year === "number" ? row.admission_year : undefined,
+    verificationState: toVerificationStateValue(row.verification_state as string | null | undefined),
+    score: typeof row.score === "number" ? row.score : 0,
+    requiresDocumentUpload: Boolean(row.requires_document_upload),
+    autoChecks: Array.isArray(row.auto_checks)
+      ? (row.auto_checks as StudentVerification["autoChecks"])
+      : [],
+    decisionReason: row.decision_reason ? String(row.decision_reason) : undefined,
+    rejectionReason: row.rejection_reason ? String(row.rejection_reason) : undefined,
+    requestedAt: String(row.requested_at ?? new Date().toISOString()),
+    emailVerifiedAt: row.email_verified_at ? String(row.email_verified_at) : undefined,
+    reviewedAt: row.reviewed_at ? String(row.reviewed_at) : undefined,
+    reviewedBy: row.reviewed_by ? String(row.reviewed_by) : undefined,
+    documents: Array.isArray(row.documents)
+      ? row.documents.map((item) => mapVerificationDocumentRow(item as Record<string, unknown>))
+      : undefined,
+  };
+}
+
+export async function getCurrentStudentVerification() {
+  const response = await fetch("/api/auth/student-verification/current", {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { verification?: Record<string, unknown> | null; error?: string }
+    | null;
+
+  if (!response.ok) {
+    return {
+      data: null,
+      error: new Error(payload?.error ?? "학생 인증 상태를 불러오지 못했습니다."),
+    };
+  }
+
+  return {
+    data: payload?.verification ? mapStudentVerificationRow(payload.verification) : null,
+    error: null,
+  };
+}
+
+export async function uploadStudentVerificationDocument(input: {
+  file: File;
+  documentType?: string;
+}) {
+  const formData = new FormData();
+  formData.set("file", input.file);
+  if (input.documentType) {
+    formData.set("documentType", input.documentType);
+  }
+
+  const response = await fetch("/api/auth/student-verification/document", {
+    method: "POST",
+    body: formData,
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { document?: Record<string, unknown>; error?: string }
+    | null;
+
+  if (!response.ok || !payload?.document) {
+    throw new Error(payload?.error ?? "추가 인증 자료 업로드에 실패했습니다.");
+  }
+
+  return mapVerificationDocumentRow(payload.document);
+}
+
+export async function deleteStudentVerificationDocument(documentId: string) {
+  const response = await fetch("/api/auth/student-verification/document", {
+    method: "DELETE",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ documentId }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { ok?: boolean; error?: string }
+    | null;
+
+  if (!response.ok) {
+    throw new Error(payload?.error ?? "추가 인증 자료 삭제에 실패했습니다.");
+  }
+
+  return payload?.ok ?? true;
 }
 
 export async function upsertUserProfile(user: User) {
@@ -1562,8 +1737,22 @@ export async function upsertUserProfile(user: User) {
       student_verification_status:
         user.studentVerificationStatus ??
         (user.userType === "student" ? "unverified" : "none"),
+      verification_state:
+        user.verificationState ??
+        deriveVerificationState({
+          userType: user.userType,
+          studentVerificationStatus: user.studentVerificationStatus,
+          verified: user.verified,
+          schoolEmailVerifiedAt: user.schoolEmailVerifiedAt,
+        }),
+      verification_score: user.verificationScore ?? 0,
+      verification_requested_at: user.verificationRequestedAt ?? null,
+      verification_reviewed_at: user.verificationReviewedAt ?? null,
+      verification_rejection_reason: user.verificationRejectionReason ?? null,
       school_email: user.schoolEmail ?? null,
       school_email_verified_at: user.schoolEmailVerifiedAt ?? null,
+      student_number: user.studentNumber ?? null,
+      admission_year: user.admissionYear ?? null,
       trust_score: user.trustScore,
       report_count: user.reportCount ?? 0,
       warning_count: user.warningCount ?? 0,
