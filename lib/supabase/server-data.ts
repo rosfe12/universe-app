@@ -416,7 +416,7 @@ function buildLectureQuery(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
   context: RuntimeQueryContext,
 ) {
-  const base = supabase.from("lectures").select(LECTURE_SELECT).order("course_name", { ascending: true });
+  const base = supabase.from("lectures").select(LECTURE_SELECT).order("name", { ascending: true });
 
   switch (context.scope) {
     case "home":
@@ -796,7 +796,7 @@ function mapLectureRow(row: Record<string, unknown>): Lecture {
     id: String(row.id),
     schoolId: String(row.school_id),
     semester: String(row.semester),
-    courseName: String(row.name ?? row.course_name),
+    courseName: String(row.name),
     professor: String(row.professor),
     section: String(row.section),
     dayTime: String(row.day_time ?? ""),

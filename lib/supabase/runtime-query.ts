@@ -70,7 +70,6 @@ export const LECTURE_SELECT = [
   "school_id",
   "semester",
   "name",
-  "course_name",
   "professor",
   "section",
   "day_time",

@@ -732,7 +732,7 @@ async function createTradeMatchNotifications(
     await Promise.all([
       supabase
         .from("lectures")
-        .select("id, course_name")
+        .select("id, name")
         .in("id", [input.haveLectureId, input.wantLectureId]),
       supabase
         .from("trade_posts")
@@ -750,7 +750,7 @@ async function createTradeMatchNotifications(
   }
 
   const lectureNameMap = new Map(
-    (lectureRows ?? []).map((lecture) => [lecture.id, lecture.course_name]),
+    (lectureRows ?? []).map((lecture) => [lecture.id, lecture.name]),
   );
   const haveLectureName =
     lectureNameMap.get(input.haveLectureId) ?? "원하는 강의";
