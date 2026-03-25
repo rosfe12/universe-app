@@ -1141,6 +1141,24 @@ export function SchoolPage({
               setSuccessMessage("입시 질문이 등록되었습니다.");
             })}
           >
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">입시 질문은 조건이 보여야 답이 붙습니다</p>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  지역, 계열, 성적 정보, 관심 학과를 같이 적으면 재학생이나 선배가 훨씬 구체적으로 답하기 쉽습니다.
+                </p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["전형명/면접", "내신·수능 등급", "관심 학과", "현재 가장 궁금한 한 가지"].map((tip) => (
+                  <span
+                    key={tip}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground"
+                  >
+                    {tip}
+                  </span>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>제목</Label>
               <Input placeholder="예: 이 학교 교과전형 면접 분위기 궁금해요" {...admissionForm.register("title")} />
@@ -1269,6 +1287,24 @@ export function SchoolPage({
               setSuccessMessage("학교 게시판 글이 등록되었습니다.");
             })}
           >
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">학교 게시판은 생활형 질문이 반응이 빠릅니다</p>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  도서관, 통학, 팀플, 학생식당처럼 학교 안에서 바로 겪는 상황을 적으면 실용적인 답이 빨리 붙습니다.
+                </p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["장소/시간 포함", "내가 겪는 상황", "원하는 답변 방향"].map((tip) => (
+                  <span
+                    key={tip}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground"
+                  >
+                    {tip}
+                  </span>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>제목</Label>
               <Input placeholder="예: 도서관 자리 보통 몇 시쯤 차나요?" {...schoolBoardForm.register("title")} />
@@ -1389,6 +1425,24 @@ export function SchoolPage({
               setSuccessMessage("새내기 게시글이 등록되었습니다.");
             })}
           >
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">새내기 글은 경험 공유가 중요합니다</p>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  오티, 기숙사, 시간표, 동아리처럼 입학 전 불안한 포인트를 구체적으로 적으면 선배 답변이 더 잘 붙습니다.
+                </p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["입학 전 궁금한 점", "생활 팁 질문", "준비물/복장/친구 사귀기"].map((tip) => (
+                  <span
+                    key={tip}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground"
+                  >
+                    {tip}
+                  </span>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>제목</Label>
               <Input placeholder="예: 오티 복장 어느 정도로 맞추나요?" {...freshmanForm.register("title")} />

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { LoadingState } from "@/components/shared/loading-state";
 import { TrustScoreBadge } from "@/components/shared/trust-score-badge";
 import { Badge } from "@/components/ui/badge";
@@ -632,6 +633,7 @@ export function AdminPage({
   const [reportPendingId, setReportPendingId] = useState<string | null>(null);
   const [moderationPendingKey, setModerationPendingKey] = useState<string | null>(null);
   const [adminDenied, setAdminDenied] = useState(false);
+  const [adminFeedback, setAdminFeedback] = useState<string | null>(null);
   const pendingVerificationCount = verificationItems.filter(
     (item) => item.status === "pending",
   ).length;
@@ -668,6 +670,10 @@ export function AdminPage({
     }
 
     return window.confirm(message);
+  }
+
+  function publishAdminFeedback(message: string) {
+    setAdminFeedback(message);
   }
 
   async function refreshMemberList(
@@ -922,6 +928,13 @@ export function AdminPage({
         setAuditError("");
       }
       if (!result.error) {
+        publishAdminFeedback(
+          action === "approve"
+            ? "학생 인증을 승인했습니다."
+            : action === "reject"
+              ? "학생 인증 요청을 반려했습니다."
+              : "학생 인증 메일을 다시 보냈습니다.",
+        );
         await refresh();
         void refreshMemberList();
         void refreshOverview();
@@ -950,6 +963,7 @@ export function AdminPage({
         setAuditLogs(result.auditLogs);
         setAuditError("");
       }
+      publishAdminFeedback("신고 상태를 변경했습니다.");
       await refresh();
       void refreshMemberList();
       void refreshOverview();
@@ -985,6 +999,19 @@ export function AdminPage({
         setAuditLogs(result.auditLogs);
         setAuditError("");
       }
+      publishAdminFeedback(
+        input.action === "warn_user"
+          ? "경고를 반영했습니다."
+          : input.action === "restrict_user"
+            ? "활동 정지를 적용했습니다."
+            : input.action === "unrestrict_user"
+              ? "활동 정지를 해제했습니다."
+              : input.action === "hide_content"
+                ? "콘텐츠를 숨김 처리했습니다."
+                : input.action === "restore_content"
+                  ? "숨김 콘텐츠를 복구했습니다."
+                  : "자동 숨김 상태를 유지했습니다.",
+      );
       await refresh();
       void refreshMemberList();
       void refreshOverview();
@@ -1006,6 +1033,13 @@ export function AdminPage({
         setRoleError(result.error);
         return;
       }
+      publishAdminFeedback(
+        role === "none"
+          ? "관리 권한을 해제했습니다."
+          : role === "admin"
+            ? "관리자 권한으로 변경했습니다."
+            : "운영자 권한으로 변경했습니다.",
+      );
       void refreshRoles();
       void refreshMemberList();
       void refreshOverview();
@@ -1042,6 +1076,7 @@ export function AdminPage({
       setFeatureFlags(featureFlags);
       return;
     }
+    publishAdminFeedback("운영 플래그를 변경했습니다.");
     setFeatureFlags(result?.featureFlags ?? nextFlags);
   }
 
@@ -1068,6 +1103,7 @@ export function AdminPage({
     }
     setNotices(result?.notices ?? []);
     setNoticeDraft({ title: "", body: "", startsAt: "", endsAt: "" });
+    publishAdminFeedback("공지사항을 등록했습니다.");
   }
 
   async function mutateNotice(item: AdminNotice, patch: Partial<AdminNotice>) {
@@ -1089,6 +1125,7 @@ export function AdminPage({
       return;
     }
     setNotices(result?.notices ?? []);
+    publishAdminFeedback("공지 설정을 변경했습니다.");
   }
 
   async function removeNotice(id: string) {
@@ -1102,6 +1139,7 @@ export function AdminPage({
       return;
     }
     setNotices(result?.notices ?? []);
+    publishAdminFeedback("공지사항을 삭제했습니다.");
   }
 
   async function submitPromotion() {
@@ -1138,6 +1176,7 @@ export function AdminPage({
       targetUserType: "",
       priority: 0,
     });
+    publishAdminFeedback("프로모션을 등록했습니다.");
   }
 
   async function mutatePromotion(item: AdminPromotion, patch: Partial<AdminPromotion>) {
@@ -1162,6 +1201,7 @@ export function AdminPage({
       return;
     }
     setPromotions(result?.promotions ?? []);
+    publishAdminFeedback("프로모션 설정을 변경했습니다.");
   }
 
   async function removePromotion(id: string) {
@@ -1175,6 +1215,7 @@ export function AdminPage({
       return;
     }
     setPromotions(result?.promotions ?? []);
+    publishAdminFeedback("프로모션을 삭제했습니다.");
   }
 
   function downloadMembersCsv() {
@@ -1197,6 +1238,9 @@ export function AdminPage({
       subtitle="신고, 숨김, 사용자 상태를 한 곳에서 관리합니다"
       showTabs={false}
     >
+      {adminFeedback ? (
+        <ActionFeedbackBanner message={adminFeedback} onClose={() => setAdminFeedback(null)} />
+      ) : null}
       {!loading && !isAuthenticated ? (
         <Card className="border-dashed border-white/80 bg-white/92">
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
@@ -1684,6 +1728,9 @@ export function AdminPage({
                 );
               }}
               onReject={() => {
+                if (!confirmAdminAction("학생 인증 요청을 반려하시겠습니까?")) {
+                  return;
+                }
                 if (source === "supabase") {
                   void mutateVerificationRequest(item.id, "reject");
                   return;
@@ -1783,6 +1830,9 @@ export function AdminPage({
                           moderationPendingKey === `hide_content:${contentTargetType}:${item.targetId}`
                         }
                         onClick={() => {
+                          if (!confirmAdminAction("콘텐츠를 빠르게 숨김 처리하시겠습니까?")) {
+                            return;
+                          }
                           if (source === "supabase") {
                             void mutateModerationAction({
                               action: "hide_content",
@@ -1807,6 +1857,9 @@ export function AdminPage({
                           `restore_content:${contentTargetType}:${item.targetId}`
                         }
                         onClick={() => {
+                          if (!confirmAdminAction("숨김 콘텐츠를 복구하시겠습니까?")) {
+                            return;
+                          }
                           if (source === "supabase") {
                             void mutateModerationAction({
                               action: "restore_content",
@@ -2058,6 +2111,9 @@ export function AdminPage({
                       void mutateNotice(item, { active: !item.active });
                     }}
                     onDelete={() => {
+                      if (!confirmAdminAction("공지사항을 삭제하시겠습니까?")) {
+                        return;
+                      }
                       void removeNotice(item.id);
                     }}
                   />
@@ -2175,6 +2231,9 @@ export function AdminPage({
                       void mutatePromotion(item, { active: !item.active });
                     }}
                     onDelete={() => {
+                      if (!confirmAdminAction("프로모션을 삭제하시겠습니까?")) {
+                        return;
+                      }
                       void removePromotion(item.id);
                     }}
                   />
@@ -2244,6 +2303,9 @@ export function AdminPage({
                   variant="outline"
                   disabled={moderationPendingKey === `restore_content:${item.targetType}:${item.id}`}
                   onClick={() => {
+                    if (!confirmAdminAction("숨김 콘텐츠를 복구하시겠습니까?")) {
+                      return;
+                    }
                     if (source === "supabase") {
                       void mutateModerationAction({
                         action: "restore_content",
@@ -2268,6 +2330,9 @@ export function AdminPage({
                   size="sm"
                   disabled={moderationPendingKey === `confirm_content:${item.targetType}:${item.id}`}
                   onClick={() => {
+                    if (!confirmAdminAction("자동 숨김 상태를 유지하시겠습니까?")) {
+                      return;
+                    }
                     if (source === "supabase") {
                       void mutateModerationAction({
                         action: "confirm_content",

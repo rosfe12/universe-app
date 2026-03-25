@@ -166,6 +166,76 @@ function getComposeLabel(filter: SharedFilter) {
   return "고민 글쓰기";
 }
 
+function getBoardTitlePlaceholder(board: CommunityFormValues["board"]) {
+  if (board === "free") return "예: 시험 끝나고 다들 뭐 하나요?";
+  if (board === "advice") return "예: 취업 준비 늦은 것 같을 때 뭐부터 정리하나요?";
+  if (board === "ask") return "예: 자취 시작할 때 꼭 사야 하는 것만 추천해주세요";
+  if (board === "anonymous") return "예: 오늘은 그냥 익명으로 털어놓고 싶은 말";
+  if (board === "hot") return "예: 연애할 때 이건 진짜 이해 안 되는 포인트";
+  if (board === "jobPosting") return "예: 이번 주 대외활동·인턴 마감 일정 모음";
+  return "예: 상반기 서류 준비 순서 어떻게 가져가고 있나요?";
+}
+
+function getBoardContentPlaceholder(board: CommunityFormValues["board"]) {
+  if (board === "free") return "가볍게 공유하고 싶은 학교 밖 이야기나 요즘 분위기를 적어보세요.";
+  if (board === "advice") return "지금 상황, 고민 포인트, 이미 해본 것까지 적으면 더 좋은 답이 붙습니다.";
+  if (board === "ask") return "딱 하나 궁금한 질문부터 적어보세요. 짧을수록 답이 빨리 붙습니다.";
+  if (board === "anonymous") return "개인 감정이나 속마음을 적어도 됩니다. 개인정보만 빼고 편하게 적어보세요.";
+  if (board === "hot") return "반응이 붙기 쉬운 주제여도 노골적 표현, 도배, 개인정보 노출은 제한됩니다.";
+  if (board === "jobPosting") return "공고 일정, 지원 조건, 링크 요약을 함께 적으면 저장 가치가 높아집니다.";
+  return "정리한 정보, 커피챗 후기, 면접 후기처럼 실제 도움이 되는 내용을 적어보세요.";
+}
+
+function getBoardGuide(board: CommunityFormValues["board"]) {
+  if (board === "free") {
+    return {
+      title: "자유 게시판은 가볍고 빠르게",
+      description: "짧은 근황이나 한 줄 토픽도 좋지만, 질문이나 공감 포인트가 있으면 반응이 더 빨리 붙습니다.",
+      tips: ["핵심 주제를 제목에 먼저", "본문은 2~4줄이면 충분", "읽는 사람이 바로 댓글 달 수 있게 마무리"],
+    };
+  }
+  if (board === "advice") {
+    return {
+      title: "고민 게시판은 상황 설명이 중요합니다",
+      description: "배경, 현재 고민, 원하는 답변 방향이 있으면 훨씬 좋은 댓글이 달립니다.",
+      tips: ["상황 1줄 요약", "내가 막히는 포인트", "비슷한 경험 있는 사람에게 묻기"],
+    };
+  }
+  if (board === "ask") {
+    return {
+      title: "무물은 질문 하나에 집중",
+      description: "여러 질문을 섞기보다 하나만 명확하게 물어보면 답변 속도와 질이 올라갑니다.",
+      tips: ["질문은 한 문장으로", "필요하면 조건만 짧게", "답정너 표현은 줄이기"],
+    };
+  }
+  if (board === "anonymous") {
+    return {
+      title: "익명 게시판은 부담 없이",
+      description: "글과 댓글이 모두 익명 처리됩니다. 다만 개인정보, 실명 언급, 특정인 저격은 제한됩니다.",
+      tips: ["신상 정보는 빼기", "감정은 솔직하게", "특정인 비방은 피하기"],
+    };
+  }
+  if (board === "hot") {
+    return {
+      title: "핫갤은 반응이 빠른 주제 중심",
+      description: "자극적인 주제여도 노골적 음란 표현이나 반복 도배는 자동 제한됩니다.",
+      tips: ["밸런스게임/토론형 주제", "짧고 강한 제목", "댓글 붙을 포인트 남기기"],
+    };
+  }
+  if (board === "jobPosting") {
+    return {
+      title: "채용공고는 정보형으로",
+      description: "기업명, 일정, 지원 포인트를 정리해주면 저장 가치가 높고 공유도 잘 됩니다.",
+      tips: ["마감 일정 표기", "누가 보면 좋은지", "링크나 모집 핵심 요약"],
+    };
+  }
+  return {
+    title: "취업정보는 바로 도움 되는 내용으로",
+    description: "자소서, 면접, 커피챗, 인턴 후기처럼 실제 취준에 도움 되는 내용을 정리해보세요.",
+    tips: ["핵심 배운 점부터", "실제 사례 중심", "읽고 바로 적용 가능한 팁"],
+  };
+}
+
 function getFilterFromBoard(board: CommunityFormValues["board"]): SharedFilter {
   if (board === "careerInfo" || board === "jobPosting") return "career";
   return board;
@@ -465,6 +535,8 @@ export function CommunityPage({
       pollOptions: ["", ""],
     },
   });
+  const composingBoard = form.watch("board");
+  const composingGuide = getBoardGuide(composingBoard);
 
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
@@ -1231,11 +1303,30 @@ export function CommunityPage({
             </div>
             <div className="space-y-2">
               <Label htmlFor="title">제목</Label>
-              <Input id="title" {...form.register("title")} />
+              <Input id="title" placeholder={getBoardTitlePlaceholder(composingBoard)} {...form.register("title")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="content">내용</Label>
-              <Textarea id="content" {...form.register("content")} />
+              <Textarea id="content" placeholder={getBoardContentPlaceholder(composingBoard)} {...form.register("content")} />
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">{composingGuide.title}</p>
+                <p className="text-xs leading-5 text-muted-foreground">{composingGuide.description}</p>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {composingGuide.tips.map((tip) => (
+                  <span
+                    key={tip}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground"
+                  >
+                    {tip}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                노골적 음란 표현, 개인정보 노출, 반복 도배성 글은 자동 제한될 수 있습니다.
+              </p>
             </div>
             <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
               <div className="flex items-center justify-between gap-3">
