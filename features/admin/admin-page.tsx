@@ -1237,6 +1237,11 @@ export function AdminPage({
       {!loading && (!isAuthenticated || adminDenied) ? null : (
         <>
       {loading ? <LoadingState /> : null}
+      <div className="flex justify-end">
+        <Button asChild type="button" variant="outline">
+          <Link href="/home">CAMVERSE 앱으로 이동</Link>
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         {summaryCards.map((item) => (
           <SummaryCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
