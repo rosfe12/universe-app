@@ -18,6 +18,14 @@ const patchSchema = z.discriminatedUnion("action", [
     userId: z.string().uuid(),
   }),
   z.object({
+    action: z.literal("restrict_user"),
+    userId: z.string().uuid(),
+  }),
+  z.object({
+    action: z.literal("unrestrict_user"),
+    userId: z.string().uuid(),
+  }),
+  z.object({
     action: z.literal("hide_content"),
     targetType: moderatedTargetTypeSchema,
     targetId: z.string().uuid(),
@@ -43,7 +51,11 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
     }
 
-    if (parsed.data.action === "warn_user") {
+    if (
+      parsed.data.action === "warn_user" ||
+      parsed.data.action === "restrict_user" ||
+      parsed.data.action === "unrestrict_user"
+    ) {
       const { userId } = parsed.data;
       const { data: targetUser, error: targetUserError } = await admin
         .from("users")
@@ -55,8 +67,16 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: "사용자를 찾을 수 없습니다." }, { status: 404 });
       }
 
-      const nextWarningCount = (targetUser.warning_count ?? 0) + 1;
-      const nextRestricted = Boolean(targetUser.is_restricted) || nextWarningCount >= 3;
+      const nextWarningCount =
+        parsed.data.action === "warn_user"
+          ? (targetUser.warning_count ?? 0) + 1
+          : targetUser.warning_count ?? 0;
+      const nextRestricted =
+        parsed.data.action === "restrict_user"
+          ? true
+          : parsed.data.action === "unrestrict_user"
+            ? false
+            : Boolean(targetUser.is_restricted) || nextWarningCount >= 3;
 
       const { error: updateUserError } = await admin
         .from("users")
@@ -72,10 +92,20 @@ export async function PATCH(request: Request) {
 
       await insertAdminAuditLog(admin, {
         adminUserId: user.id,
-        action: "user_warned",
+        action:
+          parsed.data.action === "warn_user"
+            ? "user_warned"
+            : parsed.data.action === "restrict_user"
+              ? "user_restricted"
+              : "user_unrestricted",
         targetType: "user",
         targetId: userId,
-        summary: `사용자 경고를 ${nextWarningCount}회로 올렸습니다.`,
+        summary:
+          parsed.data.action === "warn_user"
+            ? `사용자 경고를 ${nextWarningCount}회로 올렸습니다.`
+            : parsed.data.action === "restrict_user"
+              ? "사용자 활동을 정지했습니다."
+              : "사용자 활동 정지를 해제했습니다.",
         metadata: {
           userId,
           warningCount: nextWarningCount,

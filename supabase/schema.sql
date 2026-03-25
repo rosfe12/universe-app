@@ -598,6 +598,12 @@ create table if not exists public.ops_events (
   constraint ops_events_level_check check (level in ('info', 'warn', 'error'))
 );
 
+create table if not exists public.admin_settings (
+  key text primary key,
+  value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create index if not exists idx_posts_school_id on public.posts (school_id);
 create index if not exists idx_posts_scope on public.posts (scope);
 create index if not exists idx_posts_author_created_at on public.posts (author_id, created_at desc);
@@ -1251,6 +1257,7 @@ alter table public.notifications enable row level security;
 alter table public.media_assets enable row level security;
 alter table public.admin_audit_logs enable row level security;
 alter table public.ops_events enable row level security;
+alter table public.admin_settings enable row level security;
 
 drop policy if exists "schools read" on public.schools;
 create policy "schools read"
@@ -1826,6 +1833,21 @@ on public.ops_events
 for select
 to authenticated
 using (public.is_admin());
+
+drop policy if exists "admin settings read" on public.admin_settings;
+create policy "admin settings read"
+on public.admin_settings
+for select
+to authenticated
+using (public.is_admin());
+
+drop policy if exists "admin settings manage" on public.admin_settings;
+create policy "admin settings manage"
+on public.admin_settings
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
 
 insert into storage.buckets (id, name, public)
 values ('media', 'media', true)

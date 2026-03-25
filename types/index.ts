@@ -352,6 +352,72 @@ export interface AdminMember {
   isRestricted: boolean;
   role?: "admin" | "moderator";
   createdAt: string;
+  lastSignInAt?: string;
+}
+
+export interface AdminOverview {
+  totalMembers: number;
+  restrictedMembers: number;
+  adminCount: number;
+  moderatorCount: number;
+  pendingVerificationCount: number;
+  failedVerificationCount: number;
+  hiddenContentCount: number;
+  reportCount: number;
+  reviewingReportCount: number;
+  reportReasonStats: Array<{
+    reason: ReportReason;
+    count: number;
+  }>;
+  moderationHistory: AdminAuditLog[];
+  recentErrorEvents: AdminOpsEvent[];
+  recentSlowEvents: AdminOpsEvent[];
+  schools: School[];
+}
+
+export interface AdminOpsEvent {
+  id: string;
+  level: "info" | "warn" | "error";
+  event: string;
+  source: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AdminFeatureFlags {
+  premiumLimitsEnabled: boolean;
+  adsEnabled: boolean;
+  promotedPostsEnabled: boolean;
+  schoolTargetAdsEnabled: boolean;
+}
+
+export interface AdminNotice {
+  id: string;
+  title: string;
+  body: string;
+  pinned: boolean;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface AdminPromotion {
+  id: string;
+  title: string;
+  description: string;
+  placement: string;
+  linkUrl?: string;
+  targetSchoolId?: string;
+  targetUserType?: UserType;
+  priority: number;
+  active: boolean;
+  pinned: boolean;
+  createdAt: string;
+}
+
+export interface AdminSettingsPayload {
+  featureFlags: AdminFeatureFlags;
+  notices: AdminNotice[];
+  promotions: AdminPromotion[];
 }
 
 export interface LectureSummary extends Lecture {

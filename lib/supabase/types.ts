@@ -594,6 +594,18 @@ type AdminAuditLogInsert = {
   created_at?: string;
 };
 
+type AdminSettingRow = {
+  key: string;
+  value: Json;
+  updated_at: string;
+};
+
+type AdminSettingInsert = {
+  key: string;
+  value?: Json;
+  updated_at?: string;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -619,6 +631,7 @@ export interface Database {
       notifications: SupabaseTable<NotificationRow, NotificationInsert>;
       media_assets: SupabaseTable<MediaAssetRow, MediaAssetInsert>;
       admin_audit_logs: SupabaseTable<AdminAuditLogRow, AdminAuditLogInsert>;
+      admin_settings: SupabaseTable<AdminSettingRow, AdminSettingInsert>;
     };
     Views: Record<string, never>;
     Functions: {

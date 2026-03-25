@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { insertAdminAuditLog, listAdminAuditLogs, requireAdminUser } from "@/app/api/admin/_utils";
 import { logServerEvent } from "@/lib/ops";
+import type { Report } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,79 @@ const patchSchema = z.object({
   reportId: z.string().uuid(),
   status: z.enum(["pending", "reviewing", "confirmed", "dismissed"]),
 });
+
+export async function GET(request: Request) {
+  try {
+    const { admin } = await requireAdminUser(request);
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status")?.trim();
+
+    let builder = admin
+      .from("reports")
+      .select("id, reporter_id, target_type, target_id, reason, memo, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (
+      status === "pending" ||
+      status === "reviewing" ||
+      status === "confirmed" ||
+      status === "dismissed"
+    ) {
+      builder = builder.eq("status", status);
+    }
+
+    const { data, error } = await builder;
+
+    if (error) {
+      throw error;
+    }
+
+    const reports: Report[] = (data ?? []).map((row) => ({
+      id: String(row.id),
+      reporterId: String(row.reporter_id),
+      targetType:
+        row.target_type === "post" ||
+        row.target_type === "comment" ||
+        row.target_type === "user" ||
+        row.target_type === "review" ||
+        row.target_type === "profile"
+          ? row.target_type
+          : "post",
+      targetId: String(row.target_id),
+      reason:
+        row.reason === "misinformation" ||
+        row.reason === "abuse" ||
+        row.reason === "spam" ||
+        row.reason === "harassment" ||
+        row.reason === "fraud" ||
+        row.reason === "sexual_content" ||
+        row.reason === "other"
+          ? row.reason
+          : "other",
+      memo: row.memo ? String(row.memo) : undefined,
+      status:
+        row.status === "pending" ||
+        row.status === "reviewing" ||
+        row.status === "confirmed" ||
+        row.status === "dismissed" ||
+        row.status === "reviewed"
+          ? row.status
+          : "pending",
+      createdAt: String(row.created_at),
+    }));
+
+    return NextResponse.json({ reports });
+  } catch (error) {
+    logServerEvent("error", "admin_reports_failed", {
+      message: error instanceof Error ? error.message : "unknown",
+    });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "신고 목록을 불러올 수 없습니다." },
+      { status: 403 },
+    );
+  }
+}
 
 export async function PATCH(request: Request) {
   try {

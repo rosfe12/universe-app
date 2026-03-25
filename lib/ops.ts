@@ -79,14 +79,20 @@ export function logPerformanceEvent(
   event: string,
   metadata?: Record<string, unknown>,
 ) {
-  console.info(
-    JSON.stringify({
-      level: "info",
-      event,
-      metadata: metadata ?? {},
-      timestamp: new Date().toISOString(),
-    }),
-  );
+  const payload = {
+    level: "info",
+    event,
+    metadata: metadata ?? {},
+    timestamp: new Date().toISOString(),
+  };
+
+  console.info(JSON.stringify(payload));
+
+  if (!hasAdminSupabaseEnv()) {
+    return;
+  }
+
+  void persistOpsEvent("warn", event, payload.metadata);
 }
 
 export async function measureServerOperation<T>(

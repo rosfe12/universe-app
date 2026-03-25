@@ -4,6 +4,7 @@ import { ensureMasterAdminRole } from "@/lib/admin/master-admin";
 import { publicEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/supabase/types";
 import type { AdminAuditLog } from "@/types";
 
 export async function requireAdminUser(request: Request) {
@@ -138,4 +139,40 @@ export async function listAdminAuditLogs(
       createdAt: String(row.created_at),
     }),
   );
+}
+
+export async function getAdminSetting<T>(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  key: string,
+  fallback: T,
+) {
+  const { data, error } = await admin
+    .from("admin_settings")
+    .select("value")
+    .eq("key", key)
+    .maybeSingle();
+
+  if (error || !data) {
+    return fallback;
+  }
+
+  return (data.value as T | null) ?? fallback;
+}
+
+export async function setAdminSetting<T>(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  key: string,
+  value: T,
+) {
+  const { error } = await admin
+    .from("admin_settings")
+    .upsert({
+      key,
+      value: value as Json,
+      updated_at: new Date().toISOString(),
+    });
+
+  if (error) {
+    throw error;
+  }
 }
