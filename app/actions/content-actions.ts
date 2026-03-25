@@ -1393,147 +1393,161 @@ export async function createLectureReview(input: z.input<typeof lectureReviewSch
 }
 
 export async function createTradePost(input: z.input<typeof tradePostSchema>) {
-  const values = tradePostSchema.parse(input);
-  const { supabase, authUser, profile } = await requireCurrentUser();
-  ensureWritableTrustLevel(profile);
-  requireVerifiedStudentProfile(profile, "수강신청 교환", authUser.email);
-  await guardTradePostSubmission(supabase, authUser.id, values);
+  try {
+    const values = tradePostSchema.parse(input);
+    const { supabase, authUser, profile } = await requireCurrentUser();
+    ensureWritableTrustLevel(profile);
+    requireVerifiedStudentProfile(profile, "수강신청 교환", authUser.email);
+    await guardTradePostSubmission(supabase, authUser.id, values);
 
-  const schoolId = values.schoolId ?? profile.school_id;
-  if (!schoolId) {
-    throw new Error("학교 정보가 필요합니다.");
+    const schoolId = values.schoolId ?? profile.school_id;
+    if (!schoolId) {
+      throw new Error("학교 정보가 필요합니다.");
+    }
+
+    const { data, error } = await supabase
+      .from("trade_posts")
+      .insert({
+        author_id: authUser.id,
+        school_id: schoolId,
+        have_lecture_id: values.haveLectureId,
+        want_lecture_id: values.wantLectureId,
+        note: values.note,
+        status: values.status === "matching" ? "matched" : values.status,
+        semester: values.semester,
+        professor: values.professor ?? null,
+        section: values.section ?? null,
+        time_range: values.timeRange,
+        visibility_level: values.visibilityLevel ?? profile.default_visibility_level,
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    await awardTrustScore(authUser.id, 5);
+
+    await createTradeMatchNotifications(supabase, {
+      tradePostId: data.id,
+      authorId: authUser.id,
+      schoolId,
+      haveLectureId: values.haveLectureId,
+      wantLectureId: values.wantLectureId,
+    });
+
+    revalidateFeed(["/school", "/trade", "/notifications"]);
+    return { ok: true as const, data };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "매칭 글 등록에 실패했습니다.",
+    };
   }
-
-  const { data, error } = await supabase
-    .from("trade_posts")
-    .insert({
-      author_id: authUser.id,
-      school_id: schoolId,
-      have_lecture_id: values.haveLectureId,
-      want_lecture_id: values.wantLectureId,
-      note: values.note,
-      status: values.status === "matching" ? "matched" : values.status,
-      semester: values.semester,
-      professor: values.professor ?? null,
-      section: values.section ?? null,
-      time_range: values.timeRange,
-      visibility_level: values.visibilityLevel ?? profile.default_visibility_level,
-    })
-    .select("*")
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  await awardTrustScore(authUser.id, 5);
-
-  await createTradeMatchNotifications(supabase, {
-    tradePostId: data.id,
-    authorId: authUser.id,
-    schoolId,
-    haveLectureId: values.haveLectureId,
-    wantLectureId: values.wantLectureId,
-  });
-
-  revalidateFeed(["/school", "/trade", "/notifications"]);
-  return data;
 }
 
 export async function createTradeMessage(input: z.input<typeof tradeMessageSchema>) {
-  const values = tradeMessageSchema.parse(input);
-  const { supabase, authUser, profile } = await requireCurrentUser();
-  ensureWritableTrustLevel(profile);
-  requireVerifiedStudentProfile(profile, "수강신청 교환 대화", authUser.email);
-  const admin = createAdminSupabaseClient();
-
-  const { data: tradePost, error: tradePostError } = await supabase
-    .from("trade_posts")
-    .select("id, author_id, school_id, have_lecture_id, want_lecture_id, status")
-    .eq("id", values.tradePostId)
-    .single();
-
-  if (tradePostError || !tradePost) {
-    throw new Error("대화를 이어갈 매칭 글을 찾을 수 없습니다.");
-  }
-
-  if (!profile.school_id || tradePost.school_id !== profile.school_id) {
-    throw new Error("같은 학교 사용자만 대화에 참여할 수 있습니다.");
-  }
-
-  const keyword = findBlockedKeyword(values.content);
-  if (keyword) {
-    throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
-  }
-
-  if (classifyContentLevel(values.content) === "obscene") {
-    throw new Error("노골적인 성적 표현은 대화에 사용할 수 없습니다.");
-  }
-
-  const { data, error } = await supabase
-    .from("trade_messages")
-    .insert({
-      trade_post_id: values.tradePostId,
-      sender_id: authUser.id,
-      content: values.content,
-    })
-    .select("*")
-    .single();
-
-  if (error || !data) {
-    throw new Error(error?.message ?? "채팅 전송에 실패했습니다.");
-  }
-
-  if (tradePost.status === "open") {
-    await admin
-      .from("trade_posts")
-      .update({ status: "matching" })
-      .eq("id", values.tradePostId)
-      .eq("status", "open");
-  }
-
   try {
-    const { data: participantRows } = await admin
+    const values = tradeMessageSchema.parse(input);
+    const { supabase, authUser, profile } = await requireCurrentUser();
+    ensureWritableTrustLevel(profile);
+    requireVerifiedStudentProfile(profile, "수강신청 교환 대화", authUser.email);
+    const admin = createAdminSupabaseClient();
+
+    const { data: tradePost, error: tradePostError } = await supabase
+      .from("trade_posts")
+      .select("id, author_id, school_id, have_lecture_id, want_lecture_id, status")
+      .eq("id", values.tradePostId)
+      .single();
+
+    if (tradePostError || !tradePost) {
+      throw new Error("대화를 이어갈 매칭 글을 찾을 수 없습니다.");
+    }
+
+    if (!profile.school_id || tradePost.school_id !== profile.school_id) {
+      throw new Error("같은 학교 사용자만 대화에 참여할 수 있습니다.");
+    }
+
+    const keyword = findBlockedKeyword(values.content);
+    if (keyword) {
+      throw new Error(`부적절한 표현(${keyword})이 포함되어 있습니다.`);
+    }
+
+    if (classifyContentLevel(values.content) === "obscene") {
+      throw new Error("노골적인 성적 표현은 대화에 사용할 수 없습니다.");
+    }
+
+    const { data, error } = await supabase
       .from("trade_messages")
-      .select("sender_id")
-      .eq("trade_post_id", values.tradePostId);
+      .insert({
+        trade_post_id: values.tradePostId,
+        sender_id: authUser.id,
+        content: values.content,
+      })
+      .select("*")
+      .single();
 
-    const recipientIds = new Set<string>();
-    if (String(tradePost.author_id) !== authUser.id) {
-      recipientIds.add(String(tradePost.author_id));
+    if (error || !data) {
+      throw new Error(error?.message ?? "채팅 전송에 실패했습니다.");
     }
 
-    for (const row of participantRows ?? []) {
-      const participantId = String(row.sender_id);
-      if (participantId !== authUser.id) {
-        recipientIds.add(participantId);
+    if (tradePost.status === "open") {
+      await admin
+        .from("trade_posts")
+        .update({ status: "matching" })
+        .eq("id", values.tradePostId)
+        .eq("status", "open");
+    }
+
+    try {
+      const { data: participantRows } = await admin
+        .from("trade_messages")
+        .select("sender_id")
+        .eq("trade_post_id", values.tradePostId);
+
+      const recipientIds = new Set<string>();
+      if (String(tradePost.author_id) !== authUser.id) {
+        recipientIds.add(String(tradePost.author_id));
       }
+
+      for (const row of participantRows ?? []) {
+        const participantId = String(row.sender_id);
+        if (participantId !== authUser.id) {
+          recipientIds.add(participantId);
+        }
+      }
+
+      await insertNotificationsAsSystem(
+        [...recipientIds].map((userId) => ({
+          user_id: userId,
+          type: "trade_match",
+          title: "수강신청 교환 대화에 새 메시지가 도착했어요",
+          body: values.content.slice(0, 80),
+          href: `/trade?post=${values.tradePostId}&chat=1`,
+          target_type: "trade",
+          target_id: values.tradePostId,
+          source_kind: "activity",
+          delivery_mode: "instant",
+          metadata: {
+            actorUserId: authUser.id,
+            tradePostId: values.tradePostId,
+            tradeMessageId: String(data.id),
+          },
+        })),
+      );
+    } catch {
+      // noop
     }
 
-    await insertNotificationsAsSystem(
-      [...recipientIds].map((userId) => ({
-        user_id: userId,
-        type: "trade_match",
-        title: "수강신청 교환 대화에 새 메시지가 도착했어요",
-        body: values.content.slice(0, 80),
-        href: `/trade?post=${values.tradePostId}&chat=1`,
-        target_type: "trade",
-        target_id: values.tradePostId,
-        source_kind: "activity",
-        delivery_mode: "instant",
-        metadata: {
-          actorUserId: authUser.id,
-          tradePostId: values.tradePostId,
-          tradeMessageId: String(data.id),
-        },
-      })),
-    );
-  } catch {
-    // noop
+    revalidateFeed(["/trade", "/messages", "/notifications"]);
+    return { ok: true as const, data };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "채팅 전송에 실패했습니다.",
+    };
   }
-
-  revalidateFeed(["/trade", "/messages", "/notifications"]);
-  return data;
 }
 
 export async function createDatingProfile(input: z.input<typeof datingProfileSchema>) {

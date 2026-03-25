@@ -267,10 +267,15 @@ export function TradePage({
         void (async () => {
           try {
             const shouldPromoteToMatching = detailItem.status === "open";
-            const created = await createTradeMessage({
+            const result = await createTradeMessage({
               tradePostId: detailItem.id,
               content,
             });
+            if (!result.ok) {
+              setTradeMessageError(result.error);
+              return;
+            }
+            const created = result.data;
 
             setTradeMessages((current) => [
               ...current,
@@ -372,7 +377,7 @@ export function TradePage({
       startSubmitTransition(() => {
         void (async () => {
           try {
-            await createTradePost({
+            const result = await createTradePost({
               schoolId: values.schoolId,
               semester: values.semester,
               haveLectureId: values.haveLectureId,
@@ -384,6 +389,10 @@ export function TradePage({
               status: values.status,
               visibilityLevel: values.visibilityLevel,
             });
+            if (!result.ok) {
+              form.setError("root", { message: result.error });
+              return;
+            }
             setOpen(false);
             form.reset();
             setSuccessMessage("매칭 글이 등록되었습니다.");
