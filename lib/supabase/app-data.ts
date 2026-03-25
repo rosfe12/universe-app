@@ -1636,7 +1636,7 @@ function mapStudentVerificationRow(row: Record<string, unknown>): StudentVerific
 }
 
 export async function getCurrentStudentVerification() {
-  const response = await fetch("/api/auth/student-verification/current", {
+  const response = await fetch("/api/auth/student-verification/request?resource=current", {
     method: "GET",
     credentials: "same-origin",
     cache: "no-store",
@@ -1669,7 +1669,7 @@ export async function uploadStudentVerificationDocument(input: {
     formData.set("documentType", input.documentType);
   }
 
-  const response = await fetch("/api/auth/student-verification/document", {
+  const response = await fetch("/api/auth/student-verification/request?resource=document", {
     method: "POST",
     body: formData,
   });
@@ -1686,7 +1686,7 @@ export async function uploadStudentVerificationDocument(input: {
 }
 
 export async function deleteStudentVerificationDocument(documentId: string) {
-  const response = await fetch("/api/auth/student-verification/document", {
+  const response = await fetch("/api/auth/student-verification/request?resource=document", {
     method: "DELETE",
     headers: {
       "content-type": "application/json",
