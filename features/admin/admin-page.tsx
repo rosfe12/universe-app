@@ -2483,7 +2483,6 @@ export function AdminPage({
                 ) : null}
                 {selectedMember.role ? <Badge variant="default">{selectedMember.role}</Badge> : null}
                 {selectedMember.verified ? <Badge variant="success">학교 인증</Badge> : null}
-                {selectedMember.adultVerified ? <Badge variant="secondary">성인 인증</Badge> : null}
                 {selectedMember.isRestricted ? <Badge variant="danger">활동 정지</Badge> : null}
               </div>
               <div className="grid gap-3 rounded-[24px] border border-white/10 p-4 text-sm">
@@ -2853,7 +2852,6 @@ function MemberCard({
           <Badge variant="secondary">{item.schoolName ?? "학교 미지정"}</Badge>
           {item.department ? <Badge variant="secondary">{item.department}</Badge> : null}
           {item.grade ? <Badge variant="secondary">{item.grade}학년</Badge> : null}
-          {item.adultVerified ? <Badge variant="secondary">성인 인증</Badge> : null}
           <TrustScoreBadge score={item.trustScore} />
           <Badge variant="secondary">신고 {item.reportCount}건</Badge>
           <Badge variant="secondary">경고 {item.warningCount}회</Badge>

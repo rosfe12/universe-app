@@ -183,7 +183,7 @@ export function OnboardingPage() {
       ? {
           icon: GraduationCap,
           title: "대학생 권한",
-          description: "학교 메일 인증을 마치면 강의평, 수강신청, 미팅까지 바로 열립니다.",
+          description: "학교 메일 확인 뒤 학생 정보 자동 판정이 이어지며, 필요하면 추가 인증 자료를 요청합니다.",
         }
       : selectedUserType === "freshman"
         ? {
@@ -516,7 +516,7 @@ export function OnboardingPage() {
             </CardTitle>
             <p className="mt-2 text-sm text-muted-foreground">
               {isVerificationMode
-                ? "학교 메일을 확인하면 대학생 권한이 바로 열립니다."
+                ? "학교 메일 확인 후 학생 정보 자동 판정이 진행되며, 필요하면 추가 인증을 요청합니다."
                 : "계정은 자유롭게 만들고, 대학생 권한은 학교 메일이 확인된 뒤 열립니다."}
             </p>
           </div>
