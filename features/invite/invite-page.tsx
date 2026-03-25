@@ -59,11 +59,8 @@ export function InvitePage() {
               CAMVERSE 초대
             </div>
             <h2 className="text-2xl font-semibold tracking-[-0.03em] text-white">
-              대학생만 들어올 수 있는 커뮤니티인데 같이 써보자
+              대학생만을 위한 커뮤니티 [CAMVERSE-캠버스]로 초대합니다
             </h2>
-            <p className="text-sm leading-6 text-slate-300">
-              우리학교 글, 전체 핫글, 투표와 댓글이 한 번에 이어지는 익명 커뮤니티를 친구와 같이 시작할 수 있습니다.
-            </p>
           </div>
 
           <div className="rounded-[24px] border border-white/10 bg-black/10 p-4">
