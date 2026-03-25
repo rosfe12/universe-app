@@ -2,6 +2,8 @@ import { resolveAppUrl } from "@/lib/env";
 import { buildPostHref } from "@/lib/post-links";
 import type { Post } from "@/types";
 
+export { buildInviteCode } from "@/lib/referral-code";
+
 export type SharePayload = {
   title: string;
   description?: string;
@@ -36,14 +38,6 @@ export function createPostSharePayload(post: Pick<Post, "id" | "title" | "conten
     linkUrl: toAbsoluteAppUrl(`/posts/${post.id}`),
     buttonTitle: "게시글 보기",
   } satisfies SharePayload;
-}
-
-export function buildInviteCode(userId?: string) {
-  if (!userId) {
-    return "CAMPUS";
-  }
-
-  return `CAM${userId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
 }
 
 export function createInviteLink(code: string) {

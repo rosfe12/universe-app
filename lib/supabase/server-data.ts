@@ -34,6 +34,7 @@ import {
   generateAutoNickname,
   getDefaultVisibilityLevel,
 } from "@/lib/user-identity";
+import { buildInviteCode, normalizeReferralCode } from "@/lib/referral-code";
 import { getPostViewCount } from "@/lib/utils";
 import type {
   AdmissionQuestionMeta,
@@ -612,6 +613,9 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
             email: row.email ? String(row.email) : undefined,
             school: school ?? null,
           }),
+    referralCode: row.referral_code ? String(row.referral_code) : undefined,
+    referredByCode: row.referred_by_code ? String(row.referred_by_code) : undefined,
+    referredByUserId: row.referred_by_user_id ? String(row.referred_by_user_id) : undefined,
     userType: toUserType(row.user_type as string | null | undefined),
     schoolId: row.school_id ? String(row.school_id) : undefined,
     department: row.department ? String(row.department) : undefined,
@@ -971,6 +975,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
       email: authUser.email ?? undefined,
       school: null,
     }),
+    referralCode: buildInviteCode(authUser.id),
     schoolId: undefined,
     department: undefined,
     grade: undefined,
@@ -988,7 +993,43 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
   };
 }
 
+function getReferralCodeFromAuthUser(authUser: SupabaseAuthUser) {
+  const rawCode =
+    typeof authUser.user_metadata.referral_code === "string"
+      ? authUser.user_metadata.referral_code
+      : undefined;
+  return normalizeReferralCode(rawCode);
+}
+
+async function resolveReferrerUserId(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  referralCode?: string,
+  currentUserId?: string,
+) {
+  const normalizedCode = normalizeReferralCode(referralCode);
+  if (!normalizedCode) {
+    return null;
+  }
+
+  const ownCode = currentUserId ? buildInviteCode(currentUserId) : undefined;
+  if (ownCode && normalizedCode === ownCode) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("users")
+    .select("id")
+    .eq("referral_code", normalizedCode)
+    .maybeSingle();
+
+  return data?.id ? String(data.id) : null;
+}
+
 async function ensureProfileRow(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, authUser: SupabaseAuthUser) {
+  const referralCode = buildInviteCode(authUser.id);
+  const referredByCode = getReferralCodeFromAuthUser(authUser);
+  const referredByUserId = await resolveReferrerUserId(supabase, referredByCode, authUser.id);
+
   await supabase.from("users").upsert(
     {
       id: authUser.id,
@@ -1003,6 +1044,9 @@ async function ensureProfileRow(supabase: Awaited<ReturnType<typeof createServer
         email: authUser.email ?? undefined,
         school: null,
       }),
+      referral_code: referralCode,
+      referred_by_code: referredByCode ?? null,
+      referred_by_user_id: referredByUserId,
     },
     { onConflict: "id" },
   );

@@ -162,6 +162,9 @@ $$;
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   email citext not null unique,
+  referral_code text unique,
+  referred_by_code text,
+  referred_by_user_id uuid references public.users(id) on delete set null,
   user_type public.user_type not null default 'student',
   school_id uuid references public.schools(id) on delete set null,
   department text,
@@ -185,6 +188,15 @@ create table if not exists public.users (
   updated_at timestamptz not null default timezone('utc', now()),
   constraint users_grade_check check (grade is null or grade between 1 and 12)
 );
+
+alter table public.users
+  add column if not exists referral_code text;
+
+alter table public.users
+  add column if not exists referred_by_code text;
+
+alter table public.users
+  add column if not exists referred_by_user_id uuid references public.users(id) on delete set null;
 
 alter table public.users
   add column if not exists student_verification_status public.student_verification_status not null default 'unverified';
@@ -218,6 +230,38 @@ where user_type = 'student'
     from public.schools
     where id = users.school_id
       and split_part(lower(users.email::text), '@', 2) = lower(domain::text)
+  );
+
+update public.users
+set referral_code = 'CAMVERSE-' || upper(substr(replace(id::text, '-', ''), 1, 6))
+where referral_code is null
+  and (
+    school_email is null
+    or school_id is null
+    or exists (
+      select 1
+      from public.schools
+      where id = users.school_id
+        and split_part(lower(users.school_email::text), '@', 2) = lower(domain::text)
+    )
+  );
+
+update public.users as member
+set referred_by_user_id = referrer.id
+from public.users as referrer
+where member.referred_by_user_id is null
+  and member.referred_by_code is not null
+  and member.referred_by_code = referrer.referral_code
+  and member.id <> referrer.id
+  and (
+    member.school_email is null
+    or member.school_id is null
+    or exists (
+      select 1
+      from public.schools
+      where id = member.school_id
+        and split_part(lower(member.school_email::text), '@', 2) = lower(domain::text)
+    )
   );
 
 update public.users
@@ -614,6 +658,7 @@ create index if not exists idx_posts_category_subcategory_created_at on public.p
 create index if not exists idx_posts_school_category_created_at on public.posts (school_id, category, created_at desc);
 create index if not exists idx_student_verification_requests_user_status on public.student_verification_requests (user_id, status, requested_at desc);
 create unique index if not exists idx_users_verified_school_email on public.users (school_email) where school_email is not null and student_verification_status = 'verified';
+create unique index if not exists idx_users_referral_code on public.users (referral_code) where referral_code is not null;
 create index if not exists idx_comments_post_id on public.comments (post_id);
 create index if not exists idx_comments_post_parent_created_at on public.comments (post_id, parent_comment_id, created_at desc);
 create index if not exists idx_comments_author_created_at on public.comments (author_id, created_at desc);

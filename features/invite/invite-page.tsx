@@ -10,6 +10,7 @@ import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner
 import { ShareActionGroup } from "@/components/shared/share-action-group";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { rememberReferralCode } from "@/lib/referral-code";
 import { getCurrentSupabaseAuthUser } from "@/lib/supabase/client";
 import { buildInviteCode, createInviteSharePayload } from "@/lib/share-utils";
 
@@ -34,6 +35,13 @@ export function InvitePage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const inviteCodeFromQuery = searchParams.get("code");
+    if (inviteCodeFromQuery) {
+      rememberReferralCode(inviteCodeFromQuery);
+    }
+  }, [searchParams]);
 
   const inviteCode = useMemo(() => {
     return searchParams.get("code") || buildInviteCode(inviteUserId);

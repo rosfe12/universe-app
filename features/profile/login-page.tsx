@@ -19,6 +19,7 @@ import {
   getKeepLoggedInPreference,
   setKeepLoggedInPreference,
 } from "@/lib/app-preferences";
+import { getRememberedReferralCode } from "@/lib/referral-code";
 import {
   getAuthFlowHref,
   isGoogleSignInEnabled,
@@ -145,6 +146,7 @@ export function LoginPage() {
         : await signUpWithSupabase({
             email: values.email,
             password: values.password,
+            referralCode: getRememberedReferralCode(),
           });
     setPending(false);
 

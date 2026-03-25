@@ -45,6 +45,7 @@ import {
   getDefaultVisibilityLevel,
   getStandardVisibilityLevel,
 } from "@/lib/user-identity";
+import { buildInviteCode, clearRememberedReferralCode, normalizeReferralCode } from "@/lib/referral-code";
 import { getPostViewCount } from "@/lib/utils";
 import type {
   AdmissionQuestionMeta,
@@ -624,6 +625,9 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
             email: String(row.email),
             school: school ?? null,
           }),
+    referralCode: row.referral_code ? String(row.referral_code) : undefined,
+    referredByCode: row.referred_by_code ? String(row.referred_by_code) : undefined,
+    referredByUserId: row.referred_by_user_id ? String(row.referred_by_user_id) : undefined,
     userType: toUserType(row.user_type as string | null | undefined),
     schoolId: row.school_id ? String(row.school_id) : undefined,
     department: row.department ? String(row.department) : undefined,
@@ -983,6 +987,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
       email: authUser.email ?? undefined,
       school: null,
     }),
+    referralCode: buildInviteCode(authUser.id),
     schoolId: undefined,
     department: undefined,
     grade: undefined,
@@ -1000,10 +1005,46 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
   };
 }
 
+function getReferralCodeFromAuthUser(authUser: SupabaseAuthUser) {
+  const rawCode =
+    typeof authUser.user_metadata.referral_code === "string"
+      ? authUser.user_metadata.referral_code
+      : undefined;
+  return normalizeReferralCode(rawCode);
+}
+
+async function resolveReferrerUserId(
+  supabase: ReturnType<typeof createClient>,
+  referralCode?: string,
+  currentUserId?: string,
+) {
+  const normalizedCode = normalizeReferralCode(referralCode);
+  if (!normalizedCode) {
+    return null;
+  }
+
+  const ownCode = currentUserId ? buildInviteCode(currentUserId) : undefined;
+  if (ownCode && normalizedCode === ownCode) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("users")
+    .select("id")
+    .eq("referral_code", normalizedCode)
+    .maybeSingle();
+
+  return data?.id ? String(data.id) : null;
+}
+
 async function ensureClientProfileRow(
   supabase: ReturnType<typeof createClient>,
   authUser: SupabaseAuthUser,
 ) {
+  const referralCode = buildInviteCode(authUser.id);
+  const referredByCode = getReferralCodeFromAuthUser(authUser);
+  const referredByUserId = await resolveReferrerUserId(supabase, referredByCode, authUser.id);
+
   await supabase.from("users").upsert(
     {
       id: authUser.id,
@@ -1018,6 +1059,9 @@ async function ensureClientProfileRow(
         email: authUser.email ?? undefined,
         school: null,
       }),
+      referral_code: referralCode,
+      referred_by_code: referredByCode ?? null,
+      referred_by_user_id: referredByUserId,
     },
     { onConflict: "id" },
   );
@@ -1391,11 +1435,14 @@ export function isGoogleSignInEnabled() {
 export async function signUpWithSupabase({
   email,
   password,
+  referralCode,
 }: {
   email: string;
   password: string;
+  referralCode?: string;
 }) {
   const supabase = createClient();
+  const normalizedReferralCode = normalizeReferralCode(referralCode);
   const signUpResult = await supabase.auth.signUp({
     email,
     password,
@@ -1403,6 +1450,7 @@ export async function signUpWithSupabase({
       data: {
         name: email.split("@")[0],
         full_name: email.split("@")[0],
+        referral_code: normalizedReferralCode,
       },
     },
   });
@@ -1415,6 +1463,7 @@ export async function signUpWithSupabase({
     return supabase.auth.signInWithPassword({ email, password });
   }
 
+  clearRememberedReferralCode();
   return signUpResult;
 }
 
@@ -1465,12 +1514,22 @@ export async function upsertUserProfile(user: User) {
     data: { user: authUser },
   } = await supabase.auth.getUser();
   const resolvedEmail = authUser?.email ?? user.email;
+  const resolvedReferralCode = normalizeReferralCode(user.referralCode) ?? buildInviteCode(user.id);
+  const resolvedReferredByCode =
+    normalizeReferralCode(user.referredByCode) && normalizeReferralCode(user.referredByCode) !== resolvedReferralCode
+      ? normalizeReferralCode(user.referredByCode)
+      : undefined;
+  const resolvedReferredByUserId =
+    user.referredByUserId ?? (await resolveReferrerUserId(supabase, resolvedReferredByCode, user.id));
   const result = await supabase.from("users").upsert(
     {
       id: user.id,
       email: resolvedEmail,
       name: user.name,
       nickname: user.nickname ?? null,
+      referral_code: resolvedReferralCode,
+      referred_by_code: resolvedReferredByCode ?? null,
+      referred_by_user_id: resolvedReferredByUserId ?? null,
       user_type: fromUserType(user.userType),
       school_id: user.schoolId ?? null,
       department: user.department ?? null,

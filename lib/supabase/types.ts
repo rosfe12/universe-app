@@ -47,6 +47,9 @@ type SchoolInsert = {
 type UserRow = {
   id: string;
   email: string;
+  referral_code: string | null;
+  referred_by_code: string | null;
+  referred_by_user_id: string | null;
   user_type: UserType;
   school_id: string | null;
   department: string | null;
@@ -73,6 +76,9 @@ type UserRow = {
 type UserInsert = {
   id: string;
   email: string;
+  referral_code?: string | null;
+  referred_by_code?: string | null;
+  referred_by_user_id?: string | null;
   user_type?: UserType;
   school_id?: string | null;
   department?: string | null;

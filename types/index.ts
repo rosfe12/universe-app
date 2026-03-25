@@ -81,6 +81,9 @@ export interface User {
   email: string;
   name: string;
   nickname?: string;
+  referralCode?: string;
+  referredByCode?: string;
+  referredByUserId?: string;
   userType: UserType;
   schoolId?: string;
   department?: string;
