@@ -10,6 +10,7 @@ import {
   createClient,
   getCurrentSupabaseAuthUser,
   resetSupabaseAuthUserCache,
+  waitForSupabaseAuthCookie,
 } from "@/lib/supabase/client";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { logPerformanceEvent } from "@/lib/ops";
@@ -1547,6 +1548,7 @@ export async function signOutFromSupabase() {
   const supabase = createClient();
   const result = await supabase.auth.signOut();
   if (!result.error) {
+    await waitForSupabaseAuthCookie(false);
     resetSupabaseAuthUserCache();
     clearSupabaseSessionStorage();
     invalidateClientRuntimeSnapshots();

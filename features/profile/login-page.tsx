@@ -30,7 +30,11 @@ import {
   signInWithSupabase,
   signUpWithSupabase,
 } from "@/lib/supabase/app-data";
-import { persistSupabaseSession, setSupabaseSessionPersistence } from "@/lib/supabase/client";
+import {
+  persistSupabaseSession,
+  setSupabaseSessionPersistence,
+  waitForSupabaseAuthCookie,
+} from "@/lib/supabase/client";
 import { shouldShowTestAccounts } from "@/lib/env";
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { cn } from "@/lib/utils";
@@ -197,6 +201,7 @@ export function LoginPage() {
 
     if (result.data.session) {
       persistSupabaseSession(result.data.session, keepLoggedIn);
+      await waitForSupabaseAuthCookie(true);
     }
 
     if (mode === "signup") {
