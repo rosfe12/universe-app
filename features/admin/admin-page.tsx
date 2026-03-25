@@ -61,6 +61,7 @@ import { REPORT_REASON_LABELS, REPORT_STATUS_LABELS } from "@/lib/constants";
 import type {
   AdminAuditLog,
   AdminFeatureFlags,
+  AdminMemberDetail,
   AdminMember,
   AdminNotice,
   AdminOpsEvent,
@@ -441,6 +442,29 @@ async function loadAdminMembers(input: {
   };
 }
 
+async function loadAdminMemberDetail(userId: string) {
+  const response = await fetch(`/api/admin/members/${userId}`, {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | (AdminMemberDetail & { error?: string })
+    | null;
+
+  if (!response.ok || !payload) {
+    return {
+      item: null as AdminMemberDetail | null,
+      error: payload?.error ?? "회원 상세를 불러오지 못했습니다.",
+    };
+  }
+
+  return {
+    item: payload,
+    error: "",
+  };
+}
+
 async function updateAdminReportStatus(
   reportId: string,
   status: "pending" | "reviewing" | "confirmed" | "dismissed",
@@ -554,6 +578,9 @@ export function AdminPage({
   const [memberPageSize, setMemberPageSize] = useState(20);
   const [memberHasNext, setMemberHasNext] = useState(false);
   const [selectedMember, setSelectedMember] = useState<AdminMember | null>(null);
+  const [selectedMemberDetail, setSelectedMemberDetail] = useState<AdminMemberDetail | null>(null);
+  const [memberDetailLoading, setMemberDetailLoading] = useState(false);
+  const [memberDetailError, setMemberDetailError] = useState("");
   const [opsItems, setOpsItems] = useState<AdminOpsEvent[]>([]);
   const [opsLoading, setOpsLoading] = useState(false);
   const [opsError, setOpsError] = useState("");
@@ -571,7 +598,12 @@ export function AdminPage({
   });
   const [notices, setNotices] = useState<AdminNotice[]>([]);
   const [promotions, setPromotions] = useState<AdminPromotion[]>([]);
-  const [noticeDraft, setNoticeDraft] = useState({ title: "", body: "" });
+  const [noticeDraft, setNoticeDraft] = useState({
+    title: "",
+    body: "",
+    startsAt: "",
+    endsAt: "",
+  });
   const [promotionDraft, setPromotionDraft] = useState({
     title: "",
     description: "",
@@ -654,6 +686,23 @@ export function AdminPage({
     setMemberHasNext(result.hasNext);
     setMemberError(result.error);
     setMemberLoading(false);
+  }
+
+  async function refreshSelectedMemberDetail(userId = selectedMember?.id) {
+    if (!userId) {
+      setSelectedMemberDetail(null);
+      setMemberDetailError("");
+      return;
+    }
+
+    setMemberDetailLoading(true);
+    const result = await loadAdminMemberDetail(userId);
+    if (result.item) {
+      setSelectedMember(result.item.member);
+      setSelectedMemberDetail(result.item);
+    }
+    setMemberDetailError(result.error);
+    setMemberDetailLoading(false);
   }
 
   async function refreshOverview() {
@@ -839,6 +888,16 @@ export function AdminPage({
     };
   }, [source]);
 
+  useEffect(() => {
+    if (!selectedMember?.id) {
+      setSelectedMemberDetail(null);
+      setMemberDetailError("");
+      return;
+    }
+
+    void refreshSelectedMemberDetail(selectedMember.id);
+  }, [selectedMember?.id]);
+
   async function mutateVerificationRequest(
     requestId: string,
     action: "approve" | "reject" | "resend",
@@ -922,6 +981,9 @@ export function AdminPage({
       void refreshMemberList();
       void refreshOverview();
       void refreshReports();
+      if ("userId" in input && selectedMember?.id === input.userId) {
+        void refreshSelectedMemberDetail(input.userId);
+      }
     } finally {
       setModerationPendingKey(null);
     }
@@ -940,6 +1002,9 @@ export function AdminPage({
       void refreshMemberList();
       void refreshOverview();
       void refreshAuditLogsFromServer();
+      if (selectedMember?.id === userId) {
+        void refreshSelectedMemberDetail(userId);
+      }
     } finally {
       setModerationPendingKey(null);
     }
@@ -985,6 +1050,8 @@ export function AdminPage({
         body: noticeDraft.body.trim(),
         pinned: false,
         active: true,
+        startsAt: noticeDraft.startsAt || undefined,
+        endsAt: noticeDraft.endsAt || undefined,
       },
     });
     if (result?.error) {
@@ -992,7 +1059,7 @@ export function AdminPage({
       return;
     }
     setNotices(result?.notices ?? []);
-    setNoticeDraft({ title: "", body: "" });
+    setNoticeDraft({ title: "", body: "", startsAt: "", endsAt: "" });
   }
 
   async function mutateNotice(item: AdminNotice, patch: Partial<AdminNotice>) {
@@ -1005,6 +1072,8 @@ export function AdminPage({
         body: patch.body ?? item.body,
         pinned: patch.pinned ?? item.pinned,
         active: patch.active ?? item.active,
+        startsAt: patch.startsAt ?? item.startsAt,
+        endsAt: patch.endsAt ?? item.endsAt,
       },
     });
     if (result?.error) {
@@ -1197,7 +1266,7 @@ export function AdminPage({
               <CardContent className="py-4 text-sm text-rose-700">{overviewError}</CardContent>
             </Card>
           ) : null}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-3">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">신고 사유별 통계</CardTitle>
@@ -1228,6 +1297,19 @@ export function AdminPage({
                     <OpsEventCard key={item.id} item={item} compact />
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">학교별 운영 통계</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {(overview?.schoolStats ?? []).slice(0, 6).map((item) => (
+                  <SchoolStatCard key={item.schoolId} item={item} />
+                ))}
+                {(overview?.schoolStats ?? []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">집계된 학교 데이터가 없습니다.</p>
+                ) : null}
               </CardContent>
             </Card>
           </div>
@@ -1911,6 +1993,36 @@ export function AdminPage({
                 }
                 placeholder="공지 내용을 입력하세요"
               />
+              <div className="grid gap-2 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="notice-start-at">노출 시작</Label>
+                  <Input
+                    id="notice-start-at"
+                    type="datetime-local"
+                    value={noticeDraft.startsAt}
+                    onChange={(event) =>
+                      setNoticeDraft((current) => ({
+                        ...current,
+                        startsAt: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notice-end-at">노출 종료</Label>
+                  <Input
+                    id="notice-end-at"
+                    type="datetime-local"
+                    value={noticeDraft.endsAt}
+                    onChange={(event) =>
+                      setNoticeDraft((current) => ({
+                        ...current,
+                        endsAt: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
               <Button type="button" onClick={() => void submitNotice()}>
                 <Megaphone className="h-4 w-4" />
                 공지 등록
@@ -2231,6 +2343,7 @@ export function AdminPage({
       <Dialog open={Boolean(selectedMember)} onOpenChange={(open) => {
         if (!open) {
           setSelectedMember(null);
+          setSelectedMemberDetail(null);
         }
       }}>
         <DialogContent>
@@ -2333,6 +2446,58 @@ export function AdminPage({
                   관리자 부여
                 </Button>
               </div>
+              {memberDetailLoading ? <LoadingState /> : null}
+              {memberDetailError ? (
+                <Card className="border-rose-200 bg-rose-50/80">
+                  <CardContent className="py-4 text-sm text-rose-700">{memberDetailError}</CardContent>
+                </Card>
+              ) : null}
+              {selectedMemberDetail ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <AdminMemberActivitySection
+                    title="최근 작성 글"
+                    emptyLabel="작성 글이 없습니다."
+                    items={selectedMemberDetail.recentPosts.map((item) => ({
+                      id: item.id,
+                      title: item.title,
+                      body: `${item.category}${item.subcategory ? ` · ${item.subcategory}` : ""} · 댓글 ${item.commentCount} · 좋아요 ${item.likeCount}`,
+                      meta: item.createdAt.slice(0, 16),
+                      danger: item.hidden,
+                    }))}
+                  />
+                  <AdminMemberActivitySection
+                    title="최근 댓글"
+                    emptyLabel="작성 댓글이 없습니다."
+                    items={selectedMemberDetail.recentComments.map((item) => ({
+                      id: item.id,
+                      title: item.postTitle ?? "원문 없음",
+                      body: item.content,
+                      meta: item.createdAt.slice(0, 16),
+                      danger: item.hidden,
+                    }))}
+                  />
+                  <AdminMemberActivitySection
+                    title="받은 신고"
+                    emptyLabel="받은 신고가 없습니다."
+                    items={selectedMemberDetail.receivedReports.map((item) => ({
+                      id: item.id,
+                      title: REPORT_REASON_LABELS[item.reason],
+                      body: item.memo ?? `${item.targetType} · ${REPORT_STATUS_LABELS[item.status]}`,
+                      meta: item.createdAt.slice(0, 16),
+                    }))}
+                  />
+                  <AdminMemberActivitySection
+                    title="회원 조치 이력"
+                    emptyLabel="회원 조치 이력이 없습니다."
+                    items={selectedMemberDetail.auditLogs.map((item) => ({
+                      id: item.id,
+                      title: item.summary,
+                      body: item.action,
+                      meta: item.createdAt.slice(0, 16),
+                    }))}
+                  />
+                </div>
+              ) : null}
             </div>
           ) : null}
         </DialogContent>
@@ -2640,6 +2805,8 @@ function NoticeCard({
         <div className="flex flex-wrap gap-2">
           {item.pinned ? <Badge variant="default">상단 고정</Badge> : null}
           {item.active ? <Badge variant="success">활성</Badge> : <Badge variant="outline">비활성</Badge>}
+          {item.startsAt ? <Badge variant="outline">시작 {item.startsAt.slice(0, 16)}</Badge> : null}
+          {item.endsAt ? <Badge variant="outline">종료 {item.endsAt.slice(0, 16)}</Badge> : null}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -2654,6 +2821,67 @@ function NoticeCard({
         </Button>
       </div>
     </div>
+  );
+}
+
+function SchoolStatCard({
+  item,
+}: {
+  item: AdminOverview["schoolStats"][number];
+}) {
+  return (
+    <div className="rounded-[20px] border border-white/10 px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-medium">{item.schoolName}</p>
+        <Badge variant="secondary">{item.memberCount}명</Badge>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <span>인증 {item.verifiedCount}</span>
+        <span>제한 {item.restrictedCount}</span>
+        <span>신고 {item.reportCount}</span>
+        <span>글 {item.postCount}</span>
+      </div>
+    </div>
+  );
+}
+
+function AdminMemberActivitySection({
+  title,
+  emptyLabel,
+  items,
+}: {
+  title: string;
+  emptyLabel: string;
+  items: Array<{
+    id: string;
+    title: string;
+    body: string;
+    meta: string;
+    danger?: boolean;
+  }>;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {items.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{emptyLabel}</p>
+        ) : (
+          items.map((item) => (
+            <div key={item.id} className="rounded-[18px] border border-white/10 px-3 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium">{item.title}</p>
+                {item.danger ? <Badge variant="danger">숨김</Badge> : null}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{item.meta}</p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

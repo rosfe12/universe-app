@@ -355,6 +355,55 @@ export interface AdminMember {
   lastSignInAt?: string;
 }
 
+export interface AdminMemberPostSummary {
+  id: string;
+  title: string;
+  category: PostCategory;
+  subcategory?: CommunitySubcategory | "dating" | "meeting";
+  createdAt: string;
+  commentCount: number;
+  likeCount: number;
+  viewCount: number;
+  hidden: boolean;
+}
+
+export interface AdminMemberCommentSummary {
+  id: string;
+  postId: string;
+  postTitle?: string;
+  content: string;
+  createdAt: string;
+  hidden: boolean;
+}
+
+export interface AdminMemberReportSummary {
+  id: string;
+  reason: ReportReason;
+  status: ReportStatus;
+  targetType: ReportTargetType;
+  targetId: string;
+  createdAt: string;
+  memo?: string;
+}
+
+export interface AdminMemberDetail {
+  member: AdminMember;
+  recentPosts: AdminMemberPostSummary[];
+  recentComments: AdminMemberCommentSummary[];
+  receivedReports: AdminMemberReportSummary[];
+  auditLogs: AdminAuditLog[];
+}
+
+export interface AdminSchoolStat {
+  schoolId: string;
+  schoolName: string;
+  memberCount: number;
+  verifiedCount: number;
+  restrictedCount: number;
+  reportCount: number;
+  postCount: number;
+}
+
 export interface AdminOverview {
   totalMembers: number;
   restrictedMembers: number;
@@ -373,6 +422,7 @@ export interface AdminOverview {
   recentErrorEvents: AdminOpsEvent[];
   recentSlowEvents: AdminOpsEvent[];
   schools: School[];
+  schoolStats: AdminSchoolStat[];
 }
 
 export interface AdminOpsEvent {
@@ -398,6 +448,8 @@ export interface AdminNotice {
   pinned: boolean;
   active: boolean;
   createdAt: string;
+  startsAt?: string;
+  endsAt?: string;
 }
 
 export interface AdminPromotion {

@@ -22,6 +22,8 @@ const noticeSchema = z.object({
   body: z.string().trim().min(1).max(1000),
   pinned: z.boolean().optional(),
   active: z.boolean().optional(),
+  startsAt: z.string().datetime().optional().or(z.literal("")),
+  endsAt: z.string().datetime().optional().or(z.literal("")),
 });
 
 const promotionSchema = z.object({
@@ -131,6 +133,8 @@ export async function PATCH(request: Request) {
           active: notice.active ?? true,
           createdAt:
             notices.find((item) => item.id === notice.id)?.createdAt ?? new Date().toISOString(),
+          startsAt: notice.startsAt || undefined,
+          endsAt: notice.endsAt || undefined,
         },
         ...notices.filter((item) => item.id !== notice.id),
       ];

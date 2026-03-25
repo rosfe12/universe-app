@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 
 import { listAdminAuditLogs, requireAdminUser } from "@/app/api/admin/_utils";
 import { logServerEvent } from "@/lib/ops";
-import type { AdminOpsEvent, AdminOverview, ReportReason, School } from "@/types";
+import type {
+  AdminOpsEvent,
+  AdminOverview,
+  AdminSchoolStat,
+  ReportReason,
+  School,
+} from "@/types";
 
 export const runtime = "nodejs";
 
@@ -50,6 +56,8 @@ export async function GET(request: Request) {
       opsErrorRowsResult,
       opsWarnRowsResult,
       moderationHistoryResult,
+      memberStatsResult,
+      schoolPostRowsResult,
     ] = await Promise.all([
       admin.from("users").select("id", { count: "exact", head: true }),
       admin
@@ -101,6 +109,8 @@ export async function GET(request: Request) {
         .order("created_at", { ascending: false })
         .limit(24),
       listAdminAuditLogs(admin),
+      admin.from("users").select("school_id, verified, is_restricted, report_count"),
+      admin.from("posts").select("school_id").not("school_id", "is", null),
     ]);
 
     if (
@@ -118,6 +128,8 @@ export async function GET(request: Request) {
       schoolRowsResult.error ||
       opsErrorRowsResult.error ||
       opsWarnRowsResult.error
+      || memberStatsResult.error
+      || schoolPostRowsResult.error
     ) {
       throw (
         totalMembersResult.error ??
@@ -133,7 +145,9 @@ export async function GET(request: Request) {
         roleRowsResult.error ??
         schoolRowsResult.error ??
         opsErrorRowsResult.error ??
-        opsWarnRowsResult.error
+        opsWarnRowsResult.error ??
+        memberStatsResult.error ??
+        schoolPostRowsResult.error
       );
     }
 
@@ -173,6 +187,74 @@ export async function GET(request: Request) {
       .filter((item) => typeof item.metadata?.durationMs === "number")
       .slice(0, 10);
 
+    const schoolRows = schoolRowsResult.data ?? [];
+    const schoolStatsMap = new Map<
+      string,
+      {
+        schoolId: string;
+        schoolName: string;
+        memberCount: number;
+        verifiedCount: number;
+        restrictedCount: number;
+        reportCount: number;
+        postCount: number;
+      }
+    >(
+      schoolRows.map((school) => [
+        String(school.id),
+        {
+          schoolId: String(school.id),
+          schoolName: String(school.name),
+          memberCount: 0,
+          verifiedCount: 0,
+          restrictedCount: 0,
+          reportCount: 0,
+          postCount: 0,
+        },
+      ]),
+    );
+
+    for (const row of memberStatsResult.data ?? []) {
+      if (!row.school_id) {
+        continue;
+      }
+
+      const key = String(row.school_id);
+      const stat = schoolStatsMap.get(key);
+      if (!stat) {
+        continue;
+      }
+
+      stat.memberCount += 1;
+      if (row.verified) {
+        stat.verifiedCount += 1;
+      }
+      if (row.is_restricted) {
+        stat.restrictedCount += 1;
+      }
+      stat.reportCount += typeof row.report_count === "number" ? row.report_count : 0;
+    }
+
+    for (const row of schoolPostRowsResult.data ?? []) {
+      if (!row.school_id) {
+        continue;
+      }
+
+      const stat = schoolStatsMap.get(String(row.school_id));
+      if (stat) {
+        stat.postCount += 1;
+      }
+    }
+
+    const schoolStats: AdminSchoolStat[] = Array.from(schoolStatsMap.values())
+      .filter((item) => item.memberCount > 0 || item.postCount > 0)
+      .sort(
+        (a, b) =>
+          b.memberCount - a.memberCount ||
+          b.postCount - a.postCount ||
+          a.schoolName.localeCompare(b.schoolName, "ko"),
+      );
+
     const overview: AdminOverview = {
       totalMembers: totalMembersResult.count ?? 0,
       restrictedMembers: restrictedMembersResult.count ?? 0,
@@ -202,7 +284,7 @@ export async function GET(request: Request) {
       ),
       recentErrorEvents: (opsErrorRowsResult.data ?? []).map(mapOpsEvent),
       recentSlowEvents,
-      schools: (schoolRowsResult.data ?? []).map(
+      schools: schoolRows.map(
         (school): School => ({
           id: String(school.id),
           name: String(school.name),
@@ -210,6 +292,7 @@ export async function GET(request: Request) {
           city: String(school.city ?? ""),
         }),
       ),
+      schoolStats,
     };
 
     return NextResponse.json(overview);
