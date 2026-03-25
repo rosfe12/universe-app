@@ -715,9 +715,9 @@ export function CommunityPage({
           <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-1">
             <div className="grid grid-cols-3 gap-1">
               {([
-                { value: "school", label: "우리학교" },
                 { value: "all", label: "전체" },
                 { value: "hot", label: "🔥 핫글" },
+                { value: "school", label: "우리학교" },
               ] as const).map((scope) => (
                 <button
                   key={scope.value}
