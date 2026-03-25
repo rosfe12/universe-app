@@ -399,7 +399,7 @@ async function loadCachedSchoolRows(supabase: ReturnType<typeof createClient>) {
     const result = await supabase
       .from("schools")
       .select(SCHOOL_SELECT)
-      .order("course_name", { ascending: true });
+      .order("name", { ascending: true });
 
     if (!result.error && result.data) {
       cachedSchoolRows = {
