@@ -106,8 +106,8 @@ export function LoginPage() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: showTestAccounts ? "jiyoon@konkuk.ac.kr" : "",
-      password: showTestAccounts ? "univers123" : "",
+      email: "",
+      password: "",
     },
   });
 

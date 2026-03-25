@@ -123,7 +123,7 @@ export function shouldShowTestAccounts() {
 }
 
 export function getSupportEmail() {
-  return publicEnv.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@univers.app";
+  return publicEnv.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@universeapp.kr";
 }
 
 export function getSupportUrl() {

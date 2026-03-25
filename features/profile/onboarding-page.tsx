@@ -517,7 +517,7 @@ export function OnboardingPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               {isVerificationMode
                 ? "학교 메일 확인 후 학생 정보 자동 판정이 진행되며, 필요하면 추가 인증을 요청합니다."
-                : "계정은 자유롭게 만들고, 대학생 권한은 학교 메일이 확인된 뒤 열립니다."}
+                : "계정은 자유롭게 만들고, 대학생 권한은 학생 인증이 완료된 뒤 열립니다."}
             </p>
           </div>
         </CardHeader>
