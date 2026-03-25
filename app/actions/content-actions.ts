@@ -238,7 +238,12 @@ async function awardTrustScore(userId: string, delta: number) {
 function requireVerifiedStudentProfile(
   profile: CurrentProfile,
   featureLabel: string,
+  authEmail?: string | null,
 ) {
+  if (isMasterAdminEmail(authEmail)) {
+    return;
+  }
+
   if (profile.user_type !== "student") {
     throw new Error(`${featureLabel}은 대학생만 사용할 수 있습니다.`);
   }
@@ -856,7 +861,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
     throw new Error("입시생은 입시 게시판만 작성할 수 있습니다.");
   }
   if (values.category === "dating") {
-    requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
+    requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기", authUser.email);
   }
   if (values.subcategory === "freshman") {
     if (profile.user_type !== "freshman" || !profile.school_id) {
@@ -1353,7 +1358,7 @@ export async function createLectureReview(input: z.input<typeof lectureReviewSch
   const values = lectureReviewSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
-  requireVerifiedStudentProfile(profile, "강의평 작성");
+  requireVerifiedStudentProfile(profile, "강의평 작성", authUser.email);
   await guardLectureReviewSubmission(supabase, authUser.id, values);
 
   const { data, error } = await supabase
@@ -1391,7 +1396,7 @@ export async function createTradePost(input: z.input<typeof tradePostSchema>) {
   const values = tradePostSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
-  requireVerifiedStudentProfile(profile, "수강신청 교환");
+  requireVerifiedStudentProfile(profile, "수강신청 교환", authUser.email);
   await guardTradePostSubmission(supabase, authUser.id, values);
 
   const schoolId = values.schoolId ?? profile.school_id;
@@ -1439,7 +1444,7 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
   const values = tradeMessageSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
-  requireVerifiedStudentProfile(profile, "수강신청 교환 대화");
+  requireVerifiedStudentProfile(profile, "수강신청 교환 대화", authUser.email);
 
   const { data: tradePost, error: tradePostError } = await supabase
     .from("trade_posts")
@@ -1534,7 +1539,7 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
 export async function createDatingProfile(input: z.input<typeof datingProfileSchema>) {
   const values = datingProfileSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
-  requireVerifiedStudentProfile(profile, "미팅 프로필 등록");
+  requireVerifiedStudentProfile(profile, "미팅 프로필 등록", authUser.email);
 
   const schoolId = values.schoolId ?? profile.school_id;
   if (!schoolId) {
@@ -1572,7 +1577,7 @@ export async function createDatingPost(input: z.input<typeof datingPostSchema>) 
   const values = datingPostSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
-  requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기");
+  requireVerifiedStudentProfile(profile, "미팅 / 연애 글쓰기", authUser.email);
 
   if (!profile.school_id) {
     throw new Error("학교 정보가 필요합니다.");
