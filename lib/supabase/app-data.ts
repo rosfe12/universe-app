@@ -1508,10 +1508,15 @@ export async function signUpWithSupabase({
   const supabase = createClient();
   const normalizedReferralCode = normalizeReferralCode(referralCode);
   const agreedAt = new Date().toISOString();
+  const redirectTo =
+    typeof window === "undefined"
+      ? undefined
+      : `${resolveAppUrl(window.location.origin)}/login?signupConfirmed=1`;
   const signUpResult = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: redirectTo,
       data: {
         name: email.split("@")[0],
         full_name: email.split("@")[0],
@@ -1533,15 +1538,20 @@ export async function signUpWithSupabase({
   });
 
   if (signUpResult.error || !signUpResult.data.user) {
-    return signUpResult;
+    return { ...signUpResult, needsEmailConfirmation: false };
   }
 
   if (!signUpResult.data.session) {
-    return supabase.auth.signInWithPassword({ email, password });
+    clearRememberedReferralCode();
+    return {
+      data: signUpResult.data,
+      error: null,
+      needsEmailConfirmation: true,
+    };
   }
 
   clearRememberedReferralCode();
-  return signUpResult;
+  return { ...signUpResult, needsEmailConfirmation: false };
 }
 
 export async function signOutFromSupabase() {

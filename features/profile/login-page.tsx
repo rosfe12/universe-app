@@ -84,9 +84,11 @@ export function LoginPage() {
   const schoolVerified = searchParams.get("schoolVerified") === "1";
   const schoolVerificationExpired = searchParams.get("schoolVerificationExpired") === "1";
   const schoolVerificationFailed = searchParams.get("schoolVerificationFailed") === "1";
+  const signupConfirmed = searchParams.get("signupConfirmed") === "1";
   const { currentUser, isAuthenticated, loading, refresh } = useAppRuntime();
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [mode, setMode] = useState<AuthMode>(adminOnlyFlow ? "login" : "login");
   const [saveEmail, setSaveEmail] = useState(true);
   const [savePassword, setSavePassword] = useState(false);
@@ -154,6 +156,7 @@ export function LoginPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     setErrorMessage("");
+    setSuccessMessage("");
 
     if (!isSupabaseEnabled()) {
       router.push("/home");
@@ -205,6 +208,13 @@ export function LoginPage() {
     }
 
     if (mode === "signup") {
+      if ("needsEmailConfirmation" in result && result.needsEmailConfirmation) {
+        setMode("login");
+        setSuccessMessage("회원가입이 완료되었습니다. 이메일 인증 후 로그인해주세요.");
+        form.setValue("password", "", { shouldDirty: false });
+        return;
+      }
+
       const target = `/onboarding?next=${encodeURIComponent(nextPath)}`;
       if (typeof window !== "undefined") {
         window.location.replace(target);
@@ -277,6 +287,11 @@ export function LoginPage() {
               학교 메일 인증을 완료하지 못했습니다. 다시 시도해주세요.
             </div>
           ) : null}
+          {signupConfirmed || successMessage ? (
+            <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {successMessage || "회원가입이 완료되었습니다. 이메일 인증 후 로그인해주세요."}
+            </div>
+          ) : null}
           {errorMessage ? (
             <ErrorState
               title={mode === "signup" ? "회원가입 실패" : "로그인 실패"}
@@ -290,6 +305,7 @@ export function LoginPage() {
                 className="w-full"
                 onClick={async () => {
                   setErrorMessage("");
+                  setSuccessMessage("");
 
                   if (!isSupabaseEnabled()) {
                     router.push("/home");
@@ -334,6 +350,7 @@ export function LoginPage() {
                 onClick={() => {
                   setMode("login");
                   setErrorMessage("");
+                  setSuccessMessage("");
                 }}
               >
                 로그인
@@ -349,6 +366,7 @@ export function LoginPage() {
                 onClick={() => {
                   setMode("signup");
                   setErrorMessage("");
+                  setSuccessMessage("");
                 }}
               >
                 회원가입
@@ -517,6 +535,7 @@ export function LoginPage() {
                 onClick={() => {
                   setMode((current) => (current === "login" ? "signup" : "login"));
                   setErrorMessage("");
+                  setSuccessMessage("");
                 }}
               >
                 {mode === "login"
