@@ -1215,6 +1215,30 @@ export async function deleteComment(commentId: string) {
   revalidateFeed(["/home", "/community", "/school", "/dating", "/notifications", "/profile"]);
 }
 
+export async function deleteCurrentAccount() {
+  const { authUser } = await requireCurrentUser();
+  const admin = createAdminSupabaseClient();
+
+  const { error } = await admin.auth.admin.deleteUser(authUser.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateFeed([
+    "/home",
+    "/community",
+    "/school",
+    "/dating",
+    "/trade",
+    "/notifications",
+    "/profile",
+    "/admin",
+  ]);
+
+  return { success: true };
+}
+
 export async function votePoll(input: { postId: string; optionId: string }) {
   const values = z
     .object({

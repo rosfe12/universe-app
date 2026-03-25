@@ -88,6 +88,9 @@ const tradeSchema = z.object({
   note: z.string().min(2),
   status: z.enum(["open", "matching", "closed"]),
   visibilityLevel: z.enum(["school", "schoolDepartment"]),
+}).refine((value) => value.haveLectureId !== value.wantLectureId, {
+  message: "보유 강의와 원하는 강의는 다르게 선택해주세요.",
+  path: ["wantLectureId"],
 });
 
 type TradeFormValues = z.infer<typeof tradeSchema>;
@@ -222,6 +225,15 @@ export function TradePage({
   const chatHighlighted = searchParams.get("chat") === "1";
   const selectedHaveLecture = getLectureById(form.watch("haveLectureId"));
   const selectedWantLecture = getLectureById(form.watch("wantLectureId"));
+  const watchedNote = form.watch("note");
+  const tradeSubmitBlockedReason =
+    !selectedHaveLecture || !selectedWantLecture
+      ? "교환할 강의를 모두 선택해주세요."
+      : selectedHaveLecture.id === selectedWantLecture.id
+        ? "보유 강의와 원하는 강의는 다르게 선택해주세요."
+        : watchedNote.trim().length < 2
+          ? "메모 한 줄을 2자 이상 입력해주세요."
+          : null;
   const detailMatches = useMemo(
     () => (detailItem ? getTradeMatchCandidates(detailItem.id) : []),
     [detailItem],
@@ -348,6 +360,13 @@ export function TradePage({
     });
     if (validationError) {
       form.setError("root", { message: validationError });
+      return;
+    }
+
+    if (values.haveLectureId === values.wantLectureId) {
+      form.setError("wantLectureId", {
+        message: "보유 강의와 원하는 강의는 다르게 선택해주세요.",
+      });
       return;
     }
 
@@ -676,6 +695,9 @@ export function TradePage({
                 options={lectureOptions}
               />
             </div>
+            {form.formState.errors.wantLectureId?.message ? (
+              <p className="text-sm text-rose-600">{form.formState.errors.wantLectureId.message}</p>
+            ) : null}
             <Card className="border-dashed bg-secondary/60 shadow-none">
               <CardContent className="space-y-3 py-4 text-sm">
                 <p className="font-semibold">선택한 강의 기준으로 자동 반영</p>
@@ -737,7 +759,14 @@ export function TradePage({
             {form.formState.errors.root?.message ? (
               <p className="text-sm text-rose-600">{form.formState.errors.root.message}</p>
             ) : null}
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {!form.formState.errors.root?.message && tradeSubmitBlockedReason ? (
+              <p className="text-sm text-amber-600">{tradeSubmitBlockedReason}</p>
+            ) : null}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting || Boolean(tradeSubmitBlockedReason)}
+            >
               <ArrowRightLeft className="h-4 w-4" />
               등록하기
             </Button>

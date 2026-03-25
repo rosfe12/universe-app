@@ -1,12 +1,17 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+const APP_DISPLAY_TIME_ZONE = "Asia/Seoul";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function formatRelativeLabel(dateString: string) {
   const target = new Date(dateString).getTime();
+  if (!Number.isFinite(target)) {
+    return "";
+  }
   const diff = Date.now() - target;
   const minutes = Math.floor(diff / 1000 / 60);
 
@@ -22,7 +27,23 @@ export function formatRelativeLabel(dateString: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     month: "numeric",
     day: "numeric",
+    timeZone: APP_DISPLAY_TIME_ZONE,
   }).format(new Date(dateString));
+}
+
+export function formatAbsoluteDateLabel(dateString: string) {
+  const target = new Date(dateString);
+  if (Number.isNaN(target.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: APP_DISPLAY_TIME_ZONE,
+  }).format(target);
 }
 
 export function average(numbers: number[]) {

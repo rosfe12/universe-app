@@ -15,7 +15,6 @@ import {
   MessageCircle,
   Newspaper,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 
 import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
@@ -24,6 +23,7 @@ import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner
 import { EmptyState } from "@/components/shared/empty-state";
 import { FeedList } from "@/components/shared/feed-list";
 import { PollCard } from "@/components/shared/poll-card";
+import { RelativeTimeText } from "@/components/shared/relative-time-text";
 import { SectionHeader } from "@/components/shared/section-header";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
@@ -63,18 +63,13 @@ import {
 import {
   type CareerBoardKind,
   getCareerBoardKind,
-  getCareerPosts,
-  getCommunityPosts,
   getHotScore,
-  getHotGalleryPosts,
   getLatestCommentPreview,
   getAllCommunityFeedPosts,
   getMostCommentedPosts,
   getMostVotedPosts,
-  getPostHref,
   getSchoolName,
   getSchoolCommunityFeedPosts,
-  getSchoolScopedCommunityPosts,
   getTrendingCommunityPosts,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
@@ -86,7 +81,7 @@ import {
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
 import { getStandardVisibilityLevel } from "@/lib/user-identity";
-import { cn, formatRelativeLabel, getPostViewCount } from "@/lib/utils";
+import { cn, getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/types";
 import { createPostSharePayload } from "@/lib/share-utils";
 
@@ -322,7 +317,7 @@ function SharedFeedCard({
             <MessageCircle className="h-4 w-4" />
             {post.commentCount}
           </span>
-          <span>{formatRelativeLabel(post.createdAt)}</span>
+          <RelativeTimeText dateString={post.createdAt} />
         </div>
         {latestComment ? (
           <button

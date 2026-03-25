@@ -2,9 +2,10 @@ import {
   getPublicIdentitySummary,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
-import { cn, formatRelativeLabel } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { VisibilityLevel } from "@/types";
 
+import { RelativeTimeText } from "@/components/shared/relative-time-text";
 import { UserLevelText } from "@/components/shared/user-level-text";
 
 export function PostAuthorRow({
@@ -39,7 +40,7 @@ export function PostAuthorRow({
               <span>·</span>
             </>
           ) : null}
-          <span>{formatRelativeLabel(createdAt)}</span>
+          <RelativeTimeText dateString={createdAt} />
         </div>
         {!minimal && (identity.visibilityLevel === "anonymous" || repeatedlyReported) ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">

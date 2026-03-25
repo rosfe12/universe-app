@@ -23,6 +23,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingState } from "@/components/shared/loading-state";
+import { RelativeTimeText } from "@/components/shared/relative-time-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,7 +42,7 @@ import {
 } from "@/lib/mock-queries";
 import { isSupabaseEnabled } from "@/lib/supabase/app-data";
 import { createClient } from "@/lib/supabase/client";
-import { cn, formatRelativeLabel } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type {
   AppRuntimeSnapshot,
   Notification,
@@ -601,7 +602,7 @@ export function NotificationsPage({
                               ) : null}
                             </div>
                             <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                              <span>{formatRelativeLabel(item.createdAt)}</span>
+                              <RelativeTimeText dateString={item.createdAt} />
                               <span className="font-semibold text-primary">
                                 {item.sourceKind === "recommendation" ? "지금 보기" : "바로 이동"}
                               </span>

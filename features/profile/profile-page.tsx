@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { deleteCurrentAccount } from "@/app/actions/content-actions";
 import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import {
   getAnonymousHandle,
@@ -102,6 +103,8 @@ export function ProfilePage({
     trade: true,
     marketing: false,
   });
+  const [accountActionError, setAccountActionError] = useState<string | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const moveToPost = (postId: string) => {
     router.push(getPostHref(postId));
   };
@@ -386,6 +389,9 @@ export function ProfilePage({
             </Link>
           ))}
         </div>
+        {accountActionError ? (
+          <p className="text-sm text-rose-600">{accountActionError}</p>
+        ) : null}
         <Button
           variant="outline"
           className="w-full"
@@ -404,6 +410,49 @@ export function ProfilePage({
           }}
         >
           로그아웃
+        </Button>
+        <Button
+          variant="destructive"
+          className="w-full"
+          disabled={isDeletingAccount}
+          onClick={async () => {
+            if (
+              typeof window !== "undefined" &&
+              !window.confirm(
+                "회원 탈퇴 시 내가 쓴 글, 댓글, 강의평, 매칭 글, 알림, 등급이 모두 삭제되며 복구할 수 없습니다. 탈퇴하시겠습니까?",
+              )
+            ) {
+              return;
+            }
+
+            setAccountActionError(null);
+            setIsDeletingAccount(true);
+
+            try {
+              await deleteCurrentAccount();
+              try {
+                await signOutFromSupabase();
+              } catch {
+                // noop
+              }
+              invalidateClientRuntimeSnapshots();
+              resetClientAuthRuntime();
+              if (typeof window !== "undefined") {
+                window.location.replace("/home");
+                return;
+              }
+              router.replace("/home");
+              router.refresh();
+            } catch (error) {
+              setAccountActionError(
+                error instanceof Error ? error.message : "회원 탈퇴를 완료하지 못했습니다.",
+              );
+            } finally {
+              setIsDeletingAccount(false);
+            }
+          }}
+        >
+          {isDeletingAccount ? "탈퇴 처리 중" : "회원 탈퇴"}
         </Button>
       </section>
 

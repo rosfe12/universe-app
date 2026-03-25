@@ -1436,13 +1436,23 @@ export async function signUpWithSupabase({
   email,
   password,
   referralCode,
+  consents,
 }: {
   email: string;
   password: string;
   referralCode?: string;
+  consents?: {
+    terms: boolean;
+    privacy: boolean;
+    age: boolean;
+    marketingPush?: boolean;
+    marketingEmail?: boolean;
+    marketingSms?: boolean;
+  };
 }) {
   const supabase = createClient();
   const normalizedReferralCode = normalizeReferralCode(referralCode);
+  const agreedAt = new Date().toISOString();
   const signUpResult = await supabase.auth.signUp({
     email,
     password,
@@ -1451,6 +1461,18 @@ export async function signUpWithSupabase({
         name: email.split("@")[0],
         full_name: email.split("@")[0],
         referral_code: normalizedReferralCode,
+        signup_consents: consents
+          ? {
+              terms_agreed_at: consents.terms ? agreedAt : null,
+              privacy_agreed_at: consents.privacy ? agreedAt : null,
+              age_confirmed_at: consents.age ? agreedAt : null,
+              marketing: {
+                push: Boolean(consents.marketingPush),
+                email: Boolean(consents.marketingEmail),
+                sms: Boolean(consents.marketingSms),
+              },
+            }
+          : null,
       },
     },
   });

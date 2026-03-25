@@ -11,6 +11,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingState } from "@/components/shared/loading-state";
+import { RelativeTimeText } from "@/components/shared/relative-time-text";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
@@ -22,7 +23,6 @@ import {
   getTradePosts,
 } from "@/lib/mock-queries";
 import { createClient } from "@/lib/supabase/client";
-import { formatRelativeLabel } from "@/lib/utils";
 import type { ReactNode } from "react";
 import type { AppRuntimeSnapshot } from "@/types";
 
@@ -42,7 +42,7 @@ type MessageThreadItem = {
   href: string;
   unread: boolean;
   unreadCount?: number;
-  time: string;
+  createdAt: string;
   notificationId?: string;
   targetType?: "post" | "trade";
   targetId?: string;
@@ -125,7 +125,10 @@ function ThreadLink({
         <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">{thread.preview}</p>
       </div>
       <div className="shrink-0 text-right">
-        <span className="block text-xs text-muted-foreground">{thread.time}</span>
+        <RelativeTimeText
+          dateString={thread.createdAt}
+          className="block text-xs text-muted-foreground"
+        />
         {thread.unreadCount && thread.unreadCount > 0 ? (
           <span className="mt-2 inline-flex min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
             {thread.unreadCount}
@@ -182,12 +185,11 @@ export function MessagesPage({
             preview: item.body,
             href: getThreadHref(normalizedTargetType, item.targetId, item.href),
             unread: !item.isRead,
-            time: formatRelativeLabel(item.createdAt),
+            createdAt: item.createdAt,
             notificationId: item.id,
             targetType: normalizedTargetType,
             targetId: item.targetId,
             sectionLabel: item.type === "tradeMatch" ? "수강신청 교환" : "내 글 반응",
-            createdAt: item.createdAt,
             unreadCount: item.isRead ? 0 : 1,
           });
           return map;
@@ -196,7 +198,6 @@ export function MessagesPage({
         if (new Date(item.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
           existing.title = item.title;
           existing.preview = item.body;
-          existing.time = formatRelativeLabel(item.createdAt);
           existing.notificationId = item.id;
           existing.createdAt = item.createdAt;
         }
@@ -219,7 +220,7 @@ export function MessagesPage({
       preview: thread.preview,
       href: thread.href,
       unread: thread.unread,
-      time: thread.time,
+      createdAt: thread.createdAt,
       notificationId: thread.notificationId,
       targetType: thread.targetType,
       targetId: thread.targetId,
@@ -239,7 +240,7 @@ export function MessagesPage({
           href: `/trade?post=${item.id}&chat=1`,
           unread: (tradeUnreadCounts.get(item.id) ?? 0) > 0 || item.status === "matching",
           unreadCount: tradeUnreadCounts.get(item.id) ?? 0,
-          time: formatRelativeLabel(item.createdAt),
+          createdAt: item.createdAt,
           targetType: "trade" as const,
           targetId: item.id,
           sectionLabel: `${getTradeStatusLabel(item.status)} · ${item.status === "matching" ? "대화 진행 중" : "대화 시작 전"}`,
@@ -317,7 +318,7 @@ export function MessagesPage({
               href: `/trade?post=${tradePost.id}&chat=1`,
               unread: unreadCount > 0 || latestMessage.sender_id !== currentUser.id,
               unreadCount,
-              time: formatRelativeLabel(latestMessage.created_at),
+              createdAt: latestMessage.created_at,
               targetType: "trade" as const,
               targetId: tradePost.id,
               sectionLabel: `${getTradeStatusLabel(tradePost.status)} · 참여 ${participantCount}명`,

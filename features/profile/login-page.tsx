@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Chrome, Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -42,6 +43,14 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type AuthMode = "login" | "signup";
+type SignupConsentState = {
+  terms: boolean;
+  privacy: boolean;
+  age: boolean;
+  marketingPush: boolean;
+  marketingEmail: boolean;
+  marketingSms: boolean;
+};
 
 async function waitForAuthenticatedSnapshot(
   refresh: () => Promise<AppRuntimeSnapshot>,
@@ -78,6 +87,14 @@ export function LoginPage() {
   const [saveEmail, setSaveEmail] = useState(true);
   const [savePassword, setSavePassword] = useState(false);
   const [keepLoggedIn, setKeepLoggedIn] = useState(true);
+  const [signupConsents, setSignupConsents] = useState<SignupConsentState>({
+    terms: false,
+    privacy: false,
+    age: false,
+    marketingPush: false,
+    marketingEmail: false,
+    marketingSms: false,
+  });
   const googleSignInEnabled = isGoogleSignInEnabled();
   const showTestAccounts = shouldShowTestAccounts();
   const form = useForm<LoginFormValues>({
@@ -128,11 +145,19 @@ export function LoginPage() {
     );
   }, [currentUser, isAuthenticated, loading, nextPath, router]);
 
+  const requiredSignupConsentsComplete =
+    signupConsents.terms && signupConsents.privacy && signupConsents.age;
+
   const onSubmit = form.handleSubmit(async (values) => {
     setErrorMessage("");
 
     if (!isSupabaseEnabled()) {
       router.push("/home");
+      return;
+    }
+
+    if (mode === "signup" && !requiredSignupConsentsComplete) {
+      setErrorMessage("필수 약관과 개인정보 수집·이용, 만 14세 이상 확인에 동의해야 합니다.");
       return;
     }
 
@@ -147,6 +172,7 @@ export function LoginPage() {
             email: values.email,
             password: values.password,
             referralCode: getRememberedReferralCode(),
+            consents: signupConsents,
           });
     setPending(false);
 
@@ -247,7 +273,10 @@ export function LoginPage() {
             </div>
           ) : null}
           {errorMessage ? (
-            <ErrorState title="로그인 실패" description={errorMessage} />
+            <ErrorState
+              title={mode === "signup" ? "회원가입 실패" : "로그인 실패"}
+              description={errorMessage}
+            />
           ) : null}
           {googleSignInEnabled && !adminOnlyFlow ? (
             <>
@@ -259,6 +288,11 @@ export function LoginPage() {
 
                   if (!isSupabaseEnabled()) {
                     router.push("/home");
+                    return;
+                  }
+
+                  if (mode === "signup" && !requiredSignupConsentsComplete) {
+                    setErrorMessage("필수 약관과 개인정보 수집·이용, 만 14세 이상 확인에 동의해야 합니다.");
                     return;
                   }
 
@@ -331,6 +365,103 @@ export function LoginPage() {
                 <p className="text-xs text-rose-500">{form.formState.errors.password.message}</p>
               ) : null}
             </div>
+            {mode === "signup" ? (
+              <div className="space-y-3 rounded-[22px] border border-border bg-secondary/50 p-4">
+                <p className="text-sm font-semibold text-foreground">회원가입 동의</p>
+                <label className="flex items-start justify-between gap-3 text-sm">
+                  <span className="leading-6 text-foreground">
+                    <span className="font-medium">[필수] </span>
+                    <Link href="/terms" className="underline underline-offset-4">
+                      이용약관
+                    </Link>
+                    에 동의합니다
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-indigo-600"
+                    checked={signupConsents.terms}
+                    onChange={(event) =>
+                      setSignupConsents((current) => ({ ...current, terms: event.target.checked }))
+                    }
+                  />
+                </label>
+                <label className="flex items-start justify-between gap-3 text-sm">
+                  <span className="leading-6 text-foreground">
+                    <span className="font-medium">[필수] </span>
+                    <Link href="/privacy" className="underline underline-offset-4">
+                      개인정보 수집·이용
+                    </Link>
+                    에 동의합니다
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-indigo-600"
+                    checked={signupConsents.privacy}
+                    onChange={(event) =>
+                      setSignupConsents((current) => ({ ...current, privacy: event.target.checked }))
+                    }
+                  />
+                </label>
+                <label className="flex items-start justify-between gap-3 text-sm">
+                  <span className="leading-6 text-foreground">
+                    <span className="font-medium">[필수] </span>만 14세 이상입니다
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 accent-indigo-600"
+                    checked={signupConsents.age}
+                    onChange={(event) =>
+                      setSignupConsents((current) => ({ ...current, age: event.target.checked }))
+                    }
+                  />
+                </label>
+                <div className="space-y-2 border-t border-border pt-3">
+                  <p className="text-sm font-medium text-foreground">[선택] 광고성 정보 수신</p>
+                  <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                    <span>앱 푸시</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-indigo-600"
+                      checked={signupConsents.marketingPush}
+                      onChange={(event) =>
+                        setSignupConsents((current) => ({
+                          ...current,
+                          marketingPush: event.target.checked,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                    <span>이메일</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-indigo-600"
+                      checked={signupConsents.marketingEmail}
+                      onChange={(event) =>
+                        setSignupConsents((current) => ({
+                          ...current,
+                          marketingEmail: event.target.checked,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                    <span>문자</span>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-indigo-600"
+                      checked={signupConsents.marketingSms}
+                      onChange={(event) =>
+                        setSignupConsents((current) => ({
+                          ...current,
+                          marketingSms: event.target.checked,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            ) : null}
             <div className="space-y-2 rounded-[22px] border border-border bg-secondary/50 p-4">
               <label className="flex items-center justify-between gap-3 text-sm">
                 <span className="font-medium text-foreground">아이디 저장</span>
