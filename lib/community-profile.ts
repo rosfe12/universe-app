@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import type { ProfileVisibility, User, VerificationState } from "@/types";
 
 export const PROFILE_IMAGE_BUCKET = "profile-images";
@@ -119,9 +120,9 @@ export function parseInterestTokens(input: string) {
 }
 
 export function canUseCommunityProfileFeature(
-  user?: Pick<User, "verificationState"> | null,
-): user is Pick<User, "verificationState"> & { verificationState: VerificationState } {
-  return user?.verificationState === "student_verified";
+  user?: { verificationState?: VerificationState; email?: string | null } | null,
+): user is { verificationState?: VerificationState; email?: string | null } {
+  return user?.verificationState === "student_verified" || isMasterAdminEmail(user?.email);
 }
 
 export function canReadCommunityProfile(

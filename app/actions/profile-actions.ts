@@ -29,6 +29,7 @@ const reorderProfileImagesSchema = z.array(z.string().uuid()).min(1).max(3);
 
 type CurrentProfileUserRow = {
   id: string;
+  email: string | null;
   school_id: string | null;
   department: string | null;
   admission_year: number | null;
@@ -85,7 +86,7 @@ async function requireAuthenticatedProfileUser() {
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
-    .select("id, school_id, department, admission_year, verification_state, nickname, name")
+    .select("id, email, school_id, department, admission_year, verification_state, nickname, name")
     .eq("id", user.id)
     .single();
 
@@ -101,9 +102,14 @@ async function requireAuthenticatedProfileUser() {
 }
 
 function requireVerifiedProfileFeature(
-  user: Pick<CurrentProfileUserRow, "verification_state">,
+  user: Pick<CurrentProfileUserRow, "verification_state" | "email">,
 ) {
-  if (!canUseCommunityProfileFeature({ verificationState: user.verification_state ?? undefined })) {
+  if (
+    !canUseCommunityProfileFeature({
+      verificationState: user.verification_state ?? undefined,
+      email: user.email ?? undefined,
+    })
+  ) {
     throw new Error(COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
   }
 }

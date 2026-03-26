@@ -1,4 +1,4 @@
-const DEFAULT_MASTER_ADMIN_EMAILS = ["rosfe12@gmail.com"];
+const DEFAULT_MASTER_ADMIN_EMAILS = ["rosfe12@gmail.com", "rosfe12@gamil.com"];
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
