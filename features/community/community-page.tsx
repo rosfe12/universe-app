@@ -449,6 +449,9 @@ export function CommunityPage({
 
     const targetPost = accessibleAllFeedItems.find((post) => post.id === detailParam);
     if (!targetPost) {
+      if (!loading) {
+        router.replace(`/posts/${detailParam}`);
+      }
       return;
     }
 
@@ -464,7 +467,22 @@ export function CommunityPage({
 
     setSensitivePost(null);
     setDetailPostId(targetPost.id);
-  }, [accessibleAllFeedItems, detailParam]);
+  }, [accessibleAllFeedItems, detailParam, loading, router]);
+
+  function syncDetailParam(postId: string | null, filter?: SharedFilter) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (postId) {
+      params.set("post", postId);
+      if (filter) {
+        params.set("filter", filter);
+      }
+    } else {
+      params.delete("post");
+    }
+
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }
 
   function openPost(post: Post) {
     if (post.subcategory === "anonymous" && !canAccessAnonymousBoard) {
@@ -482,11 +500,13 @@ export function CommunityPage({
       post.subcategory === "hot" ||
       classifyContentLevel(`${post.title} ${post.content}`) === "sensitive"
     ) {
+      syncDetailParam(post.id, getFilterForPost(post));
       setSensitivePost(post);
       setDetailPostId(null);
       return;
     }
 
+    syncDetailParam(post.id, getFilterForPost(post));
     setSensitivePost(null);
     setDetailPostId(post.id);
   }
@@ -1119,7 +1139,15 @@ export function CommunityPage({
         <AdPlaceholderCard placement="hotGalleryFooter" />
       ) : null}
 
-      <Dialog open={Boolean(detailPost)} onOpenChange={(next) => !next && setDetailPostId(null)}>
+      <Dialog
+        open={Boolean(detailPost)}
+        onOpenChange={(next) => {
+          if (!next) {
+            syncDetailParam(null);
+            setDetailPostId(null);
+          }
+        }}
+      >
         <DialogContent className="max-h-[88vh] overflow-y-auto">
           {detailPost ? (
             <>
@@ -1234,12 +1262,14 @@ export function CommunityPage({
                         onClick={async () => {
                           if (source === "supabase") {
                             await deletePost(detailPost.id);
+                            syncDetailParam(null);
                             setDetailPostId(null);
                             await refresh();
                             return;
                           }
 
                           setSnapshot((current) => removePostFromSnapshot(current, detailPost.id));
+                          syncDetailParam(null);
                           setDetailPostId(null);
                         }}
                       >
@@ -1255,7 +1285,15 @@ export function CommunityPage({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(sensitivePost)} onOpenChange={(next) => !next && setSensitivePost(null)}>
+      <Dialog
+        open={Boolean(sensitivePost)}
+        onOpenChange={(next) => {
+          if (!next) {
+            syncDetailParam(null);
+            setSensitivePost(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>민감한 내용이 포함될 수 있습니다</DialogTitle>
