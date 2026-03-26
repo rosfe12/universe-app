@@ -230,6 +230,8 @@ export function SchoolPage({
     (count, lecture) => count + getLectureReviews(lecture.id).filter((review) => isRecentActivity(review.createdAt)).length,
     0,
   );
+  const hasCampusLiveContent =
+    schoolBoardPosts.length > 0 || freshmanZonePosts.length > 0 || admissionPosts.length > 0;
   const schoolBoardWriteEnabled =
     isAuthenticated &&
     hasCompletedOnboarding(currentUser) &&
@@ -248,6 +250,8 @@ export function SchoolPage({
       ].sort((a, b) => b.likes - a.likes || b.commentCount - a.commentCount),
     [clubPosts, foodPosts],
   );
+  const hasSchoolUtilityContent =
+    lectures.length > 0 || tradeItems.length > 0 || campusInfoCards.length > 0;
   const schoolDetailPosts = useMemo(
     () => [...schoolBoardPosts, ...freshmanZonePosts, ...campusInfoCards, ...admissionPosts],
     [admissionPosts, campusInfoCards, freshmanZonePosts, schoolBoardPosts],
@@ -686,6 +690,65 @@ export function SchoolPage({
       <section className="space-y-4">
         <SectionHeader title="캠퍼스 라이브" />
 
+        {!hasCampusLiveContent ? (
+          <Card className="border-border bg-card shadow-none">
+            <CardContent className="space-y-4 py-6">
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-foreground">
+                  {schoolShortName}에서 막 올라오는 글은 아직 많지 않아요
+                </p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  학교 안에서 바로 물어보고 싶은 내용부터 남기면 캠퍼스 피드가 빠르게 채워집니다.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {!isApplicantMode ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (!schoolBoardWriteEnabled) {
+                        router.push(
+                          getAuthFlowHref({
+                            isAuthenticated,
+                            user: currentUser,
+                            nextPath: "/school?tab=school",
+                          }),
+                        );
+                        return;
+                      }
+                      setSchoolBoardComposerOpen(true);
+                    }}
+                  >
+                    학교 게시판 글쓰기
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (!admissionWriteEnabled) {
+                      router.push(
+                        getAuthFlowHref({
+                          isAuthenticated,
+                          user: currentUser,
+                          nextPath: "/school?tab=admission",
+                        }),
+                      );
+                      return;
+                    }
+                    setAdmissionComposerOpen(true);
+                  }}
+                >
+                  입시 질문하기
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {schoolBoardPosts.length > 0 ? (
         <div
           ref={(node) => {
             schoolBoardSectionRef.current = node;
@@ -739,7 +802,9 @@ export function SchoolPage({
             </FeedList>
           )}
         </div>
+        ) : null}
 
+        {freshmanZonePosts.length > 0 ? (
         <div
           ref={(node) => {
             freshmanSectionRef.current = node;
@@ -769,7 +834,9 @@ export function SchoolPage({
             </FeedList>
           )}
         </div>
+        ) : null}
 
+        {admissionPosts.length > 0 ? (
         <div
           ref={(node) => {
             admissionSectionRef.current = node;
@@ -817,6 +884,7 @@ export function SchoolPage({
             </FeedList>
           )}
         </div>
+        ) : null}
       </section>
       ) : null}
 
@@ -830,8 +898,8 @@ export function SchoolPage({
         <SectionHeader title="강의 정보" href="/lectures" />
         {lectures.length === 0 ? (
           <EmptyState
-            title="아직 강의 정보가 없습니다"
-            description="학교 강의 리뷰가 쌓이면 여기에 바로 보입니다."
+            title="아직 강의 리뷰가 많지 않아요"
+            description="강의 페이지에서 먼저 둘러보거나 첫 리뷰를 남길 수 있습니다."
             actionLabel="강의 보러 가기"
             href="/lectures"
           />
@@ -859,8 +927,8 @@ export function SchoolPage({
           <SectionHeader title="수강신청 교환" href="/trade" />
           {tradeItems.length === 0 ? (
             <EmptyState
-              title="아직 교환 글이 없습니다"
-              description="같은 학교 교환 글이 올라오면 바로 이어서 볼 수 있습니다."
+              title="아직 교환 글이 많지 않아요"
+              description="같은 학교에서 교환 글이 올라오면 여기서 바로 이어서 볼 수 있습니다."
               actionLabel="교환 게시판 보기"
               href="/trade"
             />
@@ -884,8 +952,12 @@ export function SchoolPage({
         <SectionHeader title="탐색" />
         {campusInfoCards.length === 0 ? (
           <EmptyState
-            title="둘러볼 학교 생활 글이 아직 없습니다"
-            description="동아리 모집과 학교 주변 맛집 글이 차례로 보이게 됩니다."
+            title={
+              hasSchoolUtilityContent
+                ? "학교 생활 글이 더 쌓이면 여기서 이어서 볼 수 있어요"
+                : "둘러볼 학교 생활 글이 아직 많지 않아요"
+            }
+            description="동아리 모집과 학교 주변 맛집, 생활 정보가 차례로 모입니다."
           />
         ) : (
           <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

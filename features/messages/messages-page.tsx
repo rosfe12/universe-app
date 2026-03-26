@@ -369,13 +369,6 @@ export function MessagesPage({
           actionLabel="대학생 인증 진행"
           href="/onboarding?next=/messages&mode=verification"
         />
-      ) : messageThreads.length === 0 && chatThreads.length === 0 ? (
-        <EmptyState
-          title="아직 이어진 메시지가 없습니다"
-          description="댓글, 답글, 매칭 반응이 생기면 여기에서 바로 이어볼 수 있습니다."
-          actionLabel="커뮤니티 둘러보기"
-          href="/community"
-        />
       ) : (
         <Tabs defaultValue="dm" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">

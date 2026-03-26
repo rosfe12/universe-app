@@ -376,8 +376,8 @@ export function HomePage({
             ) : (
               <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
                 <CardContent className="py-5">
-                  <p className="text-sm leading-6 text-muted-foreground">게시글 준비 중</p>
-                  <p className="text-xs text-muted-foreground">첫 투표가 올라오면 여기서 바로 볼 수 있습니다.</p>
+                  <p className="text-sm leading-6 text-muted-foreground">아직 참여가 많은 투표가 없어요</p>
+                  <p className="text-xs text-muted-foreground">첫 투표가 올라오면 여기서 바로 이어서 볼 수 있습니다.</p>
                 </CardContent>
               </Card>
             )}
@@ -533,8 +533,8 @@ export function HomePage({
           ) : (
             <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
               <CardContent className="space-y-3 py-5">
-                <p className="text-base font-semibold text-foreground">강의 정보 준비 중</p>
-                <p className="text-sm text-muted-foreground">강의 페이지에서 먼저 둘러볼 수 있습니다.</p>
+                <p className="text-base font-semibold text-foreground">아직 강의 리뷰가 많지 않아요</p>
+                <p className="text-sm text-muted-foreground">강의 페이지에서 먼저 둘러보거나 직접 첫 리뷰를 남길 수 있습니다.</p>
                 <Link href="/lectures" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                   강의 페이지 보기
                   <ArrowUpRight className="h-4 w-4" />
