@@ -233,6 +233,14 @@ export function MessagesPage({
       sectionLabel: thread.sectionLabel,
       unreadCount: thread.unreadCount,
     }));
+  const messageUnreadCount = messageThreads.reduce(
+    (count, thread) => count + (thread.unreadCount ?? (thread.unread ? 1 : 0)),
+    0,
+  );
+  const chatUnreadCount = chatThreads.reduce(
+    (count, thread) => count + (thread.unreadCount ?? (thread.unread ? 1 : 0)),
+    0,
+  );
 
   const fallbackChatThreads = useMemo(
     () =>
@@ -372,12 +380,26 @@ export function MessagesPage({
       ) : (
         <Tabs defaultValue="dm" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="dm">메시지</TabsTrigger>
-            <TabsTrigger value="chat">채팅</TabsTrigger>
+            <TabsTrigger value="dm" className="gap-2">
+              메시지
+              {messageUnreadCount > 0 ? (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                  {Math.min(messageUnreadCount, 99)}
+                </span>
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="gap-2">
+              채팅
+              {chatUnreadCount > 0 ? (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                  {Math.min(chatUnreadCount, 99)}
+                </span>
+              ) : null}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="dm" className="mt-0">
-            <div className="px-4 pb-3 text-xs text-gray-400">
-              댓글, 답글, 입시 답변, 매칭 반응을 모아서 보여줍니다.
+            <div className="mb-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-5 text-muted-foreground">
+              댓글, 답글, 입시 답변, 교환 반응을 한 번에 이어서 볼 수 있어요.
             </div>
             {messageThreads.length === 0 ? (
               <EmptyState
@@ -401,7 +423,7 @@ export function MessagesPage({
             )}
           </TabsContent>
           <TabsContent value="chat" className="mt-0">
-            <div className="px-4 pb-3 text-xs text-gray-400">
+            <div className="mb-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-5 text-muted-foreground">
               실제 수강신청 교환 대화방만 따로 모아 보여줍니다.
             </div>
             {chatLoading ? (

@@ -16,17 +16,17 @@ export function EmptyState({
   href?: string;
 }) {
   return (
-    <Card className="border-dashed">
-      <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-        <div className="rounded-full bg-secondary p-3">
+    <Card className="app-section-surface rounded-[28px] border border-white/10 shadow-none">
+      <CardContent className="flex flex-col items-center gap-4 px-6 py-10 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
           <Inbox className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div className="space-y-1">
-          <p className="font-semibold">{title}</p>
-          <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="space-y-1.5">
+          <p className="text-base font-semibold text-foreground">{title}</p>
+          <p className="text-sm leading-6 text-muted-foreground">{description}</p>
         </div>
         {actionLabel && href ? (
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="min-w-28">
             <Link href={href}>{actionLabel}</Link>
           </Button>
         ) : null}

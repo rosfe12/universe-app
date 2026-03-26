@@ -6,9 +6,11 @@ import { CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function ActionFeedbackBanner({
+  title = "등록되었습니다",
   message,
   onClose,
 }: {
+  title?: string;
   message: string;
   onClose: () => void;
 }) {
@@ -30,7 +32,7 @@ export function ActionFeedbackBanner({
           <CheckCircle2 className="h-4 w-4" />
         </div>
         <div className="space-y-1">
-          <p className="text-sm font-semibold">등록되었습니다</p>
+          <p className="text-sm font-semibold">{title}</p>
           <p className="text-sm text-emerald-700">{message}</p>
         </div>
       </div>

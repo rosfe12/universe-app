@@ -12,6 +12,7 @@ import {
   updateMyProfile,
   uploadProfileImage,
 } from "@/app/actions/profile-actions";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { ProfileImageEditorDialog } from "@/components/shared/profile-image-editor-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
   const [profile, setProfile] = useState<CommunityProfile | null>(null);
   const [loading, setLoading] = useState(profileEnabled);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [uploadingOrder, setUploadingOrder] = useState<number | null>(null);
   const [formState, setFormState] = useState<CommunityProfileFormState>({
@@ -85,6 +87,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
     let active = true;
     setLoading(true);
     setError(null);
+    setNotice(null);
 
     void getMyProfile()
       .then((result) => {
@@ -122,6 +125,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
 
   function openEditor() {
     if (!profile) return;
+    setError(null);
     setFormState({
       displayName: profile.displayName,
       bio: profile.bio ?? "",
@@ -147,6 +151,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
           });
           setProfile(nextProfile);
           setError(null);
+          setNotice("프로필을 저장했습니다.");
           setOpen(false);
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "프로필을 저장하지 못했습니다.");
@@ -171,6 +176,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
     }
     setUploadingOrder(order);
     setError(null);
+    setNotice(null);
 
     try {
       const nextImage = await uploadProfileImage(formData);
@@ -185,6 +191,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
           images: nextImages,
         };
       });
+      setNotice(`사진 ${order}번을 업로드했습니다.`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
       throw cause;
@@ -229,6 +236,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
                 }
               : current,
           );
+          setNotice("프로필 사진을 삭제했습니다.");
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "프로필 사진을 삭제하지 못했습니다.");
         }
@@ -252,6 +260,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
         try {
           const nextProfile = await reorderProfileImages(nextOrder.map((item) => item.id));
           setProfile(nextProfile);
+          setNotice("프로필 사진 순서를 정리했습니다.");
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "프로필 사진 순서를 바꾸지 못했습니다.");
         }
@@ -266,6 +275,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
           const nextProfile = await setPrimaryProfileImage(imageId);
           setProfile(nextProfile);
           setError(null);
+          setNotice("대표 사진을 설정했습니다.");
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "대표 사진을 설정하지 못했습니다.");
         }
@@ -288,6 +298,13 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
 
   return (
     <section className="space-y-3">
+      {notice ? (
+        <ActionFeedbackBanner
+          title="프로필이 업데이트되었습니다"
+          message={notice}
+          onClose={() => setNotice(null)}
+        />
+      ) : null}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">내 홈</p>
