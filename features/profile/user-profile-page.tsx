@@ -8,6 +8,7 @@ import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { blockUser, getUserProfile, reportProfile, unblockUser } from "@/app/actions/profile-actions";
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
+import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { LoadingState } from "@/components/shared/loading-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -136,6 +137,18 @@ export function UserProfilePage({ userId }: { userId: string }) {
         </Button>
       }
     >
+      {notice ? (
+        <ActionFeedbackBanner
+          title="프로필 상태가 업데이트되었습니다"
+          message={notice}
+          onClose={() => setNotice(null)}
+        />
+      ) : null}
+      {!profile && error ? (
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {error}
+        </div>
+      ) : null}
       {profile ? (
         <>
           <Card className="app-section-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">
@@ -257,8 +270,11 @@ export function UserProfilePage({ userId }: { userId: string }) {
             </CardContent>
           </Card>
 
-          {error ? <p className="text-sm text-rose-500">{error}</p> : null}
-          {notice ? <p className="text-sm text-emerald-500">{notice}</p> : null}
+          {error ? (
+            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+              {error}
+            </div>
+          ) : null}
 
           {profile.isOwner ? (
             <CommunityProfileSection currentUser={currentUser} onProfileChange={setProfile} />

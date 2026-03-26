@@ -12,6 +12,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { RelativeTimeText } from "@/components/shared/relative-time-text";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
@@ -151,11 +153,12 @@ export function MessagesPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, isAuthenticated, currentUser, source } = useAppRuntime(initialSnapshot, "messages");
+  const { loading, isAuthenticated, currentUser, source, refresh } = useAppRuntime(initialSnapshot, "messages");
   const canUseMessaging = isVerifiedStudent(currentUser) || isMasterAdminEmail(currentUser.email);
   const notifications = getNotifications(currentUser.id);
   const [chatThreads, setChatThreads] = useState<MessageThreadItem[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [isRefreshing, startRefreshTransition] = useTransition();
   const showInitialLoading = loading && source === "mock";
 
   const tradeUnreadCounts = useMemo(
@@ -379,6 +382,32 @@ export function MessagesPage({
         />
       ) : (
         <Tabs defaultValue="dm" className="space-y-4">
+          <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
+            <CardContent className="flex items-center justify-between gap-4 p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">
+                  메시지 {messageUnreadCount} · 채팅 {chatUnreadCount}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  최근 반응과 대화를 한 곳에서 바로 이어볼 수 있어요.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={isRefreshing}
+                onClick={() => {
+                  startRefreshTransition(() => {
+                    void refresh();
+                  });
+                }}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                새로고침
+              </Button>
+            </CardContent>
+          </Card>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dm" className="gap-2">
               메시지
@@ -397,7 +426,7 @@ export function MessagesPage({
               ) : null}
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="dm" className="mt-0">
+          <TabsContent value="dm" className="mt-0 space-y-3">
             <div className="mb-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-5 text-muted-foreground">
               댓글, 답글, 입시 답변, 교환 반응을 한 번에 이어서 볼 수 있어요.
             </div>
@@ -422,12 +451,12 @@ export function MessagesPage({
               </div>
             )}
           </TabsContent>
-          <TabsContent value="chat" className="mt-0">
+          <TabsContent value="chat" className="mt-0 space-y-3">
             <div className="mb-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-5 text-muted-foreground">
               실제 수강신청 교환 대화방만 따로 모아 보여줍니다.
             </div>
             {chatLoading ? (
-              <LoadingState />
+              <ThreadListSkeleton />
             ) : chatThreads.length === 0 ? (
               <EmptyState
                 title="아직 진행 중인 교환 채팅이 없습니다"
@@ -452,5 +481,24 @@ export function MessagesPage({
         </Tabs>
       )}
     </AppShell>
+  );
+}
+
+function ThreadListSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div
+          key={index}
+          className="app-section-surface rounded-[24px] border border-white/10 px-4 py-4"
+        >
+          <div className="space-y-3">
+            <div className="h-4 w-28 animate-pulse rounded-full bg-white/10" />
+            <div className="h-4 w-3/4 animate-pulse rounded-full bg-white/10" />
+            <div className="h-3 w-1/2 animate-pulse rounded-full bg-white/10" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

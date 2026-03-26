@@ -321,6 +321,11 @@ export function CommunityProfileSection({
           onClose={() => setNotice(null)}
         />
       ) : null}
+      {!open && error ? (
+        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {error}
+        </div>
+      ) : null}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">내 홈</p>
@@ -416,8 +421,6 @@ export function CommunityProfileSection({
           ) : (
             <p className="text-sm text-muted-foreground">프로필을 불러오지 못했습니다.</p>
           )}
-
-          {error ? <p className="text-sm text-rose-500">{error}</p> : null}
         </CardContent>
       </Card>
 
@@ -670,7 +673,11 @@ export function CommunityProfileSection({
               </div>
             </div>
 
-            {error ? <p className="text-sm text-rose-500">{error}</p> : null}
+            {open && error ? (
+              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                {error}
+              </div>
+            ) : null}
           </div>
 
           <DialogFooter>
