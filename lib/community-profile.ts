@@ -63,6 +63,9 @@ export function validateCommunityProfileImageFile(file: File) {
 
 export async function detectFaceInImage(file: File) {
   const signal = await getImageSignalText(file);
+  if (/(masked|blurred|sticker|redacted|covered|edited)/.test(signal)) {
+    return false;
+  }
   return /(face|selfie|portrait|얼굴|셀카|증명사진|profile-photo|front)/.test(signal);
 }
 

@@ -369,6 +369,8 @@ export async function updateMyProfile(input: z.infer<typeof communityProfileSche
 export async function uploadProfileImage(formData: FormData) {
   const file = formData.get("file");
   const imageOrder = Number(formData.get("imageOrder"));
+  const sensitiveDetected = String(formData.get("sensitiveDetected") ?? "") === "true";
+  const qrDetected = String(formData.get("qrDetected") ?? "") === "true";
 
   if (!(file instanceof File)) {
     throw new Error("이미지 파일을 선택해주세요.");
@@ -384,7 +386,13 @@ export async function uploadProfileImage(formData: FormData) {
   requireVerifiedProfileFeature(user);
   await ensureOwnProfileRow(admin, user);
 
-  const moderation = await moderateCommunityProfileImage(file);
+  let moderation = await moderateCommunityProfileImage(file);
+  if (moderation.status === "approved" && (sensitiveDetected || qrDetected)) {
+    moderation = {
+      status: "pending" as const,
+      reason: "연락처, SNS, QR, 학생증 등 개인정보가 포함된 것으로 보여 검토 후 공개됩니다.",
+    };
+  }
   if (moderation.status === "rejected") {
     throw new Error(moderation.reason);
   }

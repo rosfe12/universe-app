@@ -12,6 +12,7 @@ import {
   updateMyProfile,
   uploadProfileImage,
 } from "@/app/actions/profile-actions";
+import { ProfileImageEditorDialog } from "@/components/shared/profile-image-editor-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,10 @@ import {
   COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
   canUseCommunityProfileFeature,
   parseInterestTokens,
+  validateCommunityProfileImageFile,
 } from "@/lib/community-profile";
+import { validateImageBeforeUpload } from "@/lib/profile-image-processing";
+import type { FaceBox } from "@/lib/profile-image-processing";
 import type { CommunityProfile, ProfileVisibility, User } from "@/types";
 
 type CommunityProfileFormState = {
@@ -58,6 +62,13 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
     showAdmissionYear: false,
   });
   const [isPending, startTransition] = useTransition();
+  const [editorState, setEditorState] = useState<{
+    imageOrder: number;
+    file: File;
+    faceBoxes: FaceBox[];
+    sensitiveTextDetected: boolean;
+    qrDetected: boolean;
+  } | null>(null);
 
   const orderedImages = useMemo(
     () => [...(profile?.images ?? [])].sort((a, b) => a.imageOrder - b.imageOrder),
@@ -144,12 +155,20 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
     });
   }
 
-  async function handleImageUpload(order: number, file?: File | null) {
-    if (!file) return;
-
+  async function uploadSelectedImage(
+    order: number,
+    file: File,
+    flags?: { sensitiveTextDetected: boolean; qrDetected: boolean },
+  ) {
     const formData = new FormData();
     formData.set("file", file);
     formData.set("imageOrder", String(order));
+    if (flags?.sensitiveTextDetected) {
+      formData.set("sensitiveDetected", "true");
+    }
+    if (flags?.qrDetected) {
+      formData.set("qrDetected", "true");
+    }
     setUploadingOrder(order);
     setError(null);
 
@@ -168,8 +187,32 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
       });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
+      throw cause;
     } finally {
       setUploadingOrder(null);
+    }
+  }
+
+  async function handleImageUpload(order: number, file?: File | null) {
+    if (!file) return;
+
+    try {
+      validateCommunityProfileImageFile(file);
+      const analysis = await validateImageBeforeUpload(file);
+      if (analysis.faceBoxes.length > 0 || analysis.sensitiveTextDetected || analysis.qrDetected) {
+        setEditorState({
+          imageOrder: order,
+          file,
+          faceBoxes: analysis.faceBoxes,
+          sensitiveTextDetected: analysis.sensitiveTextDetected,
+          qrDetected: analysis.qrDetected,
+        });
+        return;
+      }
+
+      await uploadSelectedImage(order, file);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
     }
   }
 
@@ -611,6 +654,28 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ProfileImageEditorDialog
+        open={Boolean(editorState)}
+        file={editorState?.file ?? null}
+        imageOrder={editorState?.imageOrder ?? null}
+        faceBoxes={editorState?.faceBoxes ?? []}
+        sensitiveTextDetected={Boolean(editorState?.sensitiveTextDetected)}
+        qrDetected={Boolean(editorState?.qrDetected)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setEditorState(null);
+          }
+        }}
+        onReset={() => {
+          setEditorState(null);
+        }}
+        onConfirm={async (file, flags) => {
+          if (!editorState) return;
+          await uploadSelectedImage(editorState.imageOrder, file, flags);
+          setEditorState(null);
+        }}
+      />
     </section>
   );
 }
