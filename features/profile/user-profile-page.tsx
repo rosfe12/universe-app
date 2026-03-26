@@ -98,7 +98,7 @@ export function UserProfilePage({ userId }: { userId: string }) {
           isAuthenticated={false}
           nextPath={`/profile/${userId}`}
           title="로그인 후 프로필을 볼 수 있습니다"
-          description="같은 학교 학생 인증 완료 사용자끼리만 프로필을 열람할 수 있습니다."
+          description="학생 인증을 완료하면 공개 범위에 따라 다른 대학생의 프로필을 볼 수 있습니다."
         />
       </AppShell>
     );

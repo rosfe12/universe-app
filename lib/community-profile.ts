@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { User, VerificationState } from "@/types";
+import type { ProfileVisibility, User, VerificationState } from "@/types";
 
 export const PROFILE_IMAGE_BUCKET = "profile-images";
 export const MAX_PROFILE_IMAGES = 3;
@@ -17,6 +17,7 @@ export const communityProfileSchema = z.object({
   displayName: z.string().trim().min(2).max(24),
   bio: z.string().trim().max(160).optional().or(z.literal("")),
   interests: z.array(z.string().trim().min(1).max(20)).max(10),
+  profileVisibility: z.enum(["university_only", "same_school_only"]).default("university_only"),
   showDepartment: z.boolean().default(false),
   showAdmissionYear: z.boolean().default(false),
 });
@@ -118,7 +119,9 @@ export function canUseCommunityProfileFeature(
 
 export function canReadCommunityProfile(
   viewer: Pick<User, "id" | "schoolId" | "verificationState">,
-  target: Pick<User, "id" | "schoolId" | "verificationState">,
+  target: Pick<User, "id" | "schoolId" | "verificationState"> & {
+    profileVisibility?: ProfileVisibility;
+  },
   blocked = false,
 ) {
   if (viewer.id === target.id) {
@@ -132,7 +135,11 @@ export function canReadCommunityProfile(
   return (
     viewer.verificationState === "student_verified" &&
     target.verificationState === "student_verified" &&
-    Boolean(viewer.schoolId) &&
-    viewer.schoolId === target.schoolId
+    (
+      (target.profileVisibility ?? "university_only") === "university_only" ||
+      (Boolean(viewer.schoolId) &&
+        Boolean(target.schoolId) &&
+        viewer.schoolId === target.schoolId)
+    )
   );
 }

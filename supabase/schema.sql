@@ -366,6 +366,7 @@ create table if not exists public.profiles (
   display_name text,
   bio text,
   interests text[] not null default '{}'::text[],
+  profile_visibility text not null default 'university_only',
   show_department boolean not null default false,
   show_admission_year boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
@@ -376,10 +377,33 @@ create table if not exists public.profiles (
   constraint profiles_bio_check check (
     bio is null or length(trim(bio)) <= 160
   ),
+  constraint profiles_visibility_check check (
+    profile_visibility in ('university_only', 'same_school_only')
+  ),
   constraint profiles_interest_limit_check check (
     coalesce(array_length(interests, 1), 0) <= 10
   )
 );
+
+alter table public.profiles
+  add column if not exists profile_visibility text not null default 'university_only';
+
+update public.profiles
+set profile_visibility = 'university_only'
+where profile_visibility is null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_profile_visibility_check'
+  ) then
+    alter table public.profiles
+      add constraint profiles_profile_visibility_check
+      check (profile_visibility in ('university_only', 'same_school_only'));
+  end if;
+end $$;
 
 create table if not exists public.profile_images (
   id uuid primary key default gen_random_uuid(),
@@ -1280,13 +1304,13 @@ as $$
       from public.users viewer
       join public.users target
         on target.id = p_target_user_id
+      left join public.profiles target_profile
+        on target_profile.id = target.id
       where viewer.id = auth.uid()
         and viewer.user_type = 'student'
         and target.user_type = 'student'
         and viewer.verification_state = 'student_verified'
         and target.verification_state = 'student_verified'
-        and viewer.school_id is not null
-        and viewer.school_id = target.school_id
         and not exists (
           select 1
           from public.profile_blocks b
@@ -1296,6 +1320,14 @@ as $$
           ) or (
             b.user_id = p_target_user_id
             and b.blocked_user_id = auth.uid()
+          )
+        )
+        and (
+          coalesce(target_profile.profile_visibility, 'university_only') = 'university_only'
+          or (
+            coalesce(target_profile.profile_visibility, 'university_only') = 'same_school_only'
+            and viewer.school_id is not null
+            and viewer.school_id = target.school_id
           )
         )
     )

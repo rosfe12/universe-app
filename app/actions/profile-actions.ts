@@ -41,6 +41,7 @@ type ProfileRow = {
   display_name: string | null;
   bio: string | null;
   interests: string[] | null;
+  profile_visibility: "university_only" | "same_school_only";
   show_department: boolean;
   show_admission_year: boolean;
   created_at: string;
@@ -150,7 +151,7 @@ async function getProfileRow(
   const { data, error } = await admin
     .from("profiles")
     .select(
-      "id, display_name, bio, interests, show_department, show_admission_year, created_at, updated_at",
+      "id, display_name, bio, interests, profile_visibility, show_department, show_admission_year, created_at, updated_at",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -274,6 +275,7 @@ function mapCommunityProfile(params: {
       "익명",
     bio: profile?.bio?.trim() || undefined,
     interests: Array.isArray(profile?.interests) ? profile!.interests.filter(Boolean) : [],
+    profileVisibility: profile?.profile_visibility ?? "university_only",
     showDepartment: Boolean(profile?.show_department),
     showAdmissionYear: Boolean(profile?.show_admission_year),
     department:
@@ -321,6 +323,7 @@ export async function updateMyProfile(input: z.infer<typeof communityProfileSche
     display_name: parsed.displayName,
     bio: parsed.bio?.trim() ? parsed.bio.trim() : null,
     interests: parsed.interests,
+    profile_visibility: parsed.profileVisibility,
     show_department: parsed.showDepartment,
     show_admission_year: parsed.showAdmissionYear,
   };
@@ -342,6 +345,7 @@ export async function updateMyProfile(input: z.infer<typeof communityProfileSche
         display_name: payload.display_name,
         bio: payload.bio,
         interests: payload.interests,
+        profile_visibility: payload.profile_visibility,
         show_department: payload.show_department,
         show_admission_year: payload.show_admission_year,
       })
@@ -562,6 +566,7 @@ export async function getPrimaryProfileImage(targetUserId: string) {
     throw new Error("프로필을 찾을 수 없습니다.");
   }
 
+  const profile = await getProfileRow(admin, targetUser.id);
   const blocked = await hasProfileBlock(admin, user.id, targetUser.id);
   if (
     !canReadCommunityProfile(
@@ -572,6 +577,7 @@ export async function getPrimaryProfileImage(targetUserId: string) {
       },
       {
         id: targetUser.id,
+        profileVisibility: profile?.profile_visibility ?? "university_only",
         schoolId: targetUser.school_id ?? undefined,
         verificationState: targetUser.verification_state ?? undefined,
       },
@@ -598,6 +604,7 @@ export async function getUserProfile(targetUserId: string) {
     throw new Error("프로필을 찾을 수 없습니다.");
   }
 
+  const profile = await getProfileRow(admin, targetUser.id);
   const blocked = await hasProfileBlock(admin, user.id, targetUser.id);
   if (!canReadCommunityProfile(
     {
@@ -607,6 +614,7 @@ export async function getUserProfile(targetUserId: string) {
     },
     {
       id: targetUser.id,
+      profileVisibility: profile?.profile_visibility ?? "university_only",
       schoolId: targetUser.school_id ?? undefined,
       verificationState: targetUser.verification_state ?? undefined,
     },
@@ -615,8 +623,7 @@ export async function getUserProfile(targetUserId: string) {
     throw new Error(COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
   }
 
-  const [profile, images, schoolName] = await Promise.all([
-    getProfileRow(admin, targetUser.id),
+  const [images, schoolName] = await Promise.all([
     listProfileImages(admin, targetUser.id, false),
     getSchoolName(admin, targetUser.school_id),
   ]);
@@ -649,6 +656,7 @@ export async function blockUser(targetUserId: string) {
     throw new Error("프로필을 찾을 수 없습니다.");
   }
 
+  const profile = await getProfileRow(admin, targetUser.id);
   if (
     !canReadCommunityProfile(
       {
@@ -658,6 +666,7 @@ export async function blockUser(targetUserId: string) {
       },
       {
         id: targetUser.id,
+        profileVisibility: profile?.profile_visibility ?? "university_only",
         schoolId: targetUser.school_id ?? undefined,
         verificationState: targetUser.verification_state ?? undefined,
       },
@@ -731,6 +740,7 @@ export async function reportProfile(
     throw new Error("프로필을 찾을 수 없습니다.");
   }
 
+  const profile = await getProfileRow(admin, targetUser.id);
   if (
     !canReadCommunityProfile(
       {
@@ -740,6 +750,7 @@ export async function reportProfile(
       },
       {
         id: targetUser.id,
+        profileVisibility: profile?.profile_visibility ?? "university_only",
         schoolId: targetUser.school_id ?? undefined,
         verificationState: targetUser.verification_state ?? undefined,
       },

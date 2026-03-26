@@ -31,7 +31,16 @@ import {
   canUseCommunityProfileFeature,
   parseInterestTokens,
 } from "@/lib/community-profile";
-import type { CommunityProfile, User } from "@/types";
+import type { CommunityProfile, ProfileVisibility, User } from "@/types";
+
+type CommunityProfileFormState = {
+  displayName: string;
+  bio: string;
+  interestsInput: string;
+  profileVisibility: ProfileVisibility;
+  showDepartment: boolean;
+  showAdmissionYear: boolean;
+};
 
 export function CommunityProfileSection({ currentUser }: { currentUser: User }) {
   const profileEnabled = canUseCommunityProfileFeature(currentUser);
@@ -40,10 +49,11 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [uploadingOrder, setUploadingOrder] = useState<number | null>(null);
-  const [formState, setFormState] = useState({
+  const [formState, setFormState] = useState<CommunityProfileFormState>({
     displayName: "",
     bio: "",
     interestsInput: "",
+    profileVisibility: "university_only",
     showDepartment: false,
     showAdmissionYear: false,
   });
@@ -73,6 +83,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
           displayName: result.displayName,
           bio: result.bio ?? "",
           interestsInput: result.interests.join(", "),
+          profileVisibility: result.profileVisibility,
           showDepartment: result.showDepartment,
           showAdmissionYear: result.showAdmissionYear,
         });
@@ -104,6 +115,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
       displayName: profile.displayName,
       bio: profile.bio ?? "",
       interestsInput: profile.interests.join(", "),
+      profileVisibility: profile.profileVisibility,
       showDepartment: profile.showDepartment,
       showAdmissionYear: profile.showAdmissionYear,
     });
@@ -118,6 +130,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
             displayName: formState.displayName,
             bio: formState.bio,
             interests: parseInterestTokens(formState.interestsInput),
+            profileVisibility: formState.profileVisibility,
             showDepartment: formState.showDepartment,
             showAdmissionYear: formState.showAdmissionYear,
           });
@@ -232,11 +245,13 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">내 홈</p>
-          <p className="text-sm text-muted-foreground">같은 학교 학생에게만 보이는 프로필입니다.</p>
-        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">내 홈</p>
+            <p className="text-sm text-muted-foreground">
+              공개 범위에 따라 전체 대학생 또는 같은 학교 학생에게 보입니다.
+            </p>
+          </div>
         <Button type="button" size="sm" variant="outline" onClick={openEditor} disabled={!profile || loading}>
           <Pencil className="h-4 w-4" />
           수정
@@ -262,6 +277,9 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
                     {profile.displayName}
                   </p>
                   {profile.schoolName ? <Badge variant="secondary">{profile.schoolName}</Badge> : null}
+                  <Badge variant="outline">
+                    {profile.profileVisibility === "university_only" ? "전체 대학생 공개" : "같은 학교만 공개"}
+                  </Badge>
                   {profile.department ? <Badge variant="outline">{profile.department}</Badge> : null}
                   {profile.admissionYear ? <Badge variant="outline">{profile.admissionYear}학번</Badge> : null}
                 </div>
@@ -315,7 +333,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
                     </Badge>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">관심사를 추가하면 같은 학교 사용자에게 더 잘 보입니다.</p>
+                  <p className="text-sm text-muted-foreground">관심사를 추가하면 프로필 분위기를 더 잘 보여줄 수 있어요.</p>
                 )}
               </div>
             </>
@@ -329,12 +347,12 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[calc(100vh-3rem)] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>내 홈 수정</DialogTitle>
-            <DialogDescription>
-              얼굴 사진 없이, 같은 학교 학생에게 보여줄 기본 정보만 정리합니다.
-            </DialogDescription>
-          </DialogHeader>
+            <DialogHeader>
+              <DialogTitle>내 홈 수정</DialogTitle>
+              <DialogDescription>
+              얼굴 사진 없이, 학생 인증 사용자에게 보여줄 기본 정보만 정리합니다.
+              </DialogDescription>
+            </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
@@ -384,6 +402,50 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
               <p className="text-xs text-muted-foreground">쉼표로 구분해서 최대 10개까지 입력할 수 있습니다.</p>
             </div>
 
+            <div className="space-y-3">
+              <Label>프로필 공개 범위</Label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  className={`rounded-[20px] border px-4 py-3 text-left ${
+                    formState.profileVisibility === "university_only"
+                      ? "border-primary bg-primary/10"
+                      : "border-white/10 bg-white/[0.02]"
+                  }`}
+                  onClick={() =>
+                    setFormState((current) => ({
+                      ...current,
+                      profileVisibility: "university_only",
+                    }))
+                  }
+                >
+                  <p className="font-medium">전체 대학생에게 공개</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    다른 학교 학생도 내 프로필을 볼 수 있어요
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-[20px] border px-4 py-3 text-left ${
+                    formState.profileVisibility === "same_school_only"
+                      ? "border-primary bg-primary/10"
+                      : "border-white/10 bg-white/[0.02]"
+                  }`}
+                  onClick={() =>
+                    setFormState((current) => ({
+                      ...current,
+                      profileVisibility: "same_school_only",
+                    }))
+                  }
+                >
+                  <p className="font-medium">같은 학교만 공개</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    같은 학교 학생에게만 내 프로필이 보여요
+                  </p>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
@@ -399,7 +461,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
               >
                 <p className="font-medium">학과 공개</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {formState.showDepartment ? "같은 학교 사용자에게 보여집니다." : "기본 비공개"}
+                  {formState.showDepartment ? "프로필을 볼 수 있는 학생에게 보여집니다." : "기본 비공개"}
                 </p>
               </button>
               <button
@@ -416,7 +478,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
               >
                 <p className="font-medium">입학년도 공개</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {formState.showAdmissionYear ? "같은 학교 사용자에게 보여집니다." : "기본 비공개"}
+                  {formState.showAdmissionYear ? "프로필을 볼 수 있는 학생에게 보여집니다." : "기본 비공개"}
                 </p>
               </button>
             </div>

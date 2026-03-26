@@ -200,6 +200,7 @@ export interface User {
 }
 
 export type ProfileImageModerationStatus = "pending" | "approved" | "rejected";
+export type ProfileVisibility = "university_only" | "same_school_only";
 
 export interface CommunityProfileImage {
   id: string;
@@ -221,6 +222,7 @@ export interface CommunityProfile {
   displayName: string;
   bio?: string;
   interests: string[];
+  profileVisibility: ProfileVisibility;
   showDepartment: boolean;
   showAdmissionYear: boolean;
   department?: string;

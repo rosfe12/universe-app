@@ -107,6 +107,7 @@ type ProfileRow = {
   display_name: string | null;
   bio: string | null;
   interests: string[];
+  profile_visibility: "university_only" | "same_school_only";
   show_department: boolean;
   show_admission_year: boolean;
   created_at: string;
@@ -118,6 +119,7 @@ type ProfileInsert = {
   display_name?: string | null;
   bio?: string | null;
   interests?: string[];
+  profile_visibility?: "university_only" | "same_school_only";
   show_department?: boolean;
   show_admission_year?: boolean;
   created_at?: string;
