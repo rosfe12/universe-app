@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, RotateCcw, ScanFace, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -45,12 +45,15 @@ export function ProfileImageEditorDialog({
   const [processedFile, setProcessedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stickerType, setStickerType] = useState<StickerType>("smile");
-  const [busy, startTransition] = useTransition();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [hasAutoApplied, setHasAutoApplied] = useState(false);
 
   useEffect(() => {
     setProcessedFile(null);
     setError(null);
     setStickerType("smile");
+    setIsProcessing(false);
+    setHasAutoApplied(false);
   }, [file, open]);
 
   const originalPreviewUrl = useMemo(() => {
@@ -78,36 +81,70 @@ export function ProfileImageEditorDialog({
   const needsFaceMask = faceBoxes.length > 0;
   const hasSensitiveWarning = sensitiveTextDetected || qrDetected;
 
+  useEffect(() => {
+    if (!open || !file || !needsFaceMask || processedFile || hasAutoApplied) {
+      return;
+    }
+
+    let active = true;
+    setIsProcessing(true);
+    setError(null);
+
+    void (async () => {
+      try {
+        const nextFile = await applyBlurToFaces(file, faceBoxes);
+        if (!active) {
+          return;
+        }
+        setProcessedFile(nextFile);
+        setHasAutoApplied(true);
+      } catch (cause) {
+        if (!active) {
+          return;
+        }
+        setError(cause instanceof Error ? cause.message : "자동 흐림 처리를 하지 못했습니다.");
+      } finally {
+        if (active) {
+          setIsProcessing(false);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [faceBoxes, file, hasAutoApplied, needsFaceMask, open, processedFile]);
+
   async function handleApplyBlur() {
     if (!file || faceBoxes.length === 0) return;
     setError(null);
+    setIsProcessing(true);
 
-    startTransition(() => {
-      void (async () => {
-        try {
-          const nextFile = await applyBlurToFaces(file, faceBoxes);
-          setProcessedFile(nextFile);
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "흐림 처리를 하지 못했습니다.");
-        }
-      })();
-    });
+    try {
+      const nextFile = await applyBlurToFaces(file, faceBoxes);
+      setProcessedFile(nextFile);
+      setHasAutoApplied(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "흐림 처리를 하지 못했습니다.");
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   async function handleApplySticker() {
     if (!file || faceBoxes.length === 0) return;
     setError(null);
+    setIsProcessing(true);
 
-    startTransition(() => {
-      void (async () => {
-        try {
-          const nextFile = await applyStickerToFaces(file, faceBoxes, stickerType);
-          setProcessedFile(nextFile);
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "스티커 처리를 하지 못했습니다.");
-        }
-      })();
-    });
+    try {
+      const nextFile = await applyStickerToFaces(file, faceBoxes, stickerType);
+      setProcessedFile(nextFile);
+      setHasAutoApplied(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "스티커 처리를 하지 못했습니다.");
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   async function handleConfirm() {
@@ -119,25 +156,24 @@ export function ProfileImageEditorDialog({
     }
 
     setError(null);
-    startTransition(() => {
-      void (async () => {
-        try {
-          const uploadFile = processedFile ?? file;
-          const rechecked = await validateImageBeforeUpload(uploadFile);
-          if (rechecked.faceBoxes.length > 0) {
-            throw new Error("얼굴이 아직 보여요. 흐림 처리나 스티커를 다시 적용해주세요.");
-          }
+    setIsProcessing(true);
+    try {
+      const uploadFile = processedFile ?? file;
+      const rechecked = await validateImageBeforeUpload(uploadFile);
+      if (rechecked.faceBoxes.length > 0) {
+        throw new Error("얼굴이 아직 보여요. 흐림 처리나 스티커를 다시 적용해주세요.");
+      }
 
-          await onConfirm(uploadFile, {
-            sensitiveTextDetected,
-            qrDetected,
-          });
-          onOpenChange(false);
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "이미지를 업로드하지 못했습니다.");
-        }
-      })();
-    });
+      await onConfirm(uploadFile, {
+        sensitiveTextDetected,
+        qrDetected,
+      });
+      onOpenChange(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "이미지를 업로드하지 못했습니다.");
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   return (
@@ -171,6 +207,55 @@ export function ProfileImageEditorDialog({
             </div>
           ) : null}
 
+          {needsFaceMask ? (
+            <div className="space-y-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="secondary" disabled={isProcessing} onClick={() => void handleApplyBlur()}>
+                  <ScanFace className="h-4 w-4" />
+                  자동 흐림 처리
+                </Button>
+                <Button type="button" variant="outline" disabled={isProcessing} onClick={() => void handleApplySticker()}>
+                  <Sparkles className="h-4 w-4" />
+                  스티커로 가리기
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={isProcessing}
+                  onClick={() => {
+                    setProcessedFile(null);
+                    setError(null);
+                    setHasAutoApplied(false);
+                  }}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  다시 처리
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(["smile", "star", "dot", "sparkle"] as StickerType[]).map((value) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    size="sm"
+                    variant={stickerType === value ? "secondary" : "outline"}
+                    disabled={isProcessing}
+                    onClick={() => setStickerType(value)}
+                  >
+                    {value === "smile"
+                      ? "스마일"
+                      : value === "star"
+                        ? "별"
+                        : value === "dot"
+                          ? "컬러 마스크"
+                          : "반짝"}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">원본</p>
@@ -201,6 +286,11 @@ export function ProfileImageEditorDialog({
                       alt="편집 미리보기"
                       className="h-full w-full object-cover"
                     />
+                  ) : isProcessing ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>가린 이미지를 만드는 중이에요.</span>
+                    </div>
                   ) : (
                     <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
                       자동 흐림이나 스티커를 적용하면 여기에서 결과를 볼 수 있어요.
@@ -211,54 +301,6 @@ export function ProfileImageEditorDialog({
             </div>
           </div>
 
-          {needsFaceMask ? (
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="secondary" disabled={busy} onClick={() => void handleApplyBlur()}>
-                  <ScanFace className="h-4 w-4" />
-                  자동 흐림 처리
-                </Button>
-                <Button type="button" variant="outline" disabled={busy} onClick={() => void handleApplySticker()}>
-                  <Sparkles className="h-4 w-4" />
-                  스티커로 가리기
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={busy}
-                  onClick={() => {
-                    setProcessedFile(null);
-                    setError(null);
-                  }}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  처리 지우기
-                </Button>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {(["smile", "star", "dot", "sparkle"] as StickerType[]).map((value) => (
-                  <Button
-                    key={value}
-                    type="button"
-                    size="sm"
-                    variant={stickerType === value ? "secondary" : "outline"}
-                    disabled={busy}
-                    onClick={() => setStickerType(value)}
-                  >
-                    {value === "smile"
-                      ? "스마일"
-                      : value === "star"
-                        ? "별"
-                        : value === "dot"
-                          ? "컬러 마스크"
-                          : "반짝"}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
           {error ? <p className="text-sm text-rose-500">{error}</p> : null}
         </div>
 
@@ -266,7 +308,7 @@ export function ProfileImageEditorDialog({
           <Button
             type="button"
             variant="ghost"
-            disabled={busy}
+            disabled={isProcessing}
             onClick={() => {
               onReset();
               onOpenChange(false);
@@ -274,8 +316,8 @@ export function ProfileImageEditorDialog({
           >
             다시 선택
           </Button>
-          <Button type="button" disabled={busy || (needsFaceMask && !processedFile)} onClick={() => void handleConfirm()}>
-            {busy ? (
+          <Button type="button" disabled={isProcessing || (needsFaceMask && !processedFile)} onClick={() => void handleConfirm()}>
+            {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 처리 중
