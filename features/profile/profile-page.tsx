@@ -422,49 +422,60 @@ export function ProfilePage({
         >
           로그아웃
         </Button>
-        <Button
-          variant="destructive"
-          className="w-full"
-          disabled={isDeletingAccount}
-          onClick={async () => {
-            if (
-              typeof window !== "undefined" &&
-              !window.confirm(
-                "회원 탈퇴 시 내가 쓴 글, 댓글, 강의평, 매칭 글, 알림, 등급이 모두 삭제되며 복구할 수 없습니다. 탈퇴하시겠습니까?",
-              )
-            ) {
-              return;
-            }
+      </section>
 
-            setAccountActionError(null);
-            setIsDeletingAccount(true);
-
-            try {
-              await deleteCurrentAccount();
-              try {
-                await signOutFromSupabase();
-              } catch {
-                // noop
-              }
-              invalidateClientRuntimeSnapshots();
-              resetClientAuthRuntime();
-              if (typeof window !== "undefined") {
-                window.location.replace("/home");
+      <section className="space-y-3 pt-1">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-4">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">회원 탈퇴</p>
+            <p className="text-xs leading-5 text-muted-foreground">
+              계정과 활동 기록이 함께 삭제되며 복구할 수 없습니다.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            className="mt-3 h-auto px-0 py-0 text-sm font-medium text-muted-foreground hover:bg-transparent hover:text-rose-400"
+            disabled={isDeletingAccount}
+            onClick={async () => {
+              if (
+                typeof window !== "undefined" &&
+                !window.confirm(
+                  "회원 탈퇴 시 내가 쓴 글, 댓글, 강의평, 매칭 글, 알림, 등급이 모두 삭제되며 복구할 수 없습니다. 탈퇴하시겠습니까?",
+                )
+              ) {
                 return;
               }
-              router.replace("/home");
-              router.refresh();
-            } catch (error) {
-              setAccountActionError(
-                error instanceof Error ? error.message : "회원 탈퇴를 완료하지 못했습니다.",
-              );
-            } finally {
-              setIsDeletingAccount(false);
-            }
-          }}
-        >
-          {isDeletingAccount ? "탈퇴 처리 중" : "회원 탈퇴"}
-        </Button>
+
+              setAccountActionError(null);
+              setIsDeletingAccount(true);
+
+              try {
+                await deleteCurrentAccount();
+                try {
+                  await signOutFromSupabase();
+                } catch {
+                  // noop
+                }
+                invalidateClientRuntimeSnapshots();
+                resetClientAuthRuntime();
+                if (typeof window !== "undefined") {
+                  window.location.replace("/home");
+                  return;
+                }
+                router.replace("/home");
+                router.refresh();
+              } catch (error) {
+                setAccountActionError(
+                  error instanceof Error ? error.message : "회원 탈퇴를 완료하지 못했습니다.",
+                );
+              } finally {
+                setIsDeletingAccount(false);
+              }
+            }}
+          >
+            {isDeletingAccount ? "탈퇴 처리 중" : "회원 탈퇴"}
+          </Button>
+        </div>
       </section>
 
       {profile ? (
