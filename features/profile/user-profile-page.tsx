@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
-import { ChevronLeft, PencilLine, ShieldAlert } from "lucide-react";
+import { ChevronLeft, ShieldAlert } from "lucide-react";
 
 import { blockUser, getUserProfile, reportProfile, unblockUser } from "@/app/actions/profile-actions";
 import { AppShell } from "@/components/layout/app-shell";
@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { COMMUNITY_PROFILE_RESTRICTION_MESSAGE, canUseCommunityProfileFeature } from "@/lib/community-profile";
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { CommunityProfileSection } from "@/features/profile/community-profile-section";
 import type { CommunityProfile } from "@/types";
 
 export function UserProfilePage({ userId }: { userId: string }) {
@@ -196,16 +197,7 @@ export function UserProfilePage({ userId }: { userId: string }) {
                 )}
               </div>
 
-              {profile.isOwner ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button asChild type="button" variant="outline">
-                    <Link href="/profile">
-                      <PencilLine className="h-4 w-4" />
-                      프로필 관리
-                    </Link>
-                  </Button>
-                </div>
-              ) : (
+              {profile.isOwner ? null : (
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" onClick={() => setReportOpen(true)}>
                     신고
@@ -267,6 +259,8 @@ export function UserProfilePage({ userId }: { userId: string }) {
 
           {error ? <p className="text-sm text-rose-500">{error}</p> : null}
           {notice ? <p className="text-sm text-emerald-500">{notice}</p> : null}
+
+          {profile.isOwner ? <CommunityProfileSection currentUser={currentUser} /> : null}
 
           <Dialog open={!profile.isOwner && reportOpen} onOpenChange={setReportOpen}>
             <DialogContent>
