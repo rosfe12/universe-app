@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 
 import { getRuntimeSnapshot, setRuntimeSnapshot } from "@/lib/runtime-state";
 import {
@@ -30,8 +30,18 @@ export function useAppRuntime(
   const scopedSnapshot = initialSnapshot ?? peekClientRuntimeSnapshot(scope);
   const seedSnapshot = scopedSnapshot ?? getRuntimeSnapshot();
   const mountedAtRef = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
-  const [snapshot, setSnapshot] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
+  const [snapshot, setSnapshotState] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
   const [loading, setLoading] = useState(!initialSnapshot && !scopedSnapshot);
+  const setSnapshot = useCallback((nextValue: SetStateAction<AppRuntimeSnapshot>) => {
+    setSnapshotState((currentSnapshot) => {
+      const nextSnapshot =
+        typeof nextValue === "function"
+          ? (nextValue as (snapshot: AppRuntimeSnapshot) => AppRuntimeSnapshot)(currentSnapshot)
+          : nextValue;
+      setRuntimeSnapshot(nextSnapshot);
+      return nextSnapshot;
+    });
+  }, []);
 
   useEffect(() => {
     if (!initialSnapshot) {
@@ -39,12 +49,7 @@ export function useAppRuntime(
     }
 
     setSnapshot(initialSnapshot);
-    setRuntimeSnapshot(initialSnapshot);
-  }, [initialSnapshot]);
-
-  useEffect(() => {
-    setRuntimeSnapshot(snapshot);
-  }, [snapshot]);
+  }, [initialSnapshot, setSnapshot]);
 
   useEffect(() => {
     if (loading) {
@@ -166,7 +171,7 @@ export function useAppRuntime(
       active = false;
       subscription.unsubscribe();
     };
-  }, [initialSnapshot, scope]);
+  }, [initialSnapshot, scope, setSnapshot]);
 
   useEffect(() => {
     if (loading || snapshot.source !== "supabase") {

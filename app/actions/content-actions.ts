@@ -1382,7 +1382,7 @@ export async function votePoll(input: { postId: string; optionId: string }) {
 }
 
 export async function trackPostView(postId: string) {
-  const values = z.object({ postId: z.string().uuid() }).parse({ postId });
+  const values = z.object({ postId: z.string().min(1) }).parse({ postId });
   const admin = createAdminSupabaseClient();
   const { data: postRow, error: postError } = await admin
     .from("posts")
@@ -1391,7 +1391,7 @@ export async function trackPostView(postId: string) {
     .single();
 
   if (postError || !postRow) {
-    throw new Error(postError?.message ?? "게시글을 찾을 수 없습니다.");
+    return { success: false };
   }
 
   const nextViewCount = Number(postRow.view_count ?? 0) + 1;

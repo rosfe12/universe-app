@@ -364,6 +364,10 @@ export function CommunityPage({
   const {
     loading,
     currentUser: runtimeUser,
+    posts,
+    comments,
+    reports,
+    blocks,
     source,
     isAuthenticated,
     refresh,
@@ -403,10 +407,16 @@ export function CommunityPage({
 
   const schoolFeedItems = useMemo(
     () => getSchoolCommunityFeedPosts(currentUser.schoolId),
-    [currentUser.schoolId],
+    [blocks, comments, currentUser.schoolId, posts, reports],
   );
-  const allFeedItems = useMemo(() => getAllCommunityFeedPosts(), []);
-  const hotFeedItems = useMemo(() => getTrendingCommunityPosts(), []);
+  const allFeedItems = useMemo(
+    () => getAllCommunityFeedPosts(),
+    [blocks, comments, posts, reports],
+  );
+  const hotFeedItems = useMemo(
+    () => getTrendingCommunityPosts(),
+    [blocks, comments, posts, reports],
+  );
   const canAccessAnonymousBoard =
     (isAuthenticated && canWriteCommunity(currentUser)) || isMasterAdminEmail(currentUser.email);
   const accessibleAllFeedItems = useMemo(
@@ -426,14 +436,14 @@ export function CommunityPage({
       getMostVotedPosts()
         .filter((post) => canAccessAnonymousBoard || post.subcategory !== "anonymous")
         .slice(0, 4),
-    [canAccessAnonymousBoard],
+    [blocks, canAccessAnonymousBoard, comments, posts, reports],
   );
   const mostCommentedPosts = useMemo(
     () =>
       getMostCommentedPosts()
         .filter((post) => canAccessAnonymousBoard || post.subcategory !== "anonymous")
         .slice(0, 4),
-    [canAccessAnonymousBoard],
+    [blocks, canAccessAnonymousBoard, comments, posts, reports],
   );
 
   const feedItems = useMemo(() => {

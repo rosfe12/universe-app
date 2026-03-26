@@ -74,6 +74,10 @@ export function CommentThread({
 }) {
   const {
     currentUser: runtimeUser,
+    posts,
+    comments,
+    reports,
+    blocks,
     loading,
     isAuthenticated,
     source,
@@ -83,8 +87,14 @@ export function CommentThread({
   const currentUser = runtimeUser;
   const pathname = usePathname();
   const isReliabilityBlocked = isAuthenticated && isReliabilityRestricted(currentUser.trustScore);
-  const threadComments = useMemo(() => getCommentsByPostId(postId), [postId]);
-  const targetPost = useMemo(() => getPostById(postId), [postId]);
+  const threadComments = useMemo(
+    () => getCommentsByPostId(postId),
+    [blocks, comments, postId, reports],
+  );
+  const targetPost = useMemo(
+    () => getPostById(postId),
+    [blocks, postId, posts, reports],
+  );
   const isAnonymousBoard =
     targetPost?.category === "community" && targetPost.subcategory === "anonymous";
   const sortedComments = useMemo(
@@ -268,6 +278,7 @@ export function CommentThread({
                     setReplyTargetId((current) => (current === comment.id ? null : comment.id));
                     form.setFocus("content");
                   }}
+                  isAnonymousBoard={isAnonymousBoard}
                 />
                 {replies.length ? (
                   <div className="space-y-3 border-l border-gray-100 pl-4 dark:border-white/10">
@@ -294,6 +305,7 @@ export function CommentThread({
                           setReplyTargetId((current) => (current === comment.id ? null : comment.id));
                           form.setFocus("content");
                         }}
+                        isAnonymousBoard={isAnonymousBoard}
                         compact
                       />
                     ))}
@@ -428,6 +440,7 @@ function CommentRow({
   refresh,
   setSnapshot,
   onReply,
+  isAnonymousBoard,
   compact = false,
 }: {
   comment: AppRuntimeSnapshot["comments"][number];
@@ -440,6 +453,7 @@ function CommentRow({
   refresh: () => Promise<unknown>;
   setSnapshot: ReturnType<typeof useAppRuntime>["setSnapshot"];
   onReply: () => void;
+  isAnonymousBoard: boolean;
   compact?: boolean;
 }) {
   return (
@@ -448,7 +462,7 @@ function CommentRow({
         authorId={comment.authorId}
         createdAt={comment.createdAt}
         visibilityLevel={comment.visibilityLevel}
-        anonymousMode={getPostById(postId)?.subcategory === "anonymous"}
+        anonymousMode={isAnonymousBoard}
         minimal
       />
       <div className="space-y-2 pl-0.5">
