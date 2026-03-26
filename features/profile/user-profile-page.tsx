@@ -60,7 +60,12 @@ export function UserProfilePage({ userId }: { userId: string }) {
     void getUserProfile(userId)
       .then((result) => {
         if (!active) return;
-        setProfile(result);
+        if (!result.ok) {
+          setError(result.error);
+          setProfile(null);
+          return;
+        }
+        setProfile(result.profile);
       })
       .catch((cause) => {
         if (!active) return;

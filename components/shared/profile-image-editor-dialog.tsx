@@ -232,7 +232,7 @@ export function ProfileImageEditorDialog({
                   }}
                 >
                   <RotateCcw className="h-4 w-4" />
-                  다시 선택
+                  처리 지우기
                 </Button>
               </div>
 

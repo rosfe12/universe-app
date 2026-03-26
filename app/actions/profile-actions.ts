@@ -8,6 +8,7 @@ import {
   canReadCommunityProfile,
   canUseCommunityProfileFeature,
   communityProfileSchema,
+  getCommunityProfileRestrictionMessage,
   COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
   moderateCommunityProfileImage,
   profileReportSchema,
@@ -592,7 +593,22 @@ export async function getPrimaryProfileImage(targetUserId: string) {
       blocked,
     )
   ) {
-    throw new Error(COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
+    throw new Error(
+      getCommunityProfileRestrictionMessage(
+        {
+          id: user.id,
+          schoolId: user.school_id ?? undefined,
+          verificationState: user.verification_state ?? undefined,
+        },
+        {
+          id: targetUser.id,
+          profileVisibility: profile?.profile_visibility ?? "university_only",
+          schoolId: targetUser.school_id ?? undefined,
+          verificationState: targetUser.verification_state ?? undefined,
+        },
+        blocked,
+      ) ?? COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
+    );
   }
 
   const images = await listProfileImages(admin, targetUser.id, user.id === targetUser.id);
@@ -602,14 +618,20 @@ export async function getPrimaryProfileImage(targetUserId: string) {
 export async function getUserProfile(targetUserId: string) {
   const parsedTargetUserIdResult = targetUserSchema.safeParse(targetUserId);
   if (!parsedTargetUserIdResult.success) {
-    throw new Error("프로필을 찾을 수 없습니다.");
+    return {
+      ok: false as const,
+      error: "프로필을 찾을 수 없습니다.",
+    };
   }
   const parsedTargetUserId = parsedTargetUserIdResult.data;
   const { admin, user } = await requireAuthenticatedProfileUser();
   const targetUser = await getUserBaseRow(admin, parsedTargetUserId);
 
   if (!targetUser) {
-    throw new Error("프로필을 찾을 수 없습니다.");
+    return {
+      ok: false as const,
+      error: "프로필을 찾을 수 없습니다.",
+    };
   }
 
   const profile = await getProfileRow(admin, targetUser.id);
@@ -628,7 +650,24 @@ export async function getUserProfile(targetUserId: string) {
     },
     blocked,
   )) {
-    throw new Error(COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
+    return {
+      ok: false as const,
+      error:
+        getCommunityProfileRestrictionMessage(
+          {
+            id: user.id,
+            schoolId: user.school_id ?? undefined,
+            verificationState: user.verification_state ?? undefined,
+          },
+          {
+            id: targetUser.id,
+            profileVisibility: profile?.profile_visibility ?? "university_only",
+            schoolId: targetUser.school_id ?? undefined,
+            verificationState: targetUser.verification_state ?? undefined,
+          },
+          blocked,
+        ) ?? COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
+    };
   }
 
   const [images, schoolName] = await Promise.all([
@@ -636,14 +675,17 @@ export async function getUserProfile(targetUserId: string) {
     getSchoolName(admin, targetUser.school_id),
   ]);
 
-  return mapCommunityProfile({
-    viewer: user,
-    target: targetUser,
-    profile,
-    schoolName,
-    images,
-    owner: false,
-  });
+  return {
+    ok: true as const,
+    profile: mapCommunityProfile({
+      viewer: user,
+      target: targetUser,
+      profile,
+      schoolName,
+      images,
+      owner: false,
+    }),
+  };
 }
 
 export async function blockUser(targetUserId: string) {
@@ -680,7 +722,21 @@ export async function blockUser(targetUserId: string) {
       },
     )
   ) {
-    throw new Error(COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
+    throw new Error(
+      getCommunityProfileRestrictionMessage(
+        {
+          id: user.id,
+          schoolId: user.school_id ?? undefined,
+          verificationState: user.verification_state ?? undefined,
+        },
+        {
+          id: targetUser.id,
+          profileVisibility: profile?.profile_visibility ?? "university_only",
+          schoolId: targetUser.school_id ?? undefined,
+          verificationState: targetUser.verification_state ?? undefined,
+        },
+      ) ?? COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
+    );
   }
 
   const { error } = await supabase.from("profile_blocks").upsert(
@@ -764,7 +820,21 @@ export async function reportProfile(
       },
     )
   ) {
-    throw new Error(COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
+    throw new Error(
+      getCommunityProfileRestrictionMessage(
+        {
+          id: user.id,
+          schoolId: user.school_id ?? undefined,
+          verificationState: user.verification_state ?? undefined,
+        },
+        {
+          id: targetUser.id,
+          profileVisibility: profile?.profile_visibility ?? "university_only",
+          schoolId: targetUser.school_id ?? undefined,
+          verificationState: targetUser.verification_state ?? undefined,
+        },
+      ) ?? COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
+    );
   }
 
   const { error } = await supabase.from("profile_reports").insert({

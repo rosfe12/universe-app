@@ -12,6 +12,10 @@ export const PROFILE_IMAGE_ALLOWED_TYPES = [
 ] as const;
 export const COMMUNITY_PROFILE_RESTRICTION_MESSAGE =
   "프로필 기능은 학생 인증 완료 후 사용할 수 있어요.";
+export const COMMUNITY_PROFILE_SAME_SCHOOL_ONLY_MESSAGE =
+  "이 프로필은 같은 학교 학생에게만 공개돼요.";
+export const COMMUNITY_PROFILE_BLOCKED_MESSAGE =
+  "차단 관계에서는 프로필을 볼 수 없어요.";
 
 export const communityProfileSchema = z.object({
   displayName: z.string().trim().min(2).max(24),
@@ -145,4 +149,30 @@ export function canReadCommunityProfile(
         viewer.schoolId === target.schoolId)
     )
   );
+}
+
+export function getCommunityProfileRestrictionMessage(
+  viewer: Pick<User, "id" | "schoolId" | "verificationState">,
+  target: Pick<User, "id" | "schoolId" | "verificationState"> & {
+    profileVisibility?: ProfileVisibility;
+  },
+  blocked = false,
+) {
+  if (viewer.id === target.id) {
+    return null;
+  }
+
+  if (blocked) {
+    return COMMUNITY_PROFILE_BLOCKED_MESSAGE;
+  }
+
+  if (viewer.verificationState !== "student_verified" || target.verificationState !== "student_verified") {
+    return COMMUNITY_PROFILE_RESTRICTION_MESSAGE;
+  }
+
+  if ((target.profileVisibility ?? "university_only") === "same_school_only" && viewer.schoolId !== target.schoolId) {
+    return COMMUNITY_PROFILE_SAME_SCHOOL_ONLY_MESSAGE;
+  }
+
+  return null;
 }
