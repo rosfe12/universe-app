@@ -55,6 +55,8 @@ export function TopNavActions() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const {
+    currentUser,
+    isAuthenticated,
     notifications,
     posts,
     lectures,
@@ -180,7 +182,7 @@ export function TopNavActions() {
           </Link>
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="프로필">
-          <Link href="/profile">
+          <Link href={isAuthenticated ? `/profile/${currentUser.id}` : "/profile"}>
             <CircleUserRound className="h-5 w-5" />
           </Link>
         </Button>

@@ -670,8 +670,9 @@ export async function getUserProfile(targetUserId: string) {
     };
   }
 
+  const isOwner = user.id === targetUser.id;
   const [images, schoolName] = await Promise.all([
-    listProfileImages(admin, targetUser.id, false),
+    listProfileImages(admin, targetUser.id, isOwner),
     getSchoolName(admin, targetUser.school_id),
   ]);
 
@@ -683,7 +684,7 @@ export async function getUserProfile(targetUserId: string) {
       profile,
       schoolName,
       images,
-      owner: false,
+      owner: isOwner,
     }),
   };
 }

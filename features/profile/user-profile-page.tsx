@@ -3,8 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { ChevronLeft, ShieldAlert } from "lucide-react";
+import { ChevronLeft, PencilLine, ShieldAlert } from "lucide-react";
 
 import { blockUser, getUserProfile, reportProfile, unblockUser } from "@/app/actions/profile-actions";
 import { AppShell } from "@/components/layout/app-shell";
@@ -30,7 +29,6 @@ import { useAppRuntime } from "@/hooks/use-app-runtime";
 import type { CommunityProfile } from "@/types";
 
 export function UserProfilePage({ userId }: { userId: string }) {
-  const router = useRouter();
   const { currentUser, isAuthenticated, loading } = useAppRuntime(undefined, "profile");
   const [profile, setProfile] = useState<CommunityProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,12 +38,6 @@ export function UserProfilePage({ userId }: { userId: string }) {
   const [reportDetail, setReportDetail] = useState("");
   const [blocked, setBlocked] = useState(false);
   const [pending, startTransition] = useTransition();
-
-  useEffect(() => {
-    if (!loading && isAuthenticated && currentUser.id === userId) {
-      router.replace("/profile");
-    }
-  }, [currentUser.id, isAuthenticated, loading, router, userId]);
 
   useEffect(() => {
     if (!isAuthenticated || loading || !canUseCommunityProfileFeature(currentUser)) {
@@ -204,68 +196,79 @@ export function UserProfilePage({ userId }: { userId: string }) {
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" onClick={() => setReportOpen(true)}>
-                  신고
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={pending || blocked}
-                  onClick={() => {
-                    if (
-                      typeof window !== "undefined" &&
-                      !window.confirm("이 사용자를 차단하면 서로 프로필을 볼 수 없습니다. 계속할까요?")
-                    ) {
-                      return;
-                    }
-
-                    startTransition(() => {
-                      void (async () => {
-                        try {
-                          await blockUser(userId);
-                          setBlocked(true);
-                          setNotice("사용자를 차단했습니다.");
-                        } catch (cause) {
-                          setError(cause instanceof Error ? cause.message : "차단하지 못했습니다.");
-                        }
-                      })();
-                    });
-                  }}
-                >
-                  차단
-                </Button>
-                {blocked ? (
+              {profile.isOwner ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild type="button" variant="outline">
+                    <Link href="/profile">
+                      <PencilLine className="h-4 w-4" />
+                      프로필 관리
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" onClick={() => setReportOpen(true)}>
+                    신고
+                  </Button>
                   <Button
                     type="button"
-                    variant="outline"
-                    disabled={pending}
+                    variant="ghost"
+                    disabled={pending || blocked}
                     onClick={() => {
+                      if (
+                        typeof window !== "undefined" &&
+                        !window.confirm("이 사용자를 차단하면 서로 프로필을 볼 수 없습니다. 계속할까요?")
+                      ) {
+                        return;
+                      }
+
                       startTransition(() => {
                         void (async () => {
                           try {
-                            await unblockUser(userId);
-                            setBlocked(false);
-                            setError(null);
-                            setNotice("차단을 해제했습니다.");
+                            await blockUser(userId);
+                            setBlocked(true);
+                            setNotice("사용자를 차단했습니다.");
                           } catch (cause) {
-                            setError(cause instanceof Error ? cause.message : "차단을 해제하지 못했습니다.");
+                            setError(cause instanceof Error ? cause.message : "차단하지 못했습니다.");
                           }
                         })();
                       });
                     }}
                   >
-                    차단 해제
+                    차단
                   </Button>
-                ) : null}
-              </div>
+                  {blocked ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => {
+                        startTransition(() => {
+                          void (async () => {
+                            try {
+                              await unblockUser(userId);
+                              setBlocked(false);
+                              setError(null);
+                              setNotice("차단을 해제했습니다.");
+                            } catch (cause) {
+                              setError(cause instanceof Error ? cause.message : "차단을 해제하지 못했습니다.");
+                            }
+                          })();
+                        });
+                      }}
+                    >
+                      차단 해제
+                    </Button>
+                  ) : null}
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {error ? <p className="text-sm text-rose-500">{error}</p> : null}
           {notice ? <p className="text-sm text-emerald-500">{notice}</p> : null}
 
-          <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+          <Dialog open={!profile.isOwner && reportOpen} onOpenChange={setReportOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>프로필 신고</DialogTitle>
