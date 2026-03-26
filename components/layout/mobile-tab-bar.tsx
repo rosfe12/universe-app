@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Bell,
   Home,
@@ -8,7 +9,7 @@ import {
   UserCircle2,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,15 @@ const tabs = [
 
 export function MobileTabBar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    tabs.forEach((tab) => {
+      if (tab.href !== pathname) {
+        router.prefetch(tab.href);
+      }
+    });
+  }, [pathname, router]);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/94 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-18px_40px_-28px_rgba(2,6,23,0.92)] backdrop-blur-xl">
@@ -42,6 +52,7 @@ export function MobileTabBar() {
             <li key={tab.href}>
               <Link
                 href={tab.href}
+                prefetch
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "group relative flex min-w-0 flex-col items-center gap-1 rounded-[22px] px-1 py-2 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",

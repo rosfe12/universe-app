@@ -52,14 +52,14 @@ function isMessageNotification(type: string) {
 }
 
 export function TopNavActions() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const {
     notifications,
     posts,
     lectures,
     loading: searchLoading,
-  } = useAppRuntime(undefined, "search");
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  } = useAppRuntime(undefined, open ? "search" : "chrome");
   const unreadMessageCount = notifications.filter(
     (item) => !item.isRead && isMessageNotification(item.type),
   ).length;

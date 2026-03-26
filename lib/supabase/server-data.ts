@@ -1116,7 +1116,9 @@ function getServerSnapshotCacheKey(
 export async function loadServerRuntimeSnapshot(
   scope: RuntimeSnapshotScope = "full",
 ): Promise<AppRuntimeSnapshot> {
-  noStore();
+  if (!isServerSnapshotCacheable(scope)) {
+    noStore();
+  }
 
   if (!hasSupabaseEnv) {
     return createSupabaseFallbackSnapshot();
