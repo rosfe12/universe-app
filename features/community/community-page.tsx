@@ -711,6 +711,14 @@ export function CommunityPage({
               title: values.title,
               content: values.content,
               tags,
+              meta: hasPoll
+                ? {
+                    pollDraft: {
+                      question: latestPollQuestion,
+                      options: normalizedPollOptions,
+                    },
+                  }
+                : undefined,
               postType,
               pollQuestion: hasPoll ? latestPollQuestion : undefined,
               pollOptions: hasPoll ? normalizedPollOptions : undefined,

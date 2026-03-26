@@ -874,17 +874,38 @@ export async function createPost(input: z.input<typeof postSchema>) {
     }
   }
   await guardPostSubmission(supabase, authUser.id, values);
+  const rawPollDraft =
+    values.meta &&
+    typeof values.meta === "object" &&
+    "pollDraft" in values.meta &&
+    values.meta.pollDraft &&
+    typeof values.meta.pollDraft === "object"
+      ? (values.meta.pollDraft as {
+          question?: unknown;
+          options?: unknown;
+        })
+      : null;
+  const normalizedPollQuestion =
+    values.pollQuestion?.trim() ||
+    (typeof rawPollDraft?.question === "string" ? rawPollDraft.question.trim() : "");
+  const normalizedPollOptions =
+    (values.pollOptions ??
+      (Array.isArray(rawPollDraft?.options)
+        ? rawPollDraft.options.filter((option): option is string => typeof option === "string")
+        : []))
+      .map((option) => option.trim())
+      .filter(Boolean);
   const shouldCreatePoll =
     values.postType === "poll" ||
     values.postType === "balance" ||
-    Boolean(values.pollQuestion) ||
-    Boolean(values.pollOptions?.length);
+    Boolean(normalizedPollQuestion) ||
+    Boolean(normalizedPollOptions.length);
 
   if (shouldCreatePoll) {
-    if (!values.pollQuestion?.trim()) {
+    if (!normalizedPollQuestion) {
       throw new Error("투표 질문을 입력해주세요.");
     }
-    if ((values.pollOptions ?? []).filter((option) => option.trim().length > 0).length < 2) {
+    if (normalizedPollOptions.length < 2) {
       throw new Error("투표 선택지는 2개 이상 필요합니다.");
     }
   }
@@ -903,6 +924,16 @@ export async function createPost(input: z.input<typeof postSchema>) {
       : values.visibilityLevel === "anonymous"
         ? defaultVisibility
         : (values.visibilityLevel ?? defaultVisibility);
+  const resolvedPostType = shouldCreatePoll
+    ? values.postType === "normal"
+      ? normalizedPollOptions.length === 2
+        ? "balance"
+        : "poll"
+      : values.postType
+    : values.postType;
+  const metadataRecord =
+    values.meta && typeof values.meta === "object" ? { ...values.meta } : {};
+  delete metadataRecord.pollDraft;
 
   const { data, error } = await supabase
     .from("posts")
@@ -910,7 +941,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
       author_id: authUser.id,
       category: values.category,
       subcategory: values.subcategory ?? null,
-      post_type: values.postType,
+      post_type: resolvedPostType,
       title: values.title,
       content: values.content,
       school_id: schoolId,
@@ -918,7 +949,7 @@ export async function createPost(input: z.input<typeof postSchema>) {
       visibility_level: resolvedVisibilityLevel,
       image_url: values.imageUrl ?? null,
       metadata: {
-        ...(values.meta ?? {}),
+        ...metadataRecord,
         tags: values.tags ?? [],
       },
     })
@@ -929,13 +960,13 @@ export async function createPost(input: z.input<typeof postSchema>) {
     throw new Error(error.message);
   }
 
-  if (shouldCreatePoll && values.pollQuestion) {
+  if (shouldCreatePoll) {
     const admin = createAdminSupabaseClient();
     await createPollForPost(
       admin,
       String(data.id),
-      values.pollQuestion,
-      values.pollOptions ?? [],
+      normalizedPollQuestion,
+      normalizedPollOptions,
     );
   }
 
