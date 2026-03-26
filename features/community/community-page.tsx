@@ -373,9 +373,7 @@ export function CommunityPage({
   const [activeFilter, setActiveFilter] = useState<SharedFilter>(
     isSharedFilter(filterParam) ? filterParam : "all",
   );
-  const [feedScope, setFeedScope] = useState<FeedScope>(
-    currentUser.schoolId ? "school" : "all",
-  );
+  const [feedScope, setFeedScope] = useState<FeedScope>("all");
   const [sortMode, setSortMode] = useState<"popular" | "latest" | "trending">("latest");
   const [composerOpen, setComposerOpen] = useState(false);
   const [detailPostId, setDetailPostId] = useState<string | null>(null);
