@@ -28,10 +28,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { deleteCurrentAccount } from "@/app/actions/content-actions";
+import {
+  getMyBlockedProfiles,
+  unblockUser,
+} from "@/app/actions/profile-actions";
 import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import {
   getAnonymousHandle,
-  getBlocks,
   getDatingProfileByUserId,
   getPublicIdentitySummary,
   getLectureTitle,
@@ -53,12 +56,13 @@ import {
   upsertUserProfile,
 } from "@/lib/supabase/app-data";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
+import { canUseCommunityProfileFeature } from "@/lib/community-profile";
 import {
   getStandardVisibilityLevel,
   getStudentVerificationBadge,
   getSchoolShortName,
 } from "@/lib/user-identity";
-import type { AppRuntimeSnapshot } from "@/types";
+import type { AppRuntimeSnapshot, BlockedProfileSummary } from "@/types";
 
 export function ProfilePage({
   initialSnapshot,
@@ -78,7 +82,6 @@ export function ProfilePage({
   } = useAppRuntime(initialSnapshot, "profile");
   const currentUser = runtimeUser;
   const profile = getDatingProfileByUserId(currentUser.id);
-  const blockedUsers = getBlocks();
   const unreadNotifications = getNotifications().filter((item) => !item.isRead);
   const myPosts = getUserPosts();
   const myComments = getUserComments();
@@ -106,6 +109,10 @@ export function ProfilePage({
     trade: true,
     marketing: false,
   });
+  const [blockedUsers, setBlockedUsers] = useState<BlockedProfileSummary[]>([]);
+  const [blockedUsersLoading, setBlockedUsersLoading] = useState(false);
+  const [blockedUserActionId, setBlockedUserActionId] = useState<string | null>(null);
+  const [blockedUsersError, setBlockedUsersError] = useState<string | null>(null);
   const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
@@ -195,6 +202,56 @@ export function ProfilePage({
     verificationPending,
     verificationRejected,
     verificationReview,
+  ]);
+
+  useEffect(() => {
+    if (loading || !isAuthenticated || !hasCompletedOnboarding(currentUser)) {
+      setBlockedUsers([]);
+      setBlockedUsersLoading(false);
+      setBlockedUsersError(null);
+      return;
+    }
+
+    if (!canAccessAdmin && !canUseCommunityProfileFeature(currentUser)) {
+      setBlockedUsers([]);
+      setBlockedUsersLoading(false);
+      setBlockedUsersError(null);
+      return;
+    }
+
+    let active = true;
+    setBlockedUsersLoading(true);
+    setBlockedUsersError(null);
+
+    void getMyBlockedProfiles()
+      .then((items) => {
+        if (!active) {
+          return;
+        }
+        setBlockedUsers(items);
+        setBlockedUsersLoading(false);
+      })
+      .catch((cause) => {
+        if (!active) {
+          return;
+        }
+        setBlockedUsers([]);
+        setBlockedUsersLoading(false);
+        setBlockedUsersError(
+          cause instanceof Error ? cause.message : "차단 목록을 불러오지 못했습니다.",
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    canAccessAdmin,
+    currentUser.email,
+    currentUser.id,
+    currentUser.verificationState,
+    isAuthenticated,
+    loading,
   ]);
 
   const moveToPost = (postId: string) => {
@@ -718,7 +775,15 @@ export function ProfilePage({
         <SectionHeader title="차단 관리" />
         <Card>
           <CardContent className="space-y-3 py-5">
-            {blockedUsers.length === 0 ? (
+            {blockedUsersError ? (
+              <p className="text-sm text-rose-600">{blockedUsersError}</p>
+            ) : blockedUsersLoading ? (
+              <LoadingState />
+            ) : !canAccessAdmin && !canUseCommunityProfileFeature(currentUser) ? (
+              <p className="text-sm text-muted-foreground">
+                학생 인증 완료 후 차단 관리를 사용할 수 있습니다.
+              </p>
+            ) : blockedUsers.length === 0 ? (
               <p className="text-sm text-muted-foreground">차단한 사용자가 없습니다.</p>
             ) : (
               blockedUsers.map((block) => (
@@ -727,12 +792,49 @@ export function ProfilePage({
                     <div className="rounded-2xl bg-secondary p-3">
                       <UserRound className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-sm font-medium">
-                      {getPublicIdentitySummary(block.blockedUserId).label}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{block.displayName}</p>
+                      {block.schoolName ? (
+                        <p className="text-xs text-muted-foreground">{block.schoolName}</p>
+                      ) : null}
+                    </div>
                   </div>
-                  <Button size="sm" variant="outline">
-                    해제
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={blockedUserActionId === block.blockedUserId}
+                    onClick={() => {
+                      if (
+                        typeof window !== "undefined" &&
+                        !window.confirm("이 사용자의 차단을 해제할까요?")
+                      ) {
+                        return;
+                      }
+
+                      setBlockedUsersError(null);
+                      setBlockedUserActionId(block.blockedUserId);
+
+                      void unblockUser(block.blockedUserId)
+                        .then(() => {
+                          setBlockedUsers((current) =>
+                            current.filter((item) => item.blockedUserId !== block.blockedUserId),
+                          );
+                        })
+                        .catch((cause) => {
+                          setBlockedUsersError(
+                            cause instanceof Error
+                              ? cause.message
+                              : "차단을 해제하지 못했습니다.",
+                          );
+                        })
+                        .finally(() => {
+                          setBlockedUserActionId((current) =>
+                            current === block.blockedUserId ? null : current,
+                          );
+                        });
+                    }}
+                  >
+                    {blockedUserActionId === block.blockedUserId ? "해제 중" : "해제"}
                   </Button>
                 </div>
               ))

@@ -18,6 +18,7 @@ import {
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
+  BlockedProfileSummary,
   CommunityProfile,
   CommunityProfileImage,
   ProfileImageModerationStatus,
@@ -693,6 +694,89 @@ export async function getUserProfile(targetUserId: string) {
       owner: isOwner,
     }),
   };
+}
+
+export async function getMyBlockedProfiles() {
+  const { admin, user } = await requireAuthenticatedProfileUser();
+  requireVerifiedProfileFeature(user);
+
+  const { data, error } = await admin
+    .from("profile_blocks")
+    .select("id, blocked_user_id, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows =
+    ((data ?? []) as Array<{
+      id: string;
+      blocked_user_id: string;
+      created_at: string;
+    }>) ?? [];
+
+  if (rows.length === 0) {
+    return [] satisfies BlockedProfileSummary[];
+  }
+
+  const blockedUserIds = rows.map((row) => row.blocked_user_id);
+  const { data: blockedUsers, error: blockedUsersError } = await admin
+    .from("users")
+    .select("id, school_id, nickname, name")
+    .in("id", blockedUserIds);
+
+  if (blockedUsersError) {
+    throw new Error(blockedUsersError.message);
+  }
+
+  const schoolIds = Array.from(
+    new Set((blockedUsers ?? []).map((item) => item.school_id).filter(Boolean)),
+  );
+
+  const schoolNameMap = new Map<string, string>();
+
+  if (schoolIds.length > 0) {
+    const { data: schools, error: schoolsError } = await admin
+      .from("schools")
+      .select("id, name")
+      .in("id", schoolIds);
+
+    if (schoolsError) {
+      throw new Error(schoolsError.message);
+    }
+
+    for (const school of schools ?? []) {
+      if (school.id && school.name) {
+        schoolNameMap.set(String(school.id), String(school.name));
+      }
+    }
+  }
+
+  const blockedUserMap = new Map(
+    (blockedUsers ?? []).map((blockedUser) => [
+      blockedUser.id,
+      {
+        displayName: blockedUser.nickname ?? blockedUser.name ?? "익명",
+        schoolName: blockedUser.school_id
+          ? schoolNameMap.get(String(blockedUser.school_id))
+          : undefined,
+      },
+    ]),
+  );
+
+  return rows.map((row) => {
+    const blockedUser = blockedUserMap.get(row.blocked_user_id);
+
+    return {
+      id: row.id,
+      blockedUserId: row.blocked_user_id,
+      displayName: blockedUser?.displayName ?? "사용자",
+      schoolName: blockedUser?.schoolName,
+      createdAt: row.created_at,
+    } satisfies BlockedProfileSummary;
+  });
 }
 
 export async function blockUser(targetUserId: string) {

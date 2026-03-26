@@ -239,6 +239,14 @@ export interface ProfileBlock {
   createdAt: string;
 }
 
+export interface BlockedProfileSummary {
+  id: string;
+  blockedUserId: string;
+  displayName: string;
+  schoolName?: string;
+  createdAt: string;
+}
+
 export interface ProfileReport {
   id: string;
   targetUserId: string;
