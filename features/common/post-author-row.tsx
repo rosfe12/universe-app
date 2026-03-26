@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import {
   getPublicIdentitySummary,
   isRepeatedlyReportedUser,
@@ -31,14 +33,24 @@ export function PostAuthorRow({
     contentSchoolId,
   });
   const repeatedlyReported = isRepeatedlyReportedUser(authorId);
+  const canOpenProfile = !anonymousMode && identity.visibilityLevel !== "anonymous";
 
   return (
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0 space-y-1">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm">
-          <p className="min-w-0 max-w-full truncate font-semibold text-gray-900 dark:text-gray-50">
-            {identity.nickname}
-          </p>
+          {canOpenProfile ? (
+            <Link
+              href={`/profile/${authorId}`}
+              className="min-w-0 max-w-full truncate font-semibold text-gray-900 transition-opacity hover:opacity-80 dark:text-gray-50"
+            >
+              {identity.nickname}
+            </Link>
+          ) : (
+            <p className="min-w-0 max-w-full truncate font-semibold text-gray-900 dark:text-gray-50">
+              {identity.nickname}
+            </p>
+          )}
           <UserLevelText score={identity.trustScore} />
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">

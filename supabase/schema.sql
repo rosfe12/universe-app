@@ -361,6 +361,68 @@ end
 where verification_state is null
    or verification_state = 'guest'::public.verification_state;
 
+create table if not exists public.profiles (
+  id uuid primary key references public.users(id) on delete cascade,
+  display_name text,
+  bio text,
+  interests text[] not null default '{}'::text[],
+  show_department boolean not null default false,
+  show_admission_year boolean not null default false,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint profiles_display_name_check check (
+    display_name is null or length(trim(display_name)) between 2 and 24
+  ),
+  constraint profiles_bio_check check (
+    bio is null or length(trim(bio)) <= 160
+  ),
+  constraint profiles_interest_limit_check check (
+    coalesce(array_length(interests, 1), 0) <= 10
+  )
+);
+
+create table if not exists public.profile_images (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  image_path text not null,
+  image_order integer not null check (image_order between 1 and 3),
+  moderation_status text not null default 'pending',
+  moderation_reason text,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint profile_images_status_check check (moderation_status in ('pending', 'approved', 'rejected')),
+  constraint profile_images_user_order_unique unique (user_id, image_order)
+);
+
+create table if not exists public.profile_blocks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  blocked_user_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint profile_blocks_unique unique (user_id, blocked_user_id),
+  constraint profile_blocks_self_check check (user_id <> blocked_user_id)
+);
+
+create table if not exists public.profile_reports (
+  id uuid primary key default gen_random_uuid(),
+  target_user_id uuid not null references public.profiles(id) on delete cascade,
+  reporter_user_id uuid not null references public.profiles(id) on delete cascade,
+  reason text not null,
+  detail text,
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint profile_reports_self_check check (target_user_id <> reporter_user_id)
+);
+
+insert into public.profiles (id, display_name, bio)
+select
+  users.id,
+  coalesce(nullif(trim(users.nickname), ''), nullif(trim(users.name), '')),
+  users.bio
+from public.users
+on conflict (id) do update
+set display_name = coalesce(public.profiles.display_name, excluded.display_name),
+    bio = coalesce(public.profiles.bio, excluded.bio);
+
 create table if not exists public.user_roles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.users(id) on delete cascade,
@@ -833,6 +895,13 @@ create index if not exists idx_school_email_rules_school_priority on public.scho
 create index if not exists idx_school_departments_school_normalized_name on public.school_departments (school_id, normalized_name);
 create unique index if not exists idx_users_verified_school_email on public.users (school_email) where school_email is not null and student_verification_status = 'verified';
 create unique index if not exists idx_users_referral_code on public.users (referral_code) where referral_code is not null;
+create index if not exists idx_profiles_display_name on public.profiles (display_name);
+create index if not exists idx_profile_images_user_order on public.profile_images (user_id, image_order);
+create index if not exists idx_profile_images_status_created_at on public.profile_images (moderation_status, created_at desc);
+create index if not exists idx_profile_blocks_user_created_at on public.profile_blocks (user_id, created_at desc);
+create index if not exists idx_profile_blocks_blocked_user_created_at on public.profile_blocks (blocked_user_id, created_at desc);
+create index if not exists idx_profile_reports_target_created_at on public.profile_reports (target_user_id, created_at desc);
+create index if not exists idx_profile_reports_reporter_created_at on public.profile_reports (reporter_user_id, created_at desc);
 create index if not exists idx_comments_post_id on public.comments (post_id);
 create index if not exists idx_comments_post_parent_created_at on public.comments (post_id, parent_comment_id, created_at desc);
 create index if not exists idx_comments_author_created_at on public.comments (author_id, created_at desc);
@@ -988,6 +1057,47 @@ create trigger users_set_updated_at
 before update on public.users
 for each row
 execute function public.update_updated_at();
+
+drop trigger if exists profiles_set_updated_at on public.profiles;
+create trigger profiles_set_updated_at
+before update on public.profiles
+for each row
+execute function public.update_updated_at();
+
+drop trigger if exists profile_images_set_updated_at on public.profile_images;
+create trigger profile_images_set_updated_at
+before update on public.profile_images
+for each row
+execute function public.update_updated_at();
+
+create or replace function public.ensure_profile_row()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (
+    id,
+    display_name,
+    bio
+  )
+  values (
+    new.id,
+    coalesce(nullif(trim(new.nickname), ''), nullif(trim(new.name), '')),
+    new.bio
+  )
+  on conflict (id) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists users_ensure_profile on public.users;
+create trigger users_ensure_profile
+after insert on public.users
+for each row
+execute function public.ensure_profile_row();
 
 drop trigger if exists posts_set_updated_at on public.posts;
 create trigger posts_set_updated_at
@@ -1148,6 +1258,92 @@ as $$
     and public.current_verification_state() = 'student_verified',
     false
   )
+$$;
+
+create or replace function public.can_access_profile(p_target_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when auth.uid() is null then false
+    when auth.uid() = p_target_user_id then true
+    else exists(
+      select 1
+      from public.users viewer
+      join public.users target
+        on target.id = p_target_user_id
+      where viewer.id = auth.uid()
+        and viewer.user_type = 'student'
+        and target.user_type = 'student'
+        and viewer.verification_state = 'student_verified'
+        and target.verification_state = 'student_verified'
+        and viewer.school_id is not null
+        and viewer.school_id = target.school_id
+        and not exists (
+          select 1
+          from public.profile_blocks b
+          where (
+            b.user_id = auth.uid()
+            and b.blocked_user_id = p_target_user_id
+          ) or (
+            b.user_id = p_target_user_id
+            and b.blocked_user_id = auth.uid()
+          )
+        )
+    )
+  end
+$$;
+
+create or replace function public.reorder_profile_images(p_image_ids uuid[])
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_count integer;
+  requested_count integer := coalesce(array_length(p_image_ids, 1), 0);
+begin
+  if auth.uid() is null then
+    raise exception '로그인이 필요합니다.';
+  end if;
+
+  if requested_count < 1 or requested_count > 3 then
+    raise exception '이미지 순서가 올바르지 않습니다.';
+  end if;
+
+  select count(*)
+    into current_count
+  from public.profile_images
+  where user_id = auth.uid();
+
+  if current_count <> requested_count then
+    raise exception '현재 프로필 사진 수와 정렬 요청이 일치하지 않습니다.';
+  end if;
+
+  if (
+    select count(*)
+    from public.profile_images
+    where user_id = auth.uid()
+      and id = any(p_image_ids)
+  ) <> requested_count then
+    raise exception '본인 프로필 사진만 정렬할 수 있습니다.';
+  end if;
+
+  update public.profile_images
+  set image_order = case id
+    when p_image_ids[1] then 1
+    when p_image_ids[2] then 2
+    when p_image_ids[3] then 3
+    else image_order
+  end,
+  updated_at = timezone('utc', now())
+  where user_id = auth.uid()
+    and id = any(p_image_ids);
+end;
 $$;
 
 create or replace function public.is_admin()
@@ -1523,10 +1719,13 @@ grant execute on function public.current_student_verification_status() to authen
 grant execute on function public.current_verification_state() to authenticated;
 grant execute on function public.is_student() to authenticated;
 grant execute on function public.is_verified_student() to authenticated;
+grant execute on function public.can_access_profile(uuid) to authenticated;
+grant execute on function public.reorder_profile_images(uuid[]) to authenticated;
 grant execute on function public.is_admin() to authenticated;
 
 alter table public.schools enable row level security;
 alter table public.users enable row level security;
+alter table public.profiles enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.student_verification_requests enable row level security;
 alter table public.school_email_rules enable row level security;
@@ -1544,6 +1743,9 @@ alter table public.polls enable row level security;
 alter table public.poll_options enable row level security;
 alter table public.poll_votes enable row level security;
 alter table public.dating_profiles enable row level security;
+alter table public.profile_images enable row level security;
+alter table public.profile_blocks enable row level security;
+alter table public.profile_reports enable row level security;
 alter table public.reports enable row level security;
 alter table public.blocks enable row level security;
 alter table public.notifications enable row level security;
@@ -1588,6 +1790,101 @@ for update
 to authenticated
 using (auth.uid() = id or public.is_admin())
 with check (auth.uid() = id or public.is_admin());
+
+drop policy if exists "profiles self or visible read" on public.profiles;
+create policy "profiles self or visible read"
+on public.profiles
+for select
+to authenticated
+using (
+  auth.uid() = id
+  or public.can_access_profile(id)
+);
+
+drop policy if exists "profiles self insert" on public.profiles;
+create policy "profiles self insert"
+on public.profiles
+for insert
+to authenticated
+with check (auth.uid() = id);
+
+drop policy if exists "profiles self update" on public.profiles;
+create policy "profiles self update"
+on public.profiles
+for update
+to authenticated
+using (auth.uid() = id)
+with check (auth.uid() = id);
+
+drop policy if exists "profile images self or approved read" on public.profile_images;
+create policy "profile images self or approved read"
+on public.profile_images
+for select
+to authenticated
+using (
+  user_id = auth.uid()
+  or (
+    moderation_status = 'approved'
+    and public.can_access_profile(user_id)
+  )
+);
+
+drop policy if exists "profile images own insert" on public.profile_images;
+create policy "profile images own insert"
+on public.profile_images
+for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists "profile images own update" on public.profile_images;
+create policy "profile images own update"
+on public.profile_images
+for update
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+drop policy if exists "profile images own delete" on public.profile_images;
+create policy "profile images own delete"
+on public.profile_images
+for delete
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "profile blocks own read" on public.profile_blocks;
+create policy "profile blocks own read"
+on public.profile_blocks
+for select
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "profile blocks own insert" on public.profile_blocks;
+create policy "profile blocks own insert"
+on public.profile_blocks
+for insert
+to authenticated
+with check (user_id = auth.uid() and blocked_user_id <> auth.uid());
+
+drop policy if exists "profile blocks own delete" on public.profile_blocks;
+create policy "profile blocks own delete"
+on public.profile_blocks
+for delete
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "profile reports own insert" on public.profile_reports;
+create policy "profile reports own insert"
+on public.profile_reports
+for insert
+to authenticated
+with check (reporter_user_id = auth.uid() and target_user_id <> auth.uid());
+
+drop policy if exists "profile reports admin read" on public.profile_reports;
+create policy "profile reports admin read"
+on public.profile_reports
+for select
+to authenticated
+using (public.is_admin());
 
 drop policy if exists "user_roles self or admin read" on public.user_roles;
 create policy "user_roles self or admin read"
@@ -2235,6 +2532,12 @@ on conflict (id) do update
 set name = excluded.name,
     public = excluded.public;
 
+insert into storage.buckets (id, name, public)
+values ('profile-images', 'profile-images', false)
+on conflict (id) do update
+set name = excluded.name,
+    public = excluded.public;
+
 do $$
 begin
   begin
@@ -2255,6 +2558,14 @@ begin
     execute 'create policy "verification documents own update" on storage.objects for update to authenticated using (bucket_id = ''verification-documents'' and (((storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text) or public.is_admin())) with check (bucket_id = ''verification-documents'' and (((storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text) or public.is_admin()))';
     execute 'drop policy if exists "verification documents own delete" on storage.objects';
     execute 'create policy "verification documents own delete" on storage.objects for delete to authenticated using (bucket_id = ''verification-documents'' and (((storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text) or public.is_admin()))';
+    execute 'drop policy if exists "profile images own read" on storage.objects';
+    execute 'create policy "profile images own read" on storage.objects for select to authenticated using (bucket_id = ''profile-images'' and (((storage.foldername(name))[1] = auth.uid()::text) or public.is_admin()))';
+    execute 'drop policy if exists "profile images own insert" on storage.objects';
+    execute 'create policy "profile images own insert" on storage.objects for insert to authenticated with check (bucket_id = ''profile-images'' and (storage.foldername(name))[1] = auth.uid()::text)';
+    execute 'drop policy if exists "profile images own update" on storage.objects';
+    execute 'create policy "profile images own update" on storage.objects for update to authenticated using (bucket_id = ''profile-images'' and (((storage.foldername(name))[1] = auth.uid()::text) or public.is_admin())) with check (bucket_id = ''profile-images'' and (((storage.foldername(name))[1] = auth.uid()::text) or public.is_admin()))';
+    execute 'drop policy if exists "profile images own delete" on storage.objects';
+    execute 'create policy "profile images own delete" on storage.objects for delete to authenticated using (bucket_id = ''profile-images'' and (((storage.foldername(name))[1] = auth.uid()::text) or public.is_admin()))';
   exception
     when insufficient_privilege then
       raise notice 'Skipping storage.objects policy setup due to insufficient privilege';

@@ -16,6 +16,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { AppSettingsSection } from "@/components/shared/app-settings-section";
+import { CommunityProfileSection } from "@/features/profile/community-profile-section";
 import { MyPageLevelSection } from "@/components/shared/my-page-level-section";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ProfileCard } from "@/components/shared/profile-card";
@@ -345,6 +346,8 @@ export function ProfilePage({
           ) : null}
       </section>
       )}
+
+      <CommunityProfileSection currentUser={currentUser} />
 
       <section className="space-y-3">
         <SectionHeader title="내 활동 요약" description="반복 사용 지표를 바로 확인" />

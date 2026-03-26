@@ -196,6 +196,52 @@ export interface User {
   avatarUrl?: string;
 }
 
+export type ProfileImageModerationStatus = "pending" | "approved" | "rejected";
+
+export interface CommunityProfileImage {
+  id: string;
+  userId: string;
+  imagePath: string;
+  imageOrder: 1 | 2 | 3;
+  moderationStatus: ProfileImageModerationStatus;
+  moderationReason?: string;
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CommunityProfile {
+  userId: string;
+  schoolId?: string;
+  schoolName?: string;
+  displayName: string;
+  bio?: string;
+  interests: string[];
+  showDepartment: boolean;
+  showAdmissionYear: boolean;
+  department?: string;
+  admissionYear?: number;
+  verificationState?: VerificationState;
+  images: CommunityProfileImage[];
+  isOwner: boolean;
+}
+
+export interface ProfileBlock {
+  id: string;
+  userId: string;
+  blockedUserId: string;
+  createdAt: string;
+}
+
+export interface ProfileReport {
+  id: string;
+  targetUserId: string;
+  reporterUserId: string;
+  reason: string;
+  detail?: string;
+  createdAt: string;
+}
+
 export interface AdmissionQuestionMeta {
   region: string;
   track: "문과" | "이과" | "예체능" | "기타";

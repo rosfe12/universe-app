@@ -102,6 +102,82 @@ type UserInsert = {
   updated_at?: string;
 };
 
+type ProfileRow = {
+  id: string;
+  display_name: string | null;
+  bio: string | null;
+  interests: string[];
+  show_department: boolean;
+  show_admission_year: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type ProfileInsert = {
+  id: string;
+  display_name?: string | null;
+  bio?: string | null;
+  interests?: string[];
+  show_department?: boolean;
+  show_admission_year?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type ProfileImageRow = {
+  id: string;
+  user_id: string;
+  image_path: string;
+  image_order: number;
+  moderation_status: "pending" | "approved" | "rejected";
+  moderation_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ProfileImageInsert = {
+  id?: string;
+  user_id: string;
+  image_path: string;
+  image_order: number;
+  moderation_status?: "pending" | "approved" | "rejected";
+  moderation_reason?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type ProfileBlockRow = {
+  id: string;
+  user_id: string;
+  blocked_user_id: string;
+  created_at: string;
+};
+
+type ProfileBlockInsert = {
+  id?: string;
+  user_id: string;
+  blocked_user_id: string;
+  created_at?: string;
+};
+
+type ProfileReportRow = {
+  id: string;
+  target_user_id: string;
+  reporter_user_id: string;
+  reason: string;
+  detail: string | null;
+  created_at: string;
+};
+
+type ProfileReportInsert = {
+  id?: string;
+  target_user_id: string;
+  reporter_user_id: string;
+  reason: string;
+  detail?: string | null;
+  created_at?: string;
+};
+
 type UserRoleRow = {
   id: string;
   user_id: string;
@@ -617,6 +693,10 @@ export interface Database {
     Tables: {
       schools: SupabaseTable<SchoolRow, SchoolInsert>;
       users: SupabaseTable<UserRow, UserInsert>;
+      profiles: SupabaseTable<ProfileRow, ProfileInsert>;
+      profile_images: SupabaseTable<ProfileImageRow, ProfileImageInsert>;
+      profile_blocks: SupabaseTable<ProfileBlockRow, ProfileBlockInsert>;
+      profile_reports: SupabaseTable<ProfileReportRow, ProfileReportInsert>;
       user_roles: SupabaseTable<UserRoleRow, UserRoleInsert>;
       student_verification_requests: SupabaseTable<
         StudentVerificationRequestRow,

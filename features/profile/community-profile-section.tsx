@@ -1,0 +1,528 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Pencil, Trash2 } from "lucide-react";
+
+import {
+  deleteProfileImage,
+  getMyProfile,
+  reorderProfileImages,
+  updateMyProfile,
+  uploadProfileImage,
+} from "@/app/actions/profile-actions";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
+  canUseCommunityProfileFeature,
+  parseInterestTokens,
+} from "@/lib/community-profile";
+import type { CommunityProfile, User } from "@/types";
+
+export function CommunityProfileSection({ currentUser }: { currentUser: User }) {
+  const profileEnabled = canUseCommunityProfileFeature(currentUser);
+  const [profile, setProfile] = useState<CommunityProfile | null>(null);
+  const [loading, setLoading] = useState(profileEnabled);
+  const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [uploadingOrder, setUploadingOrder] = useState<number | null>(null);
+  const [formState, setFormState] = useState({
+    displayName: "",
+    bio: "",
+    interestsInput: "",
+    showDepartment: false,
+    showAdmissionYear: false,
+  });
+  const [isPending, startTransition] = useTransition();
+
+  const orderedImages = useMemo(
+    () => [...(profile?.images ?? [])].sort((a, b) => a.imageOrder - b.imageOrder),
+    [profile],
+  );
+
+  useEffect(() => {
+    if (!profileEnabled) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    void getMyProfile()
+      .then((result) => {
+        if (!active) return;
+        setProfile(result);
+        setFormState({
+          displayName: result.displayName,
+          bio: result.bio ?? "",
+          interestsInput: result.interests.join(", "),
+          showDepartment: result.showDepartment,
+          showAdmissionYear: result.showAdmissionYear,
+        });
+      })
+      .catch((cause) => {
+        if (!active) return;
+        setError(cause instanceof Error ? cause.message : COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [profileEnabled, currentUser.id]);
+
+  const imageByOrder = useMemo(() => {
+    const map = new Map<number, CommunityProfile["images"][number]>();
+    for (const image of orderedImages) {
+      map.set(image.imageOrder, image);
+    }
+    return map;
+  }, [orderedImages]);
+
+  function openEditor() {
+    if (!profile) return;
+    setFormState({
+      displayName: profile.displayName,
+      bio: profile.bio ?? "",
+      interestsInput: profile.interests.join(", "),
+      showDepartment: profile.showDepartment,
+      showAdmissionYear: profile.showAdmissionYear,
+    });
+    setOpen(true);
+  }
+
+  async function handleSave() {
+    startTransition(() => {
+      void (async () => {
+        try {
+          const nextProfile = await updateMyProfile({
+            displayName: formState.displayName,
+            bio: formState.bio,
+            interests: parseInterestTokens(formState.interestsInput),
+            showDepartment: formState.showDepartment,
+            showAdmissionYear: formState.showAdmissionYear,
+          });
+          setProfile(nextProfile);
+          setError(null);
+          setOpen(false);
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : "프로필을 저장하지 못했습니다.");
+        }
+      })();
+    });
+  }
+
+  async function handleImageUpload(order: number, file?: File | null) {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("imageOrder", String(order));
+    setUploadingOrder(order);
+    setError(null);
+
+    try {
+      const nextImage = await uploadProfileImage(formData);
+      setProfile((current) => {
+        if (!current) return current;
+        const nextImages = current.images
+          .filter((image) => image.imageOrder !== order)
+          .concat(nextImage)
+          .sort((a, b) => a.imageOrder - b.imageOrder);
+        return {
+          ...current,
+          images: nextImages,
+        };
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
+    } finally {
+      setUploadingOrder(null);
+    }
+  }
+
+  async function handleImageDelete(imageId: string) {
+    startTransition(() => {
+      void (async () => {
+        try {
+          await deleteProfileImage(imageId);
+          setProfile((current) =>
+            current
+              ? {
+                  ...current,
+                  images: current.images.filter((image) => image.id !== imageId),
+                }
+              : current,
+          );
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : "프로필 사진을 삭제하지 못했습니다.");
+        }
+      })();
+    });
+  }
+
+  async function handleMoveImage(imageId: string, direction: -1 | 1) {
+    if (!profile) return;
+    const currentIndex = orderedImages.findIndex((item) => item.id === imageId);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= orderedImages.length) {
+      return;
+    }
+
+    const nextOrder = [...orderedImages];
+    [nextOrder[currentIndex], nextOrder[nextIndex]] = [nextOrder[nextIndex], nextOrder[currentIndex]];
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          const nextProfile = await reorderProfileImages(nextOrder.map((item) => item.id));
+          setProfile(nextProfile);
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : "프로필 사진 순서를 바꾸지 못했습니다.");
+        }
+      })();
+    });
+  }
+
+  if (!profileEnabled) {
+    return (
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">내 홈</p>
+            <p className="text-sm text-muted-foreground">{COMMUNITY_PROFILE_RESTRICTION_MESSAGE}</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">내 홈</p>
+          <p className="text-sm text-muted-foreground">같은 학교 학생에게만 보이는 프로필입니다.</p>
+        </div>
+        <Button type="button" size="sm" variant="outline" onClick={openEditor} disabled={!profile || loading}>
+          <Pencil className="h-4 w-4" />
+          수정
+        </Button>
+      </div>
+
+      <Card className="app-section-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">
+        <CardContent className="space-y-4 p-5">
+          {loading ? (
+            <div className="space-y-3">
+              <div className="h-6 w-32 animate-pulse rounded-full bg-white/10" />
+              <div className="grid grid-cols-3 gap-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="aspect-[0.92] animate-pulse rounded-[20px] bg-white/10" />
+                ))}
+              </div>
+            </div>
+          ) : profile ? (
+            <>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-gray-50">
+                    {profile.displayName}
+                  </p>
+                  {profile.schoolName ? <Badge variant="secondary">{profile.schoolName}</Badge> : null}
+                  {profile.department ? <Badge variant="outline">{profile.department}</Badge> : null}
+                  {profile.admissionYear ? <Badge variant="outline">{profile.admissionYear}학번</Badge> : null}
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {profile.bio || "한줄 소개를 추가해보세요."}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {Array.from({ length: 3 }, (_, index) => {
+                  const image = imageByOrder.get(index + 1);
+                  return (
+                    <div
+                      key={index}
+                      className="app-muted-surface overflow-hidden rounded-[20px] border border-white/10"
+                    >
+                      <div className="aspect-[0.92] w-full">
+                        {image?.imageUrl ? (
+                          <Image
+                            src={image.imageUrl}
+                            alt={`프로필 사진 ${index + 1}`}
+                            width={480}
+                            height={520}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                            사진 {index + 1}
+                          </div>
+                        )}
+                      </div>
+                      {image ? (
+                        <div className="border-t border-white/10 px-3 py-2 text-[11px] text-muted-foreground">
+                          {image.moderationStatus === "approved"
+                            ? "공개 중"
+                            : image.moderationStatus === "pending"
+                              ? "검토 중"
+                              : "차단됨"}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {profile.interests.length > 0 ? (
+                  profile.interests.map((interest) => (
+                    <Badge key={interest} variant="secondary" className="rounded-full px-3 py-1">
+                      {interest}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">관심사를 추가하면 같은 학교 사용자에게 더 잘 보입니다.</p>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">프로필을 불러오지 못했습니다.</p>
+          )}
+
+          {error ? <p className="text-sm text-rose-500">{error}</p> : null}
+        </CardContent>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[calc(100vh-3rem)] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>내 홈 수정</DialogTitle>
+            <DialogDescription>
+              얼굴 사진 없이, 같은 학교 학생에게 보여줄 기본 정보만 정리합니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="community-profile-display-name">닉네임</Label>
+              <Input
+                id="community-profile-display-name"
+                value={formState.displayName}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    displayName: event.target.value,
+                  }))
+                }
+                maxLength={24}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="community-profile-bio">한줄 소개</Label>
+              <Textarea
+                id="community-profile-bio"
+                rows={3}
+                maxLength={160}
+                value={formState.bio}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    bio: event.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="community-profile-interests">관심사</Label>
+              <Input
+                id="community-profile-interests"
+                value={formState.interestsInput}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    interestsInput: event.target.value,
+                  }))
+                }
+                placeholder="예: 영화, 헬스, 전시, 축구"
+              />
+              <p className="text-xs text-muted-foreground">쉼표로 구분해서 최대 10개까지 입력할 수 있습니다.</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                className={`rounded-[20px] border px-4 py-3 text-left ${
+                  formState.showDepartment ? "border-primary bg-primary/10" : "border-white/10 bg-white/[0.02]"
+                }`}
+                onClick={() =>
+                  setFormState((current) => ({
+                    ...current,
+                    showDepartment: !current.showDepartment,
+                  }))
+                }
+              >
+                <p className="font-medium">학과 공개</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {formState.showDepartment ? "같은 학교 사용자에게 보여집니다." : "기본 비공개"}
+                </p>
+              </button>
+              <button
+                type="button"
+                className={`rounded-[20px] border px-4 py-3 text-left ${
+                  formState.showAdmissionYear ? "border-primary bg-primary/10" : "border-white/10 bg-white/[0.02]"
+                }`}
+                onClick={() =>
+                  setFormState((current) => ({
+                    ...current,
+                    showAdmissionYear: !current.showAdmissionYear,
+                  }))
+                }
+              >
+                <p className="font-medium">입학년도 공개</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {formState.showAdmissionYear ? "같은 학교 사용자에게 보여집니다." : "기본 비공개"}
+                </p>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <p className="font-medium">프로필 사진</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  얼굴 사진 금지 · 연락처/SNS/QR/학생증 등 개인정보 포함 사진 금지
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {Array.from({ length: 3 }, (_, index) => {
+                  const order = index + 1;
+                  const image = imageByOrder.get(order);
+                  return (
+                    <div key={order} className="space-y-2 rounded-[20px] border border-white/10 p-3">
+                      <div className="app-muted-surface flex aspect-[0.92] items-center justify-center overflow-hidden rounded-[16px]">
+                        {image?.imageUrl ? (
+                          <Image
+                            src={image.imageUrl}
+                            alt={`프로필 사진 ${order}`}
+                            width={480}
+                            height={520}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+                            <ImagePlus className="h-4 w-4" />
+                            <span>사진 {order}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {image ? (
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={image.moderationStatus === "approved" ? "secondary" : "outline"}>
+                              {image.moderationStatus === "approved"
+                                ? "승인됨"
+                                : image.moderationStatus === "pending"
+                                  ? "검토 중"
+                                  : "차단됨"}
+                            </Badge>
+                            {image.moderationReason ? (
+                              <span className="text-[11px] text-muted-foreground">
+                                {image.moderationReason}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              disabled={isPending || orderedImages[0]?.id === image.id}
+                              onClick={() => void handleMoveImage(image.id, -1)}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              disabled={isPending || orderedImages[orderedImages.length - 1]?.id === image.id}
+                              onClick={() => void handleMoveImage(image.id, 1)}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              disabled={isPending}
+                              onClick={() => void handleImageDelete(image.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <Input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        disabled={uploadingOrder === order || isPending}
+                        onChange={(event) => {
+                          const nextFile = event.target.files?.[0] ?? null;
+                          void handleImageUpload(order, nextFile);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                      {uploadingOrder === order ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          업로드 중
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {error ? <p className="text-sm text-rose-500">{error}</p> : null}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              닫기
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={isPending || formState.displayName.trim().length < 2}
+            >
+              {isPending ? "저장 중" : "저장"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
+}
