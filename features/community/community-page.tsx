@@ -592,6 +592,15 @@ export function CommunityPage({
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
     const createdAt = new Date().toISOString();
+    const latestPollQuestion = (form.getValues("pollQuestion") ?? values.pollQuestion ?? "").trim();
+    const latestPollOptions = (form.getValues("pollOptions") ?? values.pollOptions ?? [])
+      .map((option) => option.trim())
+      .filter(Boolean);
+    const pollIntentEnabled =
+      values.pollEnabled ||
+      form.getValues("pollEnabled") ||
+      latestPollOptions.length >= 2 ||
+      Boolean(latestPollQuestion);
     const validationError = validatePostSubmission(getRuntimeSnapshot(), {
       authorId: currentUser.id,
       category: "community",
@@ -607,8 +616,8 @@ export function CommunityPage({
 
     const isCareerBoard = values.board === "careerInfo" || values.board === "jobPosting";
     const isAnonymousBoard = values.board === "anonymous";
-    const normalizedPollOptions = (values.pollOptions ?? []).map((option) => option.trim()).filter(Boolean);
-    const hasPoll = values.pollEnabled && normalizedPollOptions.length >= 2 && Boolean(values.pollQuestion?.trim());
+    const normalizedPollOptions = latestPollOptions;
+    const hasPoll = pollIntentEnabled && normalizedPollOptions.length >= 2 && Boolean(latestPollQuestion);
     const communityBoard =
       values.board === "free" ||
       values.board === "advice" ||
@@ -661,7 +670,7 @@ export function CommunityPage({
         ? {
             id: `poll-local-${feedItems.length + 1}`,
             postId: `community-${values.board}-local-${feedItems.length + 1}`,
-            question: values.pollQuestion?.trim() ?? "",
+            question: latestPollQuestion,
             totalVotes: 0,
             votedOptionId: undefined,
             createdAt,
@@ -688,7 +697,7 @@ export function CommunityPage({
               content: values.content,
               tags,
               postType,
-              pollQuestion: hasPoll ? values.pollQuestion?.trim() : undefined,
+              pollQuestion: hasPoll ? latestPollQuestion : undefined,
               pollOptions: hasPoll ? normalizedPollOptions : undefined,
             });
             setComposerOpen(false);
@@ -1405,7 +1414,13 @@ export function CommunityPage({
                   type="button"
                   size="sm"
                   variant={form.watch("pollEnabled") ? "default" : "outline"}
-                  onClick={() => form.setValue("pollEnabled", !form.watch("pollEnabled"))}
+                  onClick={() =>
+                    form.setValue("pollEnabled", !form.watch("pollEnabled"), {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    })
+                  }
                 >
                   {form.watch("pollEnabled") ? "사용 중" : "추가"}
                 </Button>
@@ -1427,7 +1442,11 @@ export function CommunityPage({
                           onChange={(event) => {
                             const nextOptions = [...(form.getValues("pollOptions") ?? ["", ""])];
                             nextOptions[index] = event.target.value;
-                            form.setValue("pollOptions", nextOptions, { shouldValidate: true });
+                            form.setValue("pollOptions", nextOptions, {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true,
+                            });
                           }}
                         />
                       ))}
@@ -1440,7 +1459,11 @@ export function CommunityPage({
                           variant="outline"
                           onClick={() => {
                             const nextOptions = [...(form.getValues("pollOptions") ?? ["", ""]), ""].slice(0, 4);
-                            form.setValue("pollOptions", nextOptions, { shouldValidate: true });
+                            form.setValue("pollOptions", nextOptions, {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true,
+                            });
                           }}
                         >
                           선택지 추가
@@ -1454,7 +1477,11 @@ export function CommunityPage({
                           onClick={() => {
                             const nextOptions = [...(form.getValues("pollOptions") ?? ["", ""])];
                             nextOptions.pop();
-                            form.setValue("pollOptions", nextOptions, { shouldValidate: true });
+                            form.setValue("pollOptions", nextOptions, {
+                              shouldDirty: true,
+                              shouldTouch: true,
+                              shouldValidate: true,
+                            });
                           }}
                         >
                           마지막 선택지 삭제
