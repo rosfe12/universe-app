@@ -24,16 +24,6 @@ const at = (day: number, time: string) => {
   return `2026-03-${String(day).padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:${second.padStart(2, "0")}+09:00`;
 };
 
-const campusImages = [
-  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1516307365426-bea591f05011?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80",
-];
-
 export const schools: School[] = [
   { id: BASE_SCHOOL_ID, name: "건국대학교", domain: "konkuk.ac.kr", city: "서울" },
   { id: "school-kyunghee", name: "경희대학교", domain: "khu.ac.kr", city: "서울" },
@@ -86,8 +76,7 @@ export const users: User[] = [
     trustScore: 93,
     createdAt: at(9, "09:00:00"),
     bio: "건대 강의평이랑 맛집 글 자주 올려요.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-minjae",
@@ -101,8 +90,7 @@ export const users: User[] = [
     trustScore: 89,
     createdAt: at(8, "11:20:00"),
     bio: "수강신청 매칭과 알고리즘 리뷰 담당.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-arin",
@@ -116,8 +104,7 @@ export const users: User[] = [
     trustScore: 84,
     createdAt: at(8, "14:40:00"),
     bio: "전시, 브랜드, 사진 취향 글 자주 씁니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-somin",
@@ -131,8 +118,7 @@ export const users: User[] = [
     trustScore: 81,
     createdAt: at(10, "16:20:00"),
     bio: "학교 안 조용한 공간과 부동산학과 팁 공유.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-sohee",
@@ -146,8 +132,7 @@ export const users: User[] = [
     trustScore: 87,
     createdAt: at(11, "12:15:00"),
     bio: "브랜딩, UX, 카페 탐방 좋아해요.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-dohyun",
@@ -161,8 +146,7 @@ export const users: User[] = [
     trustScore: 78,
     createdAt: at(12, "09:45:00"),
     bio: "교양 꿀강 수집하는 편.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-seungmin",
@@ -176,8 +160,7 @@ export const users: User[] = [
     trustScore: 83,
     createdAt: at(12, "18:10:00"),
     bio: "전시, 영화, 미팅 글 둘 다 봐요.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-chaeeun",
@@ -191,8 +174,7 @@ export const users: User[] = [
     trustScore: 86,
     createdAt: at(13, "10:35:00"),
     bio: "동아리 운영과 입시 답변을 자주 해요.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-yujin",
@@ -206,8 +188,7 @@ export const users: User[] = [
     trustScore: 76,
     createdAt: at(13, "16:55:00"),
     bio: "타학교 친구도 자연스럽게 만나는 편.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-woojin",
@@ -222,8 +203,7 @@ export const users: User[] = [
     warningCount: 2,
     createdAt: at(14, "11:50:00"),
     bio: "전시 좋아해서 건대/성수 자주 와요.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-yeji",
@@ -237,8 +217,7 @@ export const users: User[] = [
     trustScore: 71,
     createdAt: at(13, "18:10:00"),
     bio: "이화 공지와 진로 프로그램 요약을 자주 올립니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-junseo",
@@ -252,8 +231,7 @@ export const users: User[] = [
     trustScore: 68,
     createdAt: at(13, "19:20:00"),
     bio: "서울시립대 학사/입학 공지 정리 글을 주로 봅니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-eunsol",
@@ -267,8 +245,7 @@ export const users: User[] = [
     trustScore: 73,
     createdAt: at(13, "20:05:00"),
     bio: "한양대 프로그램과 실무형 공지를 요약합니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-taemin",
@@ -282,8 +259,7 @@ export const users: User[] = [
     trustScore: 75,
     createdAt: at(13, "20:45:00"),
     bio: "성균관대 채용/조교 공지 정리를 종종 올립니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-nari",
@@ -297,8 +273,7 @@ export const users: User[] = [
     trustScore: 74,
     createdAt: at(13, "21:10:00"),
     bio: "서울대 교과과정과 신입생 이수 규정을 자주 정리합니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-hyobin",
@@ -312,8 +287,7 @@ export const users: User[] = [
     trustScore: 72,
     createdAt: at(13, "21:25:00"),
     bio: "고려대 OT와 학교 적응 공지를 요약해서 보는 편입니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-yonji",
@@ -327,8 +301,7 @@ export const users: User[] = [
     trustScore: 73,
     createdAt: at(13, "21:40:00"),
     bio: "연세 전공안내서와 대학생활 자료를 주기적으로 확인합니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-danbi",
@@ -342,8 +315,7 @@ export const users: User[] = [
     trustScore: 69,
     createdAt: at(13, "21:55:00"),
     bio: "외대 안전가이드와 대학일자리플러스센터 공지를 챙겨봅니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-jieun",
@@ -357,8 +329,7 @@ export const users: User[] = [
     trustScore: 70,
     createdAt: at(13, "22:05:00"),
     bio: "숙명 생활 편의시설과 학생식당 위치 정보를 자주 공유합니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-jaeho",
@@ -372,8 +343,7 @@ export const users: User[] = [
     trustScore: 72,
     createdAt: at(13, "22:20:00"),
     bio: "숭실 입학처 브로슈어와 진로취업센터 자료를 정리합니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-yubin",
@@ -387,8 +357,7 @@ export const users: User[] = [
     trustScore: 71,
     createdAt: at(13, "22:35:00"),
     bio: "서울과기대 현장실습과 취업진로본부 공지를 먼저 체크합니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-sejin",
@@ -402,8 +371,7 @@ export const users: User[] = [
     trustScore: 68,
     createdAt: at(13, "22:50:00"),
     bio: "홍익대 학생활동, 동아리, 창업기관 소개 페이지를 자주 봅니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1546961329-78bef0414d7c?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-sua",
@@ -414,8 +382,7 @@ export const users: User[] = [
     trustScore: 55,
     createdAt: at(15, "08:10:00"),
     bio: "KU자기추천과 논술 사이에서 고민 중.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-hajin",
@@ -426,8 +393,7 @@ export const users: User[] = [
     trustScore: 57,
     createdAt: at(16, "07:30:00"),
     bio: "건국대 컴공, 미디어 쪽 관심 많아요.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-yeonwoo",
@@ -438,8 +404,7 @@ export const users: User[] = [
     trustScore: 59,
     createdAt: at(16, "13:10:00"),
     bio: "수의예와 생명계열 준비 중.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-hs-sujin",
@@ -451,8 +416,7 @@ export const users: User[] = [
     grade: 12,
     createdAt: at(14, "18:20:00"),
     bio: "건국대 생활권과 학과 분위기까지 같이 보는 편입니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1546961329-78bef0414d7c?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-hs-minseo",
@@ -464,8 +428,7 @@ export const users: User[] = [
     grade: 12,
     createdAt: at(13, "08:40:00"),
     bio: "재학생 후기와 생활권 정보를 같이 보는 편입니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-fresh-yerin",
@@ -479,8 +442,7 @@ export const users: User[] = [
     trustScore: 61,
     createdAt: at(17, "09:20:00"),
     bio: "합격 직후 오티랑 기숙사 정보 제일 궁금해요.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
   {
     id: "user-fresh-joon",
@@ -494,8 +456,7 @@ export const users: User[] = [
     trustScore: 58,
     createdAt: at(17, "10:15:00"),
     bio: "시간표, 새내기 OT, 수강신청 감 잡는 중입니다.",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80",
+    avatarUrl: undefined,
   },
 ];
 
@@ -926,7 +887,7 @@ const referenceAdmissionPosts: SeedPost[] = [
     schoolId: "school-uos",
     title: "[공식] 서울시립대 2026 입학 프로그램 공지 먼저 본 사람 있어요?",
     content:
-      "서울시립대 공식 공지에서 2026학년도 스쿨어택 프로그램을 운영한다고 안내했고, 입학처 홈페이지와 인스타그램 공지를 함께 확인하라고 적혀 있었습니다. 설명회형 프로그램 먼저 보는 게 좋을지 궁금해서 정리해둡니다.\n출처: https://cis.uos.ac.kr/korColumn/view.do?identified=anonymous&list_id=about02&menuid=2000001009005000000&seq=801&sort=1",
+      "서울시립대 공식 공지에서 2026학년도 스쿨어택 프로그램을 운영한다고 안내했고, 입학처 홈페이지와 인스타그램 공지를 함께 확인하라고 적혀 있었습니다. 설명회형 프로그램 먼저 보는 게 좋을지 궁금해서 정리해둡니다.",
     createdAt: at(21, "09:10:00"),
     likes: 18,
     tags: ["공식자료", "서울시립대", "입학처"],
@@ -945,7 +906,7 @@ const referenceAdmissionPosts: SeedPost[] = [
     schoolId: "school-ewha",
     title: "[공식] 이화여대 모집요강 PDF에서 체크해야 할 부분 뭐부터 보나요?",
     content:
-      "이화여대 입학처 PDF 공지 기준으로 전형별 제출서류와 수학기간 예외사항이 상세하게 정리돼 있었습니다. 재외국민 전형 자료지만 서류 안내 방식이 꽤 촘촘해서 다른 전형 준비할 때도 참고가 되더라고요.\n출처: https://admission.ewha.ac.kr/upload/GUIDES/202507040947372XK33M.pdf",
+      "이화여대 입학처 PDF 공지 기준으로 전형별 제출서류와 수학기간 예외사항이 상세하게 정리돼 있었습니다. 재외국민 전형 자료지만 서류 안내 방식이 꽤 촘촘해서 다른 전형 준비할 때도 참고가 되더라고요.",
     createdAt: at(21, "10:25:00"),
     likes: 16,
     tags: ["공식자료", "이화여대", "모집요강"],
@@ -964,7 +925,7 @@ const referenceAdmissionPosts: SeedPost[] = [
     schoolId: "school-cau",
     title: "[공식] 중앙대 신입생 학사가이드 보니 다빈치인재개발센터가 같이 보이네요",
     content:
-      "중앙대 공식 학사가이드 자료를 보다 보니 신입생용 안내 안에 다빈치인재개발센터, 추천채용, 취업지원 안내까지 같이 정리돼 있었습니다. 입학 직후부터 취업지원 연결되는 구조인지 재학생 체감이 궁금합니다.\n출처: https://nursing.cau.ac.kr/images//main/AcademicGuideforNewStudentsforClassof2023.pdf",
+      "중앙대 공식 학사가이드 자료를 보다 보니 신입생용 안내 안에 다빈치인재개발센터, 추천채용, 취업지원 안내까지 같이 정리돼 있었습니다. 입학 직후부터 취업지원 연결되는 구조인지 재학생 체감이 궁금합니다.",
     createdAt: at(21, "11:40:00"),
     likes: 14,
     tags: ["공식자료", "중앙대", "학사가이드"],
@@ -983,7 +944,7 @@ const referenceAdmissionPosts: SeedPost[] = [
     schoolId: "school-sejong",
     title: "[공식] 세종대 새로배움터 공지 보신 분, 신입생 때 어디부터 챙기셨어요?",
     content:
-      "세종대 공식 공지에서 새로배움터 개최 안내를 올리면서 수강신청, 특별강연, 신입생 대학생활 안내를 같이 묶어서 소개했습니다. 합격 직후에는 이런 오리엔테이션형 자료가 실제로 제일 도움이 되는지 궁금합니다.\n출처: https://www.sejong.ac.kr/kor/intro/notice1.do%3B44007?article.offset=0&articleLimit=10&articleNo=802890&mode=view",
+      "세종대 공식 공지에서 새로배움터 개최 안내를 올리면서 수강신청, 특별강연, 신입생 대학생활 안내를 같이 묶어서 소개했습니다. 합격 직후에는 이런 오리엔테이션형 자료가 실제로 제일 도움이 되는지 궁금합니다.",
     createdAt: at(21, "13:00:00"),
     likes: 13,
     tags: ["공식자료", "세종대", "새로배움터"],
@@ -1002,7 +963,7 @@ const referenceAdmissionPosts: SeedPost[] = [
     schoolId: "school-snu",
     title: "[공식] 서울대 교과과정 해설 PDF 먼저 보면 학과 감이 더 잘 오네요",
     content:
-      "서울대 공식 교과과정 해설 PDF를 보니 신입생세미나, 대학영어, 학과별 기초 이수 규정이 한 파일에 정리돼 있었습니다. 전형 정보만 보다가 실제 커리큘럼까지 같이 보니 학과 선택 감이 훨씬 빨리 오더라고요.\n출처: https://www.snu.ac.kr/webdata/uploads/kor/file/2023/02/Explanation_kor_2022.pdf",
+      "서울대 공식 교과과정 해설 PDF를 보니 신입생세미나, 대학영어, 학과별 기초 이수 규정이 한 파일에 정리돼 있었습니다. 전형 정보만 보다가 실제 커리큘럼까지 같이 보니 학과 선택 감이 훨씬 빨리 오더라고요.",
     createdAt: at(21, "13:40:00"),
     likes: 21,
     tags: ["공식자료", "서울대", "교과과정"],
@@ -1021,7 +982,7 @@ const referenceAdmissionPosts: SeedPost[] = [
     schoolId: "school-soongsil",
     title: "[공식] 숭실대 입학처 S-STAR 브로슈어가 학과·취업 흐름까지 정리돼 있어요",
     content:
-      "숭실대 입학처 브로슈어를 보니 학과 소개뿐 아니라 캠퍼스 핫플레이스, 취업 밀착 프로그램, 창업 지원까지 같이 정리돼 있었습니다. 지원 학과를 고를 때 학교 생활과 취업 분위기를 한 번에 보기 좋았습니다.\n출처: https://iphak.ssu.ac.kr/upload/SSU%281%29_191011155918.pdf",
+      "숭실대 입학처 브로슈어를 보니 학과 소개뿐 아니라 캠퍼스 핫플레이스, 취업 밀착 프로그램, 창업 지원까지 같이 정리돼 있었습니다. 지원 학과를 고를 때 학교 생활과 취업 분위기를 한 번에 보기 좋았습니다.",
     createdAt: at(21, "14:20:00"),
     likes: 19,
     tags: ["공식자료", "숭실대", "입학처"],
@@ -1040,7 +1001,7 @@ const referenceAdmissionPosts: SeedPost[] = [
     schoolId: "school-yonsei",
     title: "[공식] 연세 전공안내서 보니까 대학생활·글로벌 프로그램 설명이 한 번에 정리돼 있네요",
     content:
-      "연세대 공식 전공안내서에서 전공 소개뿐 아니라 대학생활, 글로벌 프로그램, 진로 탐색 흐름이 같이 정리돼 있었습니다. 학과 설명만 보는 것보다 학교 안에서 어떤 경험을 할 수 있는지 먼저 잡기에 좋았습니다.\n출처: https://admission.yonsei.ac.kr/seoul/admission/html/data/major/2026/yonsei_allways_251028.pdf",
+      "연세대 공식 전공안내서에서 전공 소개뿐 아니라 대학생활, 글로벌 프로그램, 진로 탐색 흐름이 같이 정리돼 있었습니다. 학과 설명만 보는 것보다 학교 안에서 어떤 경험을 할 수 있는지 먼저 잡기에 좋았습니다.",
     createdAt: at(21, "15:05:00"),
     likes: 18,
     tags: ["공식자료", "연세대", "전공안내서"],
@@ -1093,7 +1054,6 @@ const communityPosts: SeedPost[] = communitySeeds.map((seed, index) => ({
           : "번개",
     "건국대",
   ],
-  imageUrl: campusImages[index % campusImages.length],
 }));
 
 const advicePosts: SeedPost[] = [
@@ -1579,7 +1539,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: BASE_SCHOOL_ID,
     title: "[공식] 건국대 오리엔테이션 공지 먼저 뜬 곳 체크해봤어요",
     content:
-      "건국대 공식 공지에서 학기 시작 전 오리엔테이션을 학생회관과 해봉부동산학관에서 나눠 진행한 사례가 있었습니다. 새내기 일정도 보통 공간과 안내 채널이 따로 열리니 공지 게시판을 자주 보는 게 안전해 보여요.\n출처: https://www.konkuk.ac.kr/bbs/ciss/1486/1167956/artclView.do",
+      "건국대 공식 공지에서 학기 시작 전 오리엔테이션을 학생회관과 해봉부동산학관에서 나눠 진행한 사례가 있었습니다. 새내기 일정도 보통 공간과 안내 채널이 따로 열리니 공지 게시판을 자주 보는 게 안전해 보여요.",
     createdAt: at(21, "08:20:00"),
     likes: 19,
     tags: ["새내기존", "공식자료", "오리엔테이션"],
@@ -1592,7 +1552,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-sejong",
     title: "[공식] 세종대 새로배움터에서 수강신청이랑 대학생활 안내 같이 한다네요",
     content:
-      "세종대 공식 공지 기준으로 새로배움터에서 수강신청, 신입생 대학생활 안내, 특별강연이 한 번에 묶여 있었습니다. 세종대 예비입학생이면 오티만 기다리기보다 공지에서 학사 흐름 먼저 보는 게 좋아 보여요.\n출처: https://www.sejong.ac.kr/kor/intro/notice1.do%3B44007?article.offset=0&articleLimit=10&articleNo=802890&mode=view",
+      "세종대 공식 공지 기준으로 새로배움터에서 수강신청, 신입생 대학생활 안내, 특별강연이 한 번에 묶여 있었습니다. 세종대 예비입학생이면 오티만 기다리기보다 공지에서 학사 흐름 먼저 보는 게 좋아 보여요.",
     createdAt: at(21, "09:45:00"),
     likes: 17,
     tags: ["새내기존", "공식자료", "수강신청"],
@@ -1605,7 +1565,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-ewha",
     title: "[공식] 이화 신입생 진로 설계 부스가 생각보다 크네요",
     content:
-      "이화 공식 공지 자료를 보니 신입생 대상 미래설계 행사에서 진로탐색, 취창업, 학교생활 부스를 총 37개 운영했다고 안내했습니다. 새내기 때부터 학교생활이랑 진로 정보 같이 보는 구조가 괜찮아 보여요.\n출처: https://fashion.ewha.ac.kr/convergence/info/notice.do?articleNo=132356&attachNo=101916&mode=download",
+      "이화 공식 공지 자료를 보니 신입생 대상 미래설계 행사에서 진로탐색, 취창업, 학교생활 부스를 총 37개 운영했다고 안내했습니다. 새내기 때부터 학교생활이랑 진로 정보 같이 보는 구조가 괜찮아 보여요.",
     createdAt: at(21, "11:10:00"),
     likes: 15,
     tags: ["새내기존", "공식자료", "학교생활"],
@@ -1618,7 +1578,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-hanyang",
     title: "[공식] 한양대는 신입생 우선수강신청 도우미 지원을 따로 받았어요",
     content:
-      "한양대 공식 자료를 보면 연간 지원계획 안에 신입생 우선수강신청과 도우미 지원 안내가 따로 들어가 있었습니다. 학기 시작 직전에는 학교 공식 PDF 먼저 보는 습관이 정말 중요해 보여요.\n출처: https://site.hanyang.ac.kr/documents/portlet_file_entry/11085153/2025%EB%85%84%EB%8F%84%2B%EC%97%B0%EA%B0%84%2B%EC%A7%80%EC%9B%90%EA%B3%84%ED%9A%8D%2B%EC%9D%BC%EC%A0%95%ED%91%9Cto%2B%EA%B2%8C%EC%8B%9C%ED%8C%90%2B%EA%B3%B5%EC%A7%80_20250106.pdf/62e17c5b-62ed-1f37-9183-840f73b1c0d9?download=true&status=0",
+      "한양대 공식 자료를 보면 연간 지원계획 안에 신입생 우선수강신청과 도우미 지원 안내가 따로 들어가 있었습니다. 학기 시작 직전에는 학교 공식 PDF 먼저 보는 습관이 정말 중요해 보여요.",
     createdAt: at(21, "12:15:00"),
     likes: 16,
     tags: ["새내기존", "공식자료", "우선수강신청"],
@@ -1631,7 +1591,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-korea",
     title: "[공식] 고려대 문과대 OT 자료 첨부 공지면 신입생 일정 파악이 빨라요",
     content:
-      "고려대 문과대 공식 공지에 신입생 OT 자료가 첨부돼 있어서 아주홀 위치, 학사 일정, 첫 학기 체크포인트를 한 번에 볼 수 있었습니다. 새내기 때는 학과 단위 OT 자료를 먼저 챙기는 게 확실히 빠르더라고요.\n출처: https://libart.korea.ac.kr/libart/notice/notice.do%3Bjsessionid%3DVgrhltRS1h5rMQpv4X1XQmSFFNlX0dfppJWYn8Fnh9s82vCGfXrR%21207209210?article.offset=100&articleLimit=10&articleNo=341956&mode=view",
+      "고려대 문과대 공식 공지에 신입생 OT 자료가 첨부돼 있어서 아주홀 위치, 학사 일정, 첫 학기 체크포인트를 한 번에 볼 수 있었습니다. 새내기 때는 학과 단위 OT 자료를 먼저 챙기는 게 확실히 빠르더라고요.",
     createdAt: at(21, "12:55:00"),
     likes: 18,
     tags: ["새내기존", "공식자료", "OT"],
@@ -1644,7 +1604,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-hufs",
     title: "[공식] 한국외대 서울캠퍼스 OT 안전가이드에 필수 체크포인트가 다 있네요",
     content:
-      "한국외대 서울캠퍼스 공식 안전가이드 PDF에 OT 운영 원칙, 안전수칙, 성희롱 예방, 비용 징수 금지 같은 기본선이 명확하게 정리돼 있었습니다. 새내기존에서도 이런 체크리스트를 먼저 공유해두면 도움 될 것 같아요.\n출처: https://safety.hufs.ac.kr/sites/hufssafety/download/safety_seoul.pdf",
+      "한국외대 서울캠퍼스 공식 안전가이드 PDF에 OT 운영 원칙, 안전수칙, 성희롱 예방, 비용 징수 금지 같은 기본선이 명확하게 정리돼 있었습니다. 새내기존에서도 이런 체크리스트를 먼저 공유해두면 도움 될 것 같아요.",
     createdAt: at(21, "13:25:00"),
     likes: 17,
     tags: ["새내기존", "공식자료", "안전가이드"],
@@ -1657,7 +1617,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-hongik",
     title: "[공식] 홍익대 총동아리연합회 소개 페이지에서 중앙동아리 규모가 한눈에 보여요",
     content:
-      "홍익대 공식 학생활동 페이지를 보니 서울캠퍼스 중앙동아리 수와 분과 구성이 자세히 정리돼 있었습니다. 동아리 찾을 때 커뮤니티 후기만 보기보다 학교 공식 소개를 먼저 보면 결이 빨리 잡혀요.\n출처: https://www.hongik.ac.kr/kr/life/seoul-society.do",
+      "홍익대 공식 학생활동 페이지를 보니 서울캠퍼스 중앙동아리 수와 분과 구성이 자세히 정리돼 있었습니다. 동아리 찾을 때 커뮤니티 후기만 보기보다 학교 공식 소개를 먼저 보면 결이 빨리 잡혀요.",
     createdAt: at(21, "14:05:00"),
     likes: 16,
     tags: ["동아리", "공식자료", "중앙동아리"],
@@ -1670,7 +1630,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-yonsei",
     title: "[공식] 연세 전공안내서에 대학생활·글로벌 프로그램 흐름이 같이 정리돼 있어요",
     content:
-      "연세대 공식 전공안내서 안에 전공 소개뿐 아니라 대학생활, 해외교환, 진로 탐색, 학업 적응 정보가 같이 묶여 있었습니다. 입학 전에는 학과별 커리큘럼과 학교생활 지원 구조를 함께 보는 데 유용했습니다.\n출처: https://admission.yonsei.ac.kr/seoul/admission/html/data/major/2026/yonsei_allways_251028.pdf",
+      "연세대 공식 전공안내서 안에 전공 소개뿐 아니라 대학생활, 해외교환, 진로 탐색, 학업 적응 정보가 같이 묶여 있었습니다. 입학 전에는 학과별 커리큘럼과 학교생활 지원 구조를 함께 보는 데 유용했습니다.",
     createdAt: at(21, "14:40:00"),
     likes: 18,
     tags: ["새내기존", "공식자료", "대학생활"],
@@ -1683,7 +1643,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-sookmyung",
     title: "[공식] 숙명 캠퍼스 안내 PDF에 학생식당 위치가 한 번에 정리돼 있어요",
     content:
-      "숙명여대 공식 캠퍼스 안내 PDF를 보니 건물별 편의시설과 함께 미소찬 학생식당 위치가 같이 정리돼 있었습니다. 새 학기엔 식당 위치부터 익혀두면 이동 동선 잡기가 훨씬 편하더라고요.\n출처: https://ulearning.sookmyung.ac.kr/sites/sookmyungkr/down/201410_MAP.pdf",
+      "숙명여대 공식 캠퍼스 안내 PDF를 보니 건물별 편의시설과 함께 미소찬 학생식당 위치가 같이 정리돼 있었습니다. 새 학기엔 식당 위치부터 익혀두면 이동 동선 잡기가 훨씬 편하더라고요.",
     createdAt: at(21, "15:10:00"),
     likes: 17,
     tags: ["맛집", "공식자료", "학생식당"],
@@ -1696,7 +1656,7 @@ const referenceCommunityPosts: SeedPost[] = [
     schoolId: "school-hongik",
     title: "[공식] 홍익 총학생회 소개 페이지에 신입생 OT랑 대동제 흐름이 같이 보여요",
     content:
-      "홍익대 공식 총학생회 소개 페이지를 보니 연간 학생자치 일정 안에 신입생 오리엔테이션과 대동제 흐름이 같이 정리돼 있었습니다. 새내기 때는 학생회/동아리 일정 구조를 먼저 보는 게 적응에 도움 되더라고요.\n출처: https://www.hongik.ac.kr/kr/life/seoul-intro-student-council.do",
+      "홍익대 공식 총학생회 소개 페이지를 보니 연간 학생자치 일정 안에 신입생 오리엔테이션과 대동제 흐름이 같이 정리돼 있었습니다. 새내기 때는 학생회/동아리 일정 구조를 먼저 보는 게 적응에 도움 되더라고요.",
     createdAt: at(21, "15:45:00"),
     likes: 15,
     tags: ["새내기존", "공식자료", "학생회"],
@@ -1704,12 +1664,6 @@ const referenceCommunityPosts: SeedPost[] = [
 ];
 
 const referenceCareerPosts: SeedPost[] = [];
-
-const extractSourceUrl = (content: string) => {
-  const match = content.match(/출처:\s*(https?:\/\/\S+)/);
-
-  return match?.[1] ?? "";
-};
 
 const stripSourceLine = (content: string) =>
   content
@@ -1733,55 +1687,54 @@ const buildDerivedAdmissionPosts = (base: SeedPost, index: number): SeedPost[] =
   const schoolName = getSchoolNameById(base.schoolId);
   const department = base.meta?.interestDepartment ?? "지원 학과";
   const summary = stripSourceLine(base.content);
-  const sourceUrl = extractSourceUrl(base.content);
   const baseTags = base.tags ?? [];
   const variants = [
     {
       suffix: "check",
       title: `[공식 정리] ${schoolName} 지원 전 먼저 본 체크포인트`,
-      content: `${schoolName} 공식 자료를 먼저 읽어보니 ${summary}. ${department} 준비 기준으로는 전형 흐름과 학교생활 구조를 같이 파악하는 데 도움이 됐습니다. 입결만 따로 보는 것보다 공식 안내를 먼저 읽고 질문을 정리하면 지원 전략이 훨씬 선명해집니다.\n출처: ${sourceUrl}`,
+      content: `${schoolName} 공식 자료를 먼저 읽어보니 ${summary}. ${department} 준비 기준으로는 전형 흐름과 학교생활 구조를 같이 파악하는 데 도움이 됐습니다. 입결만 따로 보는 것보다 공식 안내를 먼저 읽고 질문을 정리하면 지원 전략이 훨씬 선명해집니다.`,
       tags: uniqTags(baseTags, ["공식정리", "체크포인트"]),
     },
     {
       suffix: "guide",
       title: `${schoolName} 준비할 때 모집요강 말고 같이 봐야 했던 공식 안내`,
-      content: `${summary}. 실제로는 설명회, 학과 소개, 신입생 안내 같은 보조 자료를 같이 봐야 학교 분위기와 학과 결이 보였습니다. ${schoolName} 지원 고민 중이면 모집요강만 열어두지 말고 공식 안내 문서까지 같이 보는 걸 추천합니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 실제로는 설명회, 학과 소개, 신입생 안내 같은 보조 자료를 같이 봐야 학교 분위기와 학과 결이 보였습니다. ${schoolName} 지원 고민 중이면 모집요강만 열어두지 말고 공식 안내 문서까지 같이 보는 걸 추천합니다.`,
       tags: uniqTags(baseTags, ["공식자료", "지원전략"]),
     },
     {
       suffix: "memo",
       title: `${schoolName} 지원 전에 공식 자료 보고 바로 메모한 질문들`,
-      content: `${schoolName} 자료를 읽다가 ${summary}. 저는 이걸 보고 전형 일정, 학과 적합성, 학교생활 지원 구조를 기준으로 질문 리스트를 따로 정리했습니다. 입시생 입장에선 공식 자료를 먼저 읽고 질문을 남기는 흐름이 생각보다 효율적이었습니다.\n출처: ${sourceUrl}`,
+      content: `${schoolName} 자료를 읽다가 ${summary}. 저는 이걸 보고 전형 일정, 학과 적합성, 학교생활 지원 구조를 기준으로 질문 리스트를 따로 정리했습니다. 입시생 입장에선 공식 자료를 먼저 읽고 질문을 남기는 흐름이 생각보다 효율적이었습니다.`,
       tags: uniqTags(baseTags, ["공식자료", "질문정리"]),
     },
     {
       suffix: "fit",
       title: `${schoolName} ${department} 준비할 때 공식 자료에서 도움 됐던 포인트`,
-      content: `${summary}. ${department} 기준으로는 학과 적합성과 실제 대학생활 맥락을 함께 보는 자료가 특히 유용했습니다. 지원선만 보는 대신 학교 안에서 어떤 경험을 하게 되는지 먼저 감 잡기에 괜찮은 자료였습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. ${department} 기준으로는 학과 적합성과 실제 대학생활 맥락을 함께 보는 자료가 특히 유용했습니다. 지원선만 보는 대신 학교 안에서 어떤 경험을 하게 되는지 먼저 감 잡기에 괜찮은 자료였습니다.`,
       tags: uniqTags(baseTags, ["공식자료", "학과적합성"]),
     },
     {
       suffix: "timeline",
       title: `${schoolName} 지원 일정 정리할 때 공식 자료에서 먼저 체크한 것`,
-      content: `${summary}. 지원 전략을 짤 때는 커뮤니티 후기보다 일정, 제출 서류, 전형별 준비 순서를 먼저 고정하는 게 훨씬 안정적이었습니다. ${schoolName}처럼 공식 안내가 잘 정리된 학교는 일정표만 따로 저장해두는 것만으로도 실수가 많이 줄었습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 지원 전략을 짤 때는 커뮤니티 후기보다 일정, 제출 서류, 전형별 준비 순서를 먼저 고정하는 게 훨씬 안정적이었습니다. ${schoolName}처럼 공식 안내가 잘 정리된 학교는 일정표만 따로 저장해두는 것만으로도 실수가 많이 줄었습니다.`,
       tags: uniqTags(baseTags, ["공식자료", "지원일정"]),
     },
     {
       suffix: "compare",
       title: `${schoolName} 지원 고민할 때 다른 학교와 비교해 보기 좋았던 공식 포인트`,
-      content: `${summary}. 학교를 비교할 때는 커뮤니티 분위기보다 공식 자료 안에 있는 학과 소개, 학생지원, 학사 운영 구조를 같이 보는 편이 더 객관적이었습니다. 같은 계열 학과끼리 비교할 때도 공식 설명이 생각보다 판단 기준을 잘 잡아줬습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 학교를 비교할 때는 커뮤니티 분위기보다 공식 자료 안에 있는 학과 소개, 학생지원, 학사 운영 구조를 같이 보는 편이 더 객관적이었습니다. 같은 계열 학과끼리 비교할 때도 공식 설명이 생각보다 판단 기준을 잘 잡아줬습니다.`,
       tags: uniqTags(baseTags, ["공식자료", "학교비교"]),
     },
     {
       suffix: "schoollife",
       title: `${schoolName} 지원 전에 학교생활 자료까지 같이 봐야 했던 이유`,
-      content: `${summary}. 입시만 보면 숫자 비교에 갇히기 쉬운데, 학교생활 자료까지 함께 보면 내가 이 학교 안에서 실제로 어떤 경험을 하게 될지 감이 더 잘 잡혔습니다. ${schoolName}처럼 공식 안내가 풍부한 학교는 입시생일수록 생활 자료도 같이 읽어볼 가치가 있었습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 입시만 보면 숫자 비교에 갇히기 쉬운데, 학교생활 자료까지 함께 보면 내가 이 학교 안에서 실제로 어떤 경험을 하게 될지 감이 더 잘 잡혔습니다. ${schoolName}처럼 공식 안내가 풍부한 학교는 입시생일수록 생활 자료도 같이 읽어볼 가치가 있었습니다.`,
       tags: uniqTags(baseTags, ["공식자료", "학교생활"]),
     },
     {
       suffix: "strategy-notes",
       title: `${schoolName} 지원 전략 메모할 때 공식 자료에서 바로 옮겨 적은 부분`,
-      content: `${summary}. 저는 지원 대학을 고를 때 학교별 공식 안내에서 핵심 문장을 먼저 메모해두고, 그다음 커뮤니티 후기와 비교했습니다. ${schoolName} 자료는 전형 흐름과 학교 자원을 같이 보여줘서 전략 정리용으로 쓰기 좋았습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 저는 지원 대학을 고를 때 학교별 공식 안내에서 핵심 문장을 먼저 메모해두고, 그다음 커뮤니티 후기와 비교했습니다. ${schoolName} 자료는 전형 흐름과 학교 자원을 같이 보여줘서 전략 정리용으로 쓰기 좋았습니다.`,
       tags: uniqTags(baseTags, ["공식자료", "전략메모"]),
     },
   ];
@@ -1800,55 +1753,54 @@ const buildDerivedAdmissionPosts = (base: SeedPost, index: number): SeedPost[] =
 const buildDerivedFreshmanPosts = (base: SeedPost, index: number): SeedPost[] => {
   const schoolName = getSchoolNameById(base.schoolId);
   const summary = stripSourceLine(base.content);
-  const sourceUrl = extractSourceUrl(base.content);
   const baseTags = base.tags ?? [];
   const variants = [
     {
       suffix: "freshman-check",
       title: `[새내기 체크] ${schoolName} 입학 전 공지에서 먼저 챙길 것 정리`,
-      content: `${summary}. 입학 직전에는 일정 자체보다 장소, 신청 순서, 안내 채널을 먼저 정리해두는 게 훨씬 덜 헷갈렸습니다. 새내기존에서는 이런 공식 자료를 먼저 저장해두고 필요한 것만 체크리스트로 바꾸는 편이 좋았습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 입학 직전에는 일정 자체보다 장소, 신청 순서, 안내 채널을 먼저 정리해두는 게 훨씬 덜 헷갈렸습니다. 새내기존에서는 이런 공식 자료를 먼저 저장해두고 필요한 것만 체크리스트로 바꾸는 편이 좋았습니다.`,
       tags: uniqTags(baseTags, ["새내기존", "체크리스트"]),
     },
     {
       suffix: "freshman-save",
       title: `${schoolName} 새내기라면 OT 전에 저장해둘 공식 안내`,
-      content: `${schoolName} 공식 자료를 읽어보니 ${summary}. 학기 시작 직전에는 오티 공지, 수강신청 안내, 학생회 채널처럼 생활 동선에 바로 연결되는 정보를 미리 저장해두는 게 도움이 됐습니다.\n출처: ${sourceUrl}`,
+      content: `${schoolName} 공식 자료를 읽어보니 ${summary}. 학기 시작 직전에는 오티 공지, 수강신청 안내, 학생회 채널처럼 생활 동선에 바로 연결되는 정보를 미리 저장해두는 게 도움이 됐습니다.`,
       tags: uniqTags(baseTags, ["새내기존", "공식자료"]),
     },
     {
       suffix: "freshman-notes",
       title: `${schoolName} 첫 학기 적응할 때 도움 된 공식 자료 메모`,
-      content: `${summary}. 새내기 입장에선 학교생활 적응 자료를 읽고 일정표, 장소, 문의처만 따로 메모해두는 방식이 가장 실용적이었습니다. 막상 학기가 시작되면 공지 원문을 다시 찾을 시간이 잘 안 나더라고요.\n출처: ${sourceUrl}`,
+      content: `${summary}. 새내기 입장에선 학교생활 적응 자료를 읽고 일정표, 장소, 문의처만 따로 메모해두는 방식이 가장 실용적이었습니다. 막상 학기가 시작되면 공지 원문을 다시 찾을 시간이 잘 안 나더라고요.`,
       tags: uniqTags(baseTags, ["새내기존", "적응팁"]),
     },
     {
       suffix: "freshman-route",
       title: `${schoolName} 입학 전 학교생활 감 잡기 좋았던 공식 공지`,
-      content: `${summary}. OT나 신입생 안내 자료는 단순 일정표보다 학교 분위기와 운영 방식까지 보여줘서 입학 전 감을 잡는 데 좋았습니다. 예비입학생이면 커뮤니티 후기와 공식 자료를 같이 보는 걸 추천합니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. OT나 신입생 안내 자료는 단순 일정표보다 학교 분위기와 운영 방식까지 보여줘서 입학 전 감을 잡는 데 좋았습니다. 예비입학생이면 커뮤니티 후기와 공식 자료를 같이 보는 걸 추천합니다.`,
       tags: uniqTags(baseTags, ["새내기존", "학교생활"]),
     },
     {
       suffix: "freshman-campus",
       title: `${schoolName} 입학 전에 캠퍼스 생활 감 잡기 좋았던 공식 안내`,
-      content: `${summary}. 입학 전에는 시간표보다 학교 안에서 어디를 자주 쓰게 되는지, 어떤 채널로 공지가 올라오는지를 먼저 익혀두는 게 적응 속도를 높여줬습니다. 공식 안내를 기준으로 생활 동선을 먼저 그려두면 첫 주가 훨씬 편했습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 입학 전에는 시간표보다 학교 안에서 어디를 자주 쓰게 되는지, 어떤 채널로 공지가 올라오는지를 먼저 익혀두는 게 적응 속도를 높여줬습니다. 공식 안내를 기준으로 생활 동선을 먼저 그려두면 첫 주가 훨씬 편했습니다.`,
       tags: uniqTags(baseTags, ["새내기존", "캠퍼스적응"]),
     },
     {
       suffix: "freshman-community",
       title: `${schoolName} 새내기라면 오티 전에 커뮤니티랑 같이 보면 좋은 자료`,
-      content: `${summary}. 커뮤니티 후기만 보면 분위기는 알 수 있지만, 실제 준비물과 일정은 결국 공식 자료가 가장 정확했습니다. 저는 새내기존 글이랑 공식 공지를 같이 보면서 질문거리를 먼저 정리해두는 방식이 제일 편했습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 커뮤니티 후기만 보면 분위기는 알 수 있지만, 실제 준비물과 일정은 결국 공식 자료가 가장 정확했습니다. 저는 새내기존 글이랑 공식 공지를 같이 보면서 질문거리를 먼저 정리해두는 방식이 제일 편했습니다.`,
       tags: uniqTags(baseTags, ["새내기존", "질문준비"]),
     },
     {
       suffix: "freshman-registration",
       title: `${schoolName} 새내기 수강신청 전에 공식 공지에서 먼저 체크한 것`,
-      content: `${summary}. 예비입학생 때는 수강신청 화면보다 공지 안에 있는 신청 순서, 우선 수강, 오티 안내를 먼저 익혀두는 편이 훨씬 덜 당황스러웠습니다. 학교생활 자료를 먼저 읽고 질문을 모아두는 방식이 실전에서 가장 편했습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 예비입학생 때는 수강신청 화면보다 공지 안에 있는 신청 순서, 우선 수강, 오티 안내를 먼저 익혀두는 편이 훨씬 덜 당황스러웠습니다. 학교생활 자료를 먼저 읽고 질문을 모아두는 방식이 실전에서 가장 편했습니다.`,
       tags: uniqTags(baseTags, ["새내기존", "수강신청"]),
     },
     {
       suffix: "freshman-rhythm",
       title: `${schoolName} 입학 전 생활 리듬 잡는 데 도움 된 공식 안내`,
-      content: `${summary}. 입학 전에 공지에서 학사 일정, 캠퍼스 공간, 생활 채널을 먼저 익혀두니 학기 초 리듬이 빠르게 잡혔습니다. 새내기존에서는 이런 자료를 기반으로 질문을 주고받는 게 훨씬 실용적이었습니다.\n출처: ${sourceUrl}`,
+      content: `${summary}. 입학 전에 공지에서 학사 일정, 캠퍼스 공간, 생활 채널을 먼저 익혀두니 학기 초 리듬이 빠르게 잡혔습니다. 새내기존에서는 이런 자료를 기반으로 질문을 주고받는 게 훨씬 실용적이었습니다.`,
       tags: uniqTags(baseTags, ["새내기존", "학기준비"]),
     },
   ];
@@ -1867,7 +1819,6 @@ const buildDerivedFreshmanPosts = (base: SeedPost, index: number): SeedPost[] =>
 const buildDerivedCampusPosts = (base: SeedPost, index: number): SeedPost[] => {
   const schoolName = getSchoolNameById(base.schoolId);
   const summary = stripSourceLine(base.content);
-  const sourceUrl = extractSourceUrl(base.content);
   const baseTags = base.tags ?? [];
   const isClub = base.subcategory === "club";
   const variants = isClub
@@ -1875,49 +1826,49 @@ const buildDerivedCampusPosts = (base: SeedPost, index: number): SeedPost[] => {
         {
           suffix: "club-overview",
           title: `[공식 참고] ${schoolName} 동아리 정보 먼저 보고 들어가는 편이 좋았습니다`,
-          content: `${summary}. 관심 동아리를 고를 때는 커뮤니티 후기만 보기보다 공식 소개 페이지에서 분과와 운영 규모를 먼저 보는 편이 판단이 빨랐습니다. 모집 시즌에는 특히 학교 공식 소개와 모집 글을 같이 보는 게 안전합니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 관심 동아리를 고를 때는 커뮤니티 후기만 보기보다 공식 소개 페이지에서 분과와 운영 규모를 먼저 보는 편이 판단이 빨랐습니다. 모집 시즌에는 특히 학교 공식 소개와 모집 글을 같이 보는 게 안전합니다.`,
           tags: uniqTags(baseTags, ["공식자료", "동아리"]),
         },
         {
           suffix: "club-save",
           title: `${schoolName} 동아리 찾을 때 공식 소개 페이지에서 먼저 본 것`,
-          content: `${summary}. 중앙동아리나 학생자치 정보는 공식 소개 페이지에서 기본 구조를 먼저 보고, 그다음에 커뮤니티 모집 글로 분위기를 확인하는 흐름이 제일 편했습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 중앙동아리나 학생자치 정보는 공식 소개 페이지에서 기본 구조를 먼저 보고, 그다음에 커뮤니티 모집 글로 분위기를 확인하는 흐름이 제일 편했습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "학생활동"]),
         },
         {
           suffix: "club-guide",
           title: `${schoolName} 학교생활 적응용으로 저장해둔 공식 학생활동 링크`,
-          content: `${summary}. 신입생이나 복학생 입장에서는 동아리 구조와 학생회 흐름이 같이 보이는 자료를 하나 저장해두면 학교생활 적응 속도가 꽤 빨랐습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 신입생이나 복학생 입장에서는 동아리 구조와 학생회 흐름이 같이 보이는 자료를 하나 저장해두면 학교생활 적응 속도가 꽤 빨랐습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "학교생활"]),
         },
         {
           suffix: "club-pick",
           title: `${schoolName} 중앙동아리 고를 때 커뮤니티보다 먼저 봐야 했던 안내`,
-          content: `${summary}. 후기 글도 도움 되지만, 동아리 수와 분과 구성을 먼저 알아야 내가 찾는 활동군이 어디에 있는지 보이더라고요. 학교 공식 페이지가 그 출발점으로 괜찮았습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 후기 글도 도움 되지만, 동아리 수와 분과 구성을 먼저 알아야 내가 찾는 활동군이 어디에 있는지 보이더라고요. 학교 공식 페이지가 그 출발점으로 괜찮았습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "중앙동아리"]),
         },
         {
           suffix: "club-calendar",
           title: `${schoolName} 동아리 모집 시즌 전에 미리 봐두기 좋았던 공식 정보`,
-          content: `${summary}. 모집 글이 올라오면 분위기만 보고 들어가기 쉬운데, 공식 학생활동 안내를 먼저 보면 어떤 단위의 동아리가 있는지, 학생자치 구조가 어떻게 돌아가는지 먼저 감이 잡혔습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 모집 글이 올라오면 분위기만 보고 들어가기 쉬운데, 공식 학생활동 안내를 먼저 보면 어떤 단위의 동아리가 있는지, 학생자치 구조가 어떻게 돌아가는지 먼저 감이 잡혔습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "모집시즌"]),
         },
         {
           suffix: "club-return",
           title: `${schoolName} 복학생도 학생활동 정보 다시 정리할 때 도움 된 공식 페이지`,
-          content: `${summary}. 복학 직후엔 최신 커뮤니티 글보다 학교가 현재 어떤 학생활동 구조를 운영하는지 공식 페이지에서 먼저 확인하는 편이 덜 헷갈렸습니다. 공백기가 있었던 학생일수록 공식 안내가 기준점이 됐습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 복학 직후엔 최신 커뮤니티 글보다 학교가 현재 어떤 학생활동 구조를 운영하는지 공식 페이지에서 먼저 확인하는 편이 덜 헷갈렸습니다. 공백기가 있었던 학생일수록 공식 안내가 기준점이 됐습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "복학생"]),
         },
         {
           suffix: "club-channel",
           title: `${schoolName} 학생활동 채널 찾을 때 공식 페이지부터 보는 편이 편했습니다`,
-          content: `${summary}. 동아리 모집 글은 시기마다 흩어져 올라오지만, 공식 학생활동 페이지를 먼저 보면 어디에서 모집 공지를 확인해야 하는지 기준이 생겼습니다. 학교생활 적응 단계에서는 이런 안내가 생각보다 큰 차이를 만들었습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 동아리 모집 글은 시기마다 흩어져 올라오지만, 공식 학생활동 페이지를 먼저 보면 어디에서 모집 공지를 확인해야 하는지 기준이 생겼습니다. 학교생활 적응 단계에서는 이런 안내가 생각보다 큰 차이를 만들었습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "학생채널"]),
         },
         {
           suffix: "club-role",
           title: `${schoolName} 학생회나 동아리 역할 구조 볼 때 도움 된 공식 소개`,
-          content: `${summary}. 동아리만 보지 말고 학생회나 자치조직 구조까지 함께 보면 학교생활의 큰 흐름이 보였습니다. 동아리를 고를 때도 이런 공식 소개가 판단 기준으로 꽤 유용했습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 동아리만 보지 말고 학생회나 자치조직 구조까지 함께 보면 학교생활의 큰 흐름이 보였습니다. 동아리를 고를 때도 이런 공식 소개가 판단 기준으로 꽤 유용했습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "자치구조"]),
         },
       ]
@@ -1925,49 +1876,49 @@ const buildDerivedCampusPosts = (base: SeedPost, index: number): SeedPost[] => {
         {
           suffix: "food-overview",
           title: `[공식 참고] ${schoolName} 학생식당과 편의시설 먼저 익혀두면 편한 포인트`,
-          content: `${summary}. 새 학기에는 맛집 글보다 먼저 학생식당, 편의점, 복사실 같은 기본 편의시설 위치를 익혀두는 게 동선 잡기에 더 실용적이었습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 새 학기에는 맛집 글보다 먼저 학생식당, 편의점, 복사실 같은 기본 편의시설 위치를 익혀두는 게 동선 잡기에 더 실용적이었습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "캠퍼스동선"]),
         },
         {
           suffix: "food-map",
           title: `${schoolName} 새 학기 동선 잡을 때 공식 캠퍼스 안내가 유용했습니다`,
-          content: `${summary}. 학교 안에서 식당과 생활 편의시설 위치를 먼저 익혀두면 첫 주에 불필요하게 헤매는 시간이 확실히 줄었습니다. 커뮤니티 후기와 공식 캠퍼스 안내를 같이 보는 쪽이 안정적이었습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 학교 안에서 식당과 생활 편의시설 위치를 먼저 익혀두면 첫 주에 불필요하게 헤매는 시간이 확실히 줄었습니다. 커뮤니티 후기와 공식 캠퍼스 안내를 같이 보는 쪽이 안정적이었습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "학생식당"]),
         },
         {
           suffix: "food-firstweek",
           title: `${schoolName} 첫 주에 학생식당 위치부터 외워두면 좋은 이유`,
-          content: `${summary}. 수업 동선이 익숙하지 않은 첫 주에는 식당 위치와 운영 건물만 알고 있어도 생활 리듬이 훨씬 빨리 잡혔습니다. 생활권 정보는 공식 안내 기준으로 먼저 외워두는 편이 좋았습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 수업 동선이 익숙하지 않은 첫 주에는 식당 위치와 운영 건물만 알고 있어도 생활 리듬이 훨씬 빨리 잡혔습니다. 생활권 정보는 공식 안내 기준으로 먼저 외워두는 편이 좋았습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "생활권"]),
         },
         {
           suffix: "food-notes",
           title: `${schoolName} 학교 안 편의시설 공식 안내 보고 메모한 것`,
-          content: `${summary}. 카페나 외부 맛집도 좋지만, 학교 안 편의시설 위치를 공식 PDF로 먼저 확인해두면 시험기간이나 공강 때 훨씬 효율적으로 움직일 수 있었습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 카페나 외부 맛집도 좋지만, 학교 안 편의시설 위치를 공식 PDF로 먼저 확인해두면 시험기간이나 공강 때 훨씬 효율적으로 움직일 수 있었습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "편의시설"]),
         },
         {
           suffix: "food-route",
           title: `${schoolName} 점심 동선 잡을 때 공식 캠퍼스 안내가 먼저였던 이유`,
-          content: `${summary}. 식당 후기만 보면 맛은 알 수 있지만, 실제론 수업 사이 이동 시간과 건물 위치가 더 중요했습니다. 공식 캠퍼스 안내를 먼저 보고 생활권을 익혀두면 공강 시간 활용이 쉬워졌습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 식당 후기만 보면 맛은 알 수 있지만, 실제론 수업 사이 이동 시간과 건물 위치가 더 중요했습니다. 공식 캠퍼스 안내를 먼저 보고 생활권을 익혀두면 공강 시간 활용이 쉬워졌습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "점심동선"]),
         },
         {
           suffix: "food-study",
           title: `${schoolName} 시험기간에 특히 도움 된 학교 안 생활 정보 정리`,
-          content: `${summary}. 시험기간에는 외부 맛집보다 학교 안 식당, 복사실, 편의시설 위치를 알고 있는 게 훨씬 중요했습니다. 공식 안내를 기준으로 메모해두면 급할 때 바로 움직일 수 있었습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 시험기간에는 외부 맛집보다 학교 안 식당, 복사실, 편의시설 위치를 알고 있는 게 훨씬 중요했습니다. 공식 안내를 기준으로 메모해두면 급할 때 바로 움직일 수 있었습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "시험기간"]),
         },
         {
           suffix: "food-break",
           title: `${schoolName} 공강 시간 활용할 때 공식 생활권 안내가 은근 유용했습니다`,
-          content: `${summary}. 공강 때 어디서 밥 먹고 어디서 쉬는지가 정리돼 있으면 생활 만족도가 꽤 달라졌습니다. 커뮤니티 추천글과 별개로 학교 안 생활권을 먼저 아는 게 장기적으로 훨씬 편했습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 공강 때 어디서 밥 먹고 어디서 쉬는지가 정리돼 있으면 생활 만족도가 꽤 달라졌습니다. 커뮤니티 추천글과 별개로 학교 안 생활권을 먼저 아는 게 장기적으로 훨씬 편했습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "공강동선"]),
         },
         {
           suffix: "food-evening",
           title: `${schoolName} 저녁 수업 많은 학생에게 도움 된 캠퍼스 생활 메모`,
-          content: `${summary}. 늦은 시간까지 학교에 남아 있는 날은 외부 맛집보다 내부 편의시설 위치를 알고 있는 게 훨씬 유용했습니다. 공식 캠퍼스 안내 기준으로 메모해두면 생활이 훨씬 안정적이었습니다.\n출처: ${sourceUrl}`,
+          content: `${summary}. 늦은 시간까지 학교에 남아 있는 날은 외부 맛집보다 내부 편의시설 위치를 알고 있는 게 훨씬 유용했습니다. 공식 캠퍼스 안내 기준으로 메모해두면 생활이 훨씬 안정적이었습니다.`,
           tags: uniqTags(baseTags, ["공식자료", "저녁수업"]),
         },
       ];
@@ -1993,7 +1944,6 @@ const generatedReferencePosts: SeedPost[] = [
 ];
 
 const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => {
-  const baseUrl = `https://${school.domain}`;
   const createdDay = 14 + (index % 8);
   return [
     {
@@ -2002,7 +1952,7 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
       authorId: "user-hs-sujin",
       schoolId: school.id,
       title: `[공식 참고] ${school.name} 입시 준비할 때 학교 홈페이지부터 저장해둔 이유`,
-      content: `${school.name} 준비할 때 커뮤니티 글만 보지 않고 학교 공식 홈페이지에서 입학처, 학사, 학생지원 메뉴를 먼저 저장해두니 질문을 정리하기 훨씬 편했습니다. 학교별 공지는 결국 공식 채널이 가장 정확해서 지원 전략을 잡을 때 기준점 역할을 해줬습니다.\n출처: ${baseUrl}`,
+      content: `${school.name} 준비할 때 커뮤니티 글만 보지 않고 학교 공식 홈페이지에서 입학처, 학사, 학생지원 메뉴를 먼저 저장해두니 질문을 정리하기 훨씬 편했습니다. 학교별 공지는 결국 공식 채널이 가장 정확해서 지원 전략을 잡을 때 기준점 역할을 해줬습니다.`,
       createdAt: at(createdDay, "09:20:00"),
       likes: 11 + (index % 5),
       visibilityLevel: "school",
@@ -2022,7 +1972,7 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
       authorId: "user-fresh-yerin",
       schoolId: school.id,
       title: `${school.name} 새내기라면 공식 홈페이지에서 먼저 확인해둘 것`,
-      content: `${school.name} 입학 직후에는 오티 일정, 학사 공지, 수강신청 안내처럼 학교생활에 바로 연결되는 메뉴를 먼저 저장해두는 게 가장 실용적이었습니다. 새내기존에서도 공식 안내를 먼저 보고 질문을 남기는 편이 훨씬 덜 헤맸습니다.\n출처: ${baseUrl}`,
+      content: `${school.name} 입학 직후에는 오티 일정, 학사 공지, 수강신청 안내처럼 학교생활에 바로 연결되는 메뉴를 먼저 저장해두는 게 가장 실용적이었습니다. 새내기존에서도 공식 안내를 먼저 보고 질문을 남기는 편이 훨씬 덜 헤맸습니다.`,
       createdAt: at(createdDay, "10:40:00"),
       likes: 9 + (index % 4),
       visibilityLevel: "school",
@@ -2035,12 +1985,11 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
       authorId: "user-dohyun",
       schoolId: school.id,
       title: `${school.name} 학생활동 정보는 공식 페이지 먼저 보는 편이 편했습니다`,
-      content: `${school.name} 동아리나 학생활동을 찾을 때는 모집 글만 보기보다 학교 공식 홈페이지에서 학생지원, 학생자치, 학생활동 메뉴를 먼저 확인하는 편이 훨씬 안정적이었습니다. 어떤 활동군이 있는지 먼저 감을 잡고 커뮤니티 글을 보면 판단이 빨랐습니다.\n출처: ${baseUrl}`,
+      content: `${school.name} 동아리나 학생활동을 찾을 때는 모집 글만 보기보다 학교 공식 홈페이지에서 학생지원, 학생자치, 학생활동 메뉴를 먼저 확인하는 편이 훨씬 안정적이었습니다. 어떤 활동군이 있는지 먼저 감을 잡고 커뮤니티 글을 보면 판단이 빨랐습니다.`,
       createdAt: at(createdDay, "13:10:00"),
       likes: 8 + (index % 4),
       visibilityLevel: "schoolDepartment",
       tags: ["공식자료", "동아리", "학생활동"],
-      imageUrl: campusImages[index % campusImages.length],
     },
     {
       id: `coverage-${school.id}-food`,
@@ -2049,12 +1998,11 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
       authorId: "user-jiyoon",
       schoolId: school.id,
       title: `${school.name} 캠퍼스 생활권은 공식 안내 먼저 익혀두면 편했습니다`,
-      content: `${school.name} 새 학기에는 외부 맛집보다 학교 안 식당, 편의시설, 주요 건물 위치부터 익혀두는 게 훨씬 유용했습니다. 생활권은 공식 홈페이지나 캠퍼스 안내를 기준으로 먼저 정리해두면 공강이나 시험기간 동선이 안정적이었습니다.\n출처: ${baseUrl}`,
+      content: `${school.name} 새 학기에는 외부 맛집보다 학교 안 식당, 편의시설, 주요 건물 위치부터 익혀두는 게 훨씬 유용했습니다. 생활권은 공식 홈페이지나 캠퍼스 안내를 기준으로 먼저 정리해두면 공강이나 시험기간 동선이 안정적이었습니다.`,
       createdAt: at(createdDay, "15:30:00"),
       likes: 10 + (index % 5),
       visibilityLevel: "schoolDepartment",
       tags: ["공식자료", "생활권", "학생식당"],
-      imageUrl: campusImages[(index + 3) % campusImages.length],
     },
     {
       id: `coverage-${school.id}-free`,
@@ -2063,7 +2011,7 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
       authorId: "user-minjae",
       schoolId: school.id,
       title: `${school.name} 학교생활 링크는 학기 초에 한 번 정리해두는 편이 좋았습니다`,
-      content: `${school.name} 포털, 학사 공지, 장학, 학생지원 메뉴를 학교 홈페이지 기준으로 한 번 정리해두면 학기 중 다시 찾는 시간이 크게 줄었습니다. 커뮤니티 글을 보다가도 결국 공식 메뉴를 다시 찾게 되니 처음부터 저장해두는 편이 훨씬 편했습니다.\n출처: ${baseUrl}`,
+      content: `${school.name} 포털, 학사 공지, 장학, 학생지원 메뉴를 학교 홈페이지 기준으로 한 번 정리해두면 학기 중 다시 찾는 시간이 크게 줄었습니다. 커뮤니티 글을 보다가도 결국 공식 메뉴를 다시 찾게 되니 처음부터 저장해두는 편이 훨씬 편했습니다.`,
       createdAt: at(createdDay, "17:00:00"),
       likes: 12 + (index % 4),
       visibilityLevel: "school",
@@ -2076,7 +2024,7 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
       authorId: "user-chaeeun",
       schoolId: school.id,
       title: "공식 홈페이지에서 제일 먼저 보는 메뉴 다들 어디인가요?",
-      content: `입학처, 학사, 학생지원, 장학 메뉴를 돌아보다 보니 학교마다 정보가 묶이는 방식이 꽤 다르더라고요. 저는 공식 홈페이지 기준으로 자주 보는 메뉴를 정리해두는 편인데, 재학생이나 예비입학생은 어떤 순서로 보는지 궁금합니다.\n출처: ${baseUrl}`,
+      content: `입학처, 학사, 학생지원, 장학 메뉴를 돌아보다 보니 학교마다 정보가 묶이는 방식이 꽤 다르더라고요. 저는 공식 홈페이지 기준으로 자주 보는 메뉴를 정리해두는 편인데, 재학생이나 예비입학생은 어떤 순서로 보는지 궁금합니다.`,
       createdAt: at(createdDay, "18:10:00"),
       likes: 9 + (index % 4),
       visibilityLevel: "school",
@@ -2089,7 +2037,7 @@ const buildSchoolCoveragePosts = (school: School, index: number): SeedPost[] => 
       authorId: "user-sohee",
       schoolId: school.id,
       title: `${school.name} 도서관과 학습지원 메뉴도 미리 저장해두면 편했습니다`,
-      content: `${school.name} 시험기간이 되면 도서관 이용시간, 열람실, 학습지원 공지를 다시 찾게 되는데 공식 홈페이지 기준으로 저장해두면 급할 때 훨씬 빨리 찾을 수 있었습니다. 학교생활에서 자주 보는 메뉴는 결국 공식 사이트가 가장 정확했습니다.\n출처: ${baseUrl}`,
+      content: `${school.name} 시험기간이 되면 도서관 이용시간, 열람실, 학습지원 공지를 다시 찾게 되는데 공식 홈페이지 기준으로 저장해두면 급할 때 훨씬 빨리 찾을 수 있었습니다. 학교생활에서 자주 보는 메뉴는 결국 공식 사이트가 가장 정확했습니다.`,
       createdAt: at(createdDay, "20:00:00"),
       likes: 11 + (index % 4),
       visibilityLevel: "schoolDepartment",
@@ -3148,8 +3096,7 @@ export const datingProfiles: DatingProfile[] = [
     userId: "user-jiyoon",
     intro: "건대입구 브런치, 일감호 산책, 조용한 카페 좋아해요. 지나치게 빠른 연락보다 편한 대화 선호.",
     vibeTag: "차분한 대화",
-    photoUrl:
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
+    photoUrl: undefined,
     isVisible: true,
     schoolId: BASE_SCHOOL_ID,
     department: "경영학과",
@@ -3160,8 +3107,7 @@ export const datingProfiles: DatingProfile[] = [
     userId: "user-minjae",
     intro: "코딩 얘기도 좋지만 산책, 전시처럼 가볍게 만나는 걸 더 좋아합니다.",
     vibeTag: "센스있는 대화",
-    photoUrl:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80",
+    photoUrl: undefined,
     isVisible: true,
     schoolId: BASE_SCHOOL_ID,
     department: "컴퓨터공학부",
@@ -3172,8 +3118,7 @@ export const datingProfiles: DatingProfile[] = [
     userId: "user-arin",
     intro: "전시, 사진, 브랜드 팝업 취향이 맞으면 금방 친해지는 편이에요.",
     vibeTag: "전시 취향",
-    photoUrl:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=900&q=80",
+    photoUrl: undefined,
     isVisible: true,
     schoolId: BASE_SCHOOL_ID,
     department: "미디어커뮤니케이션학과",
@@ -3184,8 +3129,7 @@ export const datingProfiles: DatingProfile[] = [
     userId: "user-sohee",
     intro: "브런치, 디자인 전시, 카페 투어 좋아합니다. 늦은 술자리보다 낮 약속 선호.",
     vibeTag: "브런치 무드",
-    photoUrl:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=900&q=80",
+    photoUrl: undefined,
     isVisible: true,
     schoolId: BASE_SCHOOL_ID,
     department: "산업디자인학과",
@@ -3196,8 +3140,7 @@ export const datingProfiles: DatingProfile[] = [
     userId: "user-dohyun",
     intro: "야구, 디저트, 가벼운 드라이브 좋아합니다. 연락 압박 없는 만남을 선호해요.",
     vibeTag: "유쾌한 텐션",
-    photoUrl:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=80",
+    photoUrl: undefined,
     isVisible: true,
     schoolId: BASE_SCHOOL_ID,
     department: "경제학과",
@@ -3208,8 +3151,7 @@ export const datingProfiles: DatingProfile[] = [
     userId: "user-seungmin",
     intro: "영화, 공연, 밤 산책 취향 비슷하면 좋겠어요. 너무 과한 텐션보다 안정적인 대화 선호.",
     vibeTag: "영화 데이트",
-    photoUrl:
-      "https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=900&q=80",
+    photoUrl: undefined,
     isVisible: true,
     schoolId: BASE_SCHOOL_ID,
     department: "영상영화학과",
@@ -3220,8 +3162,7 @@ export const datingProfiles: DatingProfile[] = [
     userId: "user-yujin",
     intro: "타학교지만 건대 / 성수 자주 갑니다. 편한 산책이나 카페 약속 좋아해요.",
     vibeTag: "타학교 친구",
-    photoUrl:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80",
+    photoUrl: undefined,
     isVisible: true,
     schoolId: "school-sejong",
     department: "호텔관광경영학과",
@@ -3232,8 +3173,7 @@ export const datingProfiles: DatingProfile[] = [
     userId: "user-woojin",
     intro: "전시, 팝업, 카페 취향 맞으면 좋겠습니다. 답장 템포는 느려도 대화는 길게 하는 편이에요.",
     vibeTag: "성수 동선",
-    photoUrl:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80",
+    photoUrl: undefined,
     isVisible: true,
     schoolId: "school-hongik",
     department: "경영학부",

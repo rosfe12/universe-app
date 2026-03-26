@@ -438,7 +438,7 @@ export function LoginPage() {
                           <span className="font-medium">[필수] </span>이용약관에 동의합니다
                         </label>
                         <p className="text-xs leading-5 text-muted-foreground">
-                          서비스 이용 규칙, 계정 관리, 게시물 운영 기준이 포함됩니다.
+                          서비스 이용 규칙, 계정 권한, 운영정책, 제재 기준이 포함됩니다.
                         </p>
                         <Link
                           href="/terms"
@@ -467,7 +467,7 @@ export function LoginPage() {
                           <span className="font-medium">[필수] </span>개인정보 수집·이용에 동의합니다
                         </label>
                         <p className="text-xs leading-5 text-muted-foreground">
-                          가입, 계정 관리, 학생 인증, 고객 지원을 위해 필요한 정보만 수집합니다.
+                          가입, 학생 인증, 문의 대응에 필요한 최소 정보를 수집하며 동의 거부 시 가입이 제한될 수 있습니다.
                         </p>
                         <Link
                           href="/privacy"
@@ -504,6 +504,9 @@ export function LoginPage() {
                   </label>
                   <div className="space-y-2 border-t border-border pt-3">
                     <p className="text-sm font-medium text-foreground">[선택] 광고성 정보 수신</p>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      이벤트, 혜택, 프로모션 안내에 대한 선택 동의입니다. 동의하지 않아도 회원가입과 서비스 이용에는 영향이 없습니다.
+                    </p>
                     <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
                       <span>앱 푸시</span>
                       <input
