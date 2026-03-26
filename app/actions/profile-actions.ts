@@ -104,7 +104,14 @@ async function ensureOwnProfileRow(
     bio: null,
   };
 
-  await admin.from("profiles").upsert(payload, { onConflict: "id" });
+  const { error } = await admin.from("profiles").upsert(payload, {
+    onConflict: "id",
+    ignoreDuplicates: true,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 async function getUserBaseRow(
@@ -296,17 +303,47 @@ export async function updateMyProfile(input: z.infer<typeof communityProfileSche
   const { admin, user } = await requireAuthenticatedProfileUser();
   requireVerifiedProfileFeature(user);
 
-  await admin.from("profiles").upsert(
-    {
-      id: user.id,
-      display_name: parsed.displayName,
-      bio: parsed.bio?.trim() ? parsed.bio.trim() : null,
-      interests: parsed.interests,
-      show_department: parsed.showDepartment,
-      show_admission_year: parsed.showAdmissionYear,
-    },
-    { onConflict: "id" },
-  );
+  const payload = {
+    id: user.id,
+    display_name: parsed.displayName,
+    bio: parsed.bio?.trim() ? parsed.bio.trim() : null,
+    interests: parsed.interests,
+    show_department: parsed.showDepartment,
+    show_admission_year: parsed.showAdmissionYear,
+  };
+
+  const { data: existingProfile, error: existingProfileError } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (existingProfileError) {
+    throw new Error(existingProfileError.message);
+  }
+
+  if (existingProfile?.id) {
+    const { error: updateError } = await admin
+      .from("profiles")
+      .update({
+        display_name: payload.display_name,
+        bio: payload.bio,
+        interests: payload.interests,
+        show_department: payload.show_department,
+        show_admission_year: payload.show_admission_year,
+      })
+      .eq("id", user.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+  } else {
+    const { error: insertError } = await admin.from("profiles").insert(payload);
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+  }
 
   revalidatePath("/profile");
   return getMyProfile();
