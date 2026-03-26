@@ -47,7 +47,13 @@ type CommunityProfileFormState = {
   showAdmissionYear: boolean;
 };
 
-export function CommunityProfileSection({ currentUser }: { currentUser: User }) {
+export function CommunityProfileSection({
+  currentUser,
+  onProfileChange,
+}: {
+  currentUser: User;
+  onProfileChange?: (profile: CommunityProfile) => void;
+}) {
   const profileEnabled = canUseCommunityProfileFeature(currentUser);
   const [profile, setProfile] = useState<CommunityProfile | null>(null);
   const [loading, setLoading] = useState(profileEnabled);
@@ -93,6 +99,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
       .then((result) => {
         if (!active) return;
         setProfile(result);
+        onProfileChange?.(result);
         setFormState({
           displayName: result.displayName,
           bio: result.bio ?? "",
@@ -150,6 +157,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
             showAdmissionYear: formState.showAdmissionYear,
           });
           setProfile(nextProfile);
+          onProfileChange?.(nextProfile);
           setError(null);
           setNotice("프로필을 저장했습니다.");
           setOpen(false);
@@ -186,10 +194,12 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
           .filter((image) => image.imageOrder !== order)
           .concat(nextImage)
           .sort((a, b) => a.imageOrder - b.imageOrder);
-        return {
+        const nextProfile = {
           ...current,
           images: nextImages,
         };
+        onProfileChange?.(nextProfile);
+        return nextProfile;
       });
       setNotice(`사진 ${order}번을 업로드했습니다.`);
     } catch (cause) {
@@ -230,10 +240,14 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
           await deleteProfileImage(imageId);
           setProfile((current) =>
             current
-              ? {
-                  ...current,
-                  images: current.images.filter((image) => image.id !== imageId),
-                }
+              ? (() => {
+                  const nextProfile = {
+                    ...current,
+                    images: current.images.filter((image) => image.id !== imageId),
+                  };
+                  onProfileChange?.(nextProfile);
+                  return nextProfile;
+                })()
               : current,
           );
           setNotice("프로필 사진을 삭제했습니다.");
@@ -260,6 +274,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
         try {
           const nextProfile = await reorderProfileImages(nextOrder.map((item) => item.id));
           setProfile(nextProfile);
+          onProfileChange?.(nextProfile);
           setNotice("프로필 사진 순서를 정리했습니다.");
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "프로필 사진 순서를 바꾸지 못했습니다.");
@@ -274,6 +289,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
         try {
           const nextProfile = await setPrimaryProfileImage(imageId);
           setProfile(nextProfile);
+          onProfileChange?.(nextProfile);
           setError(null);
           setNotice("대표 사진을 설정했습니다.");
         } catch (cause) {

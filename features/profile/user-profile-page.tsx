@@ -260,7 +260,9 @@ export function UserProfilePage({ userId }: { userId: string }) {
           {error ? <p className="text-sm text-rose-500">{error}</p> : null}
           {notice ? <p className="text-sm text-emerald-500">{notice}</p> : null}
 
-          {profile.isOwner ? <CommunityProfileSection currentUser={currentUser} /> : null}
+          {profile.isOwner ? (
+            <CommunityProfileSection currentUser={currentUser} onProfileChange={setProfile} />
+          ) : null}
 
           <Dialog open={!profile.isOwner && reportOpen} onOpenChange={setReportOpen}>
             <DialogContent>
