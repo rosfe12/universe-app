@@ -1,6 +1,6 @@
 "use client";
 import { useTransition } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -380,6 +380,7 @@ export function CommunityPage({
   const [sensitivePost, setSensitivePost] = useState<Post | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, startSubmitTransition] = useTransition();
+  const composerFormRef = useRef<HTMLFormElement | null>(null);
   const canAccessCommunity =
     !isAuthenticated ||
     !hasCompletedOnboarding(currentUser) ||
@@ -592,8 +593,22 @@ export function CommunityPage({
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
     const createdAt = new Date().toISOString();
-    const latestPollQuestion = (form.getValues("pollQuestion") ?? values.pollQuestion ?? "").trim();
-    const latestPollOptions = (form.getValues("pollOptions") ?? values.pollOptions ?? [])
+    const pollQuestionInput =
+      composerFormRef.current?.querySelector<HTMLInputElement>("#pollQuestion");
+    const pollOptionInputs = Array.from(
+      composerFormRef.current?.querySelectorAll<HTMLInputElement>('input[name^="pollOption-"]') ?? [],
+    );
+    const latestPollQuestion = (
+      pollQuestionInput?.value ??
+      form.getValues("pollQuestion") ??
+      values.pollQuestion ??
+      ""
+    ).trim();
+    const latestPollOptions = (
+      pollOptionInputs.length > 0
+        ? pollOptionInputs.map((input) => input.value)
+        : (form.getValues("pollOptions") ?? values.pollOptions ?? [])
+    )
       .map((option) => option.trim())
       .filter(Boolean);
     const pollIntentEnabled =
@@ -1285,7 +1300,7 @@ export function CommunityPage({
             <DialogTitle>글쓰기</DialogTitle>
             <DialogDescription>카테고리를 고르고 익명 글을 등록할 수 있습니다.</DialogDescription>
           </DialogHeader>
-          <form className="space-y-4" onSubmit={onSubmit}>
+          <form ref={composerFormRef} className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <Label>카테고리</Label>
               <div className="flex flex-wrap gap-2">
@@ -1437,6 +1452,7 @@ export function CommunityPage({
                       {(form.watch("pollOptions") ?? ["", ""]).map((_, index) => (
                         <Input
                           key={`poll-option-${index}`}
+                          name={`pollOption-${index + 1}`}
                           value={form.watch(`pollOptions.${index}` as const) ?? ""}
                           placeholder={`선택지 ${index + 1}`}
                           onChange={(event) => {
