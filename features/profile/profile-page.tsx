@@ -539,15 +539,17 @@ export function ProfilePage({
 
       <section className="space-y-3 pt-1">
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">회원 탈퇴</p>
-            <p className="text-xs leading-5 text-muted-foreground">
-              계정과 활동 기록이 함께 삭제되며 복구할 수 없습니다.
-            </p>
-          </div>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">회원 탈퇴</p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                계정과 활동 기록이 함께 삭제되며 복구할 수 없습니다.
+              </p>
+            </div>
           <Button
-            variant="ghost"
-            className="mt-3 h-auto px-0 py-0 text-sm font-medium text-muted-foreground hover:bg-transparent hover:text-rose-400"
+            variant="outline"
+            size="sm"
+            className="w-auto border-white/10 bg-transparent text-sm font-medium text-muted-foreground hover:border-rose-400/30 hover:bg-rose-400/5 hover:text-rose-300"
             disabled={isDeletingAccount}
             onClick={async () => {
               if (
@@ -588,6 +590,7 @@ export function ProfilePage({
           >
             {isDeletingAccount ? "탈퇴 처리 중" : "회원 탈퇴"}
           </Button>
+          </div>
         </div>
       </section>
 
