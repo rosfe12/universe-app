@@ -40,12 +40,13 @@ import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { cn } from "@/lib/utils";
 import type { AppRuntimeSnapshot } from "@/types";
 
-const loginSchema = z.object({
+const authSchema = z.object({
   email: z.string().email("이메일 형식이 필요합니다."),
   password: z.string().min(4, "비밀번호를 4자 이상 입력해주세요."),
+  confirmPassword: z.string().optional(),
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type AuthFormValues = z.infer<typeof authSchema>;
 type AuthMode = "login" | "signup";
 type SignupConsentState = {
   terms: boolean;
@@ -103,11 +104,12 @@ export function LoginPage() {
   });
   const googleSignInEnabled = isGoogleSignInEnabled();
   const showTestAccounts = shouldShowTestAccounts();
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<AuthFormValues>({
+    resolver: zodResolver(authSchema),
     defaultValues: {
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -168,6 +170,20 @@ export function LoginPage() {
       return;
     }
 
+    if (mode === "signup" && values.password.length < 8) {
+      form.setError("password", {
+        message: "비밀번호는 8자 이상 입력해주세요.",
+      });
+      return;
+    }
+
+    if (mode === "signup" && values.password !== (values.confirmPassword ?? "")) {
+      form.setError("confirmPassword", {
+        message: "비밀번호가 일치하지 않습니다.",
+      });
+      return;
+    }
+
     setSupabaseSessionPersistence(keepLoggedIn);
     setKeepLoggedInPreference(keepLoggedIn);
 
@@ -212,6 +228,7 @@ export function LoginPage() {
         setMode("login");
         setSuccessMessage("회원가입이 완료되었습니다. 이메일 인증 후 로그인해주세요.");
         form.setValue("password", "", { shouldDirty: false });
+        form.setValue("confirmPassword", "", { shouldDirty: false });
         return;
       }
 
@@ -383,137 +400,178 @@ export function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label>비밀번호</Label>
-              <Input autoComplete="current-password" type="password" {...form.register("password")} />
+              <Input
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                type="password"
+                {...form.register("password")}
+              />
               {form.formState.errors.password ? (
                 <p className="text-xs text-rose-500">{form.formState.errors.password.message}</p>
               ) : null}
+              {mode === "signup" ? (
+                <p className="text-xs text-muted-foreground">
+                  8자 이상 입력해주세요.
+                </p>
+              ) : null}
             </div>
             {mode === "signup" ? (
-              <div className="space-y-3 rounded-[22px] border border-border bg-secondary/50 p-4">
-                <p className="text-sm font-semibold text-foreground">회원가입 동의</p>
-                <label className="flex items-start justify-between gap-3 text-sm">
-                  <span className="leading-6 text-foreground">
-                    <span className="font-medium">[필수] </span>
-                    <Link href="/terms" className="underline underline-offset-4">
-                      이용약관
-                    </Link>
-                    에 동의합니다
-                  </span>
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 accent-indigo-600"
-                    checked={signupConsents.terms}
-                    onChange={(event) =>
-                      setSignupConsents((current) => ({ ...current, terms: event.target.checked }))
-                    }
+              <>
+                <div className="space-y-2">
+                  <Label>비밀번호 확인</Label>
+                  <Input
+                    autoComplete="new-password"
+                    type="password"
+                    {...form.register("confirmPassword")}
                   />
-                </label>
-                <label className="flex items-start justify-between gap-3 text-sm">
-                  <span className="leading-6 text-foreground">
-                    <span className="font-medium">[필수] </span>
-                    <Link href="/privacy" className="underline underline-offset-4">
-                      개인정보 수집·이용
-                    </Link>
-                    에 동의합니다
-                  </span>
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 accent-indigo-600"
-                    checked={signupConsents.privacy}
-                    onChange={(event) =>
-                      setSignupConsents((current) => ({ ...current, privacy: event.target.checked }))
-                    }
-                  />
-                </label>
-                <label className="flex items-start justify-between gap-3 text-sm">
-                  <span className="leading-6 text-foreground">
-                    <span className="font-medium">[필수] </span>만 14세 이상입니다
-                  </span>
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 accent-indigo-600"
-                    checked={signupConsents.age}
-                    onChange={(event) =>
-                      setSignupConsents((current) => ({ ...current, age: event.target.checked }))
-                    }
-                  />
-                </label>
-                <div className="space-y-2 border-t border-border pt-3">
-                  <p className="text-sm font-medium text-foreground">[선택] 광고성 정보 수신</p>
-                  <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-                    <span>앱 푸시</span>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-indigo-600"
-                      checked={signupConsents.marketingPush}
-                      onChange={(event) =>
-                        setSignupConsents((current) => ({
-                          ...current,
-                          marketingPush: event.target.checked,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-                    <span>이메일</span>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-indigo-600"
-                      checked={signupConsents.marketingEmail}
-                      onChange={(event) =>
-                        setSignupConsents((current) => ({
-                          ...current,
-                          marketingEmail: event.target.checked,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-                    <span>문자</span>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-indigo-600"
-                      checked={signupConsents.marketingSms}
-                      onChange={(event) =>
-                        setSignupConsents((current) => ({
-                          ...current,
-                          marketingSms: event.target.checked,
-                        }))
-                      }
-                    />
-                  </label>
+                  {form.formState.errors.confirmPassword ? (
+                    <p className="text-xs text-rose-500">
+                      {form.formState.errors.confirmPassword.message}
+                    </p>
+                  ) : null}
                 </div>
-              </div>
+                <div className="space-y-2 rounded-[22px] border border-primary/15 bg-primary/5 p-4 text-sm">
+                  <p className="font-semibold text-foreground">회원가입 절차</p>
+                  <ol className="space-y-1 text-muted-foreground">
+                    <li>1. 이메일과 비밀번호를 입력합니다.</li>
+                    <li>2. 필수 약관에 동의합니다.</li>
+                    <li>3. 가입 후 이메일 인증을 완료합니다.</li>
+                    <li>4. 온보딩에서 학교와 유저 유형을 설정합니다.</li>
+                  </ol>
+                </div>
+                <div className="space-y-3 rounded-[22px] border border-border bg-secondary/50 p-4">
+                  <p className="text-sm font-semibold text-foreground">회원가입 동의</p>
+                  <label className="flex items-start justify-between gap-3 text-sm">
+                    <span className="leading-6 text-foreground">
+                      <span className="font-medium">[필수] </span>
+                      <Link href="/terms" className="underline underline-offset-4">
+                        이용약관
+                      </Link>
+                      에 동의합니다
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-indigo-600"
+                      checked={signupConsents.terms}
+                      onChange={(event) =>
+                        setSignupConsents((current) => ({ ...current, terms: event.target.checked }))
+                      }
+                    />
+                  </label>
+                  <label className="flex items-start justify-between gap-3 text-sm">
+                    <span className="leading-6 text-foreground">
+                      <span className="font-medium">[필수] </span>
+                      <Link href="/privacy" className="underline underline-offset-4">
+                        개인정보 수집·이용
+                      </Link>
+                      에 동의합니다
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-indigo-600"
+                      checked={signupConsents.privacy}
+                      onChange={(event) =>
+                        setSignupConsents((current) => ({ ...current, privacy: event.target.checked }))
+                      }
+                    />
+                  </label>
+                  <label className="flex items-start justify-between gap-3 text-sm">
+                    <span className="leading-6 text-foreground">
+                      <span className="font-medium">[필수] </span>만 14세 이상입니다
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-indigo-600"
+                      checked={signupConsents.age}
+                      onChange={(event) =>
+                        setSignupConsents((current) => ({ ...current, age: event.target.checked }))
+                      }
+                    />
+                  </label>
+                  <div className="space-y-2 border-t border-border pt-3">
+                    <p className="text-sm font-medium text-foreground">[선택] 광고성 정보 수신</p>
+                    <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                      <span>앱 푸시</span>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-indigo-600"
+                        checked={signupConsents.marketingPush}
+                        onChange={(event) =>
+                          setSignupConsents((current) => ({
+                            ...current,
+                            marketingPush: event.target.checked,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                      <span>이메일</span>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-indigo-600"
+                        checked={signupConsents.marketingEmail}
+                        onChange={(event) =>
+                          setSignupConsents((current) => ({
+                            ...current,
+                            marketingEmail: event.target.checked,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+                      <span>문자</span>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-indigo-600"
+                        checked={signupConsents.marketingSms}
+                        onChange={(event) =>
+                          setSignupConsents((current) => ({
+                            ...current,
+                            marketingSms: event.target.checked,
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+              </>
             ) : null}
-            <div className="space-y-2 rounded-[22px] border border-border bg-secondary/50 p-4">
-              <label className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-foreground">아이디 저장</span>
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-indigo-600"
-                  checked={saveEmail}
-                  onChange={(event) => setSaveEmail(event.target.checked)}
-                />
-              </label>
-              <label className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-foreground">비밀번호 저장</span>
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-indigo-600"
-                  checked={savePassword}
-                  onChange={(event) => setSavePassword(event.target.checked)}
-                />
-              </label>
-              <label className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-medium text-foreground">로그인 유지</span>
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-indigo-600"
-                  checked={keepLoggedIn}
-                  onChange={(event) => setKeepLoggedIn(event.target.checked)}
-                />
-              </label>
-            </div>
+            {mode === "login" ? (
+              <div className="space-y-2 rounded-[22px] border border-border bg-secondary/50 p-4">
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-medium text-foreground">아이디 저장</span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-indigo-600"
+                    checked={saveEmail}
+                    onChange={(event) => setSaveEmail(event.target.checked)}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-medium text-foreground">비밀번호 저장</span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-indigo-600"
+                    checked={savePassword}
+                    onChange={(event) => setSavePassword(event.target.checked)}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-medium text-foreground">로그인 유지</span>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-indigo-600"
+                    checked={keepLoggedIn}
+                    onChange={(event) => setKeepLoggedIn(event.target.checked)}
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-2 rounded-[22px] border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">가입 후 안내</p>
+                <p>이메일 인증을 마치면 로그인할 수 있습니다.</p>
+                <p>대학생 권한은 온보딩에서 학생 인증을 완료한 뒤 열립니다.</p>
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={pending || loading}>
               <Mail className="h-4 w-4" />
               {pending
