@@ -15,6 +15,7 @@ import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getPostHref } from "@/lib/mock-queries";
+import { isSupabaseEnabled } from "@/lib/supabase/app-data";
 import { cn } from "@/lib/utils";
 
 function getSearchScore(input: {
@@ -60,11 +61,13 @@ export function TopNavActions() {
     notifications,
     posts,
     lectures,
-    loading: searchLoading,
+    loading: runtimeLoading,
+    source,
   } = useAppRuntime(undefined, open ? "search" : "chrome");
-  const unreadMessageCount = notifications.filter(
-    (item) => !item.isRead && isMessageNotification(item.type),
-  ).length;
+  const unreadMessageCount =
+    runtimeLoading || (isSupabaseEnabled() && source === "mock")
+      ? 0
+      : notifications.filter((item) => !item.isRead && isMessageNotification(item.type)).length;
 
   useEffect(() => {
     if (!open) {
@@ -203,7 +206,7 @@ export function TopNavActions() {
               autoFocus
             />
             <div className="max-h-[min(58vh,420px)] overflow-y-auto overscroll-contain rounded-2xl border border-gray-100">
-              {searchLoading ? (
+              {runtimeLoading ? (
                 <div className="px-4 py-8 text-center text-sm text-gray-500">검색 항목을 불러오는 중입니다.</div>
               ) : searchResults.length > 0 ? (
                 <div className="divide-y divide-gray-100">
