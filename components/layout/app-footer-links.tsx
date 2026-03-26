@@ -1,9 +1,8 @@
 import Link from "next/link";
 
-import { getSupportEmail, getSupportUrl } from "@/lib/env";
+import { getSupportUrl } from "@/lib/env";
 
 export function AppFooterLinks() {
-  const supportEmail = getSupportEmail();
   const supportUrl = getSupportUrl();
 
   return (
@@ -17,9 +16,6 @@ export function AppFooterLinks() {
       <Link href={supportUrl} className="transition-colors hover:text-foreground">
         문의하기
       </Link>
-      <a href={`mailto:${supportEmail}`} className="transition-colors hover:text-foreground">
-        {supportEmail}
-      </a>
     </div>
   );
 }

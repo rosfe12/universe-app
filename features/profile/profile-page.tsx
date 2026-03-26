@@ -125,12 +125,12 @@ export function ProfilePage({
 
   if (!loading && !isAuthenticated) {
     return (
-      <AppShell title="마이" subtitle="로그인 후 내 활동과 신뢰도를 관리합니다">
+      <AppShell title="마이">
         <AccountRequiredCard
           isAuthenticated={false}
           nextPath="/home"
-          title="로그인 후 내 활동을 볼 수 있습니다"
-          description="내 글, 내 댓글, 내 강의평, 내 매칭과 알림 설정은 로그인 후 사용할 수 있습니다."
+          title="로그인 후 이용할 수 있습니다"
+          description="내 활동과 설정은 로그인 후 확인할 수 있습니다."
         />
       </AppShell>
     );
