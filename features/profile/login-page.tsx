@@ -284,7 +284,7 @@ export function LoginPage() {
                 ? "관리자 권한이 있는 계정으로 로그인합니다."
                 : mode === "login"
                   ? "캠퍼스 라이프 플랫폼"
-                  : "가입 후 온보딩에서 학교와 유저 유형을 설정합니다."}
+                  : "몇 분이면 가입하고 바로 둘러볼 수 있어요."}
             </p>
           </div>
         </CardHeader>
@@ -429,51 +429,66 @@ export function LoginPage() {
                     </p>
                   ) : null}
                 </div>
-                <div className="space-y-2 rounded-[22px] border border-primary/15 bg-primary/5 p-4 text-sm">
-                  <p className="font-semibold text-foreground">회원가입 절차</p>
-                  <ol className="space-y-1 text-muted-foreground">
-                    <li>1. 이메일과 비밀번호를 입력합니다.</li>
-                    <li>2. 필수 약관에 동의합니다.</li>
-                    <li>3. 가입 후 이메일 인증을 완료합니다.</li>
-                    <li>4. 온보딩에서 학교와 유저 유형을 설정합니다.</li>
-                  </ol>
-                </div>
                 <div className="space-y-3 rounded-[22px] border border-border bg-secondary/50 p-4">
                   <p className="text-sm font-semibold text-foreground">회원가입 동의</p>
-                  <label className="flex items-start justify-between gap-3 text-sm">
-                    <span className="leading-6 text-foreground">
-                      <span className="font-medium">[필수] </span>
-                      <Link href="/terms" className="underline underline-offset-4">
-                        이용약관
-                      </Link>
-                      에 동의합니다
-                    </span>
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-4 w-4 accent-indigo-600"
-                      checked={signupConsents.terms}
-                      onChange={(event) =>
-                        setSignupConsents((current) => ({ ...current, terms: event.target.checked }))
-                      }
-                    />
-                  </label>
-                  <label className="flex items-start justify-between gap-3 text-sm">
-                    <span className="leading-6 text-foreground">
-                      <span className="font-medium">[필수] </span>
-                      <Link href="/privacy" className="underline underline-offset-4">
-                        개인정보 수집·이용
-                      </Link>
-                      에 동의합니다
-                    </span>
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-4 w-4 accent-indigo-600"
-                      checked={signupConsents.privacy}
-                      onChange={(event) =>
-                        setSignupConsents((current) => ({ ...current, privacy: event.target.checked }))
-                      }
-                    />
-                  </label>
+                  <div className="space-y-2 rounded-[18px] border border-border/80 bg-background/40 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <label className="block text-sm leading-6 text-foreground">
+                          <span className="font-medium">[필수] </span>이용약관에 동의합니다
+                        </label>
+                        <p className="text-xs leading-5 text-muted-foreground">
+                          서비스 이용 규칙, 계정 관리, 게시물 운영 기준이 포함됩니다.
+                        </p>
+                        <Link
+                          href="/terms"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex text-xs font-medium text-primary underline underline-offset-4"
+                        >
+                          이용약관 전문 보기
+                        </Link>
+                      </div>
+                      <input
+                        type="checkbox"
+                        aria-label="[필수] 이용약관 동의"
+                        className="mt-1 h-4 w-4 shrink-0 accent-indigo-600"
+                        checked={signupConsents.terms}
+                        onChange={(event) =>
+                          setSignupConsents((current) => ({ ...current, terms: event.target.checked }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 rounded-[18px] border border-border/80 bg-background/40 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <label className="block text-sm leading-6 text-foreground">
+                          <span className="font-medium">[필수] </span>개인정보 수집·이용에 동의합니다
+                        </label>
+                        <p className="text-xs leading-5 text-muted-foreground">
+                          가입, 계정 관리, 학생 인증, 고객 지원을 위해 필요한 정보만 수집합니다.
+                        </p>
+                        <Link
+                          href="/privacy"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex text-xs font-medium text-primary underline underline-offset-4"
+                        >
+                          개인정보 처리방침 전문 보기
+                        </Link>
+                      </div>
+                      <input
+                        type="checkbox"
+                        aria-label="[필수] 개인정보 수집·이용 동의"
+                        className="mt-1 h-4 w-4 shrink-0 accent-indigo-600"
+                        checked={signupConsents.privacy}
+                        onChange={(event) =>
+                          setSignupConsents((current) => ({ ...current, privacy: event.target.checked }))
+                        }
+                      />
+                    </div>
+                  </div>
                   <label className="flex items-start justify-between gap-3 text-sm">
                     <span className="leading-6 text-foreground">
                       <span className="font-medium">[필수] </span>만 14세 이상입니다
@@ -569,7 +584,7 @@ export function LoginPage() {
               <div className="space-y-2 rounded-[22px] border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
                 <p className="font-medium text-foreground">가입 후 안내</p>
                 <p>이메일 인증을 마치면 로그인할 수 있습니다.</p>
-                <p>대학생 권한은 온보딩에서 학생 인증을 완료한 뒤 열립니다.</p>
+                <p>대학생 권한은 학생 인증을 완료한 뒤 사용할 수 있습니다.</p>
               </div>
             )}
             <Button type="submit" className="w-full" disabled={pending || loading}>
@@ -609,7 +624,7 @@ export function LoginPage() {
               {googleSignInEnabled ? (
                 <p>구글 로그인은 계정 생성용이며, 대학생 권한은 학교 메일 인증 후 열립니다.</p>
               ) : null}
-              <p>로그인 후 온보딩에서 학교와 유저 유형을 설정할 수 있습니다.</p>
+              <p>로그인 후 학교와 이용 유형을 선택할 수 있습니다.</p>
             </div>
           ) : null}
         </CardContent>
