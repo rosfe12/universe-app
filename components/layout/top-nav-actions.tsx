@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessagesSquare, Search } from "lucide-react";
+import { CircleUserRound, MessagesSquare, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -177,6 +177,11 @@ export function TopNavActions() {
                 {Math.min(unreadMessageCount, 9)}
               </span>
             ) : null}
+          </Link>
+        </Button>
+        <Button asChild size="icon" variant="ghost" aria-label="프로필">
+          <Link href="/profile">
+            <CircleUserRound className="h-5 w-5" />
           </Link>
         </Button>
       </div>
