@@ -26,6 +26,7 @@ import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { TRADE_STATUS_LABELS } from "@/lib/constants";
 import { isAdPlacementEnabled } from "@/lib/ads";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   getAllCommunityFeedPosts,
   getLectureById,
@@ -39,6 +40,8 @@ import {
   getSchoolScopedTradePosts,
   getTrendingCommunityPosts,
 } from "@/lib/mock-queries";
+import { canWriteCommunity } from "@/lib/permissions";
+import { getAuthFlowHref, hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import { getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post } from "@/types";
 
@@ -54,6 +57,7 @@ export function HomePage({
   const {
     loading,
     currentUser: runtimeUser,
+    isAuthenticated,
     schools,
     source,
   } = useAppRuntime(initialSnapshot, "home");
@@ -63,19 +67,55 @@ export function HomePage({
   const currentSchool = schools.find((school) => school.id === schoolId) ?? null;
   const hasSelectedSchool = Boolean(currentSchool?.id);
   const isApplicant = currentUser.userType === "applicant";
+  const hasFinishedOnboarding = hasCompletedOnboarding(currentUser);
+  const canPreviewSchoolSections = isAuthenticated && hasFinishedOnboarding && hasSelectedSchool;
+  const canAccessAnonymousBoard =
+    (isAuthenticated && hasFinishedOnboarding && canWriteCommunity(currentUser)) ||
+    isMasterAdminEmail(currentUser.email);
 
-  const schoolBoardPosts = getSchoolScopedCommunityPosts(schoolId, "school");
-  const schoolFreshmanPosts = getSchoolScopedCommunityPosts(schoolId, "freshman");
-  const schoolClubPosts = getSchoolScopedCommunityPosts(schoolId, "club");
-  const schoolFoodPosts = getSchoolScopedCommunityPosts(schoolId, "food");
-  const schoolAdmissionPosts = getSchoolScopedAdmissionQuestions(schoolId);
-  const schoolLectureHighlights = getSchoolScopedLectureSummaries(schoolId).slice(0, 3);
-  const tradeHighlights = getSchoolScopedTradePosts(schoolId).slice(0, 3);
-  const hotNowPosts = getTrendingCommunityPosts().slice(0, 6);
-  const allPopularPosts = getAllCommunityFeedPosts().slice(0, 6);
-  const schoolCommunityPosts = getSchoolCommunityFeedPosts(schoolId).slice(0, 6);
-  const mostVotedPosts = getMostVotedPosts().slice(0, 4);
-  const mostCommentedPosts = getMostCommentedPosts().slice(0, 4);
+  const accessibleCommunityFeed = getAllCommunityFeedPosts().filter(
+    (post) => canAccessAnonymousBoard || post.subcategory !== "anonymous",
+  );
+  const accessibleTrendingPosts = getTrendingCommunityPosts().filter(
+    (post) => canAccessAnonymousBoard || post.subcategory !== "anonymous",
+  );
+  const accessibleMostVotedPosts = getMostVotedPosts().filter(
+    (post) => canAccessAnonymousBoard || post.subcategory !== "anonymous",
+  );
+  const accessibleMostCommentedPosts = getMostCommentedPosts().filter(
+    (post) => canAccessAnonymousBoard || post.subcategory !== "anonymous",
+  );
+
+  const schoolBoardPosts = canPreviewSchoolSections
+    ? getSchoolScopedCommunityPosts(schoolId, "school")
+    : [];
+  const schoolFreshmanPosts = canPreviewSchoolSections
+    ? getSchoolScopedCommunityPosts(schoolId, "freshman")
+    : [];
+  const schoolClubPosts = canPreviewSchoolSections
+    ? getSchoolScopedCommunityPosts(schoolId, "club")
+    : [];
+  const schoolFoodPosts = canPreviewSchoolSections
+    ? getSchoolScopedCommunityPosts(schoolId, "food")
+    : [];
+  const schoolAdmissionPosts = canPreviewSchoolSections
+    ? getSchoolScopedAdmissionQuestions(schoolId)
+    : [];
+  const schoolLectureHighlights = canPreviewSchoolSections
+    ? getSchoolScopedLectureSummaries(schoolId).slice(0, 3)
+    : [];
+  const tradeHighlights = canPreviewSchoolSections
+    ? getSchoolScopedTradePosts(schoolId).slice(0, 3)
+    : [];
+  const hotNowPosts = accessibleTrendingPosts.slice(0, 6);
+  const allPopularPosts = accessibleCommunityFeed.slice(0, 6);
+  const schoolCommunityPosts = canPreviewSchoolSections
+    ? getSchoolCommunityFeedPosts(schoolId)
+        .filter((post) => canAccessAnonymousBoard || post.subcategory !== "anonymous")
+        .slice(0, 6)
+    : [];
+  const mostVotedPosts = accessibleMostVotedPosts.slice(0, 4);
+  const mostCommentedPosts = accessibleMostCommentedPosts.slice(0, 4);
 
   const schoolPopularPosts = [
     ...schoolCommunityPosts,
@@ -241,23 +281,52 @@ export function HomePage({
           href="/school"
           actionLabel="학교 보기"
         />
-        <div className="grid grid-cols-2 gap-3">
-          {quickMenus.map((menu) => (
-            <Link
-              key={menu.title}
-              href={menu.href}
-              className="app-section-surface app-soft-hover rounded-[28px] border-white/10 p-4"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
-                <menu.icon className="h-5 w-5" />
-              </div>
-              <p className="mt-4 text-[15px] font-semibold text-foreground">{menu.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {menu.count > 0 ? `+${menu.count}` : "바로 보기"}
+        {canPreviewSchoolSections ? (
+          <div className="grid grid-cols-2 gap-3">
+            {quickMenus.map((menu) => (
+              <Link
+                key={menu.title}
+                href={menu.href}
+                className="app-section-surface app-soft-hover rounded-[28px] border-white/10 p-4"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
+                  <menu.icon className="h-5 w-5" />
+                </div>
+                <p className="mt-4 text-[15px] font-semibold text-foreground">{menu.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {menu.count > 0 ? `+${menu.count}` : "바로 보기"}
+                </p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
+            <CardContent className="space-y-3 py-5">
+              <p className="text-base font-semibold text-foreground">
+                {!isAuthenticated
+                  ? "로그인하면 우리학교 피드가 열립니다"
+                  : isApplicant
+                    ? "지망학교를 선택하면 학교 전용 글을 볼 수 있습니다"
+                    : "학교를 선택하면 우리학교 피드가 열립니다"}
               </p>
-            </Link>
-          ))}
-        </div>
+              <Link
+                href={
+                  !isAuthenticated
+                    ? getAuthFlowHref({
+                        isAuthenticated,
+                        user: currentUser,
+                        nextPath: "/school",
+                      })
+                    : "/onboarding"
+                }
+                className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
+              >
+                {!isAuthenticated ? "로그인하기" : isApplicant ? "지망학교 선택" : "학교 선택"}
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </CardContent>
+          </Card>
+        )}
         {schoolPopularPosts.length ? (
           <FeedList>
             {schoolPopularPosts.map((post, index) => (
@@ -376,26 +445,39 @@ export function HomePage({
           title="동아리·모임과 학교 주변 정보"
         />
         <div className="space-y-3">
-          {campusInfoCards.map((item) => (
-            <Link
-              key={item.title}
-              href={item.href}
-              className="app-section-surface app-soft-hover block rounded-[30px] border-white/10"
-            >
-              <CardContent className="flex items-start justify-between gap-4 py-5">
-                <div className="min-w-0">
-                  <div className={`inline-flex items-center gap-2 rounded-full bg-gradient-to-r ${item.accent} px-3 py-1 text-xs font-semibold text-foreground`}>
-                    <item.icon className="h-3.5 w-3.5" />
-                    {item.title}
-                  </div>
-                  {item.description ? (
-                    <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.description}</p>
-                  ) : null}
-                </div>
-                <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
-              </CardContent>
-            </Link>
-          ))}
+          {canPreviewSchoolSections
+            ? campusInfoCards.map((item) => (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className="app-section-surface app-soft-hover block rounded-[30px] border-white/10"
+                >
+                  <CardContent className="flex items-start justify-between gap-4 py-5">
+                    <div className="min-w-0">
+                      <div className={`inline-flex items-center gap-2 rounded-full bg-gradient-to-r ${item.accent} px-3 py-1 text-xs font-semibold text-foreground`}>
+                        <item.icon className="h-3.5 w-3.5" />
+                        {item.title}
+                      </div>
+                      {item.description ? (
+                        <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                      ) : null}
+                    </div>
+                    <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                  </CardContent>
+                </Link>
+              ))
+            : (
+              <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
+                <CardContent className="space-y-3 py-5">
+                  <p className="text-base font-semibold text-foreground">
+                    학교를 선택하면 캠퍼스 정보가 열립니다
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    동아리 모집, 학교 주변 맛집, 생활 정보를 학교 기준으로 묶어 보여줍니다.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           {isAdPlacementEnabled("feedInline") ? <AdPlaceholderCard placement="feedInline" /> : null}
         </div>
       </section>
@@ -406,7 +488,7 @@ export function HomePage({
           title="강의 정보와 수강신청 교환"
         />
         <div className="space-y-3">
-          {tradeHighlights.length ? (
+          {canPreviewSchoolSections && tradeHighlights.length ? (
             <Card className="app-section-surface overflow-hidden rounded-[30px] border-white/10 shadow-none">
               <CardContent className="space-y-3 py-5">
                 <div className="flex items-center justify-between gap-3">
@@ -442,7 +524,7 @@ export function HomePage({
             </Card>
           ) : null}
 
-          {schoolLectureHighlights.length ? (
+          {canPreviewSchoolSections && schoolLectureHighlights.length ? (
             <div className="space-y-3">
               {schoolLectureHighlights.map((lecture) => (
                 <LectureSummaryCard key={lecture.id} lecture={lecture} href={`/lectures/${lecture.id}`} />

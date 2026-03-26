@@ -388,16 +388,20 @@ export function CommunityPage({
     !hasCompletedOnboarding(currentUser) ||
     canAccessSchoolFeatures(currentUser);
   const showInitialLoading = loading && source === "mock";
+  const canViewSchoolScope =
+    isAuthenticated &&
+    hasCompletedOnboarding(currentUser) &&
+    Boolean(currentUser.schoolId);
 
   useEffect(() => {
     setActiveFilter(isSharedFilter(filterParam) ? filterParam : "all");
   }, [filterParam]);
 
   useEffect(() => {
-    if (!currentUser.schoolId && feedScope === "school") {
+    if (!canViewSchoolScope && feedScope === "school") {
       setFeedScope("all");
     }
-  }, [currentUser.schoolId, feedScope]);
+  }, [canViewSchoolScope, feedScope]);
 
   const schoolFeedItems = useMemo(
     () => getSchoolCommunityFeedPosts(currentUser.schoolId),
@@ -405,21 +409,47 @@ export function CommunityPage({
   );
   const allFeedItems = useMemo(() => getAllCommunityFeedPosts(), []);
   const hotFeedItems = useMemo(() => getTrendingCommunityPosts(), []);
-  const mostVotedPosts = useMemo(() => getMostVotedPosts().slice(0, 4), []);
-  const mostCommentedPosts = useMemo(() => getMostCommentedPosts().slice(0, 4), []);
+  const canAccessAnonymousBoard =
+    (isAuthenticated && canWriteCommunity(currentUser)) || isMasterAdminEmail(currentUser.email);
+  const accessibleAllFeedItems = useMemo(
+    () => allFeedItems.filter((post) => canAccessAnonymousBoard || post.subcategory !== "anonymous"),
+    [allFeedItems, canAccessAnonymousBoard],
+  );
+  const accessibleHotFeedItems = useMemo(
+    () => hotFeedItems.filter((post) => canAccessAnonymousBoard || post.subcategory !== "anonymous"),
+    [canAccessAnonymousBoard, hotFeedItems],
+  );
+  const accessibleSchoolFeedItems = useMemo(
+    () => schoolFeedItems.filter((post) => canAccessAnonymousBoard || post.subcategory !== "anonymous"),
+    [canAccessAnonymousBoard, schoolFeedItems],
+  );
+  const mostVotedPosts = useMemo(
+    () =>
+      getMostVotedPosts()
+        .filter((post) => canAccessAnonymousBoard || post.subcategory !== "anonymous")
+        .slice(0, 4),
+    [canAccessAnonymousBoard],
+  );
+  const mostCommentedPosts = useMemo(
+    () =>
+      getMostCommentedPosts()
+        .filter((post) => canAccessAnonymousBoard || post.subcategory !== "anonymous")
+        .slice(0, 4),
+    [canAccessAnonymousBoard],
+  );
 
   const feedItems = useMemo(() => {
-    if (feedScope === "hot") return hotFeedItems;
-    if (feedScope === "all") return allFeedItems;
-    return schoolFeedItems;
-  }, [allFeedItems, feedScope, hotFeedItems, schoolFeedItems]);
+    if (feedScope === "hot") return accessibleHotFeedItems;
+    if (feedScope === "all") return accessibleAllFeedItems;
+    return accessibleSchoolFeedItems;
+  }, [accessibleAllFeedItems, accessibleHotFeedItems, accessibleSchoolFeedItems, feedScope]);
 
   useEffect(() => {
     if (!detailParam) {
       return;
     }
 
-    const targetPost = allFeedItems.find((post) => post.id === detailParam);
+    const targetPost = accessibleAllFeedItems.find((post) => post.id === detailParam);
     if (!targetPost) {
       return;
     }
@@ -436,9 +466,20 @@ export function CommunityPage({
 
     setSensitivePost(null);
     setDetailPostId(targetPost.id);
-  }, [allFeedItems, detailParam]);
+  }, [accessibleAllFeedItems, detailParam]);
 
   function openPost(post: Post) {
+    if (post.subcategory === "anonymous" && !canAccessAnonymousBoard) {
+      router.push(
+        getAuthFlowHref({
+          isAuthenticated,
+          user: currentUser,
+          nextPath: pathname,
+        }),
+      );
+      return;
+    }
+
     if (
       post.subcategory === "hot" ||
       classifyContentLevel(`${post.title} ${post.content}`) === "sensitive"
@@ -482,16 +523,19 @@ export function CommunityPage({
   const featuredItem = sortedItems[0] ?? null;
   const risingItems = sortedItems.slice(1, 4);
   const schoolFocusPosts = useMemo(
-    () =>
-      schoolFeedItems
+    () => {
+      if (!canViewSchoolScope) return [];
+
+      return accessibleSchoolFeedItems
         .filter((post) => post.schoolId === currentUser.schoolId)
         .sort(
           (a, b) =>
             getHotScore(b) - getHotScore(a) ||
             getPopularityScore(b) - getPopularityScore(a),
         )
-        .slice(0, 3),
-    [currentUser.schoolId, schoolFeedItems],
+        .slice(0, 3);
+    },
+    [accessibleSchoolFeedItems, canViewSchoolScope, currentUser.schoolId],
   );
   const topicChips = useMemo(() => {
     const counts = new Map<string, number>();
@@ -509,16 +553,14 @@ export function CommunityPage({
   const feedSlots = useMemo(() => injectInlineAdSlots(sortedItems), [sortedItems]);
 
   const detailPost = useMemo(
-    () => allFeedItems.find((post) => post.id === detailPostId) ?? null,
-    [allFeedItems, detailPostId],
+    () => accessibleAllFeedItems.find((post) => post.id === detailPostId) ?? null,
+    [accessibleAllFeedItems, detailPostId],
   );
 
   const canComposeCommunity =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCommunity(currentUser);
   const canComposeCareer =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteCareer(currentUser);
-  const canAccessAnonymousBoard =
-    (isAuthenticated && canWriteCommunity(currentUser)) || isMasterAdminEmail(currentUser.email);
   const canCompose =
     activeFilter === "career" ? canComposeCareer : canComposeCommunity;
   const availableFilters = useMemo(
@@ -739,7 +781,9 @@ export function CommunityPage({
                 { value: "all", label: "전체" },
                 { value: "hot", label: "🔥 핫글" },
                 { value: "school", label: "우리학교" },
-              ] as const).map((scope) => (
+              ] as const)
+                .filter((scope) => scope.value !== "school" || canViewSchoolScope)
+                .map((scope) => (
                 <button
                   key={scope.value}
                   type="button"
