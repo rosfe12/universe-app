@@ -386,6 +386,7 @@ create table if not exists public.profile_images (
   user_id uuid not null references public.profiles(id) on delete cascade,
   image_path text not null,
   image_order integer not null check (image_order between 1 and 3),
+  is_primary boolean not null default false,
   moderation_status text not null default 'pending',
   moderation_reason text,
   created_at timestamptz not null default timezone('utc', now()),
@@ -393,6 +394,9 @@ create table if not exists public.profile_images (
   constraint profile_images_status_check check (moderation_status in ('pending', 'approved', 'rejected')),
   constraint profile_images_user_order_unique unique (user_id, image_order)
 );
+
+alter table public.profile_images
+  add column if not exists is_primary boolean not null default false;
 
 create table if not exists public.profile_blocks (
   id uuid primary key default gen_random_uuid(),
@@ -898,6 +902,7 @@ create unique index if not exists idx_users_referral_code on public.users (refer
 create index if not exists idx_profiles_display_name on public.profiles (display_name);
 create index if not exists idx_profile_images_user_order on public.profile_images (user_id, image_order);
 create index if not exists idx_profile_images_status_created_at on public.profile_images (moderation_status, created_at desc);
+create unique index if not exists idx_profile_images_user_primary on public.profile_images (user_id) where is_primary = true;
 create index if not exists idx_profile_blocks_user_created_at on public.profile_blocks (user_id, created_at desc);
 create index if not exists idx_profile_blocks_blocked_user_created_at on public.profile_blocks (blocked_user_id, created_at desc);
 create index if not exists idx_profile_reports_target_created_at on public.profile_reports (target_user_id, created_at desc);
@@ -1346,6 +1351,48 @@ begin
 end;
 $$;
 
+create or replace function public.set_primary_profile_image(p_image_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target_record public.profile_images%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception '로그인이 필요합니다.';
+  end if;
+
+  select *
+    into target_record
+  from public.profile_images
+  where id = p_image_id
+    and user_id = auth.uid();
+
+  if not found then
+    raise exception '본인 프로필 사진만 대표 사진으로 설정할 수 있습니다.';
+  end if;
+
+  if target_record.moderation_status <> 'approved' then
+    raise exception '승인된 사진만 대표 사진으로 설정할 수 있습니다.';
+  end if;
+
+  update public.profile_images
+  set is_primary = false,
+      updated_at = timezone('utc', now())
+  where user_id = auth.uid()
+    and is_primary = true
+    and id <> p_image_id;
+
+  update public.profile_images
+  set is_primary = true,
+      updated_at = timezone('utc', now())
+  where id = p_image_id
+    and user_id = auth.uid();
+end;
+$$;
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -1721,6 +1768,7 @@ grant execute on function public.is_student() to authenticated;
 grant execute on function public.is_verified_student() to authenticated;
 grant execute on function public.can_access_profile(uuid) to authenticated;
 grant execute on function public.reorder_profile_images(uuid[]) to authenticated;
+grant execute on function public.set_primary_profile_image(uuid) to authenticated;
 grant execute on function public.is_admin() to authenticated;
 
 alter table public.schools enable row level security;
@@ -2559,7 +2607,7 @@ begin
     execute 'drop policy if exists "verification documents own delete" on storage.objects';
     execute 'create policy "verification documents own delete" on storage.objects for delete to authenticated using (bucket_id = ''verification-documents'' and (((storage.foldername(name))[1] = ''verifications'' and (storage.foldername(name))[2] = auth.uid()::text) or public.is_admin()))';
     execute 'drop policy if exists "profile images own read" on storage.objects';
-    execute 'create policy "profile images own read" on storage.objects for select to authenticated using (bucket_id = ''profile-images'' and (((storage.foldername(name))[1] = auth.uid()::text) or public.is_admin()))';
+    execute 'create policy "profile images own read" on storage.objects for select to authenticated using (bucket_id = ''profile-images'' and (((storage.foldername(name))[1] = auth.uid()::text) or public.is_admin() or exists (select 1 from public.profile_images pi where pi.image_path = name and pi.is_primary = true and pi.moderation_status = ''approved'' and public.can_access_profile(pi.user_id))))';
     execute 'drop policy if exists "profile images own insert" on storage.objects';
     execute 'create policy "profile images own insert" on storage.objects for insert to authenticated with check (bucket_id = ''profile-images'' and (storage.foldername(name))[1] = auth.uid()::text)';
     execute 'drop policy if exists "profile images own update" on storage.objects';

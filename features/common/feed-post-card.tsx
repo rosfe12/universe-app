@@ -158,6 +158,7 @@ export function FeedPostCard({
           contentSchoolId={post.schoolId}
           anonymousMode={post.category === "community" && post.subcategory === "anonymous"}
           minimal={dense}
+          showPrimaryImage
         />
         {interactiveContent}
         <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">

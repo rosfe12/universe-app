@@ -47,6 +47,7 @@ export function TradePostCard({
               createdAt={tradePost.createdAt}
               visibilityLevel={tradePost.visibilityLevel}
               contentSchoolId={tradePost.schoolId}
+              showPrimaryImage
             />
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Badge variant={statusVariant}>

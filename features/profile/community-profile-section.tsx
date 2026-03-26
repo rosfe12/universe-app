@@ -8,6 +8,7 @@ import {
   deleteProfileImage,
   getMyProfile,
   reorderProfileImages,
+  setPrimaryProfileImage,
   updateMyProfile,
   uploadProfileImage,
 } from "@/app/actions/profile-actions";
@@ -197,6 +198,20 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
           setProfile(nextProfile);
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "프로필 사진 순서를 바꾸지 못했습니다.");
+        }
+      })();
+    });
+  }
+
+  async function handleSetPrimaryImage(imageId: string) {
+    startTransition(() => {
+      void (async () => {
+        try {
+          const nextProfile = await setPrimaryProfileImage(imageId);
+          setProfile(nextProfile);
+          setError(null);
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : "대표 사진을 설정하지 못했습니다.");
         }
       })();
     });
@@ -446,6 +461,7 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
                                   ? "검토 중"
                                   : "차단됨"}
                             </Badge>
+                            {image.isPrimary ? <Badge variant="success">대표 사진</Badge> : null}
                             {image.moderationReason ? (
                               <span className="text-[11px] text-muted-foreground">
                                 {image.moderationReason}
@@ -470,6 +486,16 @@ export function CommunityProfileSection({ currentUser }: { currentUser: User }) 
                               onClick={() => void handleMoveImage(image.id, 1)}
                             >
                               <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={image.isPrimary ? "secondary" : "outline"}
+                              size="sm"
+                              className="h-9 px-3 text-xs"
+                              disabled={isPending || image.moderationStatus !== "approved" || image.isPrimary}
+                              onClick={() => void handleSetPrimaryImage(image.id)}
+                            >
+                              {image.isPrimary ? "대표 사진" : "대표로 설정"}
                             </Button>
                             <Button
                               type="button"

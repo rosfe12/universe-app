@@ -80,6 +80,7 @@ export function AdmissionDetailPage({
             createdAt={question.createdAt}
             visibilityLevel={question.visibilityLevel}
             contentSchoolId={question.schoolId}
+            showProfilePreview
           />
           <div className="space-y-2">
             <CardTitle className="text-xl leading-snug">{question.title}</CardTitle>

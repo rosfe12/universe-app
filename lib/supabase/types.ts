@@ -129,6 +129,7 @@ type ProfileImageRow = {
   user_id: string;
   image_path: string;
   image_order: number;
+  is_primary: boolean;
   moderation_status: "pending" | "approved" | "rejected";
   moderation_reason: string | null;
   created_at: string;
@@ -140,6 +141,7 @@ type ProfileImageInsert = {
   user_id: string;
   image_path: string;
   image_order: number;
+  is_primary?: boolean;
   moderation_status?: "pending" | "approved" | "rejected";
   moderation_reason?: string | null;
   created_at?: string;

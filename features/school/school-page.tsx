@@ -980,6 +980,7 @@ export function SchoolPage({
                     createdAt={detailPost.createdAt}
                     visibilityLevel={detailPost.visibilityLevel}
                     contentSchoolId={detailPost.schoolId}
+                    showProfilePreview
                     trailing={
                       detailPost.category === "admission" ? (
                         <Badge variant="secondary">입시 Q&A</Badge>

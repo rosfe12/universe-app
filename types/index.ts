@@ -194,6 +194,9 @@ export interface User {
   createdAt: string;
   bio?: string;
   avatarUrl?: string;
+  profileBio?: string;
+  profileInterests?: string[];
+  profilePrimaryImageUrl?: string;
 }
 
 export type ProfileImageModerationStatus = "pending" | "approved" | "rejected";
@@ -203,6 +206,7 @@ export interface CommunityProfileImage {
   userId: string;
   imagePath: string;
   imageOrder: 1 | 2 | 3;
+  isPrimary: boolean;
   moderationStatus: ProfileImageModerationStatus;
   moderationReason?: string;
   imageUrl?: string;

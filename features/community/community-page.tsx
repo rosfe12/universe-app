@@ -279,6 +279,7 @@ function SharedFeedCard({
           visibilityLevel={post.visibilityLevel}
           contentSchoolId={post.schoolId}
           anonymousMode={post.subcategory === "anonymous"}
+          showPrimaryImage
           trailing={
             <div className="flex items-center gap-2 text-xs text-gray-400">
               {schoolHighlighted ? (
@@ -1108,6 +1109,7 @@ export function CommunityPage({
                     visibilityLevel={detailPost.visibilityLevel}
                     contentSchoolId={detailPost.schoolId}
                     anonymousMode={detailPost.subcategory === "anonymous"}
+                    showProfilePreview
                   />
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={getCardVariant(detailPost)}>{getCardLabel(detailPost)}</Badge>

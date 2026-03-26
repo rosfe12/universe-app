@@ -273,6 +273,7 @@ export function AdmissionPage({
                     createdAt={question.createdAt}
                     visibilityLevel={question.visibilityLevel}
                     contentSchoolId={question.schoolId}
+                    showPrimaryImage
                   />
                   <div className="space-y-3">
                     <div>

@@ -325,6 +325,28 @@ export function getPublicIdentitySummary(
   };
 }
 
+export function getCommunityProfilePreview(userId: string) {
+  const user = getUser(userId);
+
+  if (!user) {
+    return null;
+  }
+
+  const interests = Array.isArray(user.profileInterests)
+    ? user.profileInterests.filter(Boolean).slice(0, 2)
+    : [];
+
+  if (!user.profilePrimaryImageUrl && !user.profileBio && interests.length === 0) {
+    return null;
+  }
+
+  return {
+    imageUrl: user.profilePrimaryImageUrl,
+    bio: user.profileBio,
+    interests,
+  };
+}
+
 export function getTrustScore(userId: string) {
   return getUser(userId)?.trustScore ?? 0;
 }

@@ -52,11 +52,23 @@ type ProfileImageRow = {
   user_id: string;
   image_path: string;
   image_order: number;
+  is_primary: boolean;
   moderation_status: ProfileImageModerationStatus;
   moderation_reason: string | null;
   created_at: string;
   updated_at: string;
 };
+
+function revalidateCommunityProfileSurfaces(targetUserId?: string) {
+  revalidatePath("/profile");
+  revalidatePath("/community");
+  revalidatePath("/home");
+  revalidatePath("/school");
+
+  if (targetUserId) {
+    revalidatePath(`/profile/${targetUserId}`);
+  }
+}
 
 async function requireAuthenticatedProfileUser() {
   const supabase = await createServerSupabaseClient();
@@ -192,7 +204,7 @@ async function listProfileImages(
   const { data, error } = await admin
     .from("profile_images")
     .select(
-      "id, user_id, image_path, image_order, moderation_status, moderation_reason, created_at, updated_at",
+      "id, user_id, image_path, image_order, is_primary, moderation_status, moderation_reason, created_at, updated_at",
     )
     .eq("user_id", userId)
     .order("image_order", { ascending: true });
@@ -211,6 +223,7 @@ async function listProfileImages(
       userId: row.user_id,
       imagePath: row.image_path,
       imageOrder: row.image_order as 1 | 2 | 3,
+      isPrimary: Boolean(row.is_primary),
       moderationStatus: row.moderation_status,
       moderationReason: row.moderation_reason ?? undefined,
       imageUrl: await createSignedImageUrl(admin, row.image_path),
@@ -345,7 +358,7 @@ export async function updateMyProfile(input: z.infer<typeof communityProfileSche
     }
   }
 
-  revalidatePath("/profile");
+  revalidateCommunityProfileSurfaces(user.id);
   return getMyProfile();
 }
 
@@ -374,7 +387,7 @@ export async function uploadProfileImage(formData: FormData) {
 
   const { data: existingRow, error: existingError } = await supabase
     .from("profile_images")
-    .select("id, image_path")
+    .select("id, image_path, is_primary")
     .eq("user_id", user.id)
     .eq("image_order", imageOrder)
     .maybeSingle();
@@ -401,13 +414,14 @@ export async function uploadProfileImage(formData: FormData) {
         user_id: user.id,
         image_path: imagePath,
         image_order: imageOrder,
+        is_primary: moderation.status === "approved" ? Boolean(existingRow?.is_primary) : false,
         moderation_status: moderation.status,
         moderation_reason: moderation.reason ?? null,
       },
       { onConflict: "user_id,image_order" },
     )
     .select(
-      "id, user_id, image_path, image_order, moderation_status, moderation_reason, created_at, updated_at",
+      "id, user_id, image_path, image_order, is_primary, moderation_status, moderation_reason, created_at, updated_at",
     )
     .single();
 
@@ -420,13 +434,14 @@ export async function uploadProfileImage(formData: FormData) {
     await admin.storage.from(PROFILE_IMAGE_BUCKET).remove([String(existingRow.image_path)]).catch(() => null);
   }
 
-  revalidatePath("/profile");
+  revalidateCommunityProfileSurfaces(user.id);
 
   return {
     id: String(savedRow.id),
     userId: String(savedRow.user_id),
     imagePath: String(savedRow.image_path),
     imageOrder: Number(savedRow.image_order) as 1 | 2 | 3,
+    isPrimary: Boolean(savedRow.is_primary),
     moderationStatus: savedRow.moderation_status as ProfileImageModerationStatus,
     moderationReason: savedRow.moderation_reason ? String(savedRow.moderation_reason) : undefined,
     imageUrl: await createSignedImageUrl(admin, String(savedRow.image_path)),
@@ -466,7 +481,7 @@ export async function deleteProfileImage(imageId: string) {
   }
 
   await admin.storage.from(PROFILE_IMAGE_BUCKET).remove([String(row.image_path)]).catch(() => null);
-  revalidatePath("/profile");
+  revalidateCommunityProfileSurfaces(user.id);
 
   return { ok: true };
 }
@@ -488,8 +503,86 @@ export async function reorderProfileImages(imageIds: string[]) {
     throw new Error(error.message);
   }
 
-  revalidatePath("/profile");
+  revalidateCommunityProfileSurfaces(user.id);
   return getMyProfile();
+}
+
+export async function setPrimaryProfileImage(imageId: string) {
+  const parsedImageIdResult = targetUserSchema.safeParse(imageId);
+  if (!parsedImageIdResult.success) {
+    throw new Error("대표 사진을 다시 선택해주세요.");
+  }
+
+  const parsedImageId = parsedImageIdResult.data;
+  const { supabase, user } = await requireAuthenticatedProfileUser();
+  requireVerifiedProfileFeature(user);
+
+  const { data: imageRow, error: imageError } = await supabase
+    .from("profile_images")
+    .select(
+      "id, user_id, moderation_status, is_primary",
+    )
+    .eq("id", parsedImageId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (imageError || !imageRow) {
+    throw new Error("대표 사진으로 설정할 이미지를 찾을 수 없습니다.");
+  }
+
+  if (imageRow.moderation_status !== "approved") {
+    throw new Error("승인된 사진만 대표 사진으로 설정할 수 있습니다.");
+  }
+
+  if (!imageRow.is_primary) {
+    const { error } = await supabase.rpc("set_primary_profile_image", {
+      p_image_id: parsedImageId,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  revalidateCommunityProfileSurfaces(user.id);
+  return getMyProfile();
+}
+
+export async function getPrimaryProfileImage(targetUserId: string) {
+  const parsedTargetUserIdResult = targetUserSchema.safeParse(targetUserId);
+  if (!parsedTargetUserIdResult.success) {
+    throw new Error("프로필을 찾을 수 없습니다.");
+  }
+
+  const parsedTargetUserId = parsedTargetUserIdResult.data;
+  const { admin, user } = await requireAuthenticatedProfileUser();
+  const targetUser = await getUserBaseRow(admin, parsedTargetUserId);
+
+  if (!targetUser) {
+    throw new Error("프로필을 찾을 수 없습니다.");
+  }
+
+  const blocked = await hasProfileBlock(admin, user.id, targetUser.id);
+  if (
+    !canReadCommunityProfile(
+      {
+        id: user.id,
+        schoolId: user.school_id ?? undefined,
+        verificationState: user.verification_state ?? undefined,
+      },
+      {
+        id: targetUser.id,
+        schoolId: targetUser.school_id ?? undefined,
+        verificationState: targetUser.verification_state ?? undefined,
+      },
+      blocked,
+    )
+  ) {
+    throw new Error(COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
+  }
+
+  const images = await listProfileImages(admin, targetUser.id, user.id === targetUser.id);
+  return images.find((image) => image.isPrimary && image.moderationStatus === "approved") ?? null;
 }
 
 export async function getUserProfile(targetUserId: string) {
@@ -585,7 +678,7 @@ export async function blockUser(targetUserId: string) {
     throw new Error(error.message);
   }
 
-  revalidatePath(`/profile/${parsedTargetUserId}`);
+  revalidateCommunityProfileSurfaces(parsedTargetUserId);
   return { ok: true };
 }
 
@@ -604,7 +697,7 @@ export async function unblockUser(targetUserId: string) {
     throw new Error(error.message);
   }
 
-  revalidatePath(`/profile/${parsedTargetUserId}`);
+  revalidateCommunityProfileSurfaces(parsedTargetUserId);
   return { ok: true };
 }
 
@@ -666,6 +759,6 @@ export async function reportProfile(
     throw new Error(error.message);
   }
 
-  revalidatePath(`/profile/${parsedTargetUserId}`);
+  revalidateCommunityProfileSurfaces(parsedTargetUserId);
   return { ok: true };
 }

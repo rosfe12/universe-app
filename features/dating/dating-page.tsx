@@ -430,6 +430,7 @@ export function DatingPage({
                 authorId={post.authorId}
                 createdAt={post.createdAt}
                 visibilityLevel={post.visibilityLevel ?? "profile"}
+                showPrimaryImage
               />
               <button
                 type="button"
@@ -665,6 +666,7 @@ export function DatingPage({
                     authorId={detailPost.authorId}
                     createdAt={detailPost.createdAt}
                     visibilityLevel={detailPost.visibilityLevel ?? "profile"}
+                    showProfilePreview
                   />
                   {detailPost.imageUrl ? (
                     <div className="relative overflow-hidden rounded-[22px]">

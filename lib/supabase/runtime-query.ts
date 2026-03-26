@@ -186,6 +186,19 @@ export const MEDIA_ASSET_SELECT = [
   "created_at",
 ].join(",");
 
+export const PROFILE_PREVIEW_SELECT = [
+  "id",
+  "bio",
+  "interests",
+].join(",");
+
+export const PRIMARY_PROFILE_IMAGE_SELECT = [
+  "user_id",
+  "image_path",
+  "is_primary",
+  "moderation_status",
+].join(",");
+
 export const POLL_SELECT = "id,post_id,question,created_at";
 export const POLL_OPTION_SELECT = "id,poll_id,option_text,position,vote_count";
 export const POLL_VOTE_SELECT = "id,poll_id,option_id,user_id,created_at";

@@ -21,6 +21,7 @@ import {
   isGoogleAuthEnabled,
   resolveAppUrl,
 } from "@/lib/env";
+import { PROFILE_IMAGE_BUCKET } from "@/lib/community-profile";
 import {
   BLOCK_SELECT,
   collectRuntimeUserIds,
@@ -36,6 +37,8 @@ import {
   POLL_SELECT,
   POLL_VOTE_SELECT,
   POST_SELECT,
+  PRIMARY_PROFILE_IMAGE_SELECT,
+  PROFILE_PREVIEW_SELECT,
   REPORT_SELECT,
   SCHOOL_SELECT,
   TRADE_POST_SELECT,
@@ -615,6 +618,73 @@ function buildMediaAssetsQuery(supabase: ReturnType<typeof createClient>, contex
     return base.limit(MEDIA_ASSET_LIMIT);
   }
   return context.userId ? base.eq("owner_id", context.userId).limit(MEDIA_ASSET_LIMIT) : EMPTY_RESULT;
+}
+
+async function createClientProfileImageUrl(
+  supabase: ReturnType<typeof createClient>,
+  path: string,
+) {
+  const { data, error } = await supabase.storage
+    .from(PROFILE_IMAGE_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+
+  if (error) {
+    return undefined;
+  }
+
+  return data.signedUrl;
+}
+
+async function buildVisibleProfilePreviewMap(
+  supabase: ReturnType<typeof createClient>,
+  userIds: string[],
+  canReadProfiles: boolean,
+) {
+  const empty = new Map<string, {
+    bio?: string;
+    interests: string[];
+    primaryImageUrl?: string;
+  }>();
+
+  if (!canReadProfiles || userIds.length === 0) {
+    return empty;
+  }
+
+  const [profilesResult, primaryImagesResult] = await Promise.all([
+    supabase.from("profiles").select(PROFILE_PREVIEW_SELECT).in("id", userIds),
+    supabase
+      .from("profile_images")
+      .select(PRIMARY_PROFILE_IMAGE_SELECT)
+      .in("user_id", userIds)
+      .eq("is_primary", true)
+      .eq("moderation_status", "approved"),
+  ]);
+
+  if (profilesResult.error || primaryImagesResult.error) {
+    return empty;
+  }
+
+  const primaryImageUrlEntries = await Promise.all(
+    asRecordRows(primaryImagesResult.data).map(async (row) => [
+      String(row.user_id),
+      await createClientProfileImageUrl(supabase, String(row.image_path)),
+    ] as const),
+  );
+  const primaryImageUrlByUserId = new Map(
+    primaryImageUrlEntries.filter(([, value]) => Boolean(value)),
+  );
+
+  for (const row of asRecordRows(profilesResult.data)) {
+    empty.set(String(row.id), {
+      bio: row.bio ? String(row.bio) : undefined,
+      interests: Array.isArray(row.interests)
+        ? row.interests.map((value) => String(value)).filter(Boolean)
+        : [],
+      primaryImageUrl: primaryImageUrlByUserId.get(String(row.id)),
+    });
+  }
+
+  return empty;
 }
 
 function createSupabaseFallbackSnapshot(issue?: string): AppRuntimeSnapshot {
@@ -1381,7 +1451,24 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
       return createSupabaseFallbackSnapshot(getSupabaseSetupIssue(usersResult.error));
     }
 
-    const users = (usersResult.data ?? []).map((row: Record<string, unknown>) => mapUserRow(row, schools));
+    const profilePreviewByUserId = await buildVisibleProfilePreviewMap(
+      supabase,
+      relatedUserIds,
+      currentUserProfileRow?.verification_state === "student_verified",
+    );
+    const users = (usersResult.data ?? []).map((row: Record<string, unknown>) => {
+      const mappedUser = mapUserRow(row, schools);
+      const profilePreview = profilePreviewByUserId.get(mappedUser.id);
+
+      return profilePreview
+        ? {
+            ...mappedUser,
+            profileBio: profilePreview.bio ?? mappedUser.bio,
+            profileInterests: profilePreview.interests,
+            profilePrimaryImageUrl: profilePreview.primaryImageUrl,
+          }
+        : mappedUser;
+    });
     const pollMap = buildPollMap(
       pollRows,
       asRecordRows(pollOptionsResult?.data),
@@ -1428,9 +1515,14 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
           const privateProfileRow = currentUserProfileRow;
 
           if (privateProfileRow) {
+            const visibleProfile = users.find((item: User) => item.id === authUser.id);
+
             return {
               ...mapUserRow(privateProfileRow, schools),
               email: authUser.email ?? String(privateProfileRow.email ?? ""),
+              profileBio: visibleProfile?.profileBio,
+              profileInterests: visibleProfile?.profileInterests,
+              profilePrimaryImageUrl: visibleProfile?.profilePrimaryImageUrl,
             };
           }
 
