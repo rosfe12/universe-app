@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BadgeCheck,
   BellRing,
@@ -45,6 +45,7 @@ import {
   getUserVisibilityLevel,
 } from "@/lib/mock-queries";
 import {
+  getCurrentStudentVerification,
   hasCompletedOnboarding,
   invalidateClientRuntimeSnapshots,
   resetClientAuthRuntime,
@@ -90,6 +91,8 @@ export function ProfilePage({
   const verificationBadge = getStudentVerificationBadge(currentUser);
   const schoolVerified = searchParams.get("schoolVerified") === "1";
   const verificationPending = searchParams.get("verification") === "pending";
+  const verificationReview = searchParams.get("verification") === "manual_review";
+  const verificationRejected = searchParams.get("verification") === "rejected";
   const canAccessAdmin = isMasterAdminEmail(currentUser.email);
   const adminPreviewSchool = schools.find((school) => school.id === currentUser.schoolId) ?? null;
   const adminAffiliationLabel = canAccessAdmin
@@ -105,6 +108,95 @@ export function ProfilePage({
   });
   const [accountActionError, setAccountActionError] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || canAccessAdmin || currentUser.userType !== "student") {
+      return;
+    }
+
+    const needsVerificationSync =
+      schoolVerified ||
+      verificationPending ||
+      verificationReview ||
+      verificationRejected ||
+      currentUser.studentVerificationStatus === "pending" ||
+      currentUser.verificationState === "manual_review" ||
+      currentUser.verificationState === "rejected";
+
+    if (!needsVerificationSync) {
+      return;
+    }
+
+    let active = true;
+
+    void getCurrentStudentVerification().then((result) => {
+      if (!active || result.error || !result.data) {
+        return;
+      }
+
+      const verification = result.data;
+      const nextState = verification.verificationState ?? currentUser.verificationState;
+      const nextStatus =
+        nextState === "student_verified"
+          ? "verified"
+          : nextState === "rejected"
+            ? "rejected"
+            : verification.schoolEmail
+              ? "pending"
+              : currentUser.studentVerificationStatus;
+
+      setSnapshot((snapshot) => {
+        if (snapshot.currentUser.id !== currentUser.id) {
+          return snapshot;
+        }
+
+        const nextUser = {
+          ...snapshot.currentUser,
+          schoolEmail: verification.schoolEmail ?? snapshot.currentUser.schoolEmail,
+          studentNumber: verification.studentNumber ?? snapshot.currentUser.studentNumber,
+          department: verification.departmentName ?? snapshot.currentUser.department,
+          admissionYear: verification.admissionYear ?? snapshot.currentUser.admissionYear,
+          schoolEmailVerifiedAt:
+            verification.emailVerifiedAt ?? snapshot.currentUser.schoolEmailVerifiedAt,
+          verificationState: nextState,
+          verificationScore: verification.score,
+          verificationRequestedAt: verification.requestedAt,
+          verificationReviewedAt:
+            verification.reviewedAt ?? snapshot.currentUser.verificationReviewedAt,
+          verificationRejectionReason:
+            verification.rejectionReason ?? snapshot.currentUser.verificationRejectionReason,
+          studentVerificationStatus: nextStatus,
+          verified: nextState === "student_verified",
+        };
+
+        if (JSON.stringify(nextUser) === JSON.stringify(snapshot.currentUser)) {
+          return snapshot;
+        }
+
+        return {
+          ...snapshot,
+          currentUser: nextUser,
+        };
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    canAccessAdmin,
+    currentUser.id,
+    currentUser.studentVerificationStatus,
+    currentUser.userType,
+    currentUser.verificationState,
+    isAuthenticated,
+    schoolVerified,
+    setSnapshot,
+    verificationPending,
+    verificationRejected,
+    verificationReview,
+  ]);
+
   const moveToPost = (postId: string) => {
     router.push(getPostHref(postId));
   };
@@ -114,6 +206,20 @@ export function ProfilePage({
   const moveToTradePost = (postId: string) => {
     router.push(`/trade?post=${postId}`);
   };
+  const showVerifiedBanner = schoolVerified || verificationBadge.status === "verified";
+  const showManualReviewBanner =
+    verificationReview || currentUser.verificationState === "manual_review";
+  const showRejectedBanner =
+    verificationRejected || currentUser.verificationState === "rejected";
+  const showPendingBanner =
+    verificationPending || currentUser.verificationState === "email_verified";
+  const verificationActionLabel = showManualReviewBanner
+    ? "추가 인증 보기"
+    : showRejectedBanner
+      ? "학생 인증 다시 진행"
+      : showPendingBanner
+        ? "인증 진행 상황 보기"
+        : "대학생 인증 진행";
 
   if (loading && source === "mock") {
     return (
@@ -198,12 +304,19 @@ export function ProfilePage({
         </section>
       ) : (
       <section className="space-y-2 border-b border-gray-100 pb-5">
-          {schoolVerified ? (
+          {showVerifiedBanner ? (
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               대학생 인증이 완료되었습니다. 글쓰기와 댓글, 쪽지, 채팅이 바로 열립니다.
             </div>
-          ) : null}
-          {verificationPending ? (
+          ) : showManualReviewBanner ? (
+            <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              학교 메일 확인은 끝났습니다. 추가 인증 자료를 올리면 운영 검토가 이어집니다.
+            </div>
+          ) : showRejectedBanner ? (
+            <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              학생 인증이 반려되었습니다. 학번, 학과, 입학년도와 추가 인증 자료를 다시 확인해주세요.
+            </div>
+          ) : showPendingBanner ? (
             <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
               학교 메일 확인이 완료되면 학생 정보 자동 판정이 진행됩니다.
             </div>
@@ -227,7 +340,7 @@ export function ProfilePage({
               className="w-full sm:w-auto"
               onClick={() => router.push("/onboarding?next=/profile&mode=verification")}
             >
-              대학생 인증 진행
+              {verificationActionLabel}
             </Button>
           ) : null}
       </section>

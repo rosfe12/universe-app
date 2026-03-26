@@ -83,6 +83,8 @@ export function LoginPage() {
   const nextPath = searchParams.get("next") ?? "/home";
   const adminOnlyFlow = nextPath.startsWith("/admin");
   const schoolVerified = searchParams.get("schoolVerified") === "1";
+  const schoolVerificationReview = searchParams.get("schoolVerificationReview") === "1";
+  const schoolVerificationRejected = searchParams.get("schoolVerificationRejected") === "1";
   const schoolVerificationExpired = searchParams.get("schoolVerificationExpired") === "1";
   const schoolVerificationFailed = searchParams.get("schoolVerificationFailed") === "1";
   const signupConfirmed = searchParams.get("signupConfirmed") === "1";
@@ -292,6 +294,16 @@ export function LoginPage() {
           {schoolVerified ? (
             <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               학교 메일 인증이 완료되었습니다. 로그인 후 바로 대학생 권한을 사용할 수 있습니다.
+            </div>
+          ) : null}
+          {schoolVerificationReview ? (
+            <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              학교 메일 확인이 완료되었습니다. 로그인 후 학생 인증 검토 상태와 추가 인증 안내를 확인해주세요.
+            </div>
+          ) : null}
+          {schoolVerificationRejected ? (
+            <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              학생 인증이 반려되었습니다. 로그인 후 학번, 학과, 입학년도와 추가 인증 자료를 다시 확인해주세요.
             </div>
           ) : null}
           {schoolVerificationExpired ? (

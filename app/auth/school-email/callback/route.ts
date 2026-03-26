@@ -319,7 +319,7 @@ export async function GET(request: Request) {
       buildLoginRedirect(
         request,
         appendParam(nextPath, "verification", "manual_review"),
-        "schoolVerified",
+        "schoolVerificationReview",
       ),
     );
   }
@@ -328,7 +328,7 @@ export async function GET(request: Request) {
     buildLoginRedirect(
       request,
       appendParam(nextPath, "verification", "rejected"),
-      "schoolVerificationFailed",
+      "schoolVerificationRejected",
     ),
   );
 }

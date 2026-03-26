@@ -852,7 +852,7 @@ export function OnboardingPage() {
                 ) : null}
               </div>
             ) : null}
-            {form.watch("userType") !== "student" ? (
+            {!isVerificationMode && form.watch("userType") !== "student" ? (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>학과</Label>
@@ -863,21 +863,23 @@ export function OnboardingPage() {
                   <Input placeholder="예: 3" disabled={pending} {...form.register("grade")} />
                 </div>
               </div>
-            ) : (
+            ) : !isVerificationMode ? (
               <div className="space-y-2">
                 <Label>학년</Label>
                 <Input placeholder="예: 3" disabled={pending} {...form.register("grade")} />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label>한줄 소개</Label>
-              <Textarea
-                rows={3}
-                placeholder="예: 강의평과 입시 질문을 자주 봅니다."
-                disabled={pending}
-                {...form.register("bio")}
-              />
-            </div>
+            ) : null}
+            {!isVerificationMode ? (
+              <div className="space-y-2">
+                <Label>한줄 소개</Label>
+                <Textarea
+                  rows={3}
+                  placeholder="예: 강의평과 입시 질문을 자주 봅니다."
+                  disabled={pending}
+                  {...form.register("bio")}
+                />
+              </div>
+            ) : null}
             {form.watch("userType") !== "student" ? (
               <Button type="submit" className="w-full">
                 프로필 저장
