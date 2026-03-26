@@ -164,6 +164,14 @@ export function TradePage({
     },
   });
 
+  if (loading && source === "mock") {
+    return (
+      <AppShell title="수강신청 교환">
+        <LoadingState />
+      </AppShell>
+    );
+  }
+
   useEffect(() => {
     setTradeItems(getSchoolScopedTradePosts(schoolId));
   }, [blocks, reports, schoolId, tradePosts]);

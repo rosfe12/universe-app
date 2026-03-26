@@ -385,6 +385,14 @@ export function CommunityPage({
     !hasCompletedOnboarding(currentUser) ||
     canAccessSchoolFeatures(currentUser);
 
+  if (loading && source === "mock") {
+    return (
+      <AppShell title="커뮤니티">
+        <LoadingState />
+      </AppShell>
+    );
+  }
+
   useEffect(() => {
     setActiveFilter(isSharedFilter(filterParam) ? filterParam : "all");
   }, [filterParam]);

@@ -51,7 +51,12 @@ export function HomePage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, currentUser: runtimeUser, schools } = useAppRuntime(initialSnapshot, "home");
+  const {
+    loading,
+    currentUser: runtimeUser,
+    schools,
+    source,
+  } = useAppRuntime(initialSnapshot, "home");
   const [showDeferredSections, setShowDeferredSections] = useState(false);
   const currentUser = runtimeUser;
   const schoolId = currentUser.schoolId;
@@ -158,6 +163,14 @@ export function HomePage({
     const timer = window.setTimeout(() => setShowDeferredSections(true), 180);
     return () => window.clearTimeout(timer);
   }, []);
+
+  if (loading && source === "mock") {
+    return (
+      <AppShell title="홈">
+        <LoadingState />
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell title="홈">

@@ -115,6 +115,14 @@ export function ProfilePage({
     router.push(`/trade?post=${postId}`);
   };
 
+  if (loading && source === "mock") {
+    return (
+      <AppShell title="마이">
+        <LoadingState />
+      </AppShell>
+    );
+  }
+
   if (!loading && !isAuthenticated) {
     return (
       <AppShell title="마이" subtitle="로그인 후 내 활동과 신뢰도를 관리합니다">

@@ -156,6 +156,15 @@ export function MessagesPage({
   const notifications = getNotifications(currentUser.id);
   const [chatThreads, setChatThreads] = useState<MessageThreadItem[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
+
+  if (loading && source === "mock") {
+    return (
+      <AppShell title="메시지">
+        <LoadingState />
+      </AppShell>
+    );
+  }
+
   const tradeUnreadCounts = useMemo(
     () =>
       notifications.reduce((map, item) => {

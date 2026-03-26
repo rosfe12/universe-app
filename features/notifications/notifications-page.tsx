@@ -348,6 +348,7 @@ export function NotificationsPage({
   const {
     currentUser,
     loading,
+    source,
     isAuthenticated,
     refresh,
     schools,
@@ -356,6 +357,14 @@ export function NotificationsPage({
   const [isPending, startTransition] = useTransition();
   const schoolId = currentUser.schoolId;
   const schoolName = schools.find((school) => school.id === schoolId)?.name;
+
+  if (loading && source === "mock") {
+    return (
+      <AppShell title="알림">
+        <LoadingState />
+      </AppShell>
+    );
+  }
 
   const actualItems = getNotifications(currentUser.id);
   const recommendedItems = buildRecommendedNotifications(currentUser.id, schoolName, schoolId);
