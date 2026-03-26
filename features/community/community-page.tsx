@@ -385,14 +385,7 @@ export function CommunityPage({
     !isAuthenticated ||
     !hasCompletedOnboarding(currentUser) ||
     canAccessSchoolFeatures(currentUser);
-
-  if (loading && source === "mock") {
-    return (
-      <AppShell title="커뮤니티">
-        <LoadingState />
-      </AppShell>
-    );
-  }
+  const showInitialLoading = loading && source === "mock";
 
   useEffect(() => {
     setActiveFilter(isSharedFilter(filterParam) ? filterParam : "all");
@@ -693,6 +686,14 @@ export function CommunityPage({
 
     void trackPostView(detailPostId).then(() => refresh()).catch(() => undefined);
   }, [detailPostId, refresh, source]);
+
+  if (showInitialLoading) {
+    return (
+      <AppShell title="커뮤니티">
+        <LoadingState />
+      </AppShell>
+    );
+  }
 
   if (!loading && !canAccessCommunity) {
     return (

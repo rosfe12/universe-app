@@ -258,13 +258,7 @@ export function SchoolPage({
       (detailPostId ? getAdmissionQuestion(detailPostId) ?? null : null),
     [detailPostId, schoolDetailPosts],
   );
-  if (loading && source === "mock") {
-    return (
-      <AppShell title="우리학교">
-        <LoadingState />
-      </AppShell>
-    );
-  }
+  const showInitialLoading = loading && source === "mock";
   const defaultSchoolVisibilityLevel = getStandardVisibilityLevel(
     currentUser.defaultVisibilityLevel,
     currentUser,
@@ -439,6 +433,14 @@ export function SchoolPage({
 
     setDetailPostId(targetPost.id);
   }, [detailParam, schoolDetailPosts]);
+
+  if (showInitialLoading) {
+    return (
+      <AppShell title="우리학교">
+        <LoadingState />
+      </AppShell>
+    );
+  }
 
   if (!loading && !isAuthenticated) {
     return (

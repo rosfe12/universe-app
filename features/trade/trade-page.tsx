@@ -163,14 +163,7 @@ export function TradePage({
       ),
     },
   });
-
-  if (loading && source === "mock") {
-    return (
-      <AppShell title="수강신청 교환">
-        <LoadingState />
-      </AppShell>
-    );
-  }
+  const showInitialLoading = loading && source === "mock";
 
   useEffect(() => {
     setTradeItems(getSchoolScopedTradePosts(schoolId));
@@ -441,6 +434,14 @@ export function TradePage({
     form.reset();
     setSuccessMessage("매칭 글이 등록되었습니다.");
   });
+
+  if (showInitialLoading) {
+    return (
+      <AppShell title="수강신청 교환">
+        <LoadingState />
+      </AppShell>
+    );
+  }
 
   if (!canAccessTrade(currentUser)) {
     if (!isAuthenticated || !hasCompletedOnboarding(currentUser)) {
