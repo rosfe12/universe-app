@@ -13,6 +13,7 @@ export function PostAuthorRow({
   createdAt,
   visibilityLevel,
   contentSchoolId,
+  anonymousMode = false,
   trailing,
   minimal = false,
 }: {
@@ -20,10 +21,13 @@ export function PostAuthorRow({
   createdAt: string;
   visibilityLevel?: VisibilityLevel;
   contentSchoolId?: string;
+  anonymousMode?: boolean;
   trailing?: React.ReactNode;
   minimal?: boolean;
 }) {
-  const identity = getPublicIdentitySummary(authorId, visibilityLevel, {
+  const effectiveVisibilityLevel =
+    !anonymousMode && visibilityLevel === "anonymous" ? "school" : visibilityLevel;
+  const identity = getPublicIdentitySummary(authorId, effectiveVisibilityLevel, {
     contentSchoolId,
   });
   const repeatedlyReported = isRepeatedlyReportedUser(authorId);
@@ -46,9 +50,9 @@ export function PostAuthorRow({
           ) : null}
           <RelativeTimeText dateString={createdAt} />
         </div>
-        {!minimal && (identity.visibilityLevel === "anonymous" || repeatedlyReported) ? (
+        {!minimal && ((anonymousMode && identity.visibilityLevel === "anonymous") || repeatedlyReported) ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-            {identity.visibilityLevel === "anonymous" ? <span>학교·학과 비공개</span> : null}
+            {anonymousMode && identity.visibilityLevel === "anonymous" ? <span>익명 게시판</span> : null}
             {repeatedlyReported ? (
               <span className={cn("text-rose-400")}>반복 신고 이력</span>
             ) : null}

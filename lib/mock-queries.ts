@@ -99,8 +99,55 @@ const ANONYMOUS_AVATAR_TONES = [
   "bg-teal-100 text-teal-700",
 ] as const;
 
+const SOURCE_ATTRIBUTION_PATTERN = /\s*출처:\s*https?:\/\/\S+/gi;
+
 function hashUserId(value: string) {
   return [...value].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+}
+
+function stripSourceAttribution(content: string) {
+  return content.replace(SOURCE_ATTRIBUTION_PATTERN, "").replace(/\s+/g, " ").trim();
+}
+
+function shouldAllowAnonymousVisibility(
+  item?: Pick<Post, "category" | "subcategory"> | null,
+) {
+  return item?.category === "community" && item.subcategory === "anonymous";
+}
+
+function normalizePostForDisplay(post: Post): Post {
+  const nextVisibilityLevel =
+    post.visibilityLevel === "anonymous" && !shouldAllowAnonymousVisibility(post)
+      ? ("school" as VisibilityLevel)
+      : post.visibilityLevel;
+  const nextContent = stripSourceAttribution(post.content);
+
+  if (nextVisibilityLevel === post.visibilityLevel && nextContent === post.content) {
+    return post;
+  }
+
+  return {
+    ...post,
+    visibilityLevel: nextVisibilityLevel,
+    content: nextContent,
+  };
+}
+
+function normalizeCommentForDisplay(comment: Comment): Comment {
+  const parentPost = getState().posts.find((post) => post.id === comment.postId);
+  const nextVisibilityLevel =
+    comment.visibilityLevel === "anonymous" && !shouldAllowAnonymousVisibility(parentPost)
+      ? ("school" as VisibilityLevel)
+      : comment.visibilityLevel;
+
+  if (nextVisibilityLevel === comment.visibilityLevel) {
+    return comment;
+  }
+
+  return {
+    ...comment,
+    visibilityLevel: nextVisibilityLevel,
+  };
 }
 
 export function getSchoolName(schoolId?: string) {
@@ -159,7 +206,7 @@ export function getSchoolScopedCommunityPosts(
         isConsistentSchoolScopedPost(post, schoolId) &&
         (!subcategory || post.subcategory === subcategory),
     ),
-  );
+  ).map(normalizePostForDisplay);
 }
 
 export function getSchoolScopedAdmissionQuestions(
@@ -185,7 +232,7 @@ export function getSchoolScopedAdmissionQuestions(
       const haystack = [post.title, post.content, post.meta?.interestUniversity ?? ""].join(" ");
       return !hasConflictingSchoolReference(haystack, schoolId) || haystack.includes(schoolName);
     }),
-  );
+  ).map(normalizePostForDisplay);
 }
 
 export function getCurrentSchool() {
@@ -402,7 +449,7 @@ export function getCareerBoardKind(post: Pick<Post, "category" | "tags">) {
 export function getAdmissionQuestions() {
   return popularFirst(
     getState().posts.filter((post) => post.category === "admission" && !isHiddenPost(post)),
-  );
+  ).map(normalizePostForDisplay);
 }
 
 export function getAdmissionQuestion(id: string) {
@@ -414,7 +461,7 @@ export function getCommentsByPostId(postId: string) {
     getState().comments.filter(
       (comment) => comment.postId === postId && !isHiddenComment(comment),
     ),
-  );
+  ).map(normalizeCommentForDisplay);
 }
 
 export function getLatestCommentPreview(postId: string) {
@@ -439,7 +486,7 @@ export function getCommunityPosts(subcategory?: CommunitySubcategory) {
           ? post.subcategory === subcategory
           : sharedCommunityBoards.includes(post.subcategory as CommunitySubcategory)),
     ),
-  );
+  ).map(normalizePostForDisplay);
 }
 
 export function getAllCommunityFeedPosts() {
@@ -450,7 +497,7 @@ export function getAllCommunityFeedPosts() {
         !isHiddenPost(post) &&
         (getCareerBoardKind(post) || ["free", "advice", "ask", "anonymous", "hot"].includes(String(post.subcategory))),
     ),
-  );
+  ).map(normalizePostForDisplay);
 }
 
 export function getSchoolCommunityFeedPosts(schoolId = currentUser.schoolId) {
@@ -563,7 +610,7 @@ export function getDatingPosts(kind?: "dating" | "meeting") {
         !isHiddenPost(post) &&
         (!kind || post.subcategory === kind),
     ),
-  );
+  ).map(normalizePostForDisplay);
 }
 
 export function getDatingProfileByUserId(userId: string) {
@@ -857,7 +904,7 @@ export function getUserTradePosts(userId = currentUser.id) {
 export function getPostById(postId: string) {
   const post = getState().posts.find((item) => item.id === postId);
   if (!post || isHiddenPost(post)) return undefined;
-  return post;
+  return normalizePostForDisplay(post);
 }
 
 export function getLectureTitle(lectureId: string) {

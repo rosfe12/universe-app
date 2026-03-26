@@ -448,6 +448,7 @@ function CommentRow({
         authorId={comment.authorId}
         createdAt={comment.createdAt}
         visibilityLevel={comment.visibilityLevel}
+        anonymousMode={getPostById(postId)?.subcategory === "anonymous"}
         minimal
       />
       <div className="space-y-2 pl-0.5">

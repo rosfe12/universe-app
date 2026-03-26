@@ -207,6 +207,23 @@ export function addCommentToSnapshot(snapshot: AppRuntimeSnapshot, comment: Comm
   return deriveModerationSnapshot(updateUserTrust(withComment, comment.authorId, gain));
 }
 
+export function incrementPostViewInSnapshot(
+  snapshot: AppRuntimeSnapshot,
+  postId: string,
+) {
+  return {
+    ...snapshot,
+    posts: snapshot.posts.map((post) =>
+      post.id === postId
+        ? {
+            ...post,
+            viewCount: (post.viewCount ?? 0) + 1,
+          }
+        : post,
+    ),
+  };
+}
+
 export function removePostFromSnapshot(snapshot: AppRuntimeSnapshot, postId: string) {
   const nextComments = snapshot.comments.filter((comment) => comment.postId !== postId);
 

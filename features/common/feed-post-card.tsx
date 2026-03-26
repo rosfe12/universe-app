@@ -156,6 +156,7 @@ export function FeedPostCard({
           createdAt={post.createdAt}
           visibilityLevel={post.visibilityLevel}
           contentSchoolId={post.schoolId}
+          anonymousMode={post.category === "community" && post.subcategory === "anonymous"}
           minimal={dense}
         />
         {interactiveContent}

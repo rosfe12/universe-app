@@ -253,7 +253,7 @@ export function HomePage({
               </div>
               <p className="mt-4 text-[15px] font-semibold text-foreground">{menu.title}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {menu.count > 0 ? `+${menu.count}` : "준비 중"}
+                {menu.count > 0 ? `+${menu.count}` : "바로 보기"}
               </p>
             </Link>
           ))}
@@ -274,7 +274,7 @@ export function HomePage({
           <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
             <CardContent className="space-y-3 py-5">
               <p className="text-base font-semibold text-foreground">
-                {hasSelectedSchool ? "학교 피드 준비 중" : isApplicant ? "지망학교를 선택하세요" : "학교를 선택하세요"}
+                {hasSelectedSchool ? "아직 새 글이 적어요" : isApplicant ? "지망학교를 선택하세요" : "학교를 선택하세요"}
               </p>
               <Link href="/school" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                 학교 열기
@@ -308,6 +308,7 @@ export function HomePage({
               <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
                 <CardContent className="py-5">
                   <p className="text-sm leading-6 text-muted-foreground">게시글 준비 중</p>
+                  <p className="text-xs text-muted-foreground">첫 투표가 올라오면 여기서 바로 볼 수 있습니다.</p>
                 </CardContent>
               </Card>
             )}
@@ -451,6 +452,7 @@ export function HomePage({
             <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
               <CardContent className="space-y-3 py-5">
                 <p className="text-base font-semibold text-foreground">강의 정보 준비 중</p>
+                <p className="text-sm text-muted-foreground">강의 페이지에서 먼저 둘러볼 수 있습니다.</p>
                 <Link href="/lectures" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
                   강의 페이지 보기
                   <ArrowUpRight className="h-4 w-4" />

@@ -59,6 +59,7 @@ import {
   addBlockToSnapshot,
   addPostToSnapshot,
   addReportToSnapshot,
+  incrementPostViewInSnapshot,
   removePostFromSnapshot,
 } from "@/lib/runtime-mutations";
 import {
@@ -277,6 +278,7 @@ function SharedFeedCard({
           createdAt={post.createdAt}
           visibilityLevel={post.visibilityLevel}
           contentSchoolId={post.schoolId}
+          anonymousMode={post.subcategory === "anonymous"}
           trailing={
             <div className="flex items-center gap-2 text-xs text-gray-400">
               {schoolHighlighted ? (
@@ -684,8 +686,9 @@ export function CommunityPage({
       return;
     }
 
-    void trackPostView(detailPostId).then(() => refresh()).catch(() => undefined);
-  }, [detailPostId, refresh, source]);
+    setSnapshot((current) => incrementPostViewInSnapshot(current, detailPostId));
+    void trackPostView(detailPostId).catch(() => undefined);
+  }, [detailPostId, setSnapshot, source]);
 
   if (showInitialLoading) {
     return (
@@ -1060,6 +1063,7 @@ export function CommunityPage({
                     createdAt={detailPost.createdAt}
                     visibilityLevel={detailPost.visibilityLevel}
                     contentSchoolId={detailPost.schoolId}
+                    anonymousMode={detailPost.subcategory === "anonymous"}
                   />
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={getCardVariant(detailPost)}>{getCardLabel(detailPost)}</Badge>
