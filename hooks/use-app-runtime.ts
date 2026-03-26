@@ -6,16 +6,17 @@ import { getRuntimeSnapshot, setRuntimeSnapshot } from "@/lib/runtime-state";
 import {
   clearSupabaseSessionStorage,
   createClient,
+  ensureSupabaseSessionReady,
   getCurrentSupabaseAuthUser,
   hasSupabaseAuthCookie,
   hasPersistedSupabaseSession,
   persistSupabaseSession,
-  restorePersistedSupabaseSession,
   shouldClearNonPersistentSession,
 } from "@/lib/supabase/client";
 import {
   isSupabaseEnabled,
   loadClientRuntimeSnapshot,
+  prewarmClientRuntimeSnapshots,
   type RuntimeSnapshotScope,
 } from "@/lib/supabase/app-data";
 import { logPerformanceEvent } from "@/lib/ops";
@@ -73,15 +74,6 @@ export function useAppRuntime(
       setLoading(false);
     }
 
-    async function prepareSession() {
-      if (!shouldClearNonPersistentSession()) {
-        return;
-      }
-
-      clearSupabaseSessionStorage();
-      await createClient().auth.signOut();
-    }
-
     if (!isSupabaseEnabled()) {
       if (initialSnapshot) {
         setLoading(false);
@@ -95,13 +87,11 @@ export function useAppRuntime(
 
     const supabase = createClient();
     void (async () => {
-      await prepareSession();
-
-      if (!active) {
-        return;
+      if (shouldClearNonPersistentSession()) {
+        clearSupabaseSessionStorage();
       }
 
-      await restorePersistedSupabaseSession();
+      await ensureSupabaseSessionReady();
 
       if (!active) {
         return;
@@ -175,6 +165,23 @@ export function useAppRuntime(
       subscription.unsubscribe();
     };
   }, [initialSnapshot, scope]);
+
+  useEffect(() => {
+    if (loading || snapshot.source !== "supabase") {
+      return;
+    }
+
+    const scopes: RuntimeSnapshotScope[] = snapshot.isAuthenticated
+      ? ["home", "community", "school", "notifications", "profile", "trade", "messages"]
+      : ["home", "community", "school"];
+
+    prewarmClientRuntimeSnapshots(
+      scopes.filter((candidate) => candidate !== scope),
+      {
+        key: `${snapshot.isAuthenticated ? "auth" : "guest"}:${snapshot.currentUser.id}`,
+      },
+    );
+  }, [loading, scope, snapshot.currentUser.id, snapshot.isAuthenticated, snapshot.source]);
 
   return {
     snapshot,

@@ -1163,11 +1163,13 @@ const lastClientRuntimeSnapshots = new Map<
   RuntimeSnapshotScope,
   { snapshot: AppRuntimeSnapshot; at: number }
 >();
+const prewarmedRuntimeSnapshotKeys = new Set<string>();
 
 export function invalidateClientRuntimeSnapshots(scopes?: RuntimeSnapshotScope[]) {
   if (!scopes || scopes.length === 0) {
     clientRuntimeSnapshotPromises.clear();
     lastClientRuntimeSnapshots.clear();
+    prewarmedRuntimeSnapshotKeys.clear();
     resetSupabaseAuthUserCache();
     return;
   }
@@ -1182,6 +1184,50 @@ export function invalidateClientRuntimeSnapshots(scopes?: RuntimeSnapshotScope[]
 
 export function resetClientAuthRuntime() {
   invalidateClientRuntimeSnapshots();
+}
+
+export function prewarmClientRuntimeSnapshots(
+  scopes: RuntimeSnapshotScope[],
+  options?: {
+    key?: string;
+    delayMs?: number;
+  },
+) {
+  if (typeof window === "undefined" || scopes.length === 0) {
+    return;
+  }
+
+  const key = options?.key ?? scopes.join("|");
+  if (prewarmedRuntimeSnapshotKeys.has(key)) {
+    return;
+  }
+  prewarmedRuntimeSnapshotKeys.add(key);
+
+  const run = async () => {
+    for (const scope of scopes) {
+      try {
+        await loadClientRuntimeSnapshot({ scope });
+      } catch {
+        // ignore background prewarm failures
+      }
+    }
+  };
+
+  const delayMs = options?.delayMs ?? 400;
+  const win = window as typeof window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+  };
+
+  if (typeof win.requestIdleCallback === "function") {
+    win.requestIdleCallback(() => {
+      void run();
+    }, { timeout: 1500 });
+    return;
+  }
+
+  window.setTimeout(() => {
+    void run();
+  }, delayMs);
 }
 
 async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"): Promise<AppRuntimeSnapshot> {

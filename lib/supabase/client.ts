@@ -17,6 +17,8 @@ import { publicEnv } from "@/lib/env";
 
 let browserClient: SupabaseClient | null = null;
 let authUserPromise: Promise<SupabaseAuthUser | null> | null = null;
+let sessionBootstrapPromise: Promise<SupabaseAuthSession | null> | null = null;
+let sessionBootstrapCompleted = false;
 
 type PersistedSupabaseSession = {
   access_token: string;
@@ -86,6 +88,7 @@ export function persistSupabaseSession(
   window.sessionStorage.removeItem(storageKeys.session);
 
   if (!session?.access_token || !session.refresh_token) {
+    sessionBootstrapCompleted = true;
     return;
   }
 
@@ -99,6 +102,7 @@ export function persistSupabaseSession(
       refresh_token: session.refresh_token,
     }),
   );
+  sessionBootstrapCompleted = true;
 }
 
 export function clearPersistedSupabaseSession() {
@@ -109,6 +113,11 @@ export function clearPersistedSupabaseSession() {
   const storageKeys = getPersistedSessionStorageKeys();
   window.localStorage.removeItem(storageKeys.local);
   window.sessionStorage.removeItem(storageKeys.session);
+}
+
+export function resetSupabaseSessionBootstrap() {
+  sessionBootstrapCompleted = false;
+  sessionBootstrapPromise = null;
 }
 
 export async function restorePersistedSupabaseSession() {
@@ -146,6 +155,42 @@ export async function restorePersistedSupabaseSession() {
   return data.session;
 }
 
+export async function ensureSupabaseSessionReady(force = false) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  if (force) {
+    resetSupabaseSessionBootstrap();
+  }
+
+  if (sessionBootstrapCompleted) {
+    const {
+      data: { session },
+    } = await createClient().auth.getSession();
+    return session ?? null;
+  }
+
+  if (sessionBootstrapPromise) {
+    return sessionBootstrapPromise;
+  }
+
+  sessionBootstrapPromise = (async () => {
+    if (shouldClearNonPersistentSession()) {
+      clearSupabaseSessionStorage();
+      await createClient().auth.signOut();
+    }
+
+    const restoredSession = await restorePersistedSupabaseSession();
+    sessionBootstrapCompleted = true;
+    return restoredSession;
+  })().finally(() => {
+    sessionBootstrapPromise = null;
+  });
+
+  return sessionBootstrapPromise;
+}
+
 export function setSupabaseSessionPersistence(keepLoggedIn: boolean) {
   if (typeof window === "undefined") {
     return;
@@ -164,6 +209,7 @@ export function clearSupabaseSessionStorage() {
     return;
   }
 
+  resetSupabaseSessionBootstrap();
   window.sessionStorage.removeItem(AUTH_SESSION_MARKER_STORAGE_KEY);
   clearPersistedSupabaseSession();
 }
