@@ -23,7 +23,6 @@ import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner
 import { EmptyState } from "@/components/shared/empty-state";
 import { FeedList } from "@/components/shared/feed-list";
 import { PollCard } from "@/components/shared/poll-card";
-import { RelativeTimeText } from "@/components/shared/relative-time-text";
 import { SectionHeader } from "@/components/shared/section-header";
 import { CommentThread } from "@/features/common/comment-thread";
 import { PostAuthorRow } from "@/features/common/post-author-row";
@@ -322,7 +321,6 @@ function SharedFeedCard({
             <MessageCircle className="h-4 w-4" />
             {post.commentCount}
           </span>
-          <RelativeTimeText dateString={post.createdAt} />
         </div>
         {latestComment ? (
           <button
