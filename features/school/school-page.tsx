@@ -1159,7 +1159,7 @@ export function SchoolPage({
                 </p>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {["전형명/면접", "내신·수능 등급", "관심 학과", "현재 가장 궁금한 한 가지"].map((tip) => (
+                {["수시·정시·논술 같은 전형", "면접·서류·실기 궁금한 점", "내신·수능 등급", "관심 학과"].map((tip) => (
                   <span
                     key={tip}
                     className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground"
@@ -1171,7 +1171,7 @@ export function SchoolPage({
             </div>
             <div className="space-y-2">
               <Label>제목</Label>
-              <Input placeholder="예: 이 학교 교과전형 면접 분위기 궁금해요" {...admissionForm.register("title")} />
+              <Input placeholder="예: 수시 교과전형 면접 분위기 어떤가요?" {...admissionForm.register("title")} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -1185,7 +1185,7 @@ export function SchoolPage({
             </div>
             <div className="space-y-2">
               <Label>성적 정보</Label>
-              <Input placeholder="예: 내신 2.3 / 수능 수학 2등급" {...admissionForm.register("scoreType")} />
+              <Input placeholder="예: 내신 2.3 / 수능 수학 2등급 / 논술 준비 중" {...admissionForm.register("scoreType")} />
             </div>
             <div className="space-y-2">
               <Label>관심 학과</Label>

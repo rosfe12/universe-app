@@ -386,13 +386,13 @@ export function AdmissionPage({
           <DialogHeader>
             <DialogTitle>입시 질문 작성</DialogTitle>
             <DialogDescription>
-              정보형 질문답변 포맷으로 정리된 질문을 등록합니다.
+              수시·정시·논술 같은 전형과 면접·서류에서 궁금한 점을 같이 적어두면 답변이 더 잘 붙습니다.
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <Label htmlFor="title">질문 제목</Label>
-              <Input id="title" {...form.register("title")} />
+              <Input id="title" placeholder="예: 수시 교과전형 면접 분위기 어떤가요?" {...form.register("title")} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -419,7 +419,7 @@ export function AdmissionPage({
             </div>
             <div className="space-y-2">
               <Label>내신 또는 수능</Label>
-              <Input {...form.register("scoreType")} />
+              <Input placeholder="예: 내신 2.3 / 수능 수학 2등급 / 논술 준비 중" {...form.register("scoreType")} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
