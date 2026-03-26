@@ -496,11 +496,11 @@ export function NotificationsPage({
                 반응이 들어온 글, 학교 추천, 시스템 공지까지 바로 이어서 볼 수 있습니다.
               </p>
             </div>
-            <div className="rounded-[24px] border border-white/80 bg-white/80 px-4 py-3 text-right shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/70">
+            <div className="flex min-w-[88px] flex-col items-center justify-center rounded-[24px] border border-white/80 bg-white/80 px-3 py-3 text-center shadow-sm">
+              <p className="text-[10px] font-semibold tracking-[0.12em] text-primary/70">
                 새 알림
               </p>
-              <p className="mt-1 text-[30px] font-bold tracking-tight text-foreground">{unreadCount}</p>
+              <p className="mt-2 text-[32px] font-bold leading-none tracking-tight text-foreground">{unreadCount}</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
