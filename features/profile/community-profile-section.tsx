@@ -120,7 +120,7 @@ export function CommunityProfileSection({
     return () => {
       active = false;
     };
-  }, [profileEnabled, currentUser.id]);
+  }, [profileEnabled, currentUser.id, onProfileChange]);
 
   const imageByOrder = useMemo(() => {
     const map = new Map<number, CommunityProfile["images"][number]>();
@@ -326,13 +326,13 @@ export function CommunityProfileSection({
           {error}
         </div>
       ) : null}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">내 홈</p>
-            <p className="text-sm text-muted-foreground">
-              공개 범위에 따라 전체 대학생 또는 같은 학교 학생에게 보입니다.
-            </p>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">내 홈</p>
+          <p className="text-sm text-muted-foreground">
+            공개 범위에 따라 전체 대학생 또는 같은 학교 학생에게 보입니다.
+          </p>
+        </div>
         <Button type="button" size="sm" variant="outline" onClick={openEditor} disabled={!profile || loading}>
           <Pencil className="h-4 w-4" />
           수정
@@ -426,12 +426,12 @@ export function CommunityProfileSection({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[calc(100vh-3rem)] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>내 홈 수정</DialogTitle>
-              <DialogDescription>
+          <DialogHeader>
+            <DialogTitle>내 홈 수정</DialogTitle>
+            <DialogDescription>
               얼굴 사진 없이, 학생 인증 사용자에게 보여줄 기본 정보만 정리합니다.
-              </DialogDescription>
-            </DialogHeader>
+            </DialogDescription>
+          </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
