@@ -155,6 +155,7 @@ export function FeedPostCard({
           authorId={post.authorId}
           createdAt={post.createdAt}
           visibilityLevel={post.visibilityLevel}
+          contentSchoolId={post.schoolId}
           minimal={dense}
         />
         {interactiveContent}

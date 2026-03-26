@@ -16,6 +16,7 @@ import {
 import {
   isSupabaseEnabled,
   loadClientRuntimeSnapshot,
+  peekClientRuntimeSnapshot,
   prewarmClientRuntimeSnapshots,
   type RuntimeSnapshotScope,
 } from "@/lib/supabase/app-data";
@@ -26,10 +27,11 @@ export function useAppRuntime(
   initialSnapshot?: AppRuntimeSnapshot,
   scope: RuntimeSnapshotScope = "full",
 ) {
-  const seedSnapshot = initialSnapshot ?? getRuntimeSnapshot();
+  const scopedSnapshot = initialSnapshot ?? peekClientRuntimeSnapshot(scope);
+  const seedSnapshot = scopedSnapshot ?? getRuntimeSnapshot();
   const mountedAtRef = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
   const [snapshot, setSnapshot] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
-  const [loading, setLoading] = useState(!initialSnapshot && seedSnapshot.source === "mock");
+  const [loading, setLoading] = useState(!initialSnapshot && !scopedSnapshot);
 
   useEffect(() => {
     if (!initialSnapshot) {

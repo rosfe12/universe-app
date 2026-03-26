@@ -276,6 +276,7 @@ function SharedFeedCard({
           authorId={post.authorId}
           createdAt={post.createdAt}
           visibilityLevel={post.visibilityLevel}
+          contentSchoolId={post.schoolId}
           trailing={
             <div className="flex items-center gap-2 text-xs text-gray-400">
               {schoolHighlighted ? (
@@ -1057,6 +1058,7 @@ export function CommunityPage({
                     authorId={detailPost.authorId}
                     createdAt={detailPost.createdAt}
                     visibilityLevel={detailPost.visibilityLevel}
+                    contentSchoolId={detailPost.schoolId}
                   />
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={getCardVariant(detailPost)}>{getCardLabel(detailPost)}</Badge>

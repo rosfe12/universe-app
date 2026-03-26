@@ -46,6 +46,7 @@ export function TradePostCard({
               authorId={tradePost.userId}
               createdAt={tradePost.createdAt}
               visibilityLevel={tradePost.visibilityLevel}
+              contentSchoolId={tradePost.schoolId}
             />
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <Badge variant={statusVariant}>

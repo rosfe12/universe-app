@@ -1186,6 +1186,10 @@ export function resetClientAuthRuntime() {
   invalidateClientRuntimeSnapshots();
 }
 
+export function peekClientRuntimeSnapshot(scope: RuntimeSnapshotScope) {
+  return lastClientRuntimeSnapshots.get(scope)?.snapshot;
+}
+
 export function prewarmClientRuntimeSnapshots(
   scopes: RuntimeSnapshotScope[],
   options?: {

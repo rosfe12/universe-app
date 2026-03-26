@@ -272,6 +272,7 @@ export function AdmissionPage({
                     authorId={question.authorId}
                     createdAt={question.createdAt}
                     visibilityLevel={question.visibilityLevel}
+                    contentSchoolId={question.schoolId}
                   />
                   <div className="space-y-3">
                     <div>

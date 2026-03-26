@@ -241,12 +241,15 @@ export function getUserVisibilityLevel(
 export function getPublicIdentitySummary(
   userId: string,
   visibilityLevel?: VisibilityLevel,
+  options?: {
+    contentSchoolId?: string;
+  },
 ) {
   const user = getUser(userId);
   if (!user) {
     return {
       nickname: "익명",
-      label: "완전 익명",
+      label: "익명",
       trustScore: 0,
       trustTier: getTrustTier(0),
       visibilityLevel: "anonymous" as VisibilityLevel,
@@ -254,13 +257,19 @@ export function getPublicIdentitySummary(
   }
 
   const resolvedVisibilityLevel = getUserVisibilityLevel(userId, visibilityLevel);
+  const contentSchoolId = options?.contentSchoolId;
+  const labelSchoolId = contentSchoolId ?? user.schoolId;
+  const displayDepartment =
+    !contentSchoolId || !user.schoolId || contentSchoolId === user.schoolId
+      ? user.department
+      : undefined;
+  const nickname = getAnonymousHandle(userId).replace(/^[A-Z]{2,4}_(?=익명_)/, "");
 
   return {
-    nickname:
-      resolvedVisibilityLevel === "anonymous" ? "익명" : getAnonymousHandle(userId),
+    nickname: resolvedVisibilityLevel === "anonymous" ? "익명" : nickname,
     label: getPublicIdentityLabel({
-      schoolName: getSchoolName(user.schoolId),
-      department: user.department,
+      schoolName: getSchoolName(labelSchoolId),
+      department: displayDepartment,
       visibilityLevel: resolvedVisibilityLevel,
     }),
     trustScore: user.trustScore,

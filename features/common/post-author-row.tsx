@@ -12,16 +12,20 @@ export function PostAuthorRow({
   authorId,
   createdAt,
   visibilityLevel,
+  contentSchoolId,
   trailing,
   minimal = false,
 }: {
   authorId: string;
   createdAt: string;
   visibilityLevel?: VisibilityLevel;
+  contentSchoolId?: string;
   trailing?: React.ReactNode;
   minimal?: boolean;
 }) {
-  const identity = getPublicIdentitySummary(authorId, visibilityLevel);
+  const identity = getPublicIdentitySummary(authorId, visibilityLevel, {
+    contentSchoolId,
+  });
   const repeatedlyReported = isRepeatedlyReportedUser(authorId);
 
   return (

@@ -79,6 +79,7 @@ export function AdmissionDetailPage({
             authorId={question.authorId}
             createdAt={question.createdAt}
             visibilityLevel={question.visibilityLevel}
+            contentSchoolId={question.schoolId}
           />
           <div className="space-y-2">
             <CardTitle className="text-xl leading-snug">{question.title}</CardTitle>
