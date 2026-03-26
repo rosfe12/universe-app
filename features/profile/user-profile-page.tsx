@@ -142,7 +142,7 @@ export function UserProfilePage({ userId }: { userId: string }) {
             <CardContent className="space-y-4 p-5">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-2xl font-semibold tracking-[-0.03em] text-gray-950 dark:text-gray-50">
+                  <p className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
                     {profile.displayName}
                   </p>
                   {profile.schoolName ? <Badge variant="secondary">{profile.schoolName}</Badge> : null}
