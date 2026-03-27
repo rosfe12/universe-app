@@ -84,7 +84,7 @@ export function ProfileImageEditorDialog({
   const hasSensitiveWarning = sensitiveTextDetected || qrDetected;
 
   useEffect(() => {
-    if (!open || !file || !needsFaceMask || processedFile || hasAutoApplied) {
+    if (!open || !file || !needsFaceMask || processedFile || initialProcessedFile || hasAutoApplied) {
       return;
     }
 
@@ -115,7 +115,7 @@ export function ProfileImageEditorDialog({
     return () => {
       active = false;
     };
-  }, [faceBoxes, file, hasAutoApplied, needsFaceMask, open, processedFile]);
+  }, [faceBoxes, file, hasAutoApplied, initialProcessedFile, needsFaceMask, open, processedFile]);
 
   async function handleApplyBlur() {
     if (!file || faceBoxes.length === 0) return;
