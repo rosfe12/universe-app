@@ -58,6 +58,12 @@ export function ProfileImageEditorDialog({
     setHasAutoApplied(Boolean(initialProcessedFile));
   }, [file, initialProcessedFile, open]);
 
+  useEffect(() => {
+    if (processedFile || initialProcessedFile) {
+      setIsProcessing(false);
+    }
+  }, [initialProcessedFile, processedFile]);
+
   const originalPreviewUrl = useMemo(() => {
     if (!file) return null;
     return URL.createObjectURL(file);
