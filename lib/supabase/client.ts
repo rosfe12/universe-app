@@ -237,9 +237,26 @@ export async function getCurrentSupabaseAuthUser(force = false) {
     return authUserPromise;
   }
 
-  authUserPromise = createClient()
-    .auth.getUser()
-    .then(({ data: { user } }) => user ?? null)
+  authUserPromise = (async () => {
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session?.user) {
+      return session.user;
+    }
+
+    if (!force) {
+      return null;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    return user ?? null;
+  })()
     .catch(() => null)
     .finally(() => {
       window.setTimeout(() => {
