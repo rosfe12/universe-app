@@ -149,11 +149,6 @@ export function UserProfilePage({ userId }: { userId: string }) {
           onClose={() => setNotice(null)}
         />
       ) : null}
-      {!profile && error ? (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {error}
-        </div>
-      ) : null}
       {profile ? (
         <>
           <Card className="app-section-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">

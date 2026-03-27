@@ -88,6 +88,7 @@ export function ProfileImageEditorDialog({
 
   const needsFaceMask = faceBoxes.length > 0;
   const hasSensitiveWarning = sensitiveTextDetected || qrDetected;
+  const confirmLabel = hasSensitiveWarning && !needsFaceMask ? "검토 후 업로드" : "이 이미지 업로드";
 
   useEffect(() => {
     if (!open || !file || !needsFaceMask || processedFile || initialProcessedFile || hasAutoApplied) {
@@ -270,7 +271,7 @@ export function ProfileImageEditorDialog({
             </div>
           ) : null}
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className={`grid grid-cols-1 gap-3 ${needsFaceMask ? "sm:grid-cols-2" : ""}`}>
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">원본</p>
               <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
@@ -287,33 +288,41 @@ export function ProfileImageEditorDialog({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                가려진 이미지
-              </p>
-              <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
-                <div className="aspect-[0.92] w-full">
-                  {processedPreviewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={processedPreviewUrl}
-                      alt="편집 미리보기"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : isProcessing ? (
-                    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>가린 이미지를 만드는 중이에요.</span>
-                    </div>
-                  ) : (
-                    <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                      자동 흐림이나 스티커를 적용하면 여기에서 결과를 볼 수 있어요.
-                    </div>
-                  )}
+            {needsFaceMask ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  가려진 이미지
+                </p>
+                <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
+                  <div className="aspect-[0.92] w-full">
+                    {processedPreviewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={processedPreviewUrl}
+                        alt="편집 미리보기"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : isProcessing ? (
+                      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>가린 이미지를 만드는 중이에요.</span>
+                      </div>
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                        자동 흐림이나 스티커를 적용하면 여기에서 결과를 볼 수 있어요.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
           </div>
+
+          {hasSensitiveWarning && !needsFaceMask ? (
+            <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted-foreground">
+              개인정보가 보이면 가린 이미지를 다시 선택해주세요. 그대로 올리면 검토 후 공개돼요.
+            </div>
+          ) : null}
 
           {error ? <p className="text-sm text-rose-500">{error}</p> : null}
         </div>
@@ -337,7 +346,7 @@ export function ProfileImageEditorDialog({
                 처리 중
               </>
             ) : (
-              "이 이미지 업로드"
+              confirmLabel
             )}
           </Button>
         </DialogFooter>

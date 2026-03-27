@@ -19,5 +19,5 @@ export function ProfileImage({ src, fallback = null, alt, ...props }: ProfileIma
     return <>{fallback}</>;
   }
 
-  return <Image {...props} src={src} alt={alt} onError={() => setBroken(true)} />;
+  return <Image {...props} src={src} alt={alt} unoptimized onError={() => setBroken(true)} />;
 }
