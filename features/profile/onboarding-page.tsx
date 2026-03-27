@@ -147,9 +147,9 @@ export function OnboardingPage() {
     Boolean(departmentValue?.trim()) &&
     Boolean(admissionYearValue?.trim());
   const verificationInputHint = !selectedSchool?.id
-    ? "학교를 먼저 선택해주세요."
+    ? "학교를 선택해주세요."
     : !normalizedSchoolEmailValue
-      ? "학교 메일을 입력한 뒤 인증 요청을 눌러주세요."
+      ? "학교 메일을 입력해주세요."
       : !studentNumberValue?.trim()
         ? "학번을 입력해주세요."
         : !departmentValue?.trim()
@@ -157,10 +157,10 @@ export function OnboardingPage() {
           : !admissionYearValue?.trim()
             ? "입학년도를 입력해주세요."
       : !canUseSchoolVerificationEmail(normalizedSchoolEmailValue)
-          ? "학교 메일은 ac.kr 주소만 사용할 수 있습니다."
+          ? "학교 메일은 ac.kr 주소만 사용할 수 있어요."
         : isMatchingPendingState
-          ? "현재 인증 상태가 진행 중입니다. 아래 자료 업로드가 필요할 수 있습니다."
-          : "인증 요청 버튼을 누르면 학교 메일 인증이 시작됩니다.";
+          ? "인증 검토가 진행 중이에요. 필요하면 아래 자료를 추가해 주세요."
+          : "인증 요청을 보내면 자동 판정이 바로 시작됩니다.";
   const verificationPreview = getStudentVerificationBadge({
     userType: selectedUserType,
     studentVerificationStatus: currentUser.studentVerificationStatus,
@@ -792,8 +792,8 @@ export function OnboardingPage() {
                     <div className="space-y-1">
                       <p className="text-sm font-semibold text-foreground">추가 인증 자료 업로드</p>
                       <p className="text-xs leading-5 text-muted-foreground">
-                        학생증, 포털 재학 화면 캡처 등 학생 확인이 가능한 자료를 올려주세요.
-                        주민번호, 바코드, QR 등 민감정보는 가리고 업로드하는 것을 권장합니다.
+                        학생증이나 포털 재학 화면처럼 학생 확인이 가능한 자료를 올려주세요.
+                        주민번호, 바코드, QR 등 민감정보는 가린 뒤 업로드해 주세요.
                       </p>
                     </div>
                     <div className="mt-3 space-y-3">

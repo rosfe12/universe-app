@@ -26,6 +26,7 @@ type ProfileImageEditorDialogProps = {
   faceBoxes: FaceBox[];
   sensitiveTextDetected: boolean;
   qrDetected: boolean;
+  initialProcessedFile?: File | null;
   onOpenChange: (open: boolean) => void;
   onReset: () => void;
   onConfirm: (file: File, flags: { sensitiveTextDetected: boolean; qrDetected: boolean }) => Promise<void>;
@@ -38,6 +39,7 @@ export function ProfileImageEditorDialog({
   faceBoxes,
   sensitiveTextDetected,
   qrDetected,
+  initialProcessedFile,
   onOpenChange,
   onReset,
   onConfirm,
@@ -49,12 +51,12 @@ export function ProfileImageEditorDialog({
   const [hasAutoApplied, setHasAutoApplied] = useState(false);
 
   useEffect(() => {
-    setProcessedFile(null);
+    setProcessedFile(initialProcessedFile ?? null);
     setError(null);
     setStickerType("smile");
     setIsProcessing(false);
-    setHasAutoApplied(false);
-  }, [file, open]);
+    setHasAutoApplied(Boolean(initialProcessedFile));
+  }, [file, initialProcessedFile, open]);
 
   const originalPreviewUrl = useMemo(() => {
     if (!file) return null;
@@ -204,6 +206,12 @@ export function ProfileImageEditorDialog({
           {hasSensitiveWarning ? (
             <div className="rounded-[20px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
               전화번호, SNS 아이디, QR코드 등 개인정보도 함께 가려주세요.
+            </div>
+          ) : null}
+
+          {needsFaceMask && processedPreviewUrl ? (
+            <div className="rounded-[20px] border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+              얼굴을 자동으로 가린 이미지를 준비했어요. 그대로 올리거나 스티커로 다시 가릴 수 있어요.
             </div>
           ) : null}
 

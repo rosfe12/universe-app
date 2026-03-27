@@ -34,7 +34,7 @@ import {
   parseInterestTokens,
   validateCommunityProfileImageFile,
 } from "@/lib/community-profile";
-import { validateImageBeforeUpload } from "@/lib/profile-image-processing";
+import { applyBlurToFaces, validateImageBeforeUpload } from "@/lib/profile-image-processing";
 import type { FaceBox } from "@/lib/profile-image-processing";
 import type { CommunityProfile, ProfileVisibility, User } from "@/types";
 
@@ -76,6 +76,7 @@ export function CommunityProfileSection({
     faceBoxes: FaceBox[];
     sensitiveTextDetected: boolean;
     qrDetected: boolean;
+    processedFile: File | null;
   } | null>(null);
 
   const orderedImages = useMemo(
@@ -213,23 +214,37 @@ export function CommunityProfileSection({
   async function handleImageUpload(order: number, file?: File | null) {
     if (!file) return;
 
+    setUploadingOrder(order);
     try {
       validateCommunityProfileImageFile(file);
       const analysis = await validateImageBeforeUpload(file);
       if (analysis.faceBoxes.length > 0 || analysis.sensitiveTextDetected || analysis.qrDetected) {
+        let processedFile: File | null = null;
+
+        if (analysis.faceBoxes.length > 0) {
+          try {
+            processedFile = await applyBlurToFaces(file, analysis.faceBoxes);
+          } catch {
+            processedFile = null;
+          }
+        }
+
         setEditorState({
           imageOrder: order,
           file,
           faceBoxes: analysis.faceBoxes,
           sensitiveTextDetected: analysis.sensitiveTextDetected,
           qrDetected: analysis.qrDetected,
+          processedFile,
         });
+        setUploadingOrder(null);
         return;
       }
 
       await uploadSelectedImage(order, file);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
+      setUploadingOrder(null);
     }
   }
 
@@ -702,6 +717,7 @@ export function CommunityProfileSection({
         faceBoxes={editorState?.faceBoxes ?? []}
         sensitiveTextDetected={Boolean(editorState?.sensitiveTextDetected)}
         qrDetected={Boolean(editorState?.qrDetected)}
+        initialProcessedFile={editorState?.processedFile ?? null}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
             setEditorState(null);
