@@ -1362,9 +1362,12 @@ export async function loadServerRuntimeSnapshot(
       return createSupabaseFallbackSnapshot(getSupabaseSetupIssue(usersResult.error));
     }
 
+    const profilePreviewTargetIds = authUser?.id
+      ? relatedUserIds.filter((id) => id !== authUser.id)
+      : relatedUserIds;
     const profilePreviewByUserId = await buildVisibleProfilePreviewMap(
       supabase,
-      relatedUserIds,
+      profilePreviewTargetIds,
       currentUserProfileRow?.verification_state === "student_verified",
     );
     const users = (usersResult.data ?? []).map((row: Record<string, unknown>) => {
