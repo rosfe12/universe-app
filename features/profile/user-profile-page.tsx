@@ -33,6 +33,7 @@ import type { CommunityProfile } from "@/types";
 export function UserProfilePage({ userId }: { userId: string }) {
   const { currentUser, isAuthenticated, loading } = useAppRuntime(undefined, "profile");
   const [profile, setProfile] = useState<CommunityProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -49,7 +50,7 @@ export function UserProfilePage({ userId }: { userId: string }) {
     let active = true;
     setError(null);
     setNotice(null);
-    setProfile(null);
+    setProfileLoading(true);
 
     void getUserProfile(userId)
       .then((result) => {
@@ -57,19 +58,23 @@ export function UserProfilePage({ userId }: { userId: string }) {
         if (!result.ok) {
           setError(result.error);
           setProfile(null);
+          setProfileLoading(false);
           return;
         }
         setProfile(result.profile);
+        setProfileLoading(false);
       })
       .catch((cause) => {
         if (!active) return;
         setError(cause instanceof Error ? cause.message : COMMUNITY_PROFILE_RESTRICTION_MESSAGE);
+        setProfile(null);
+        setProfileLoading(false);
       });
 
     return () => {
       active = false;
     };
-  }, [currentUser, isAuthenticated, loading, userId]);
+  }, [currentUser?.email, currentUser?.id, currentUser?.verificationState, isAuthenticated, loading, userId]);
 
   if (loading) {
     return (
@@ -344,7 +349,7 @@ export function UserProfilePage({ userId }: { userId: string }) {
           </CardContent>
         </Card>
       ) : (
-        <LoadingState />
+        profileLoading ? <LoadingState /> : null
       )}
     </AppShell>
   );
