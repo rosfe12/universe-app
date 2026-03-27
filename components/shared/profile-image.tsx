@@ -3,7 +3,8 @@
 import Image, { type ImageProps } from "next/image";
 import { useEffect, useState } from "react";
 
-const failedProfileImageKeys = new Set<string>();
+const failedProfileImageKeys = new Map<string, number>();
+const PROFILE_IMAGE_FAILURE_TTL_MS = 5 * 60 * 1000;
 
 type ProfileImageProps = Omit<ImageProps, "src"> & {
   src?: string | null;
@@ -24,11 +25,30 @@ function getProfileImageFailureKey(src: string) {
 export function ProfileImage({ src, fallback = null, alt, ...props }: ProfileImageProps) {
   const failureKey = src ? getProfileImageFailureKey(src) : null;
   const [broken, setBroken] = useState(() =>
-    failureKey ? failedProfileImageKeys.has(failureKey) : false,
+    failureKey
+      ? (() => {
+          const failedAt = failedProfileImageKeys.get(failureKey);
+          return Boolean(failedAt && Date.now() - failedAt < PROFILE_IMAGE_FAILURE_TTL_MS);
+        })()
+      : false,
   );
 
   useEffect(() => {
-    setBroken(failureKey ? failedProfileImageKeys.has(failureKey) : false);
+    setBroken(
+      failureKey
+        ? (() => {
+            const failedAt = failedProfileImageKeys.get(failureKey);
+            if (!failedAt) {
+              return false;
+            }
+            if (Date.now() - failedAt >= PROFILE_IMAGE_FAILURE_TTL_MS) {
+              failedProfileImageKeys.delete(failureKey);
+              return false;
+            }
+            return true;
+          })()
+        : false,
+    );
   }, [failureKey]);
 
   if (!src || broken) {
@@ -43,7 +63,7 @@ export function ProfileImage({ src, fallback = null, alt, ...props }: ProfileIma
       unoptimized
       onError={() => {
         if (failureKey) {
-          failedProfileImageKeys.add(failureKey);
+          failedProfileImageKeys.set(failureKey, Date.now());
         }
         setBroken(true);
       }}
