@@ -624,14 +624,23 @@ async function createClientProfileImageUrl(
   supabase: ReturnType<typeof createClient>,
   path: string,
 ) {
+  const cachedImage = clientProfileImageUrlCache.get(path);
+  if (cachedImage && Date.now() - cachedImage.at < CLIENT_PROFILE_IMAGE_URL_TTL_MS) {
+    return cachedImage.url;
+  }
+
   const { data, error } = await supabase.storage
     .from(PROFILE_IMAGE_BUCKET)
     .createSignedUrl(path, 60 * 60);
 
   if (error) {
-    return undefined;
+    return cachedImage?.url;
   }
 
+  clientProfileImageUrlCache.set(path, {
+    url: data.signedUrl,
+    at: Date.now(),
+  });
   return data.signedUrl;
 }
 
@@ -1234,12 +1243,15 @@ const lastClientRuntimeSnapshots = new Map<
   { snapshot: AppRuntimeSnapshot; at: number }
 >();
 const prewarmedRuntimeSnapshotKeys = new Set<string>();
+const clientProfileImageUrlCache = new Map<string, { url: string; at: number }>();
+const CLIENT_PROFILE_IMAGE_URL_TTL_MS = 45 * 60 * 1000;
 
 export function invalidateClientRuntimeSnapshots(scopes?: RuntimeSnapshotScope[]) {
   if (!scopes || scopes.length === 0) {
     clientRuntimeSnapshotPromises.clear();
     lastClientRuntimeSnapshots.clear();
     prewarmedRuntimeSnapshotKeys.clear();
+    clientProfileImageUrlCache.clear();
     resetSupabaseAuthUserCache();
     return;
   }
@@ -1591,11 +1603,32 @@ export async function loadClientRuntimeSnapshot(options?: {
 
   const nextSnapshotPromise = fetchClientRuntimeSnapshot(scope)
     .then((snapshot) => {
+      if (snapshot.setupStatus !== "ready" && cachedSnapshot?.snapshot) {
+        lastClientRuntimeSnapshots.set(scope, {
+          snapshot: cachedSnapshot.snapshot,
+          at: Date.now(),
+        });
+        return cachedSnapshot.snapshot;
+      }
+
       lastClientRuntimeSnapshots.set(scope, {
         snapshot,
         at: Date.now(),
       });
       return snapshot;
+    })
+    .catch((error) => {
+      if (cachedSnapshot?.snapshot) {
+        lastClientRuntimeSnapshots.set(scope, {
+          snapshot: cachedSnapshot.snapshot,
+          at: Date.now(),
+        });
+        return cachedSnapshot.snapshot;
+      }
+
+      return createSupabaseFallbackSnapshot(
+        getSupabaseSetupIssue(error instanceof Error ? error : undefined),
+      );
     })
     .finally(() => {
       clientRuntimeSnapshotPromises.delete(scope);
