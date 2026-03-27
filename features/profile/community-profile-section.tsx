@@ -13,6 +13,7 @@ import {
   uploadProfileImage,
 } from "@/app/actions/profile-actions";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
+import { ProfileImage } from "@/components/shared/profile-image";
 import { ProfileImageEditorDialog } from "@/components/shared/profile-image-editor-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -394,12 +395,17 @@ export function CommunityProfileSection({
                     >
                       <div className="aspect-[0.92] w-full">
                         {image?.imageUrl ? (
-                          <Image
+                          <ProfileImage
                             src={image.imageUrl}
                             alt={`프로필 사진 ${index + 1}`}
                             width={480}
                             height={520}
                             className="h-full w-full object-cover"
+                            fallback={
+                              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                사진 {index + 1}
+                              </div>
+                            }
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
@@ -592,12 +598,18 @@ export function CommunityProfileSection({
                     <div key={order} className="space-y-2 rounded-[20px] border border-white/10 p-3">
                       <div className="app-muted-surface flex aspect-[0.92] items-center justify-center overflow-hidden rounded-[16px]">
                         {image?.imageUrl ? (
-                          <Image
+                          <ProfileImage
                             src={image.imageUrl}
                             alt={`프로필 사진 ${order}`}
                             width={480}
                             height={520}
                             className="h-full w-full object-cover"
+                            fallback={
+                              <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+                                <ImagePlus className="h-4 w-4" />
+                                <span>사진 {order}</span>
+                              </div>
+                            }
                           />
                         ) : (
                           <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">

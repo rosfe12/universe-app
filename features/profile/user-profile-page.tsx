@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 
@@ -10,6 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { LoadingState } from "@/components/shared/loading-state";
+import { ProfileImage } from "@/components/shared/profile-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -181,12 +181,17 @@ export function UserProfilePage({ userId }: { userId: string }) {
                     >
                       <div className="aspect-[0.92] w-full">
                         {image.imageUrl ? (
-                          <Image
+                          <ProfileImage
                             src={image.imageUrl}
                             alt={`${profile.displayName} 프로필 사진 ${image.imageOrder}`}
                             width={480}
                             height={520}
                             className="h-full w-full object-cover"
+                            fallback={
+                              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                이미지 준비 중
+                              </div>
+                            }
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">

@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -11,6 +10,7 @@ import type { VisibilityLevel } from "@/types";
 
 import { RelativeTimeText } from "@/components/shared/relative-time-text";
 import { UserLevelText } from "@/components/shared/user-level-text";
+import { ProfileImage } from "@/components/shared/profile-image";
 
 export function PostAuthorRow({
   authorId,
@@ -106,7 +106,7 @@ export function PostAuthorRow({
       <div className="min-w-0 flex flex-1 items-start gap-3">
         {canRenderExpandedPreview && profilePreview?.imageUrl ? (
           <div className="relative h-16 w-16 overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04]">
-            <Image
+            <ProfileImage
               src={profilePreview.imageUrl}
               alt={`${identity.nickname} 대표 사진`}
               fill
@@ -116,7 +116,7 @@ export function PostAuthorRow({
           </div>
         ) : canRenderInlineThumbnail && profilePreview?.imageUrl ? (
           <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-[14px] border border-white/10 bg-white/[0.04]">
-            <Image
+            <ProfileImage
               src={profilePreview.imageUrl}
               alt={`${identity.nickname} 대표 사진`}
               fill
