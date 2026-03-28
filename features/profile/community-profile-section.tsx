@@ -898,7 +898,10 @@ export function CommunityProfileSection({
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         disabled={uploadingOrder === order || isPending}
-                        className="sr-only"
+                        hidden
+                        aria-hidden="true"
+                        tabIndex={-1}
+                        className="hidden"
                         onChange={(event) => {
                           const nextFile = event.target.files?.[0] ?? null;
                           void handleImageUpload(order, nextFile);

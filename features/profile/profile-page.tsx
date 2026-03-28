@@ -33,7 +33,12 @@ import {
   getMyBlockedProfiles,
   unblockUser,
 } from "@/app/actions/profile-actions";
-import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
+import {
+  COMMUNITY_CATEGORY_LABELS,
+  STANDARD_VISIBILITY_LEVELS,
+  TRADE_STATUS_LABELS,
+  VISIBILITY_LEVEL_LABELS,
+} from "@/lib/constants";
 import {
   getAnonymousHandle,
   getDatingProfileByUserId,
@@ -64,6 +69,36 @@ import {
   getSchoolShortName,
 } from "@/lib/user-identity";
 import type { AppRuntimeSnapshot, BlockedProfileSummary } from "@/types";
+
+const POST_CATEGORY_LABELS = {
+  community: "커뮤니티",
+  admission: "입시",
+  dating: "연애",
+} as const;
+
+function getPostCategoryLabel(category: keyof typeof POST_CATEGORY_LABELS | string) {
+  return POST_CATEGORY_LABELS[category as keyof typeof POST_CATEGORY_LABELS] ?? category;
+}
+
+function getSubcategoryLabel(subcategory?: string) {
+  if (!subcategory) {
+    return null;
+  }
+
+  return COMMUNITY_CATEGORY_LABELS[subcategory as keyof typeof COMMUNITY_CATEGORY_LABELS] ?? subcategory;
+}
+
+function getVisibilityLabel(visibilityLevel?: string) {
+  if (!visibilityLevel) {
+    return null;
+  }
+
+  return VISIBILITY_LEVEL_LABELS[visibilityLevel as keyof typeof VISIBILITY_LEVEL_LABELS] ?? visibilityLevel;
+}
+
+function getTradeStatusLabel(status: keyof typeof TRADE_STATUS_LABELS | string) {
+  return TRADE_STATUS_LABELS[status as keyof typeof TRADE_STATUS_LABELS] ?? status;
+}
 
 export function ProfilePage({
   initialSnapshot,
@@ -688,9 +723,13 @@ export function ProfilePage({
                 <button type="button" className="w-full cursor-pointer text-left" onClick={() => moveToPost(post.id)}>
                   <CardContent className="space-y-2 py-5">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">{post.category}</Badge>
-                      {post.subcategory ? <Badge variant="secondary">{post.subcategory}</Badge> : null}
-                      {post.visibilityLevel ? <Badge variant="secondary">{post.visibilityLevel}</Badge> : null}
+                      <Badge variant="outline">{getPostCategoryLabel(post.category)}</Badge>
+                      {post.subcategory ? (
+                        <Badge variant="secondary">{getSubcategoryLabel(post.subcategory)}</Badge>
+                      ) : null}
+                      {post.visibilityLevel ? (
+                        <Badge variant="secondary">{getVisibilityLabel(post.visibilityLevel)}</Badge>
+                      ) : null}
                     </div>
                     <p className="font-semibold">{post.title}</p>
                     <p className="line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
@@ -715,7 +754,7 @@ export function ProfilePage({
                     </p>
                     <p className="text-sm text-muted-foreground">{comment.content}</p>
                     {comment.visibilityLevel ? (
-                      <Badge variant="secondary">{comment.visibilityLevel}</Badge>
+                      <Badge variant="secondary">{getVisibilityLabel(comment.visibilityLevel)}</Badge>
                     ) : null}
                     {comment.accepted ? <Badge variant="success">채택됨</Badge> : null}
                   </CardContent>
@@ -740,7 +779,7 @@ export function ProfilePage({
                       <Badge variant="secondary">꿀강 {review.honeyScore}/5</Badge>
                       <Badge variant="outline">{review.semester}</Badge>
                       {review.visibilityLevel ? (
-                        <Badge variant="secondary">{review.visibilityLevel}</Badge>
+                        <Badge variant="secondary">{getVisibilityLabel(review.visibilityLevel)}</Badge>
                       ) : null}
                     </div>
                   </CardContent>
@@ -764,10 +803,10 @@ export function ProfilePage({
                     </p>
                     <p className="text-sm text-muted-foreground">{post.note}</p>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{post.status}</Badge>
+                      <Badge variant="secondary">{getTradeStatusLabel(post.status)}</Badge>
                       <Badge variant="outline">{post.timeRange}</Badge>
                       {post.visibilityLevel ? (
-                        <Badge variant="secondary">{post.visibilityLevel}</Badge>
+                        <Badge variant="secondary">{getVisibilityLabel(post.visibilityLevel)}</Badge>
                       ) : null}
                     </div>
                   </CardContent>
