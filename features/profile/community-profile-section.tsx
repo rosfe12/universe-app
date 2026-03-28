@@ -105,6 +105,7 @@ export function CommunityProfileSection({
   const [profile, setProfile] = useState<CommunityProfile | null>(initialProfile ?? null);
   const [loading, setLoading] = useState(profileEnabled && !initialProfile);
   const [error, setError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [editingDisplayName, setEditingDisplayName] = useState(false);
@@ -151,12 +152,14 @@ export function CommunityProfileSection({
       setFormState(buildProfileFormState(initialProfile));
       setLoading(false);
       setError(null);
+      setUploadError(null);
       return;
     }
 
     let active = true;
     setLoading(true);
     setError(null);
+    setUploadError(null);
     setNotice(null);
 
     void getMyProfile()
@@ -292,6 +295,7 @@ export function CommunityProfileSection({
   function openEditor() {
     if (!profile) return;
     setError(null);
+    setUploadError(null);
     cleanupDraftPreviewUrls(draftImages);
     setFormState(buildProfileFormState(profile));
     setDraftImages(cloneDraftImages(profile.images));
@@ -307,6 +311,7 @@ export function CommunityProfileSection({
     setFormState(buildProfileFormState(profile));
     setDraftImages(cloneDraftImages(profile.images));
     setError(null);
+    setUploadError(null);
   }
 
   function requestCloseEditor() {
@@ -428,6 +433,7 @@ export function CommunityProfileSection({
           }
 
           setError(null);
+          setUploadError(null);
           setNotice("프로필을 저장했습니다.");
           cleanupDraftPreviewUrls(draftImages);
           setDraftImages(cloneDraftImages(nextProfile.images));
@@ -484,6 +490,7 @@ export function CommunityProfileSection({
 
     setUploadingOrder(order);
     try {
+      setUploadError(null);
       validateCommunityProfileImageFile(file);
       const analysis = await validateImageBeforeUpload(file);
       setEditorState({
@@ -496,7 +503,7 @@ export function CommunityProfileSection({
       });
       setUploadingOrder(null);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
+      setUploadError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
       setUploadingOrder(null);
     }
   }
@@ -739,6 +746,7 @@ export function CommunityProfileSection({
             }
             cleanupDraftPreviewUrls(draftImages);
             setDraftImages([]);
+            setUploadError(null);
           }
           setOpen(nextOpen);
         }}
@@ -764,6 +772,11 @@ export function CommunityProfileSection({
                   얼굴 사진 금지 · 연락처/SNS/QR/학생증 등 개인정보 포함 사진 금지
                 </p>
               </div>
+              {uploadError ? (
+                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                  {uploadError}
+                </div>
+              ) : null}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {Array.from({ length: 3 }, (_, index) => {
                   const order = index + 1;
