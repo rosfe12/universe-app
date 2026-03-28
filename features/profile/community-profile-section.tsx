@@ -107,6 +107,8 @@ export function CommunityProfileSection({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [editingDisplayName, setEditingDisplayName] = useState(false);
+  const [displayNameDraft, setDisplayNameDraft] = useState(initialProfile?.displayName ?? "");
   const [uploadingOrder, setUploadingOrder] = useState<number | null>(null);
   const [formState, setFormState] = useState<CommunityProfileFormState>({
     displayName: "",
@@ -144,6 +146,7 @@ export function CommunityProfileSection({
 
     if (initialProfile) {
       setProfile(initialProfile);
+      setDisplayNameDraft(initialProfile.displayName);
       onProfileChange?.(initialProfile);
       setFormState(buildProfileFormState(initialProfile));
       setLoading(false);
@@ -160,6 +163,7 @@ export function CommunityProfileSection({
       .then((result) => {
         if (!active) return;
         setProfile(result);
+        setDisplayNameDraft(result.displayName);
         onProfileChange?.(result);
         setFormState(buildProfileFormState(result));
       })
@@ -438,6 +442,43 @@ export function CommunityProfileSection({
     });
   }
 
+  function handleDisplayNameSave() {
+    if (!profile) {
+      return;
+    }
+
+    const nextDisplayName = displayNameDraft.trim();
+    if (nextDisplayName.length < 2) {
+      setError("닉네임은 2자 이상 입력해주세요.");
+      return;
+    }
+
+    startTransition(() => {
+      void (async () => {
+        try {
+          const nextProfile = await updateMyProfile({
+            displayName: nextDisplayName,
+            bio: profile.bio ?? "",
+            interests: profile.interests,
+            profileVisibility: profile.profileVisibility,
+            showDepartment: profile.showDepartment,
+            showAdmissionYear: profile.showAdmissionYear,
+          });
+
+          setProfile(nextProfile);
+          setDisplayNameDraft(nextProfile.displayName);
+          setFormState(buildProfileFormState(nextProfile));
+          onProfileChange?.(nextProfile);
+          setEditingDisplayName(false);
+          setError(null);
+          setNotice("닉네임을 저장했습니다.");
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : "닉네임을 저장하지 못했습니다.");
+        }
+      })();
+    });
+  }
+
   async function handleImageUpload(order: number, file?: File | null) {
     if (!file) return;
 
@@ -553,9 +594,54 @@ export function CommunityProfileSection({
             <>
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-xl font-semibold tracking-[-0.03em] text-foreground">
-                    {profile.displayName}
-                  </p>
+                  {editingDisplayName ? (
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                      <Input
+                        value={displayNameDraft}
+                        onChange={(event) => setDisplayNameDraft(event.target.value)}
+                        maxLength={24}
+                        className="h-10 min-w-[180px] max-w-[260px]"
+                        autoFocus
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleDisplayNameSave}
+                        disabled={isPending || displayNameDraft.trim().length < 2}
+                      >
+                        저장
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={isPending}
+                        onClick={() => {
+                          setDisplayNameDraft(profile.displayName);
+                          setEditingDisplayName(false);
+                        }}
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 rounded-full transition-opacity hover:opacity-80"
+                      onClick={() => {
+                        setDisplayNameDraft(profile.displayName);
+                        setEditingDisplayName(true);
+                        setError(null);
+                      }}
+                    >
+                      <p className="text-xl font-semibold tracking-[-0.03em] text-foreground">
+                        {profile.displayName}
+                      </p>
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-muted-foreground">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </span>
+                    </button>
+                  )}
                   {profile.schoolName ? <Badge variant="secondary">{profile.schoolName}</Badge> : null}
                   <Badge variant="outline">
                     {profile.profileVisibility === "university_only" ? "전체 대학생 공개" : "같은 학교만 공개"}
@@ -814,21 +900,6 @@ export function CommunityProfileSection({
                 수정창에서 바꾼 사진은 저장을 눌러야 반영돼요.
               </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="community-profile-display-name">닉네임</Label>
-              <Input
-                id="community-profile-display-name"
-                value={formState.displayName}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    displayName: event.target.value,
-                  }))
-                }
-                maxLength={24}
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="community-profile-bio">한줄 소개</Label>
               <Input
