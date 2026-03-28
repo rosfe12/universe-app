@@ -643,7 +643,7 @@ export function AdminPage({
     setSnapshot,
     source,
     isAuthenticated,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "admin");
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState("");

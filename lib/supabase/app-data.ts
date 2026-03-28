@@ -338,6 +338,19 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         currentUserProfile: true,
       };
     case "admin":
+      return {
+        posts: true,
+        comments: true,
+        lectures: false,
+        lectureReviews: true,
+        tradePosts: false,
+        notifications: false,
+        reports: true,
+        blocks: true,
+        datingProfiles: true,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
     case "full":
     default:
       return {
