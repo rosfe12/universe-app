@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RotateCcw, ScanFace, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,34 @@ type ProfileImageEditorDialogProps = {
   onConfirm: (file: File, flags: { sensitiveTextDetected: boolean; qrDetected: boolean }) => Promise<void>;
 };
 
+type MaskMode =
+  | { kind: "blur" }
+  | { kind: "sticker"; stickerType: StickerType };
+
+type ImageMetrics = {
+  width: number;
+  height: number;
+};
+
+type PreviewMetrics = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+type DragState = {
+  pointerId: number;
+  boxIndex: number;
+  startClientX: number;
+  startClientY: number;
+  startBox: FaceBox;
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 export function ProfileImageEditorDialog({
   open,
   file,
@@ -51,6 +79,14 @@ export function ProfileImageEditorDialog({
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAutoApplied, setHasAutoApplied] = useState(false);
   const [manualCoverBoxes, setManualCoverBoxes] = useState<FaceBox[]>([]);
+  const [editableBoxes, setEditableBoxes] = useState<FaceBox[]>([]);
+  const [maskMode, setMaskMode] = useState<MaskMode | null>(null);
+  const [imageMetrics, setImageMetrics] = useState<ImageMetrics | null>(null);
+  const [previewMetrics, setPreviewMetrics] = useState<PreviewMetrics | null>(null);
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const previewFrameRef = useRef<HTMLDivElement | null>(null);
+  const previewImageRef = useRef<HTMLImageElement | null>(null);
+  const editableBoxesRef = useRef<FaceBox[]>([]);
 
   useEffect(() => {
     setProcessedFile(initialProcessedFile ?? null);
@@ -59,13 +95,22 @@ export function ProfileImageEditorDialog({
     setIsProcessing(false);
     setHasAutoApplied(Boolean(initialProcessedFile));
     setManualCoverBoxes([]);
-  }, [file, initialProcessedFile, open]);
+    setEditableBoxes(faceBoxes);
+    setMaskMode(initialProcessedFile ? { kind: "blur" } : null);
+    setImageMetrics(null);
+    setPreviewMetrics(null);
+    setDragState(null);
+  }, [faceBoxes, file, initialProcessedFile, open]);
 
   useEffect(() => {
     if (processedFile || initialProcessedFile) {
       setIsProcessing(false);
     }
   }, [initialProcessedFile, processedFile]);
+
+  useEffect(() => {
+    editableBoxesRef.current = editableBoxes;
+  }, [editableBoxes]);
 
   const originalPreviewUrl = useMemo(() => {
     if (!file) return null;
@@ -91,9 +136,24 @@ export function ProfileImageEditorDialog({
 
   const hasDetectedFaces = faceBoxes.length > 0;
   const hasSensitiveWarning = sensitiveTextDetected || qrDetected;
-  const editableBoxes = hasDetectedFaces ? faceBoxes : manualCoverBoxes;
   const canMask = editableBoxes.length > 0;
   const confirmLabel = hasSensitiveWarning && !hasDetectedFaces ? "검토 후 업로드" : "이 이미지 업로드";
+
+  const syncPreviewMetrics = useCallback(() => {
+    const frame = previewFrameRef.current;
+    const image = previewImageRef.current;
+
+    if (!frame || !image || image.clientWidth === 0 || image.clientHeight === 0) {
+      return;
+    }
+
+    setPreviewMetrics({
+      left: image.offsetLeft,
+      top: image.offsetTop,
+      width: image.clientWidth,
+      height: image.clientHeight,
+    });
+  }, []);
 
   useEffect(() => {
     if (!open || !file || hasDetectedFaces || manualCoverBoxes.length > 0) {
@@ -109,11 +169,13 @@ export function ProfileImageEditorDialog({
           return;
         }
         setManualCoverBoxes(nextBoxes);
+        setEditableBoxes(nextBoxes);
       } catch {
         if (!active) {
           return;
         }
         setManualCoverBoxes([]);
+        setEditableBoxes([]);
       }
     })();
 
@@ -121,6 +183,17 @@ export function ProfileImageEditorDialog({
       active = false;
     };
   }, [file, hasDetectedFaces, manualCoverBoxes.length, open]);
+
+  useEffect(() => {
+    if (hasDetectedFaces) {
+      setEditableBoxes(faceBoxes);
+      return;
+    }
+
+    if (manualCoverBoxes.length > 0) {
+      setEditableBoxes(manualCoverBoxes);
+    }
+  }, [faceBoxes, hasDetectedFaces, manualCoverBoxes]);
 
   useEffect(() => {
     if (!open || !file || !hasDetectedFaces || processedFile || initialProcessedFile || hasAutoApplied) {
@@ -139,6 +212,7 @@ export function ProfileImageEditorDialog({
         }
         setProcessedFile(nextFile);
         setHasAutoApplied(true);
+        setMaskMode({ kind: "blur" });
       } catch (cause) {
         if (!active) {
           return;
@@ -156,35 +230,114 @@ export function ProfileImageEditorDialog({
     };
   }, [faceBoxes, file, hasAutoApplied, hasDetectedFaces, initialProcessedFile, open, processedFile]);
 
-  async function handleApplyBlur() {
-    if (!file || editableBoxes.length === 0) return;
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    syncPreviewMetrics();
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const handleResize = () => syncPreviewMetrics();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [open, syncPreviewMetrics]);
+
+  async function applyMask(nextMode: MaskMode, nextBoxes = editableBoxes) {
+    if (!file || nextBoxes.length === 0) return;
     setError(null);
     setIsProcessing(true);
 
     try {
-      const nextFile = await applyBlurToFaces(file, editableBoxes);
+      const nextFile =
+        nextMode.kind === "blur"
+          ? await applyBlurToFaces(file, nextBoxes)
+          : await applyStickerToFaces(file, nextBoxes, nextMode.stickerType);
       setProcessedFile(nextFile);
       setHasAutoApplied(true);
+      setMaskMode(nextMode);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "흐림 처리를 하지 못했습니다.");
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : nextMode.kind === "blur"
+            ? "흐림 처리를 하지 못했습니다."
+            : "스티커 처리를 하지 못했습니다.",
+      );
     } finally {
       setIsProcessing(false);
     }
   }
 
-  async function handleApplySticker() {
-    if (!file || editableBoxes.length === 0) return;
-    setError(null);
-    setIsProcessing(true);
+  async function handleApplyBlur() {
+    await applyMask({ kind: "blur" });
+  }
 
-    try {
-      const nextFile = await applyStickerToFaces(file, editableBoxes, stickerType);
-      setProcessedFile(nextFile);
-      setHasAutoApplied(true);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "스티커 처리를 하지 못했습니다.");
-    } finally {
-      setIsProcessing(false);
+  async function handleApplySticker(nextStickerType: StickerType) {
+    setStickerType(nextStickerType);
+    await applyMask({ kind: "sticker", stickerType: nextStickerType });
+  }
+
+  function handleBoxPointerDown(index: number, event: React.PointerEvent<HTMLButtonElement>) {
+    if (!imageMetrics || !previewMetrics) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const nextBox = editableBoxes[index];
+    if (!nextBox) {
+      return;
+    }
+
+    setDragState({
+      pointerId: event.pointerId,
+      boxIndex: index,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startBox: nextBox,
+    });
+  }
+
+  function handleBoxPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (!dragState || !imageMetrics || !previewMetrics) {
+      return;
+    }
+    if (dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = ((event.clientX - dragState.startClientX) / previewMetrics.width) * imageMetrics.width;
+    const deltaY = ((event.clientY - dragState.startClientY) / previewMetrics.height) * imageMetrics.height;
+
+    setEditableBoxes((current) =>
+      current.map((box, index) => {
+        if (index !== dragState.boxIndex) {
+          return box;
+        }
+
+        return {
+          ...box,
+          x: clamp(dragState.startBox.x + deltaX, 0, imageMetrics.width - dragState.startBox.width),
+          y: clamp(dragState.startBox.y + deltaY, 0, imageMetrics.height - dragState.startBox.height),
+        };
+      }),
+    );
+  }
+
+  function handleBoxPointerEnd(event: React.PointerEvent<HTMLDivElement>) {
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    setDragState(null);
+    if (maskMode) {
+      void applyMask(maskMode, editableBoxesRef.current);
     }
   }
 
@@ -263,13 +416,14 @@ export function ProfileImageEditorDialog({
           {canMask ? (
             <div className="space-y-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4">
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="secondary" disabled={isProcessing} onClick={() => void handleApplyBlur()}>
+                <Button
+                  type="button"
+                  variant={maskMode?.kind === "blur" ? "secondary" : "outline"}
+                  disabled={isProcessing}
+                  onClick={() => void handleApplyBlur()}
+                >
                   <ScanFace className="h-4 w-4" />
                   {hasDetectedFaces ? "자동 흐림 처리" : "수동 흐림 처리"}
-                </Button>
-                <Button type="button" variant="outline" disabled={isProcessing} onClick={() => void handleApplySticker()}>
-                  <Sparkles className="h-4 w-4" />
-                  스티커로 가리기
                 </Button>
                 <Button
                   type="button"
@@ -279,6 +433,7 @@ export function ProfileImageEditorDialog({
                     setProcessedFile(null);
                     setError(null);
                     setHasAutoApplied(false);
+                    setMaskMode(null);
                   }}
                 >
                   <RotateCcw className="h-4 w-4" />
@@ -292,10 +447,11 @@ export function ProfileImageEditorDialog({
                     key={value}
                     type="button"
                     size="sm"
-                    variant={stickerType === value ? "secondary" : "outline"}
+                    variant={maskMode?.kind === "sticker" && stickerType === value ? "secondary" : "outline"}
                     disabled={isProcessing}
-                    onClick={() => setStickerType(value)}
+                    onClick={() => void handleApplySticker(value)}
                   >
+                    <Sparkles className="h-3.5 w-3.5" />
                     {value === "smile"
                       ? "스마일"
                       : value === "star"
@@ -306,6 +462,9 @@ export function ProfileImageEditorDialog({
                   </Button>
                 ))}
               </div>
+              <p className="text-xs leading-5 text-muted-foreground">
+                가림 영역을 눌러 끌면 위치를 조절할 수 있어요. 스티커 버튼을 누르면 바로 적용됩니다.
+              </p>
             </div>
           ) : null}
 
@@ -313,14 +472,58 @@ export function ProfileImageEditorDialog({
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">원본</p>
               <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
-                <div className="aspect-[0.92] w-full">
+                <div
+                  ref={previewFrameRef}
+                  className="relative flex aspect-[0.92] w-full items-center justify-center"
+                >
                   {originalPreviewUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
+                      ref={previewImageRef}
                       src={originalPreviewUrl}
                       alt="원본 미리보기"
-                      className="h-full w-full object-cover"
+                      className="max-h-full max-w-full object-contain"
+                      onLoad={(event) => {
+                        setImageMetrics({
+                          width: event.currentTarget.naturalWidth,
+                          height: event.currentTarget.naturalHeight,
+                        });
+                        syncPreviewMetrics();
+                      }}
                     />
+                  ) : null}
+                  {previewMetrics && imageMetrics && editableBoxes.length > 0 ? (
+                    <div
+                      className="absolute touch-none"
+                      style={{
+                        left: previewMetrics.left,
+                        top: previewMetrics.top,
+                        width: previewMetrics.width,
+                        height: previewMetrics.height,
+                      }}
+                      onPointerMove={handleBoxPointerMove}
+                      onPointerUp={handleBoxPointerEnd}
+                      onPointerCancel={handleBoxPointerEnd}
+                    >
+                      {editableBoxes.map((box, index) => (
+                        <button
+                          key={`${index}-${box.x}-${box.y}-${box.width}-${box.height}`}
+                          type="button"
+                          className="absolute rounded-[16px] border border-primary/60 bg-primary/15 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] backdrop-blur-sm"
+                          style={{
+                            left: `${(box.x / imageMetrics.width) * 100}%`,
+                            top: `${(box.y / imageMetrics.height) * 100}%`,
+                            width: `${(box.width / imageMetrics.width) * 100}%`,
+                            height: `${(box.height / imageMetrics.height) * 100}%`,
+                          }}
+                          onPointerDown={(event) => handleBoxPointerDown(index, event)}
+                        >
+                          <span className="pointer-events-none absolute inset-x-2 bottom-2 rounded-full bg-black/45 px-2 py-1 text-[10px] font-medium text-white">
+                            위치 조절
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -335,12 +538,12 @@ export function ProfileImageEditorDialog({
                   <div className="aspect-[0.92] w-full">
                     {processedPreviewUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={processedPreviewUrl}
-                        alt="편집 미리보기"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : isProcessing ? (
+                    <img
+                      src={processedPreviewUrl}
+                      alt="편집 미리보기"
+                      className="h-full w-full object-contain"
+                    />
+                  ) : isProcessing ? (
                       <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
                         <Loader2 className="h-5 w-5 animate-spin" />
                         <span>가린 이미지를 만드는 중이에요.</span>

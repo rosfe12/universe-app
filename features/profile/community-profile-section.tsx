@@ -36,7 +36,7 @@ import {
   parseInterestTokens,
   validateCommunityProfileImageFile,
 } from "@/lib/community-profile";
-import { applyBlurToFaces, validateImageBeforeUpload } from "@/lib/profile-image-processing";
+import { validateImageBeforeUpload } from "@/lib/profile-image-processing";
 import type { FaceBox } from "@/lib/profile-image-processing";
 import type { CommunityProfile, ProfileVisibility, User } from "@/types";
 
@@ -238,15 +238,6 @@ export function CommunityProfileSection({
     try {
       validateCommunityProfileImageFile(file);
       const analysis = await validateImageBeforeUpload(file);
-      let processedFile: File | null = null;
-
-      if (analysis.faceBoxes.length > 0) {
-        try {
-          processedFile = await applyBlurToFaces(file, analysis.faceBoxes);
-        } catch {
-          processedFile = null;
-        }
-      }
 
       setEditorState({
         imageOrder: order,
@@ -254,7 +245,7 @@ export function CommunityProfileSection({
         faceBoxes: analysis.faceBoxes,
         sensitiveTextDetected: analysis.sensitiveTextDetected,
         qrDetected: analysis.qrDetected,
-        processedFile,
+        processedFile: null,
       });
       setUploadingOrder(null);
     } catch (cause) {
