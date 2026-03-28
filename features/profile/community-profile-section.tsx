@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Pencil, Trash2 } from "lucide-react";
 
 import {
@@ -81,6 +81,7 @@ export function CommunityProfileSection({
     processedFile: File | null;
   } | null>(null);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const orderedImages = useMemo(
     () => [...(profile?.images ?? [])].sort((a, b) => a.imageOrder - b.imageOrder),
@@ -163,6 +164,14 @@ export function CommunityProfileSection({
       showAdmissionYear: profile.showAdmissionYear,
     });
     setOpen(true);
+  }
+
+  function openFilePicker(order: number) {
+    if (uploadingOrder === order || isPending) {
+      return;
+    }
+
+    fileInputRefs.current[order]?.click();
   }
 
   async function handleSave() {
@@ -402,7 +411,7 @@ export function CommunityProfileSection({
                         {image?.imageUrl ? (
                           <button
                             type="button"
-                            className="block h-full w-full"
+                            className="relative block h-full w-full"
                             onClick={() => openImageViewer(image.id)}
                           >
                             <ProfileImage
@@ -417,6 +426,11 @@ export function CommunityProfileSection({
                                 </div>
                               }
                             />
+                            {image.isPrimary ? (
+                              <span className="absolute left-3 top-3 rounded-full bg-primary/90 px-2.5 py-1 text-[11px] font-medium text-primary-foreground shadow-sm">
+                                대표
+                              </span>
+                            ) : null}
                           </button>
                         ) : (
                           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
@@ -695,16 +709,30 @@ export function CommunityProfileSection({
                         </div>
                       ) : null}
 
-                      <Input
+                      <input
+                        ref={(node) => {
+                          fileInputRefs.current[order] = node;
+                        }}
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         disabled={uploadingOrder === order || isPending}
+                        className="sr-only"
                         onChange={(event) => {
                           const nextFile = event.target.files?.[0] ?? null;
                           void handleImageUpload(order, nextFile);
                           event.currentTarget.value = "";
                         }}
                       />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={uploadingOrder === order || isPending}
+                        onClick={() => openFilePicker(order)}
+                      >
+                        {image ? "사진 교체" : "사진 업로드"}
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground">JPG · PNG · WEBP / 5MB 이하</p>
                       {uploadingOrder === order ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Loader2 className="h-3 w-3 animate-spin" />
