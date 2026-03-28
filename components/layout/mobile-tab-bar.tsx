@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { MouseEvent, useEffect } from "react";
 import {
   Bell,
   Home,
@@ -33,6 +33,31 @@ export function MobileTabBar() {
   const pathname = usePathname();
   const router = useRouter();
 
+  function scrollActiveViewToTop() {
+    const scrollRoots = Array.from(document.querySelectorAll<HTMLElement>("[data-app-scroll-root]"));
+
+    if (scrollRoots.length > 0) {
+      scrollRoots.forEach((element) => {
+        element.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+
+    if (document.scrollingElement) {
+      document.scrollingElement.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleTabClick(event: MouseEvent<HTMLAnchorElement>, active: boolean) {
+    if (!active) {
+      return;
+    }
+
+    event.preventDefault();
+    scrollActiveViewToTop();
+  }
+
   useEffect(() => {
     tabs.forEach((tab) => {
       if (tab.href !== pathname) {
@@ -54,6 +79,7 @@ export function MobileTabBar() {
                 href={tab.href}
                 prefetch
                 aria-current={active ? "page" : undefined}
+                onClick={(event) => handleTabClick(event, active)}
                 className={cn(
                   "group relative flex min-w-0 flex-col items-center gap-1 rounded-[22px] px-1 py-2 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
                   active

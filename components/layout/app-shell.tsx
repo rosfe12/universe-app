@@ -45,6 +45,7 @@ export function AppShell({
           </div>
         </header>
         <main
+          data-app-scroll-root
           className={`flex-1 space-y-7 px-4 pb-[calc(env(safe-area-inset-bottom)+6.75rem)] pt-5 ${
             desktopWide ? "md:px-6" : ""
           }`}
