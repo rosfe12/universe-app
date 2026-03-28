@@ -1452,6 +1452,7 @@ export function AdminPage({
       title="관리자"
       subtitle="신고, 숨김, 사용자 상태를 한 곳에서 관리합니다"
       showTabs={false}
+      desktopWide
     >
       {adminFeedback ? (
         <ActionFeedbackBanner message={adminFeedback} onClose={() => setAdminFeedback(null)} />
@@ -1462,7 +1463,7 @@ export function AdminPage({
           <Link href="/home">CAMVERSE 앱으로 이동</Link>
         </Button>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {summaryCards.map((item) => (
           <SummaryCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
         ))}
@@ -1478,7 +1479,7 @@ export function AdminPage({
       </Card>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AdminTab)} className="space-y-4">
-        <TabsList className="w-full justify-start overflow-x-auto">
+        <TabsList className="h-auto w-full justify-start overflow-x-auto md:flex md:flex-wrap md:overflow-visible">
           <TabsTrigger value="dashboard">운영 현황</TabsTrigger>
           <TabsTrigger value="members">회원 목록</TabsTrigger>
           <TabsTrigger value="roles">권한 관리</TabsTrigger>
