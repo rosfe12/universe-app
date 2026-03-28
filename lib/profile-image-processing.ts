@@ -19,6 +19,7 @@ export type ImageValidationResult = {
 };
 
 const MAX_OUTPUT_DIMENSION = 1600;
+const MAX_DETECTION_DIMENSION = 1280;
 const DEFAULT_OUTPUT_TYPE = "image/jpeg";
 const DEFAULT_OUTPUT_QUALITY = 0.9;
 const HIGH_EFFICIENCY_IMAGE_TYPES = [
@@ -30,6 +31,19 @@ const HIGH_EFFICIENCY_IMAGE_TYPES = [
 
 type BrowserFaceDetector = {
   detect(input: ImageBitmapSource): Promise<Array<{ boundingBox: DOMRectReadOnly }>>;
+};
+
+type BlazeFacePrediction = {
+  topLeft: ArrayLike<number>;
+  bottomRight: ArrayLike<number>;
+  probability?: ArrayLike<number>;
+};
+
+type BlazeFaceModel = {
+  estimateFaces(
+    input: TexImageSource | ImageData | HTMLCanvasElement | HTMLImageElement | HTMLVideoElement,
+    returnTensors?: boolean,
+  ): Promise<BlazeFacePrediction[]>;
 };
 
 declare global {
@@ -91,21 +105,25 @@ export async function buildManualCoverBoxes(file: File): Promise<FaceBox[]> {
 }
 
 function fitCanvasSize(width: number, height: number) {
-  if (Math.max(width, height) <= MAX_OUTPUT_DIMENSION) {
+  return fitCanvasSizeToLimit(width, height, MAX_OUTPUT_DIMENSION);
+}
+
+function fitCanvasSizeToLimit(width: number, height: number, limit: number) {
+  if (Math.max(width, height) <= limit) {
     return { width, height };
   }
 
   const ratio = width / height;
   if (width >= height) {
     return {
-      width: MAX_OUTPUT_DIMENSION,
-      height: Math.round(MAX_OUTPUT_DIMENSION / ratio),
+      width: limit,
+      height: Math.round(limit / ratio),
     };
   }
 
   return {
-    width: Math.round(MAX_OUTPUT_DIMENSION * ratio),
-    height: MAX_OUTPUT_DIMENSION,
+    width: Math.round(limit * ratio),
+    height: limit,
   };
 }
 
@@ -132,6 +150,102 @@ async function renderBaseCanvas(file: File) {
     scaleX,
     scaleY,
   };
+}
+
+async function renderDetectionInput(file: File) {
+  const image = await loadImageElement(file);
+  const originalWidth = image.naturalWidth || image.width;
+  const originalHeight = image.naturalHeight || image.height;
+  const detectionSize = fitCanvasSizeToLimit(originalWidth, originalHeight, MAX_DETECTION_DIMENSION);
+
+  if (detectionSize.width === originalWidth && detectionSize.height === originalHeight) {
+    return {
+      input: image as HTMLImageElement | HTMLCanvasElement,
+      scaleX: 1,
+      scaleY: 1,
+      width: originalWidth,
+      height: originalHeight,
+    };
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = detectionSize.width;
+  canvas.height = detectionSize.height;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("얼굴 감지를 시작하지 못했습니다.");
+  }
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  return {
+    input: canvas as HTMLImageElement | HTMLCanvasElement,
+    scaleX: originalWidth / canvas.width,
+    scaleY: originalHeight / canvas.height,
+    width: originalWidth,
+    height: originalHeight,
+  };
+}
+
+let tensorflowReadyPromise: Promise<void> | null = null;
+let blazeFaceModelPromise: Promise<BlazeFaceModel> | null = null;
+
+async function ensureTensorflowReady() {
+  if (typeof window === "undefined") {
+    throw new Error("브라우저 환경에서만 얼굴 감지를 사용할 수 있습니다.");
+  }
+
+  if (!tensorflowReadyPromise) {
+    tensorflowReadyPromise = (async () => {
+      const tf = await import("@tensorflow/tfjs-core");
+
+      await Promise.all([
+        import("@tensorflow/tfjs-converter"),
+        import("@tensorflow/tfjs-backend-cpu"),
+        import("@tensorflow/tfjs-backend-webgl"),
+      ]);
+
+      const currentBackend = tf.getBackend();
+      if (currentBackend !== "webgl" && currentBackend !== "cpu") {
+        if (tf.findBackend("webgl")) {
+          await tf.setBackend("webgl");
+        } else if (tf.findBackend("cpu")) {
+          await tf.setBackend("cpu");
+        }
+      }
+
+      await tf.ready();
+    })().catch((error) => {
+      tensorflowReadyPromise = null;
+      throw error;
+    });
+  }
+
+  await tensorflowReadyPromise;
+}
+
+async function getBlazeFaceModel() {
+  if (!blazeFaceModelPromise) {
+    blazeFaceModelPromise = (async () => {
+      await ensureTensorflowReady();
+      const blazeface = await import("@tensorflow-models/blazeface");
+      return blazeface.load({
+        maxFaces: 5,
+        iouThreshold: 0.3,
+        scoreThreshold: 0.7,
+      }) as Promise<BlazeFaceModel>;
+    })().catch((error) => {
+      blazeFaceModelPromise = null;
+      throw error;
+    });
+  }
+
+  return blazeFaceModelPromise;
+}
+
+function arrayLikeToPair(value: ArrayLike<number>) {
+  return [Number(value[0] ?? 0), Number(value[1] ?? 0)] as const;
 }
 
 function keywordFaceBoxes(file: File, width: number, height: number): FaceBox[] {
@@ -169,7 +283,7 @@ async function createOutputFile(
 }
 
 export async function detectFaceInImage(file: File): Promise<FaceBox[]> {
-  const image = await loadImageElement(file);
+  const detectionInput = await renderDetectionInput(file);
   const faceDetectorCtor = typeof window !== "undefined" ? window.FaceDetector : undefined;
 
   if (faceDetectorCtor) {
@@ -178,21 +292,42 @@ export async function detectFaceInImage(file: File): Promise<FaceBox[]> {
         fastMode: true,
         maxDetectedFaces: 5,
       });
-      const detections = await detector.detect(image);
+      const detections = await detector.detect(detectionInput.input);
       if (detections.length > 0) {
         return detections.map((detection) => ({
-          x: detection.boundingBox.x,
-          y: detection.boundingBox.y,
-          width: detection.boundingBox.width,
-          height: detection.boundingBox.height,
+          x: detection.boundingBox.x * detectionInput.scaleX,
+          y: detection.boundingBox.y * detectionInput.scaleY,
+          width: detection.boundingBox.width * detectionInput.scaleX,
+          height: detection.boundingBox.height * detectionInput.scaleY,
         }));
       }
     } catch {
-      // browser support can vary; fall back to lightweight mock signals
+      // browser support can vary; fall back to a model-based detector
     }
   }
 
-  return keywordFaceBoxes(file, image.naturalWidth || image.width, image.naturalHeight || image.height);
+  try {
+    const model = await getBlazeFaceModel();
+    const predictions = await model.estimateFaces(detectionInput.input, false);
+
+    if (predictions.length > 0) {
+      return predictions.map((prediction) => {
+        const [topLeftX, topLeftY] = arrayLikeToPair(prediction.topLeft);
+        const [bottomRightX, bottomRightY] = arrayLikeToPair(prediction.bottomRight);
+
+        return {
+          x: topLeftX * detectionInput.scaleX,
+          y: topLeftY * detectionInput.scaleY,
+          width: Math.max(0, (bottomRightX - topLeftX) * detectionInput.scaleX),
+          height: Math.max(0, (bottomRightY - topLeftY) * detectionInput.scaleY),
+        };
+      });
+    }
+  } catch {
+    // fall back to lightweight filename-based heuristics if on-device detection is unavailable
+  }
+
+  return keywordFaceBoxes(file, detectionInput.width, detectionInput.height);
 }
 
 export async function detectSensitiveTextInImage(file: File) {
@@ -271,8 +406,8 @@ export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
     const height = Math.max(24, Math.ceil(faceBox.height * scaleY));
 
     const sampleCanvas = document.createElement("canvas");
-    sampleCanvas.width = Math.max(1, Math.round(width / 10));
-    sampleCanvas.height = Math.max(1, Math.round(height / 10));
+    sampleCanvas.width = Math.max(1, Math.round(width / 18));
+    sampleCanvas.height = Math.max(1, Math.round(height / 18));
     const sampleContext = sampleCanvas.getContext("2d");
 
     if (!sampleContext) {
@@ -283,7 +418,7 @@ export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
     context.imageSmoothingEnabled = false;
     context.drawImage(sampleCanvas, 0, 0, sampleCanvas.width, sampleCanvas.height, x, y, width, height);
     context.imageSmoothingEnabled = true;
-    context.fillStyle = "rgba(15, 23, 42, 0.16)";
+    context.fillStyle = "rgba(15, 23, 42, 0.28)";
     context.fillRect(x, y, width, height);
   }
 
