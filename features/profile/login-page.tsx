@@ -479,7 +479,7 @@ export function LoginPage() {
                           <span className="font-medium">[필수] </span>개인정보 수집·이용에 동의합니다
                         </label>
                         <p className="text-xs leading-5 text-muted-foreground">
-                          가입, 학생 인증, 문의 대응에 필요한 최소 정보를 수집하며 동의 거부 시 가입이 제한될 수 있습니다.
+                          가입, 학생 인증, 서비스 운영에 필요한 최소 정보만 수집하며 동의 거부 시 가입이 제한될 수 있습니다.
                         </p>
                         <Link
                           href="/privacy"
@@ -502,8 +502,11 @@ export function LoginPage() {
                     </div>
                   </div>
                   <label className="flex items-start justify-between gap-3 text-sm">
-                    <span className="leading-6 text-foreground">
+                    <span className="space-y-1 leading-6 text-foreground">
                       <span className="font-medium">[필수] </span>만 14세 이상입니다
+                      <span className="block text-xs leading-5 text-muted-foreground">
+                        만 14세 미만은 법정대리인 동의 없이는 가입할 수 없습니다.
+                      </span>
                     </span>
                     <input
                       type="checkbox"
