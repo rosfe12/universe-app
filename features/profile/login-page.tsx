@@ -459,6 +459,9 @@ export function LoginPage() {
                 </div>
                 <div className="space-y-3 rounded-[22px] border border-border bg-secondary/50 p-4">
                   <p className="text-sm font-semibold text-foreground">회원가입 동의</p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    필수 항목은 가입 전에 전문을 열람할 수 있으며, 동의 후에만 회원가입이 진행됩니다.
+                  </p>
                   <div className="space-y-2 rounded-[18px] border border-border/80 bg-background/40 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
@@ -495,7 +498,7 @@ export function LoginPage() {
                           <span className="font-medium">[필수] </span>개인정보 수집·이용에 동의합니다
                         </label>
                         <p className="text-xs leading-5 text-muted-foreground">
-                          가입, 학생 인증, 서비스 운영에 필요한 최소 정보만 수집하며 동의 거부 시 가입이 제한될 수 있습니다.
+                          가입, 학생 인증, 권한 제어, 운영 로그 처리에 필요한 최소 정보만 수집하며 동의 거부 시 가입이 제한될 수 있습니다.
                         </p>
                         <Link
                           href="/privacy"
