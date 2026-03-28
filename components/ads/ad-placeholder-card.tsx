@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Megaphone, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -67,13 +68,49 @@ export function AdPlaceholderCard({
                 <Sparkles className="h-3 w-3" />
                 {copy.eyebrow}
               </div>
-              <p className="font-semibold leading-6 text-white">{copy.title}</p>
-              <p className="text-sm leading-6 text-slate-300">{copy.description}</p>
             </div>
           </div>
           <Badge variant="outline" className="shrink-0 border-white/15 text-slate-300">
             AD
           </Badge>
+        </div>
+        <div className="grid gap-3 md:grid-cols-[1.1fr_0.9fr]">
+          <div className="min-w-0 space-y-1">
+            <p className="font-semibold leading-6 text-white">{copy.title}</p>
+            <p className="text-sm leading-6 text-slate-300">{copy.description}</p>
+          </div>
+          <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[radial-gradient(circle_at_top,#4338ca_0%,#1e293b_48%,#0f172a_100%)] p-3">
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),transparent_42%,rgba(99,102,241,0.12))]" />
+            <div className="relative flex items-start gap-3">
+              <div className="rounded-[18px] border border-white/15 bg-white/10 p-2 shadow-[0_18px_30px_-18px_rgba(15,23,42,0.9)] backdrop-blur">
+                <Image src="/icons/icon-192.png" alt="CAMVERSE" width={44} height={44} className="rounded-[12px]" />
+              </div>
+              <div className="min-w-0 pt-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-100/80">
+                  CAMVERSE
+                </p>
+                <p className="mt-1 text-sm font-semibold text-white">대학생 커뮤니티 앱</p>
+              </div>
+            </div>
+            <div className="relative mt-4 rounded-[18px] border border-white/10 bg-slate-950/45 p-3 backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-semibold text-indigo-200">추천 피드</div>
+                <div className="rounded-full bg-indigo-500/20 px-2 py-1 text-[10px] font-semibold text-indigo-100">
+                  LIVE
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                <div className="h-2.5 w-3/4 rounded-full bg-white/80" />
+                <div className="h-2.5 w-full rounded-full bg-white/20" />
+                <div className="h-2.5 w-5/6 rounded-full bg-white/20" />
+              </div>
+              <div className="mt-3 flex gap-2">
+                <div className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-slate-200">우리학교</div>
+                <div className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-slate-200">수강교환</div>
+                <div className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-slate-200">프로필</div>
+              </div>
+            </div>
+          </div>
         </div>
         <Button asChild size="sm" variant="outline" className="w-full border-white/12 bg-white/[0.03] text-white hover:bg-white/[0.06]">
           <Link href={copy.href}>
