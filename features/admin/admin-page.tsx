@@ -1453,48 +1453,53 @@ export function AdminPage({
       subtitle="신고, 숨김, 사용자 상태를 한 곳에서 관리합니다"
       showTabs={false}
       desktopWide
+      showTopNavActions={false}
+      topAction={
+        <Button asChild type="button" size="sm" variant="outline">
+          <Link href="/home">앱으로 이동</Link>
+        </Button>
+      }
     >
       {adminFeedback ? (
         <ActionFeedbackBanner message={adminFeedback} onClose={() => setAdminFeedback(null)} />
       ) : null}
       {loading ? <LoadingState /> : null}
-      <div className="flex justify-end">
-        <Button asChild type="button" variant="outline">
-          <Link href="/home">CAMVERSE 앱으로 이동</Link>
-        </Button>
-      </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {summaryCards.map((item) => (
-          <SummaryCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
-        ))}
-      </div>
-
-      <Card className="border-amber-200 bg-amber-50/90">
-        <CardContent className="space-y-2 py-5 text-sm text-amber-900">
-          <p className="font-semibold">운영 기준</p>
-          <p>신고 3건 이상 콘텐츠는 자동 숨김 처리됩니다.</p>
-          <p>허위 신고로 판단된 신고자는 경고가 누적되고, 3회 이상이면 제한 후보가 됩니다.</p>
-          <p>차단한 사용자 콘텐츠는 일반 피드에서 숨김 처리됩니다. 현재 숨김 수 {getBlockedContentCount()}건.</p>
-        </CardContent>
-      </Card>
-
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AdminTab)} className="space-y-4">
-        <TabsList className="h-auto w-full justify-start overflow-x-auto md:flex md:flex-wrap md:overflow-visible">
-          <TabsTrigger value="dashboard">운영 현황</TabsTrigger>
-          <TabsTrigger value="members">회원 목록</TabsTrigger>
-          <TabsTrigger value="roles">권한 관리</TabsTrigger>
-          <TabsTrigger value="verification">학생 인증</TabsTrigger>
-          <TabsTrigger value="profile-images">프로필 사진 검토</TabsTrigger>
-          <TabsTrigger value="reports">신고 목록</TabsTrigger>
-          <TabsTrigger value="ops">운영 로그</TabsTrigger>
-          <TabsTrigger value="settings">공지/프로모션</TabsTrigger>
-          <TabsTrigger value="audit">운영 이력</TabsTrigger>
-          <TabsTrigger value="hidden">자동 숨김</TabsTrigger>
-          <TabsTrigger value="reported-users">신고 많은 사용자</TabsTrigger>
-          <TabsTrigger value="low-trust">낮은 신뢰도</TabsTrigger>
-        </TabsList>
+        <div className="space-y-4 lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start lg:gap-6 lg:space-y-0">
+          <aside className="space-y-4 lg:sticky lg:top-24">
+            <div className="grid grid-cols-2 gap-3">
+              {summaryCards.map((item) => (
+                <SummaryCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
+              ))}
+            </div>
 
-        <TabsContent value="dashboard" className="space-y-3">
+            <Card className="border-amber-200 bg-amber-50/90">
+              <CardContent className="space-y-2 py-5 text-sm text-amber-900">
+                <p className="font-semibold">운영 기준</p>
+                <p>신고 3건 이상 콘텐츠는 자동 숨김 처리됩니다.</p>
+                <p>허위 신고로 판단된 신고자는 경고가 누적되고, 3회 이상이면 제한 후보가 됩니다.</p>
+                <p>차단한 사용자 콘텐츠는 일반 피드에서 숨김 처리됩니다. 현재 숨김 수 {getBlockedContentCount()}건.</p>
+              </CardContent>
+            </Card>
+
+            <TabsList className="h-auto w-full justify-start overflow-x-auto md:flex md:flex-wrap md:overflow-visible lg:flex lg:flex-col lg:items-stretch lg:rounded-[28px] lg:p-2">
+              <TabsTrigger className="lg:w-full lg:justify-start" value="dashboard">운영 현황</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="members">회원 목록</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="roles">권한 관리</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="verification">학생 인증</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="profile-images">프로필 사진 검토</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="reports">신고 목록</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="ops">운영 로그</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="settings">공지/프로모션</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="audit">운영 이력</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="hidden">자동 숨김</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="reported-users">신고 많은 사용자</TabsTrigger>
+              <TabsTrigger className="lg:w-full lg:justify-start" value="low-trust">낮은 신뢰도</TabsTrigger>
+            </TabsList>
+          </aside>
+
+          <div className="min-w-0 space-y-4">
+        <TabsContent value="dashboard" className="space-y-3 lg:mt-0">
           {overviewLoading ? <LoadingState /> : null}
           {overviewError ? (
             <Card className="border-rose-200 bg-rose-50/80">
@@ -1573,7 +1578,7 @@ export function AdminPage({
           </Card>
         </TabsContent>
 
-        <TabsContent value="members" className="space-y-3">
+        <TabsContent value="members" className="space-y-3 lg:mt-0">
           <Card className="border-slate-200 bg-slate-50/80">
             <CardContent className="space-y-3 py-5">
               <div className="flex items-center justify-between gap-3">
@@ -1709,29 +1714,31 @@ export function AdminPage({
               </CardContent>
             </Card>
           ) : null}
-          {memberItems.map((member) => (
-            <MemberCard
-              key={member.id}
-              item={member}
-              pendingKey={moderationPendingKey}
-              onOpenDetail={() => setSelectedMember(member)}
-              onRestrict={() => {
-                void mutateModerationAction({
-                  action: "restrict_user",
-                  userId: member.id,
-                });
-              }}
-              onUnrestrict={() => {
-                if (!confirmAdminAction("활동 정지를 해제하시겠습니까?")) {
-                  return;
-                }
-                void mutateModerationAction({
-                  action: "unrestrict_user",
-                  userId: member.id,
-                });
-              }}
-            />
-          ))}
+          <div className="grid gap-3 xl:grid-cols-2">
+            {memberItems.map((member) => (
+              <MemberCard
+                key={member.id}
+                item={member}
+                pendingKey={moderationPendingKey}
+                onOpenDetail={() => setSelectedMember(member)}
+                onRestrict={() => {
+                  void mutateModerationAction({
+                    action: "restrict_user",
+                    userId: member.id,
+                  });
+                }}
+                onUnrestrict={() => {
+                  if (!confirmAdminAction("활동 정지를 해제하시겠습니까?")) {
+                    return;
+                  }
+                  void mutateModerationAction({
+                    action: "unrestrict_user",
+                    userId: member.id,
+                  });
+                }}
+              />
+            ))}
+          </div>
           <div className="flex items-center justify-between gap-3">
             <Button
               type="button"
@@ -1762,7 +1769,7 @@ export function AdminPage({
           </div>
         </TabsContent>
 
-        <TabsContent value="roles" className="space-y-3">
+        <TabsContent value="roles" className="space-y-3 lg:mt-0">
           <Card className="border-slate-200 bg-slate-50/80">
             <CardContent className="space-y-3 py-5">
               <div className="flex items-center justify-between gap-3">
@@ -1832,7 +1839,7 @@ export function AdminPage({
           ))}
         </TabsContent>
 
-        <TabsContent value="verification" className="space-y-3">
+        <TabsContent value="verification" className="space-y-3 lg:mt-0">
           {verificationLoading ? <LoadingState /> : null}
           {verificationError ? (
             <Card className="border-rose-200 bg-rose-50/80">
@@ -1955,7 +1962,7 @@ export function AdminPage({
           ))}
         </TabsContent>
 
-        <TabsContent value="profile-images" className="space-y-3">
+        <TabsContent value="profile-images" className="space-y-3 lg:mt-0">
           <Card className="border-slate-200 bg-slate-50/80">
             <CardContent className="space-y-3 py-5">
               <div className="flex items-center justify-between gap-3">
@@ -2016,88 +2023,90 @@ export function AdminPage({
               </CardContent>
             </Card>
           ) : null}
-          {profileImageItems.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="grid gap-4 p-4 md:grid-cols-[168px_minmax(0,1fr)_auto]">
-                <div className="aspect-square overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/5">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={`${item.nickname} 프로필 사진`}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                      미리보기 없음
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-base font-semibold">{item.nickname}</p>
-                    {item.schoolName ? <Badge variant="secondary">{item.schoolName}</Badge> : null}
-                    <Badge variant={item.moderationStatus === "approved" ? "secondary" : "outline"}>
-                      {item.moderationStatus === "approved"
-                        ? "승인됨"
-                        : item.moderationStatus === "rejected"
-                          ? "반려됨"
-                          : "검토 중"}
-                    </Badge>
-                    {item.isPrimary ? <Badge variant="outline">대표 사진</Badge> : null}
-                    <Badge variant="outline">슬롯 {item.imageOrder}</Badge>
+          <div className="grid gap-3 xl:grid-cols-2">
+            {profileImageItems.map((item) => (
+              <Card key={item.id}>
+                <CardContent className="grid gap-4 p-4 md:grid-cols-[168px_minmax(0,1fr)_auto]">
+                  <div className="aspect-square overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/5">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={`${item.nickname} 프로필 사진`}
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                        미리보기 없음
+                      </div>
+                    )}
                   </div>
-                  {item.email ? (
-                    <p className="text-sm text-muted-foreground">{item.email}</p>
-                  ) : null}
-                  {item.moderationReason ? (
-                    <p className="text-sm text-muted-foreground">{item.moderationReason}</p>
-                  ) : null}
-                  <p className="text-xs text-muted-foreground">
-                    업로드 {item.createdAt.slice(0, 16).replace("T", " ")}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={profileImagePendingId === item.id || item.moderationStatus === "approved"}
-                    onClick={() => {
-                      void mutateProfileImage(item, "approve");
-                    }}
-                  >
-                    승인
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={profileImagePendingId === item.id}
-                    onClick={() => {
-                      setRejectProfileImageItem(item);
-                      setRejectProfileImageReasons([]);
-                      setRejectProfileImageCustomReason("");
-                    }}
-                  >
-                    반려
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={profileImagePendingId === item.id}
-                    onClick={() => {
-                      void mutateProfileImage(item, "delete");
-                    }}
-                  >
-                    삭제
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-semibold">{item.nickname}</p>
+                      {item.schoolName ? <Badge variant="secondary">{item.schoolName}</Badge> : null}
+                      <Badge variant={item.moderationStatus === "approved" ? "secondary" : "outline"}>
+                        {item.moderationStatus === "approved"
+                          ? "승인됨"
+                          : item.moderationStatus === "rejected"
+                            ? "반려됨"
+                            : "검토 중"}
+                      </Badge>
+                      {item.isPrimary ? <Badge variant="outline">대표 사진</Badge> : null}
+                      <Badge variant="outline">슬롯 {item.imageOrder}</Badge>
+                    </div>
+                    {item.email ? (
+                      <p className="text-sm text-muted-foreground">{item.email}</p>
+                    ) : null}
+                    {item.moderationReason ? (
+                      <p className="text-sm text-muted-foreground">{item.moderationReason}</p>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground">
+                      업로드 {item.createdAt.slice(0, 16).replace("T", " ")}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={profileImagePendingId === item.id || item.moderationStatus === "approved"}
+                      onClick={() => {
+                        void mutateProfileImage(item, "approve");
+                      }}
+                    >
+                      승인
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={profileImagePendingId === item.id}
+                      onClick={() => {
+                        setRejectProfileImageItem(item);
+                        setRejectProfileImageReasons([]);
+                        setRejectProfileImageCustomReason("");
+                      }}
+                    >
+                      반려
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={profileImagePendingId === item.id}
+                      onClick={() => {
+                        void mutateProfileImage(item, "delete");
+                      }}
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
-        <TabsContent value="reports" className="space-y-3">
+        <TabsContent value="reports" className="space-y-3 lg:mt-0">
           {reportError ? (
             <Card className="border-rose-200 bg-rose-50/80">
               <CardContent className="py-4 text-sm text-rose-700">{reportError}</CardContent>
@@ -2243,7 +2252,7 @@ export function AdminPage({
           })}
         </TabsContent>
 
-        <TabsContent value="ops" className="space-y-3">
+        <TabsContent value="ops" className="space-y-3 lg:mt-0">
           <Card className="border-slate-200 bg-slate-50/80">
             <CardContent className="space-y-3 py-5">
               <div className="flex items-center justify-between gap-3">
@@ -2336,12 +2345,14 @@ export function AdminPage({
               <CardContent className="py-4 text-sm text-rose-700">{opsError}</CardContent>
             </Card>
           ) : null}
-          {opsItems.map((item) => (
-            <OpsEventCard key={item.id} item={item} />
-          ))}
+          <div className="grid gap-3 xl:grid-cols-2">
+            {opsItems.map((item) => (
+              <OpsEventCard key={item.id} item={item} />
+            ))}
+          </div>
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-3">
+        <TabsContent value="settings" className="space-y-3 lg:mt-0">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">기능 플래그</CardTitle>
@@ -2587,7 +2598,7 @@ export function AdminPage({
           ) : null}
         </TabsContent>
 
-        <TabsContent value="audit" className="space-y-3">
+        <TabsContent value="audit" className="space-y-3 lg:mt-0">
           {auditLoading ? <LoadingState /> : null}
           {auditError ? (
             <Card className="border-rose-200 bg-rose-50/80">
@@ -2622,7 +2633,7 @@ export function AdminPage({
           ))}
         </TabsContent>
 
-        <TabsContent value="hidden" className="space-y-3">
+        <TabsContent value="hidden" className="space-y-3 lg:mt-0">
           {autoHiddenItems.map((item) => (
             <Card key={`${item.targetType}-${item.id}`}>
               <CardHeader className="space-y-2">
@@ -2715,7 +2726,7 @@ export function AdminPage({
           ))}
         </TabsContent>
 
-        <TabsContent value="reported-users" className="space-y-3">
+        <TabsContent value="reported-users" className="space-y-3 lg:mt-0">
           {reportedUsers.map((user) => (
             <UserModerationCard
               key={user.id}
@@ -2739,7 +2750,7 @@ export function AdminPage({
           ))}
         </TabsContent>
 
-        <TabsContent value="low-trust" className="space-y-3">
+        <TabsContent value="low-trust" className="space-y-3 lg:mt-0">
           {lowTrustUsers.map((user) => (
             <UserModerationCard
               key={user.id}
@@ -2762,6 +2773,8 @@ export function AdminPage({
             />
           ))}
         </TabsContent>
+          </div>
+        </div>
       </Tabs>
       <Dialog
         open={Boolean(rejectProfileImageItem)}
