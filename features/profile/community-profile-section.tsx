@@ -51,6 +51,7 @@ type CommunityProfileFormState = {
 type DraftProfileImage = CommunityProfile["images"][number] & {
   localFile?: File | null;
   localPreviewUrl?: string;
+  wasProcessed?: boolean;
 };
 
 function cloneDraftImages(images: CommunityProfile["images"]) {
@@ -77,6 +78,7 @@ function buildImageDraftSignature(images: DraftProfileImage[]) {
       isPrimary: image.isPrimary,
       moderationStatus: image.moderationStatus,
       localFile: Boolean(image.localFile),
+      wasProcessed: Boolean(image.wasProcessed),
     }));
 }
 
@@ -228,6 +230,36 @@ export function CommunityProfileSection({
     return textChanged || imageChanged;
   }, [formState, orderedDraftImages, profile]);
 
+  const hasTextDraftChanges = useMemo(() => {
+    if (!profile) {
+      return false;
+    }
+
+    const normalizedDisplayName = formState.displayName.trim();
+    const normalizedBio = formState.bio.trim();
+    const normalizedInterests = parseInterestTokens(formState.interestsInput);
+
+    return (
+      normalizedDisplayName !== profile.displayName ||
+      normalizedBio !== (profile.bio ?? "") ||
+      formState.profileVisibility !== profile.profileVisibility ||
+      formState.showDepartment !== profile.showDepartment ||
+      formState.showAdmissionYear !== profile.showAdmissionYear ||
+      JSON.stringify(normalizedInterests) !== JSON.stringify(profile.interests)
+    );
+  }, [formState, profile]);
+
+  const hasImageDraftChanges = useMemo(() => {
+    if (!profile) {
+      return false;
+    }
+
+    return (
+      JSON.stringify(buildImageDraftSignature(orderedDraftImages)) !==
+      JSON.stringify(buildImageDraftSignature(profile.images as DraftProfileImage[]))
+    );
+  }, [orderedDraftImages, profile]);
+
   function openImageViewer(imageId: string) {
     const sourceImages = open ? viewableDraftImages : viewableImages;
     const nextIndex = sourceImages.findIndex((image) => image.id === imageId);
@@ -291,46 +323,60 @@ export function CommunityProfileSection({
             return;
           }
 
-          let nextProfile = await updateMyProfile({
-            displayName: formState.displayName,
-            bio: formState.bio,
-            interests: parseInterestTokens(formState.interestsInput),
-            profileVisibility: formState.profileVisibility,
-            showDepartment: formState.showDepartment,
-            showAdmissionYear: formState.showAdmissionYear,
-          });
+          let nextProfile = profile;
 
-          for (const draftImage of orderedDraftImages) {
-            if (!draftImage.localFile) {
-              continue;
-            }
-
-            const formData = new FormData();
-            formData.set("file", draftImage.localFile);
-            formData.set("imageOrder", String(draftImage.imageOrder));
-            if (draftImage.moderationReason?.includes("개인정보")) {
-              formData.set("sensitiveDetected", "true");
-            }
-            if (draftImage.moderationReason?.includes("QR")) {
-              formData.set("qrDetected", "true");
-            }
-            await uploadProfileImage(formData);
+          if (hasTextDraftChanges) {
+            nextProfile = await updateMyProfile({
+              displayName: formState.displayName,
+              bio: formState.bio,
+              interests: parseInterestTokens(formState.interestsInput),
+              profileVisibility: formState.profileVisibility,
+              showDepartment: formState.showDepartment,
+              showAdmissionYear: formState.showAdmissionYear,
+            });
           }
 
-          for (const originalImage of profile.images) {
-            const keptExistingImage = orderedDraftImages.some(
-              (draftImage) => !draftImage.localFile && draftImage.id === originalImage.id,
-            );
-            const replacedAtSameOrder = orderedDraftImages.some(
-              (draftImage) => draftImage.imageOrder === originalImage.imageOrder && Boolean(draftImage.localFile),
+          if (hasImageDraftChanges) {
+            await Promise.all(
+              orderedDraftImages.map(async (draftImage) => {
+                if (!draftImage.localFile) {
+                  return;
+                }
+
+                const formData = new FormData();
+                formData.set("file", draftImage.localFile);
+                formData.set("imageOrder", String(draftImage.imageOrder));
+                if (draftImage.moderationReason?.includes("개인정보")) {
+                  formData.set("sensitiveDetected", "true");
+                }
+                if (draftImage.moderationReason?.includes("QR")) {
+                  formData.set("qrDetected", "true");
+                }
+                if (draftImage.wasProcessed) {
+                  formData.set("processedImage", "true");
+                }
+                await uploadProfileImage(formData);
+              }),
             );
 
-            if (!keptExistingImage && !replacedAtSameOrder) {
-              await deleteProfileImage(originalImage.id);
-            }
+            await Promise.all(
+              profile.images.map(async (originalImage) => {
+                const keptExistingImage = orderedDraftImages.some(
+                  (draftImage) => !draftImage.localFile && draftImage.id === originalImage.id,
+                );
+                const replacedAtSameOrder = orderedDraftImages.some(
+                  (draftImage) =>
+                    draftImage.imageOrder === originalImage.imageOrder && Boolean(draftImage.localFile),
+                );
+
+                if (!keptExistingImage && !replacedAtSameOrder) {
+                  await deleteProfileImage(originalImage.id);
+                }
+              }),
+            );
+
+            nextProfile = await getMyProfile();
           }
-
-          nextProfile = await getMyProfile();
 
           const desiredOrderIds = orderedDraftImages
             .map((draftImage) =>
@@ -960,6 +1006,7 @@ export function CommunityProfileSection({
                 updatedAt: new Date().toISOString(),
                 localFile: file,
                 localPreviewUrl: previewUrl,
+                wasProcessed: true,
               }),
             );
           });

@@ -428,6 +428,7 @@ export async function uploadProfileImage(formData: FormData) {
   const imageOrder = Number(formData.get("imageOrder"));
   const sensitiveDetected = String(formData.get("sensitiveDetected") ?? "") === "true";
   const qrDetected = String(formData.get("qrDetected") ?? "") === "true";
+  const processedImage = String(formData.get("processedImage") ?? "") === "true";
 
   if (!(file instanceof File)) {
     throw new Error("이미지 파일을 선택해주세요.");
@@ -445,6 +446,12 @@ export async function uploadProfileImage(formData: FormData) {
   const hasPrimaryImage = await hasApprovedPrimaryImage(supabase, user.id);
 
   let moderation = await moderateCommunityProfileImage(file);
+  if (processedImage && !sensitiveDetected && !qrDetected) {
+    moderation = {
+      status: "approved" as const,
+      reason: undefined,
+    };
+  }
   if (moderation.status === "approved" && (sensitiveDetected || qrDetected)) {
     moderation = {
       status: "pending" as const,

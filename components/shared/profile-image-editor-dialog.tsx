@@ -418,7 +418,7 @@ export function ProfileImageEditorDialog({
 
           {!hasDetectedFaces ? (
             <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted-foreground">
-              얼굴이 자동으로 감지되진 않았어요. 필요하면 직접 가린 뒤 업로드할 수 있어요.
+              자동 얼굴 감지가 놓칠 수 있어요. 얼굴이 보이면 직접 가린 뒤 업로드해주세요.
             </div>
           ) : null}
 
@@ -487,21 +487,9 @@ export function ProfileImageEditorDialog({
                 가림 영역을 끌어 위치를 옮기고, 우하단 점을 끌어 크기를 조절할 수 있어요.
               </p>
             </div>
-          ) : (
-            <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isProcessing}
-                onClick={() => void handleStartManualMasking()}
-              >
-                <ScanFace className="h-4 w-4" />
-                직접 가리기 시작
-              </Button>
-            </div>
-          )}
+          ) : null}
 
-          <div className={`grid grid-cols-1 gap-3 ${canMask ? "sm:grid-cols-2" : ""}`}>
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">원본</p>
               <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
@@ -569,50 +557,59 @@ export function ProfileImageEditorDialog({
               </div>
             </div>
 
-            {canMask ? (
-              <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  가려진 이미지
-                </p>
-                <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
-                  <div className="relative aspect-[0.92] w-full">
-                    {processedPreviewUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <>
-                        <img
-                          src={processedPreviewUrl}
-                          alt="편집 미리보기"
-                          className="h-full w-full object-contain"
-                        />
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                가려진 이미지
+              </p>
+              <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
+                <div className="relative aspect-[0.92] w-full">
+                  {processedPreviewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <>
+                      <img
+                        src={processedPreviewUrl}
+                        alt="편집 미리보기"
+                        className="h-full w-full object-contain"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="secondary"
+                        className="absolute right-3 top-3 h-8 w-8 rounded-full"
+                        disabled={isProcessing}
+                        onClick={() => {
+                          setProcessedFile(null);
+                          setMaskMode(null);
+                          setError(null);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : isProcessing ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>가린 이미지를 만드는 중이에요.</span>
+                    </div>
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
+                      <span>블러나 스티커를 적용하면 여기에서 바로 비교할 수 있어요.</span>
+                      {!canMask ? (
                         <Button
                           type="button"
-                          size="icon"
-                          variant="secondary"
-                          className="absolute right-3 top-3 h-8 w-8 rounded-full"
+                          variant="outline"
                           disabled={isProcessing}
-                          onClick={() => {
-                            setProcessedFile(null);
-                            setMaskMode(null);
-                            setError(null);
-                          }}
+                          onClick={() => void handleStartManualMasking()}
                         >
-                          <X className="h-4 w-4" />
+                          <ScanFace className="h-4 w-4" />
+                          직접 가리기 시작
                         </Button>
-                      </>
-                    ) : isProcessing ? (
-                      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <span>가린 이미지를 만드는 중이에요.</span>
-                      </div>
-                    ) : (
-                      <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                        자동 흐림이나 스티커를 적용하면 여기에서 결과를 볼 수 있어요.
-                      </div>
-                    )}
-                  </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
-            ) : null}
+            </div>
           </div>
 
           {hasSensitiveWarning && !hasDetectedFaces ? (
