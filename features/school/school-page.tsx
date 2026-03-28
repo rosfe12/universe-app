@@ -488,7 +488,7 @@ export function SchoolPage({
         <Card className="border-dashed border-border bg-card">
           <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
             <div className="space-y-1">
-              <p className="font-semibold">학교를 선택하면 학교 전용 공간이 열립니다</p>
+              <p className="font-semibold">학교를 인증하면 우리학교가 열려요</p>
             </div>
             <Button asChild>
               <Link href="/onboarding?next=%2Fschool&mode=verification">학교 인증하기</Link>
@@ -514,7 +514,7 @@ export function SchoolPage({
         <CardContent className="relative z-10 space-y-6 py-6">
           <div className="flex items-center justify-between gap-3">
             <Badge variant={isApplicantMode ? "warning" : "secondary"} className="border-border bg-background/80 text-foreground">
-              {isApplicantMode ? "지망학교 모드" : "캠퍼스 라이브"}
+              {isApplicantMode ? "지망학교 모드" : "학교 피드"}
             </Badge>
             <School className="h-5 w-5 text-primary" />
           </div>
@@ -589,7 +589,7 @@ export function SchoolPage({
               <div className="rounded-[24px] border border-border bg-background/80 px-4 py-4">
                 <p className="text-sm font-medium text-foreground">관리자 모드</p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  학교를 선택하면 해당 학교 콘텐츠를 바로 미리 볼 수 있고, 관리자 기능은 아래 버튼으로 실행할 수 있습니다.
+                  학교를 선택하면 해당 학교 화면을 바로 확인할 수 있습니다.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Button asChild size="sm">
@@ -688,17 +688,17 @@ export function SchoolPage({
 
       {!isAdminDashboardMode ? (
       <section className="space-y-4">
-        <SectionHeader title="캠퍼스 라이브" />
+        <SectionHeader title="학교 피드" />
 
         {!hasCampusLiveContent ? (
           <Card className="border-border bg-card shadow-none">
             <CardContent className="space-y-4 py-6">
               <div className="space-y-1">
                 <p className="text-base font-semibold text-foreground">
-                  {schoolShortName}에서 막 올라오는 글은 아직 많지 않아요
+                  {schoolShortName} 새 글이 아직 많지 않아요
                 </p>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  학교 안에서 바로 물어보고 싶은 내용부터 남기면 캠퍼스 피드가 빠르게 채워집니다.
+                  학교 생활 질문이나 정보를 남기면 여기서 바로 볼 수 있어요.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -748,7 +748,6 @@ export function SchoolPage({
           </Card>
         ) : null}
 
-        {schoolBoardPosts.length > 0 ? (
         <div
           ref={(node) => {
             schoolBoardSectionRef.current = node;
@@ -802,9 +801,7 @@ export function SchoolPage({
             </FeedList>
           )}
         </div>
-        ) : null}
 
-        {freshmanZonePosts.length > 0 ? (
         <div
           ref={(node) => {
             freshmanSectionRef.current = node;
@@ -834,9 +831,7 @@ export function SchoolPage({
             </FeedList>
           )}
         </div>
-        ) : null}
 
-        {admissionPosts.length > 0 ? (
         <div
           ref={(node) => {
             admissionSectionRef.current = node;
@@ -884,7 +879,6 @@ export function SchoolPage({
             </FeedList>
           )}
         </div>
-        ) : null}
       </section>
       ) : null}
 
@@ -928,7 +922,7 @@ export function SchoolPage({
           {tradeItems.length === 0 ? (
             <EmptyState
               title="아직 교환 글이 많지 않아요"
-              description="같은 학교에서 교환 글이 올라오면 여기서 바로 이어서 볼 수 있습니다."
+              description="같은 학교 교환 글이 올라오면 여기서 바로 볼 수 있어요."
               actionLabel="교환 게시판 보기"
               href="/trade"
             />
@@ -954,10 +948,10 @@ export function SchoolPage({
           <EmptyState
             title={
               hasSchoolUtilityContent
-                ? "학교 생활 글이 더 쌓이면 여기서 이어서 볼 수 있어요"
+                ? "학교 생활 글이 더 쌓이면 여기서 볼 수 있어요"
                 : "둘러볼 학교 생활 글이 아직 많지 않아요"
             }
-            description="동아리 모집과 학교 주변 맛집, 생활 정보가 차례로 모입니다."
+            description="동아리, 맛집, 생활 정보가 차례로 모여요."
           />
         ) : (
           <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
