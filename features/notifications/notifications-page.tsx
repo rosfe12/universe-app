@@ -565,7 +565,7 @@ export function NotificationsPage({
                     >
                       <button
                         type="button"
-                        className="block w-full text-left"
+                        className="block w-full text-left transition-colors duration-150 hover:bg-gray-50/70 active:scale-[0.995] disabled:opacity-60 dark:hover:bg-white/5"
                         onClick={() => handleOpen(item)}
                         disabled={!href || isPending}
                       >
@@ -614,7 +614,7 @@ export function NotificationsPage({
                             <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                               <RelativeTimeText dateString={item.createdAt} />
                               <span className="font-semibold text-primary">
-                                {item.sourceKind === "recommendation" ? "지금 보기" : "바로 이동"}
+                                {item.sourceKind === "recommendation" ? "지금 보기" : "열기"}
                               </span>
                             </div>
                           </div>

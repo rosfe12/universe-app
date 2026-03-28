@@ -21,7 +21,7 @@ export function MyPageLevelSection({ score }: { score: number }) {
   ];
 
   return (
-    <section className="space-y-5 border-b border-gray-100 pb-5">
+    <section className="space-y-5 border-b border-gray-100 pb-5 dark:border-white/10">
       <div className="space-y-1">
         <p className="text-sm font-semibold text-foreground">현재 등급</p>
         <div className="flex items-center gap-1.5">
@@ -35,7 +35,7 @@ export function MyPageLevelSection({ score }: { score: number }) {
         </div>
       </div>
       <div className="space-y-2">
-        <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+        <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
           <div
             className="h-full rounded-full bg-blue-500 transition-all"
             style={{ width: `${progress.progressPercent}%` }}
@@ -47,11 +47,11 @@ export function MyPageLevelSection({ score }: { score: number }) {
             : "현재 최고 등급입니다"}
         </p>
       </div>
-      <div className="rounded-2xl border border-gray-100">
+      <div className="rounded-2xl border border-gray-100 dark:border-white/10">
         <Button
           type="button"
           variant="ghost"
-          className="flex h-auto w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-foreground hover:bg-gray-50"
+          className="flex h-auto w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-foreground hover:bg-gray-50 dark:hover:bg-white/5"
           onClick={() => setIsGuideOpen((current) => !current)}
         >
           <div className="space-y-1">
@@ -65,8 +65,8 @@ export function MyPageLevelSection({ score }: { score: number }) {
           />
         </Button>
         {isGuideOpen ? (
-          <div className="space-y-4 border-t border-gray-100 px-4 py-4">
-            <div className="space-y-3 rounded-2xl bg-gray-50 px-4 py-4">
+          <div className="space-y-4 border-t border-gray-100 px-4 py-4 dark:border-white/10">
+            <div className="space-y-3 rounded-2xl bg-gray-50 px-4 py-4 dark:bg-white/[0.04]">
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">등급 안내</p>
                 <p className="text-sm text-muted-foreground">
@@ -77,7 +77,7 @@ export function MyPageLevelSection({ score }: { score: number }) {
                 {levelGuide.map((level) => (
                   <div
                     key={level.level}
-                    className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
+                    className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0 dark:border-white/10"
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground">
@@ -96,7 +96,7 @@ export function MyPageLevelSection({ score }: { score: number }) {
                 ))}
               </div>
             </div>
-            <div className="space-y-3 rounded-2xl border border-gray-100 px-4 py-4">
+            <div className="space-y-3 rounded-2xl border border-gray-100 px-4 py-4 dark:border-white/10">
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">등급 올리는 방법</p>
                 <p className="text-sm text-muted-foreground">
@@ -107,7 +107,7 @@ export function MyPageLevelSection({ score }: { score: number }) {
                 {scoreGuide.map((item) => (
                   <div
                     key={item.label}
-                    className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2"
+                    className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 dark:bg-white/[0.04]"
                   >
                     <span className="text-sm text-muted-foreground">{item.label}</span>
                     <span className="text-sm font-medium text-foreground">{item.value}</span>

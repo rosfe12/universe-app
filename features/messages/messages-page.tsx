@@ -94,9 +94,9 @@ function ThreadLink({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <button
-      type="button"
-      onClick={() => {
+      <button
+        type="button"
+        onClick={() => {
         startTransition(() => {
           void (async () => {
             if (thread.notificationId) {
@@ -116,7 +116,7 @@ function ThreadLink({
           })();
         });
       }}
-      className="flex w-full items-start justify-between gap-3 px-4 py-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99]"
+      className="flex w-full items-start justify-between gap-3 px-4 py-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99] disabled:opacity-60 dark:hover:bg-white/5"
       disabled={isPending}
     >
       <div className="min-w-0 flex-1">
@@ -438,7 +438,7 @@ export function MessagesPage({
                 href="/community"
               />
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-white/10">
                 {messageThreads.map((thread) => (
                   <ThreadLink
                     key={thread.id}
@@ -465,7 +465,7 @@ export function MessagesPage({
                 href="/trade"
               />
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-white/10">
                 {chatThreads.map((thread) => (
                   <ThreadLink
                     key={thread.id}

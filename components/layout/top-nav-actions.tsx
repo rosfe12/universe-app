@@ -209,13 +209,13 @@ export function TopNavActions() {
               {runtimeLoading ? (
                 <div className="px-4 py-8 text-center text-sm text-gray-500">검색 항목을 불러오는 중입니다.</div>
               ) : searchResults.length > 0 ? (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-white/10">
                   {searchResults.map((item) => (
                     <Link
                       key={item.id}
                       href={item.href}
                       onClick={() => setOpen(false)}
-                      className="block px-4 py-3 transition-colors duration-150 hover:bg-gray-50"
+                      className="block px-4 py-3 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-white/5"
                     >
                       <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
                       <p className="mt-1 text-xs text-gray-500">{item.meta}</p>
