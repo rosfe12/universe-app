@@ -410,6 +410,20 @@ export function ProfileImageEditorDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium text-foreground">사진 {imageOrder ?? 1} 업로드</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  원본과 반영본을 바로 비교하면서 가린 뒤 업로드할 수 있어요.
+                </p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] text-muted-foreground">
+                {hasDetectedFaces ? "얼굴 감지됨" : "직접 가리기 가능"}
+              </span>
+            </div>
+          </div>
+
           {hasDetectedFaces ? (
             <div className="rounded-[20px] border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
               얼굴이 감지됐어요. 캠버스에서는 얼굴이 보이지 않도록 가려야 해요.
@@ -436,7 +450,7 @@ export function ProfileImageEditorDialog({
 
           {canMask ? (
             <div className="space-y-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4">
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
                   variant={maskMode?.kind === "blur" ? "secondary" : "outline"}
@@ -462,26 +476,29 @@ export function ProfileImageEditorDialog({
                 </Button>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {(["smile", "star", "dot", "sparkle"] as StickerType[]).map((value) => (
-                  <Button
-                    key={value}
-                    type="button"
-                    size="sm"
-                    variant={maskMode?.kind === "sticker" && stickerType === value ? "secondary" : "outline"}
-                    disabled={isProcessing}
-                    onClick={() => void handleApplySticker(value)}
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {value === "smile"
-                      ? "스마일"
-                      : value === "star"
-                        ? "별"
-                        : value === "dot"
-                          ? "컬러 마스크"
-                          : "반짝"}
-                  </Button>
-                ))}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">스티커 가리기</p>
+                <div className="flex flex-wrap gap-2">
+                  {(["smile", "star", "dot", "sparkle"] as StickerType[]).map((value) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      size="sm"
+                      variant={maskMode?.kind === "sticker" && stickerType === value ? "secondary" : "outline"}
+                      disabled={isProcessing}
+                      onClick={() => void handleApplySticker(value)}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {value === "smile"
+                        ? "스마일"
+                        : value === "star"
+                          ? "별"
+                          : value === "dot"
+                            ? "컬러 마스크"
+                            : "반짝"}
+                    </Button>
+                  ))}
+                </div>
               </div>
               <p className="text-xs leading-5 text-muted-foreground">
                 가림 영역을 끌어 위치를 옮기고, 우하단 점을 끌어 크기를 조절할 수 있어요.
@@ -559,7 +576,7 @@ export function ProfileImageEditorDialog({
 
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                가려진 이미지
+                반영본
               </p>
               <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
                 <div className="relative aspect-[0.92] w-full">
@@ -593,7 +610,7 @@ export function ProfileImageEditorDialog({
                     </div>
                   ) : (
                     <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
-                      <span>블러나 스티커를 적용하면 여기에서 바로 비교할 수 있어요.</span>
+                      <span>블러나 스티커를 적용하면 여기에서 바로 결과를 볼 수 있어요.</span>
                       {!canMask ? (
                         <Button
                           type="button"

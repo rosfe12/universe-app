@@ -765,13 +765,22 @@ export function CommunityProfileSection({
                 저장 전 변경사항이 있어요. 저장해야 실제 프로필에 반영됩니다.
               </div>
             ) : null}
-            <div className="space-y-3">
-              <div>
-                <p className="font-medium">프로필 사진</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  얼굴 사진 금지 · 연락처/SNS/QR/학생증 등 개인정보 포함 사진 금지
-                </p>
+            <div className="space-y-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">프로필 사진</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    대표 사진 1장 포함 최대 3장까지 올릴 수 있어요.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-[11px]">
+                  <Badge variant="outline">최대 3장</Badge>
+                  <Badge variant="outline">얼굴 노출 금지</Badge>
+                </div>
               </div>
+              <p className="text-xs leading-5 text-muted-foreground">
+                연락처, SNS 아이디, QR, 학생증 등 개인정보가 보이는 사진은 올릴 수 없어요.
+              </p>
               {uploadError ? (
                 <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
                   {uploadError}
@@ -782,12 +791,30 @@ export function CommunityProfileSection({
                   const order = index + 1;
                   const image = draftImageByOrder.get(order);
                   return (
-                    <div key={order} className="space-y-2 rounded-[20px] border border-white/10 p-3">
-                      <div className="app-muted-surface flex aspect-[0.92] items-center justify-center overflow-hidden rounded-[16px]">
+                    <div key={order} className="space-y-3 rounded-[22px] border border-white/10 bg-slate-950/10 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-foreground">
+                            사진 {order}
+                          </span>
+                          {image?.isPrimary ? <Badge variant="success">대표</Badge> : null}
+                        </div>
+                        {image ? (
+                          <span className="text-[11px] text-muted-foreground">
+                            {image.moderationStatus === "approved"
+                              ? "공개 중"
+                              : image.moderationStatus === "pending"
+                                ? "검토 중"
+                                : "차단됨"}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="app-muted-surface flex aspect-[0.92] items-center justify-center overflow-hidden rounded-[18px] border border-white/10">
                         {image?.imageUrl ? (
                           <button
                             type="button"
-                            className="block h-full w-full"
+                            className="relative block h-full w-full"
                             onClick={() => openImageViewer(image.id)}
                           >
                             <ProfileImage
@@ -805,9 +832,9 @@ export function CommunityProfileSection({
                             />
                           </button>
                         ) : (
-                          <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+                          <div className="flex flex-col items-center gap-2 px-4 text-center text-xs text-muted-foreground">
                             <ImagePlus className="h-4 w-4" />
-                            <span>사진 {order}</span>
+                            <span>아직 사진이 없어요</span>
                           </div>
                         )}
                       </div>
@@ -822,7 +849,6 @@ export function CommunityProfileSection({
                                   ? "검토 중"
                                   : "차단됨"}
                             </Badge>
-                            {image.isPrimary ? <Badge variant="success">대표 사진</Badge> : null}
                             {image.localFile ? <Badge variant="outline">저장 전</Badge> : null}
                             {image.moderationReason ? (
                               <span className="text-[11px] text-muted-foreground">
@@ -830,30 +856,12 @@ export function CommunityProfileSection({
                               </span>
                             ) : null}
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="outline"
-                              disabled={isPending || orderedDraftImages[0]?.id === image.id}
-                              onClick={() => void handleMoveImage(image.id, -1)}
-                            >
-                              <ChevronLeft className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="outline"
-                              disabled={isPending || orderedDraftImages[orderedDraftImages.length - 1]?.id === image.id}
-                              onClick={() => void handleMoveImage(image.id, 1)}
-                            >
-                              <ChevronRight className="h-4 w-4" />
-                            </Button>
+                          <div className="grid grid-cols-2 gap-2">
                             <Button
                               type="button"
                               variant={image.isPrimary ? "secondary" : "outline"}
                               size="sm"
-                              className="h-9 px-3 text-xs"
+                              className="h-9 justify-center text-xs"
                               disabled={isPending || image.moderationStatus !== "approved" || image.isPrimary}
                               onClick={() => void handleSetPrimaryImage(image.id)}
                             >
@@ -861,12 +869,47 @@ export function CommunityProfileSection({
                             </Button>
                             <Button
                               type="button"
-                              size="icon"
+                              variant="outline"
+                              className="h-9 justify-center text-xs"
+                              disabled={uploadingOrder === order || isPending}
+                              onClick={() => openFilePicker(order)}
+                            >
+                              사진 교체
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-9 justify-center text-xs"
+                              disabled={isPending || orderedDraftImages[0]?.id === image.id}
+                              onClick={() => void handleMoveImage(image.id, -1)}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                              앞으로
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-9 justify-center text-xs"
+                              disabled={isPending || orderedDraftImages[orderedDraftImages.length - 1]?.id === image.id}
+                              onClick={() => void handleMoveImage(image.id, 1)}
+                            >
+                              뒤로
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
                               variant="ghost"
+                              size="sm"
+                              className="h-9 justify-center text-xs text-rose-300 hover:text-rose-200"
                               disabled={isPending}
                               onClick={() => void handleImageDelete(image.id)}
                             >
                               <Trash2 className="h-4 w-4" />
+                              삭제
                             </Button>
                           </div>
                         </div>
@@ -896,9 +939,9 @@ export function CommunityProfileSection({
                         disabled={uploadingOrder === order || isPending}
                         onClick={() => openFilePicker(order)}
                       >
-                        {image ? "사진 교체" : "사진 업로드"}
+                        {image ? "다른 사진 선택" : "사진 업로드"}
                       </Button>
-                      <p className="text-[11px] text-muted-foreground">JPG · PNG · WEBP / 5MB 이하</p>
+                      <p className="text-[11px] text-muted-foreground">JPG · PNG · WEBP · 5MB 이하</p>
                       {uploadingOrder === order ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -910,7 +953,7 @@ export function CommunityProfileSection({
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                수정창에서 바꾼 사진은 저장을 눌러야 반영돼요.
+                여기서 바꾼 사진과 순서는 저장을 눌러야 실제 프로필에 반영돼요.
               </p>
             </div>
             <div className="space-y-2">
