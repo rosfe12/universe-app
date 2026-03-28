@@ -5,6 +5,7 @@ import type { Viewport } from "next";
 import "@/app/globals.css";
 import { NativeAppSetup } from "@/components/shared/native-app-setup";
 import { AppLaunchGate } from "@/components/shared/app-launch-gate";
+import { LaunchScreen } from "@/components/shared/launch-screen";
 import { APP_MOTION_STORAGE_KEY, APP_THEME_STORAGE_KEY } from "@/lib/app-preferences";
 import { resolveAppUrl } from "@/lib/env";
 
@@ -90,6 +91,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
       <body>
+        <LaunchScreen id="app-boot-splash" fixed />
         <Script id="theme-boot" strategy="beforeInteractive">
           {themeBootScript}
         </Script>

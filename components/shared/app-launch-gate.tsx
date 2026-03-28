@@ -2,8 +2,6 @@
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-
-import { LaunchScreen } from "@/components/shared/launch-screen";
 import { ensureSupabaseSessionReady } from "@/lib/supabase/client";
 import {
   loadClientRuntimeSnapshot,
@@ -124,6 +122,28 @@ export function AppLaunchGate({ children }: { children: ReactNode }) {
   const launchCompletedRef = useRef(!launchEnabled);
 
   useEffect(() => {
+    const bootSplash = document.getElementById("app-boot-splash");
+    if (!bootSplash) {
+      return;
+    }
+
+    if (phase === "done") {
+      bootSplash.setAttribute("aria-hidden", "true");
+      bootSplash.classList.add("pointer-events-none");
+      bootSplash.style.opacity = "0";
+      window.setTimeout(() => {
+        bootSplash.style.display = "none";
+      }, EXIT_TRANSITION_MS);
+      return;
+    }
+
+    bootSplash.style.display = "flex";
+    bootSplash.style.opacity = phase === "exit" ? "0" : "1";
+    bootSplash.classList.toggle("pointer-events-none", phase === "exit");
+    bootSplash.setAttribute("aria-hidden", phase === "exit" ? "true" : "false");
+  }, [phase]);
+
+  useEffect(() => {
     if (!launchEnabled) {
       launchCompletedRef.current = true;
       setPhase("done");
@@ -169,7 +189,6 @@ export function AppLaunchGate({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
-      {phase !== "done" ? <LaunchScreen fixed exiting={phase === "exit"} /> : null}
     </>
   );
 }
