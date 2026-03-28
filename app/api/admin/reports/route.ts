@@ -97,7 +97,7 @@ export async function PATCH(request: Request) {
     const { reportId, status } = parsed.data;
     const { data: report, error: reportError } = await admin
       .from("reports")
-      .select("id, target_type, target_id, reason, status")
+      .select("id, reporter_id, target_type, target_id, reason, status")
       .eq("id", reportId)
       .single();
 
@@ -112,6 +112,44 @@ export async function PATCH(request: Request) {
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    if (status !== "pending") {
+      const notificationTitle =
+        status === "reviewing"
+          ? "신고가 검토 중이에요"
+          : status === "confirmed"
+            ? "신고 처리가 완료되었어요"
+            : "신고 검토가 완료되었어요";
+      const notificationBody =
+        status === "reviewing"
+          ? "관리자가 신고 내용을 확인하고 있습니다."
+          : status === "confirmed"
+            ? "신고가 확인되어 조치가 반영되었습니다."
+            : "신고가 검토되었고 추가 조치 없이 종료되었습니다.";
+
+      const { error: notificationError } = await admin.from("notifications").insert({
+        user_id: String(report.reporter_id),
+        type: "report_update",
+        title: notificationTitle,
+        body: notificationBody,
+        href: "/notifications",
+        target_type: "report",
+        target_id: String(report.id),
+        source_kind: "system",
+        delivery_mode: "instant",
+        metadata: {
+          reportId: String(report.id),
+          targetType: String(report.target_type),
+          targetId: String(report.target_id),
+          reason: String(report.reason),
+          status,
+        },
+      });
+
+      if (notificationError) {
+        console.error("[admin] failed to create report update notification", notificationError);
+      }
     }
 
     await insertAdminAuditLog(admin, {

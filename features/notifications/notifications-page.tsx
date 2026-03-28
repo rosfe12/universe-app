@@ -581,18 +581,25 @@ export function NotificationsPage({
                           <div className="min-w-0 flex-1">
                             <div className="flex items-start gap-3">
                               <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                  {(() => {
+                                    const badgeLabel =
+                                      item.sourceKind === "recommendation"
+                                        ? "추천"
+                                        : item.type === "announcement"
+                                          ? "공지"
+                                          : meta.label;
+
+                                    return (
                                   <Badge
                                     variant={
                                       item.sourceKind === "recommendation" ? "outline" : meta.badgeVariant
                                     }
                                   >
-                                    {item.sourceKind === "recommendation"
-                                      ? "추천"
-                                      : item.sourceKind === "system"
-                                        ? "공지"
-                                        : meta.label}
+                                        {badgeLabel}
                                   </Badge>
+                                    );
+                                  })()}
                                   {highlightUnread ? (
                                     <span className="text-[11px] font-semibold text-primary">읽지 않음</span>
                                   ) : null}
