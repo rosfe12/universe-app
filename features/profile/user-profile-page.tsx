@@ -10,6 +10,7 @@ import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ProfileImage } from "@/components/shared/profile-image";
+import { ProfileImageViewerDialog } from "@/components/shared/profile-image-viewer-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,6 +42,21 @@ export function UserProfilePage({ userId }: { userId: string }) {
   const [reportDetail, setReportDetail] = useState("");
   const [blocked, setBlocked] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const viewableImages =
+    profile?.images
+      .filter((image) => Boolean(image.imageUrl))
+      .map((image) => ({
+        id: image.id,
+        imageUrl: image.imageUrl,
+        alt: `${profile.displayName} 프로필 사진 ${image.imageOrder}`,
+      })) ?? [];
+
+  function openImageViewer(imageId: string) {
+    const nextIndex = viewableImages.findIndex((image) => image.id === imageId);
+    if (nextIndex < 0) return;
+    setViewerIndex(nextIndex);
+  }
 
   useEffect(() => {
     if (!isAuthenticated || loading || !canUseCommunityProfileFeature(currentUser)) {
@@ -176,18 +192,24 @@ export function UserProfilePage({ userId }: { userId: string }) {
                     >
                       <div className="aspect-[0.92] w-full">
                         {image.imageUrl ? (
-                          <ProfileImage
-                            src={image.imageUrl}
-                            alt={`${profile.displayName} 프로필 사진 ${image.imageOrder}`}
-                            width={480}
-                            height={520}
-                            className="h-full w-full object-cover"
-                            fallback={
-                              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                                이미지 준비 중
-                              </div>
-                            }
-                          />
+                          <button
+                            type="button"
+                            className="block h-full w-full"
+                            onClick={() => openImageViewer(image.id)}
+                          >
+                            <ProfileImage
+                              src={image.imageUrl}
+                              alt={`${profile.displayName} 프로필 사진 ${image.imageOrder}`}
+                              width={480}
+                              height={520}
+                              className="h-full w-full object-cover"
+                              fallback={
+                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                  이미지 준비 중
+                                </div>
+                              }
+                            />
+                          </button>
                         ) : (
                           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                             이미지 준비 중
@@ -341,6 +363,16 @@ export function UserProfilePage({ userId }: { userId: string }) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          <ProfileImageViewerDialog
+            open={viewerIndex !== null}
+            images={viewableImages}
+            initialIndex={viewerIndex ?? 0}
+            onOpenChange={(nextOpen) => {
+              if (!nextOpen) {
+                setViewerIndex(null);
+              }
+            }}
+          />
         </>
       ) : error ? (
         <Card className="border-dashed border-white/10 bg-white/[0.03]">

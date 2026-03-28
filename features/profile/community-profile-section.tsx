@@ -15,6 +15,7 @@ import {
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { ProfileImage } from "@/components/shared/profile-image";
 import { ProfileImageEditorDialog } from "@/components/shared/profile-image-editor-dialog";
+import { ProfileImageViewerDialog } from "@/components/shared/profile-image-viewer-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,7 @@ export function CommunityProfileSection({
     qrDetected: boolean;
     processedFile: File | null;
   } | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 
   const orderedImages = useMemo(
     () => [...(profile?.images ?? [])].sort((a, b) => a.imageOrder - b.imageOrder),
@@ -131,6 +133,23 @@ export function CommunityProfileSection({
     }
     return map;
   }, [orderedImages]);
+  const viewableImages = useMemo(
+    () =>
+      orderedImages
+        .filter((image) => Boolean(image.imageUrl))
+        .map((image) => ({
+          id: image.id,
+          imageUrl: image.imageUrl,
+          alt: `프로필 사진 ${image.imageOrder}`,
+        })),
+    [orderedImages],
+  );
+
+  function openImageViewer(imageId: string) {
+    const nextIndex = viewableImages.findIndex((image) => image.id === imageId);
+    if (nextIndex < 0) return;
+    setViewerIndex(nextIndex);
+  }
 
   function openEditor() {
     if (!profile) return;
@@ -390,18 +409,24 @@ export function CommunityProfileSection({
                     >
                       <div className="aspect-[0.92] w-full">
                         {image?.imageUrl ? (
-                          <ProfileImage
-                            src={image.imageUrl}
-                            alt={`프로필 사진 ${index + 1}`}
-                            width={480}
-                            height={520}
-                            className="h-full w-full object-cover"
-                            fallback={
-                              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                                사진 {index + 1}
-                              </div>
-                            }
-                          />
+                          <button
+                            type="button"
+                            className="block h-full w-full"
+                            onClick={() => openImageViewer(image.id)}
+                          >
+                            <ProfileImage
+                              src={image.imageUrl}
+                              alt={`프로필 사진 ${index + 1}`}
+                              width={480}
+                              height={520}
+                              className="h-full w-full object-cover"
+                              fallback={
+                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                  사진 {index + 1}
+                                </div>
+                              }
+                            />
+                          </button>
                         ) : (
                           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                             사진 {index + 1}
@@ -593,19 +618,25 @@ export function CommunityProfileSection({
                     <div key={order} className="space-y-2 rounded-[20px] border border-white/10 p-3">
                       <div className="app-muted-surface flex aspect-[0.92] items-center justify-center overflow-hidden rounded-[16px]">
                         {image?.imageUrl ? (
-                          <ProfileImage
-                            src={image.imageUrl}
-                            alt={`프로필 사진 ${order}`}
-                            width={480}
-                            height={520}
-                            className="h-full w-full object-cover"
-                            fallback={
-                              <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
-                                <ImagePlus className="h-4 w-4" />
-                                <span>사진 {order}</span>
-                              </div>
-                            }
-                          />
+                          <button
+                            type="button"
+                            className="block h-full w-full"
+                            onClick={() => openImageViewer(image.id)}
+                          >
+                            <ProfileImage
+                              src={image.imageUrl}
+                              alt={`프로필 사진 ${order}`}
+                              width={480}
+                              height={520}
+                              className="h-full w-full object-cover"
+                              fallback={
+                                <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+                                  <ImagePlus className="h-4 w-4" />
+                                  <span>사진 {order}</span>
+                                </div>
+                              }
+                            />
+                          </button>
                         ) : (
                           <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
                             <ImagePlus className="h-4 w-4" />
@@ -737,6 +768,16 @@ export function CommunityProfileSection({
           if (!editorState) return;
           await uploadSelectedImage(editorState.imageOrder, file, flags);
           setEditorState(null);
+        }}
+      />
+      <ProfileImageViewerDialog
+        open={viewerIndex !== null}
+        images={viewableImages}
+        initialIndex={viewerIndex ?? 0}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setViewerIndex(null);
+          }
         }}
       />
     </section>
