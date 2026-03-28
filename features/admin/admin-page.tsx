@@ -765,21 +765,41 @@ export function AdminPage({
       label: "가입 회원",
       value: `${overview?.totalMembers ?? memberTotal}명`,
       icon: ShieldAlert,
+      onClick: () => {
+        setMemberStatusFilter("all");
+        setActiveTab("members");
+        if (loadedTabs.members) {
+          void refreshMemberList(1, memberQuery, { status: "all" });
+        }
+      },
     },
     {
       label: "제한 사용자",
       value: `${overview?.restrictedMembers ?? 0}명`,
       icon: Ban,
+      onClick: () => {
+        setMemberStatusFilter("restricted");
+        setActiveTab("members");
+        if (loadedTabs.members) {
+          void refreshMemberList(1, memberQuery, { status: "restricted" });
+        }
+      },
     },
     {
       label: "학교 인증 대기",
       value: `${overview?.pendingVerificationCount ?? pendingVerificationCount}건`,
       icon: MailCheck,
+      onClick: () => {
+        setActiveTab("verification");
+      },
     },
     {
       label: "숨김 콘텐츠",
       value: `${overview?.hiddenContentCount ?? 0}건`,
       icon: ShieldMinus,
+      onClick: () => {
+        setActiveTab("hidden");
+      },
     },
   ];
 
@@ -1469,7 +1489,22 @@ export function AdminPage({
           <aside className="space-y-4 lg:sticky lg:top-24">
             <div className="grid grid-cols-2 gap-3">
               {summaryCards.map((item) => (
-                <SummaryCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
+                <SummaryCard
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                  icon={item.icon}
+                  onClick={() => {
+                    item.onClick();
+                    if (typeof window !== "undefined") {
+                      window.requestAnimationFrame(() => {
+                        document
+                          .getElementById("admin-tab-content")
+                          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      });
+                    }
+                  }}
+                />
               ))}
             </div>
 
@@ -1498,7 +1533,7 @@ export function AdminPage({
             </TabsList>
           </aside>
 
-          <div className="min-w-0 space-y-4">
+          <div id="admin-tab-content" className="min-w-0 space-y-4">
         <TabsContent value="dashboard" className="space-y-3 lg:mt-0">
           {overviewLoading ? <LoadingState /> : null}
           {overviewError ? (
@@ -3241,13 +3276,26 @@ function SummaryCard({
   label,
   value,
   icon: Icon,
+  onClick,
 }: {
   label: string;
   value: string;
   icon: typeof ShieldAlert;
+  onClick?: () => void;
 }) {
   return (
-    <Card className="border-none bg-secondary/60 shadow-none">
+    <Card
+      className="border-none bg-secondary/60 shadow-none transition hover:bg-secondary/80"
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if ((event.key === "Enter" || event.key === " ") && onClick) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <CardContent className="space-y-2 py-4">
         <div className="flex items-center gap-2 text-primary">
           <Icon className="h-4 w-4" />
