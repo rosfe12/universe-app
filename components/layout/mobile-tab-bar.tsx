@@ -68,9 +68,10 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className="fixed bottom-0 left-1/2 z-50 w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 rounded-[30px] border border-white/10 bg-slate-950/96 px-2 pt-2 shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)] backdrop-blur-xl"
+      className="fixed left-1/2 z-50 w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 rounded-[30px] border border-white/10 bg-slate-950/96 px-2 pt-2 shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)] backdrop-blur-xl"
       style={{
-        paddingBottom: "calc(env(safe-area-inset-bottom) + 0.35rem)",
+        bottom: "max(0.2rem, calc(env(safe-area-inset-bottom) - 1.15rem))",
+        paddingBottom: "0.45rem",
       }}
     >
       <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1">
