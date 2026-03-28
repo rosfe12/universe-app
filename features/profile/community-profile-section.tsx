@@ -95,14 +95,16 @@ function buildProfileFormState(profile: CommunityProfile): CommunityProfileFormS
 
 export function CommunityProfileSection({
   currentUser,
+  initialProfile,
   onProfileChange,
 }: {
   currentUser: User;
+  initialProfile?: CommunityProfile | null;
   onProfileChange?: (profile: CommunityProfile) => void;
 }) {
   const profileEnabled = canUseCommunityProfileFeature(currentUser);
-  const [profile, setProfile] = useState<CommunityProfile | null>(null);
-  const [loading, setLoading] = useState(profileEnabled);
+  const [profile, setProfile] = useState<CommunityProfile | null>(initialProfile ?? null);
+  const [loading, setLoading] = useState(profileEnabled && !initialProfile);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -141,6 +143,15 @@ export function CommunityProfileSection({
       return;
     }
 
+    if (initialProfile) {
+      setProfile(initialProfile);
+      onProfileChange?.(initialProfile);
+      setFormState(buildProfileFormState(initialProfile));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     let active = true;
     setLoading(true);
     setError(null);
@@ -164,7 +175,7 @@ export function CommunityProfileSection({
     return () => {
       active = false;
     };
-  }, [profileEnabled, currentUser.id, onProfileChange]);
+  }, [profileEnabled, currentUser.id, initialProfile, onProfileChange]);
 
   const imageByOrder = useMemo(() => {
     const map = new Map<number, CommunityProfile["images"][number]>();

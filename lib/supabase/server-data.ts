@@ -73,6 +73,7 @@ export type RuntimeSnapshotScope =
   | "full"
   | "home"
   | "search"
+  | "chrome"
   | "community"
   | "school"
   | "lectures"
@@ -122,6 +123,20 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         lectureReviews: false,
         tradePosts: false,
         notifications: false,
+        reports: false,
+        blocks: false,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "chrome":
+      return {
+        posts: false,
+        comments: false,
+        lectures: false,
+        lectureReviews: false,
+        tradePosts: false,
+        notifications: true,
         reports: false,
         blocks: false,
         datingProfiles: false,
@@ -274,7 +289,7 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
 }
 
 function shouldRequirePrimaryContent(scope: RuntimeSnapshotScope) {
-  return !["notifications", "profile", "messages"].includes(scope);
+  return !["chrome", "notifications", "profile", "messages"].includes(scope);
 }
 
 type RuntimeQueryContext = {

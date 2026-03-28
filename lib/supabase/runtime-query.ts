@@ -289,6 +289,8 @@ export function getServerRuntimeSnapshotTtlMs(scope: string) {
     case "community":
     case "school":
       return 45000;
+    case "chrome":
+      return 30000;
     case "lectures":
     case "trade":
     case "dating":

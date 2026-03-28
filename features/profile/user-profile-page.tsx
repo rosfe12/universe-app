@@ -29,13 +29,23 @@ import { COMMUNITY_PROFILE_RESTRICTION_MESSAGE, canUseCommunityProfileFeature } 
 import { hasCompletedOnboarding } from "@/lib/supabase/app-data";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { CommunityProfileSection } from "@/features/profile/community-profile-section";
-import type { CommunityProfile } from "@/types";
+import type { AppRuntimeSnapshot, CommunityProfile } from "@/types";
 
-export function UserProfilePage({ userId }: { userId: string }) {
-  const { currentUser, isAuthenticated, loading } = useAppRuntime(undefined, "profile");
-  const [profile, setProfile] = useState<CommunityProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function UserProfilePage({
+  userId,
+  initialSnapshot,
+  initialProfile,
+  initialProfileError,
+}: {
+  userId: string;
+  initialSnapshot?: AppRuntimeSnapshot;
+  initialProfile?: CommunityProfile;
+  initialProfileError?: string;
+}) {
+  const { currentUser, isAuthenticated, loading } = useAppRuntime(initialSnapshot, "chrome");
+  const [profile, setProfile] = useState<CommunityProfile | null>(initialProfile ?? null);
+  const [profileLoading, setProfileLoading] = useState(!initialProfile && !initialProfileError);
+  const [error, setError] = useState<string | null>(initialProfileError ?? null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -60,6 +70,11 @@ export function UserProfilePage({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (!isAuthenticated || loading || !canUseCommunityProfileFeature(currentUser)) {
+      return;
+    }
+
+    if (initialProfile?.userId === userId || initialProfileError) {
+      setProfileLoading(false);
       return;
     }
 
@@ -90,7 +105,16 @@ export function UserProfilePage({ userId }: { userId: string }) {
     return () => {
       active = false;
     };
-  }, [currentUser?.email, currentUser?.id, currentUser?.verificationState, isAuthenticated, loading, userId]);
+  }, [
+    currentUser?.email,
+    currentUser?.id,
+    currentUser?.verificationState,
+    initialProfile?.userId,
+    initialProfileError,
+    isAuthenticated,
+    loading,
+    userId,
+  ]);
 
   if (loading) {
     return (
@@ -167,7 +191,11 @@ export function UserProfilePage({ userId }: { userId: string }) {
       ) : null}
       {profile ? (
         profile.isOwner ? (
-          <CommunityProfileSection currentUser={currentUser} onProfileChange={setProfile} />
+          <CommunityProfileSection
+            currentUser={currentUser}
+            initialProfile={profile}
+            onProfileChange={setProfile}
+          />
         ) : (
           <>
             <Card className="app-section-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">

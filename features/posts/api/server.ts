@@ -28,6 +28,10 @@ export async function getProfilePageSnapshot() {
   return loadServerRuntimeSnapshot("profile");
 }
 
+export async function getChromePageSnapshot() {
+  return loadServerRuntimeSnapshot("chrome");
+}
+
 export async function getAdminPageSnapshot() {
   return loadServerRuntimeSnapshot("admin");
 }

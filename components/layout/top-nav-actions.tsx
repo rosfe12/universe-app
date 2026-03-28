@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CircleUserRound, MessagesSquare, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -53,6 +54,7 @@ function isMessageNotification(type: string) {
 }
 
 export function TopNavActions() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const {
@@ -74,6 +76,17 @@ export function TopNavActions() {
       setQuery("");
     }
   }, [open]);
+
+  useEffect(() => {
+    router.prefetch("/messages");
+
+    if (isAuthenticated) {
+      router.prefetch(`/profile/${currentUser.id}`);
+      return;
+    }
+
+    router.prefetch("/profile");
+  }, [currentUser.id, isAuthenticated, router]);
 
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -175,7 +188,7 @@ export function TopNavActions() {
           <Search className="h-5 w-5" />
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="메시지">
-          <Link href="/messages" className="relative">
+          <Link href="/messages" prefetch className="relative">
             <MessagesSquare className="h-5 w-5" />
             {unreadMessageCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold leading-4 text-white">
@@ -185,7 +198,7 @@ export function TopNavActions() {
           </Link>
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="프로필">
-          <Link href={isAuthenticated ? `/profile/${currentUser.id}` : "/profile"}>
+          <Link href={isAuthenticated ? `/profile/${currentUser.id}` : "/profile"} prefetch>
             <CircleUserRound className="h-5 w-5" />
           </Link>
         </Button>
