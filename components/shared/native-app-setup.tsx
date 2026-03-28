@@ -6,11 +6,16 @@ import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
+import { bindNativePushAuthSync, initializeNativePushNotifications, requestNativePushPermissionAndRegister } from "@/lib/native-push";
+import { ensureSupabaseSessionReady } from "@/lib/supabase/client";
+
 export function NativeAppSetup() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
       return;
     }
+
+    const pushSubscription = bindNativePushAuthSync();
 
     void (async () => {
       try {
@@ -26,7 +31,19 @@ export function NativeAppSetup() {
       try {
         await SplashScreen.hide();
       } catch {}
+
+      try {
+        await initializeNativePushNotifications();
+        const session = await ensureSupabaseSessionReady();
+        if (session?.user) {
+          await requestNativePushPermissionAndRegister();
+        }
+      } catch {}
     })();
+
+    return () => {
+      pushSubscription.unsubscribe();
+    };
   }, []);
 
   return null;

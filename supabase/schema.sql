@@ -801,6 +801,23 @@ alter table public.notifications
   add column if not exists delivery_mode text not null default 'instant',
   add column if not exists read_at timestamptz;
 
+create table if not exists public.push_devices (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  device_id text not null,
+  platform text not null,
+  token text not null,
+  app_version text,
+  device_model text,
+  locale text,
+  last_seen_at timestamptz not null default timezone('utc', now()),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint push_devices_platform_check check (platform in ('ios', 'android', 'web')),
+  constraint push_devices_user_device_unique unique (user_id, device_id, platform),
+  constraint push_devices_token_unique unique (token)
+);
+
 do $$
 begin
   if not exists (
@@ -960,6 +977,8 @@ create index if not exists idx_reports_reporter_created_at on public.reports (re
 create index if not exists idx_notifications_user_created_at on public.notifications (user_id, created_at desc);
 create index if not exists idx_notifications_user_source_created_at on public.notifications (user_id, source_kind, created_at desc);
 create index if not exists idx_notifications_user_read_created_at on public.notifications (user_id, is_read, created_at desc);
+create index if not exists idx_push_devices_user_last_seen on public.push_devices (user_id, last_seen_at desc);
+create index if not exists idx_push_devices_platform_last_seen on public.push_devices (platform, last_seen_at desc);
 create index if not exists idx_media_assets_owner on public.media_assets (owner_type, owner_id);
 create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs (created_at desc);
 create index if not exists idx_admin_audit_logs_target on public.admin_audit_logs (target_type, target_id);
@@ -1106,6 +1125,12 @@ execute function public.update_updated_at();
 drop trigger if exists profile_images_set_updated_at on public.profile_images;
 create trigger profile_images_set_updated_at
 before update on public.profile_images
+for each row
+execute function public.update_updated_at();
+
+drop trigger if exists push_devices_set_updated_at on public.push_devices;
+create trigger push_devices_set_updated_at
+before update on public.push_devices
 for each row
 execute function public.update_updated_at();
 
@@ -1873,6 +1898,7 @@ alter table public.profile_reports enable row level security;
 alter table public.reports enable row level security;
 alter table public.blocks enable row level security;
 alter table public.notifications enable row level security;
+alter table public.push_devices enable row level security;
 alter table public.media_assets enable row level security;
 alter table public.admin_audit_logs enable row level security;
 alter table public.ops_events enable row level security;
@@ -2580,6 +2606,35 @@ on public.notifications
 for insert
 to authenticated
 with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "push devices own read" on public.push_devices;
+create policy "push devices own read"
+on public.push_devices
+for select
+to authenticated
+using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "push devices own insert" on public.push_devices;
+create policy "push devices own insert"
+on public.push_devices
+for insert
+to authenticated
+with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "push devices own update" on public.push_devices;
+create policy "push devices own update"
+on public.push_devices
+for update
+to authenticated
+using (user_id = auth.uid() or public.is_admin())
+with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "push devices own delete" on public.push_devices;
+create policy "push devices own delete"
+on public.push_devices
+for delete
+to authenticated
+using (user_id = auth.uid() or public.is_admin());
 
 drop policy if exists "media_assets read" on public.media_assets;
 create policy "media_assets read"

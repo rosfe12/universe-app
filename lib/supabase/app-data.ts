@@ -13,6 +13,7 @@ import {
   waitForSupabaseAuthCookie,
 } from "@/lib/supabase/client";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
+import { unregisterNativePushDevice } from "@/lib/native-push";
 import { logPerformanceEvent } from "@/lib/ops";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
 import { getMockRuntimeSnapshot, guestUser } from "@/lib/runtime-state";
@@ -1766,6 +1767,7 @@ export async function signUpWithSupabase({
 
 export async function signOutFromSupabase() {
   const supabase = createClient();
+  await unregisterNativePushDevice(true).catch(() => {});
   const result = await supabase.auth.signOut();
   if (!result.error) {
     await waitForSupabaseAuthCookie(false);

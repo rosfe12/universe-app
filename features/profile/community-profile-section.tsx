@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Check, ChevronLeft, ChevronRight, ImagePlus, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Camera, Check, ChevronLeft, ChevronRight, ImagePlus, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
 
 import {
   deleteProfileImage,
@@ -34,6 +35,7 @@ import {
   parseInterestTokens,
   validateCommunityProfileImageFile,
 } from "@/lib/community-profile";
+import { captureImageFromNativeCamera } from "@/lib/native-camera";
 import { prepareProfileImageForUpload, validateImageBeforeUpload } from "@/lib/profile-image-processing";
 import type { FaceBox } from "@/lib/profile-image-processing";
 import type { CommunityProfile, ProfileVisibility, User } from "@/types";
@@ -132,6 +134,7 @@ export function CommunityProfileSection({
   const [draftImages, setDraftImages] = useState<DraftProfileImage[]>([]);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const skipDiscardConfirmRef = useRef(false);
+  const supportsNativeCamera = Capacitor.isNativePlatform();
 
   const orderedImages = useMemo(
     () => [...(profile?.images ?? [])].sort((a, b) => a.imageOrder - b.imageOrder),
@@ -509,6 +512,24 @@ export function CommunityProfileSection({
     }
   }
 
+  async function handleCaptureFromCamera(order: number) {
+    if (uploadingOrder === order || isPending) {
+      return;
+    }
+
+    try {
+      setUploadError(null);
+      const capturedFile = await captureImageFromNativeCamera();
+      if (!capturedFile) {
+        return;
+      }
+
+      await handleImageUpload(order, capturedFile);
+    } catch (cause) {
+      setUploadError(cause instanceof Error ? cause.message : "사진 촬영을 시작하지 못했습니다.");
+    }
+  }
+
   async function handleImageDelete(imageId: string) {
     setDraftImages((current) => {
       const target = current.find((image) => image.id === imageId);
@@ -857,7 +878,11 @@ export function CommunityProfileSection({
                               </span>
                             ) : null}
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div
+                            className={`grid gap-2 ${
+                              supportsNativeCamera ? "grid-cols-3" : "grid-cols-2"
+                            }`}
+                          >
                             <Button
                               type="button"
                               variant={image.isPrimary ? "secondary" : "outline"}
@@ -877,6 +902,18 @@ export function CommunityProfileSection({
                             >
                               사진 교체
                             </Button>
+                            {supportsNativeCamera ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-9 justify-center text-xs"
+                                disabled={uploadingOrder === order || isPending}
+                                onClick={() => void handleCaptureFromCamera(order)}
+                              >
+                                <Camera className="h-4 w-4" />
+                                사진 촬영
+                              </Button>
+                            ) : null}
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             <Button
@@ -934,15 +971,29 @@ export function CommunityProfileSection({
                         }}
                       />
                       {!image ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full"
-                          disabled={uploadingOrder === order || isPending}
-                          onClick={() => openFilePicker(order)}
-                        >
-                          사진 업로드
-                        </Button>
+                        <div className={`grid gap-2 ${supportsNativeCamera ? "grid-cols-2" : "grid-cols-1"}`}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            disabled={uploadingOrder === order || isPending}
+                            onClick={() => openFilePicker(order)}
+                          >
+                            사진 업로드
+                          </Button>
+                          {supportsNativeCamera ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full"
+                              disabled={uploadingOrder === order || isPending}
+                              onClick={() => void handleCaptureFromCamera(order)}
+                            >
+                              <Camera className="h-4 w-4" />
+                              사진 촬영
+                            </Button>
+                          ) : null}
+                        </div>
                       ) : null}
                       <p className="text-[11px] text-muted-foreground">JPG · PNG · WEBP · HEIC · 5MB 이하</p>
                       {uploadingOrder === order ? (

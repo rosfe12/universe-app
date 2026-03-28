@@ -640,6 +640,34 @@ type NotificationInsert = {
   created_at?: string;
 };
 
+type PushDeviceRow = {
+  id: string;
+  user_id: string;
+  device_id: string;
+  platform: "ios" | "android" | "web";
+  token: string;
+  app_version: string | null;
+  device_model: string | null;
+  locale: string | null;
+  last_seen_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type PushDeviceInsert = {
+  id?: string;
+  user_id: string;
+  device_id: string;
+  platform: "ios" | "android" | "web";
+  token: string;
+  app_version?: string | null;
+  device_model?: string | null;
+  locale?: string | null;
+  last_seen_at?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
 type MediaAssetRow = {
   id: string;
   owner_type: "post" | "profile";
@@ -719,6 +747,7 @@ export interface Database {
       reports: SupabaseTable<ReportRow, ReportInsert>;
       blocks: SupabaseTable<BlockRow, BlockInsert>;
       notifications: SupabaseTable<NotificationRow, NotificationInsert>;
+      push_devices: SupabaseTable<PushDeviceRow, PushDeviceInsert>;
       media_assets: SupabaseTable<MediaAssetRow, MediaAssetInsert>;
       admin_audit_logs: SupabaseTable<AdminAuditLogRow, AdminAuditLogInsert>;
       admin_settings: SupabaseTable<AdminSettingRow, AdminSettingInsert>;
