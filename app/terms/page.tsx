@@ -89,7 +89,8 @@ export default function TermsPage() {
         </Card>
       ))}
       <p className="text-sm text-muted-foreground">
-        운영 및 권리침해 문의: <a href={`mailto:${supportEmail}`}>{supportEmail}</a> · <Link href="/privacy">개인정보처리방침</Link>
+        운영 및 권리침해 문의 <a href={`mailto:${supportEmail}`}>{supportEmail}</a> · 시행일 2026.03.28 ·{" "}
+        <Link href="/privacy">개인정보처리방침</Link>
       </p>
     </div>
   );

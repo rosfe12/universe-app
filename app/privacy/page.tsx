@@ -129,7 +129,8 @@ export default function PrivacyPage() {
         </Card>
       ))}
       <p className="text-sm text-muted-foreground">
-        개인정보 보호책임자 및 문의 창구: <a href={`mailto:${supportEmail}`}>{supportEmail}</a> · <Link href="/terms">이용약관</Link>
+        개인정보 보호책임자 김화현 · 문의 <a href={`mailto:${supportEmail}`}>{supportEmail}</a> · 시행일 2026.03.28 ·{" "}
+        <Link href="/terms">이용약관</Link>
       </p>
     </div>
   );
