@@ -69,6 +69,12 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function getOverlapArea(a: FaceBox, b: FaceBox) {
+  const overlapX = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+  const overlapY = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+  return overlapX * overlapY;
+}
+
 export function ProfileImageEditorDialog({
   open,
   file,
@@ -382,6 +388,23 @@ export function ProfileImageEditorDialog({
     try {
       const uploadFile = processedFile ?? file;
       const processedByEditor = Boolean(processedFile);
+      if (processedByEditor && hasDetectedFaces) {
+        const uncoveredFace = faceBoxes.some((faceBox, index) => {
+          const maskBox = editableBoxes[index];
+          if (!maskBox) {
+            return true;
+          }
+
+          const faceArea = Math.max(1, faceBox.width * faceBox.height);
+          const overlapRatio = getOverlapArea(faceBox, maskBox) / faceArea;
+          return overlapRatio < 0.9;
+        });
+
+        if (uncoveredFace) {
+          throw new Error("가림 영역이 얼굴보다 작아요. 박스를 더 키우거나 위치를 다시 맞춰주세요.");
+        }
+      }
+
       if (!processedByEditor) {
         const rechecked = await validateImageBeforeUpload(uploadFile);
         if (rechecked.faceBoxes.length > 0) {
