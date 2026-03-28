@@ -635,6 +635,23 @@ export interface AdminPromotion {
   createdAt: string;
 }
 
+export interface AdminProfileImageItem {
+  id: string;
+  userId: string;
+  nickname: string;
+  email?: string;
+  schoolId?: string;
+  schoolName?: string;
+  imagePath: string;
+  imageOrder: 1 | 2 | 3;
+  isPrimary: boolean;
+  moderationStatus: ProfileImageModerationStatus;
+  moderationReason?: string;
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AdminSettingsPayload {
   featureFlags: AdminFeatureFlags;
   notices: AdminNotice[];

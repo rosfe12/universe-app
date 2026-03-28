@@ -67,6 +67,7 @@ import type {
   AdminNotice,
   AdminOpsEvent,
   AdminOverview,
+  AdminProfileImageItem,
   AdminPromotion,
   AppRuntimeSnapshot,
   Report,
@@ -190,6 +191,70 @@ async function loadAdminReports() {
 
   return {
     items: payload?.reports ?? [],
+    error: "",
+  };
+}
+
+async function loadAdminProfileImages(
+  status: "all" | "pending" | "approved" | "rejected" = "pending",
+) {
+  const searchParams = new URLSearchParams();
+  if (status !== "all") {
+    searchParams.set("status", status);
+  }
+
+  const response = await fetch(`/api/admin/profile-images?${searchParams.toString()}`, {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { items?: AdminProfileImageItem[]; error?: string }
+    | null;
+
+  if (!response.ok) {
+    return {
+      items: [] as AdminProfileImageItem[],
+      error: payload?.error ?? "프로필 사진 목록을 불러오지 못했습니다.",
+    };
+  }
+
+  return {
+    items: payload?.items ?? [],
+    error: "",
+  };
+}
+
+async function updateAdminProfileImage(
+  imageId: string,
+  action: "approve" | "reject" | "delete",
+  reason?: string,
+) {
+  const response = await fetch("/api/admin/profile-images", {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      imageId,
+      action,
+      reason,
+    }),
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { ok?: boolean; auditLogs?: AdminAuditLog[]; error?: string }
+    | null;
+
+  if (!response.ok) {
+    return {
+      auditLogs: [] as AdminAuditLog[],
+      error: payload?.error ?? "프로필 사진 검토를 처리하지 못했습니다.",
+    };
+  }
+
+  return {
+    auditLogs: payload?.auditLogs ?? [],
     error: "",
   };
 }
@@ -562,6 +627,12 @@ export function AdminPage({
   const [overviewError, setOverviewError] = useState("");
   const [reportItems, setReportItems] = useState<Report[]>([]);
   const [reportError, setReportError] = useState("");
+  const [profileImageItems, setProfileImageItems] = useState<AdminProfileImageItem[]>([]);
+  const [profileImageLoading, setProfileImageLoading] = useState(false);
+  const [profileImageError, setProfileImageError] = useState("");
+  const [profileImageStatusFilter, setProfileImageStatusFilter] = useState<
+    "all" | "pending" | "approved" | "rejected"
+  >("pending");
   const autoHiddenItems = useMemo(() => getAutoHiddenContent(), []);
   const reportedUsers = useMemo(() => getReportedUsersForAdmin(), []);
   const lowTrustUsers = useMemo(() => getLowTrustUsers(), []);
@@ -637,6 +708,7 @@ export function AdminPage({
   const [roleQueryInput, setRoleQueryInput] = useState("");
   const [verificationPendingId, setVerificationPendingId] = useState<string | null>(null);
   const [reportPendingId, setReportPendingId] = useState<string | null>(null);
+  const [profileImagePendingId, setProfileImagePendingId] = useState<string | null>(null);
   const [moderationPendingKey, setModerationPendingKey] = useState<string | null>(null);
   const [adminDenied, setAdminDenied] = useState(false);
   const [adminFeedback, setAdminFeedback] = useState<string | null>(null);
@@ -737,6 +809,16 @@ export function AdminPage({
     const result = await loadAdminReports();
     setReportItems(result.items);
     setReportError(result.error);
+  }
+
+  async function refreshProfileImages(
+    status = profileImageStatusFilter,
+  ) {
+    setProfileImageLoading(true);
+    const result = await loadAdminProfileImages(status);
+    setProfileImageItems(result.items);
+    setProfileImageError(result.error);
+    setProfileImageLoading(false);
   }
 
   async function refreshOpsLog(
@@ -853,6 +935,17 @@ export function AdminPage({
       setReportError(result.error);
     }
 
+    async function refreshProfileImageItems() {
+      setProfileImageLoading(true);
+      const result = await loadAdminProfileImages("pending");
+      if (!active) {
+        return;
+      }
+      setProfileImageItems(result.items);
+      setProfileImageError(result.error);
+      setProfileImageLoading(false);
+    }
+
     async function refreshRoleItems() {
       setRoleLoading(true);
       const result = await loadAdminRoles("");
@@ -899,6 +992,7 @@ export function AdminPage({
     void refreshMembers();
     void refreshOverviewData();
     void refreshReportItems();
+    void refreshProfileImageItems();
     void refreshRoleItems();
     void refreshOpsItems();
     void refreshSettingsData();
@@ -979,6 +1073,69 @@ export function AdminPage({
       void refreshOverview();
     } finally {
       setReportPendingId(null);
+    }
+  }
+
+  async function mutateProfileImage(
+    item: AdminProfileImageItem,
+    action: "approve" | "reject" | "delete",
+  ) {
+    setProfileImageError("");
+    setProfileImagePendingId(item.id);
+
+    try {
+      let reason: string | undefined;
+
+      if (action === "approve") {
+        if (!confirmAdminAction("프로필 사진을 승인하시겠습니까?")) {
+          return;
+        }
+      }
+
+      if (action === "reject") {
+        if (!confirmAdminAction("프로필 사진을 반려하시겠습니까?")) {
+          return;
+        }
+        if (typeof window !== "undefined") {
+          const input = window.prompt(
+            "반려 사유를 입력해주세요.",
+            item.moderationReason ?? "얼굴 또는 개인정보 노출로 반려했습니다.",
+          );
+          if (input === null) {
+            return;
+          }
+          reason = input.trim() || "얼굴 또는 개인정보 노출로 반려했습니다.";
+        }
+      }
+
+      if (action === "delete") {
+        if (!confirmAdminAction("프로필 사진을 삭제하시겠습니까?")) {
+          return;
+        }
+      }
+
+      const result = await updateAdminProfileImage(item.id, action, reason);
+      if (result.error) {
+        setProfileImageError(result.error);
+        return;
+      }
+      if (result.auditLogs.length > 0) {
+        setAuditLogs(result.auditLogs);
+        setAuditError("");
+      }
+      publishAdminFeedback(
+        action === "approve"
+          ? "프로필 사진을 승인했습니다."
+          : action === "reject"
+            ? "프로필 사진을 반려했습니다."
+            : "프로필 사진을 삭제했습니다.",
+      );
+      await refreshProfileImages();
+      if (selectedMember?.id === item.userId) {
+        void refreshSelectedMemberDetail(item.userId);
+      }
+    } finally {
+      setProfileImagePendingId(null);
     }
   }
 
@@ -1317,6 +1474,7 @@ export function AdminPage({
           <TabsTrigger value="members">회원 목록</TabsTrigger>
           <TabsTrigger value="roles">권한 관리</TabsTrigger>
           <TabsTrigger value="verification">학생 인증</TabsTrigger>
+          <TabsTrigger value="profile-images">프로필 사진 검토</TabsTrigger>
           <TabsTrigger value="reports">신고 목록</TabsTrigger>
           <TabsTrigger value="ops">운영 로그</TabsTrigger>
           <TabsTrigger value="settings">공지/프로모션</TabsTrigger>
@@ -1784,6 +1942,146 @@ export function AdminPage({
                 }
               }}
             />
+          ))}
+        </TabsContent>
+
+        <TabsContent value="profile-images" className="space-y-3">
+          <Card className="border-slate-200 bg-slate-50/80">
+            <CardContent className="space-y-3 py-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-slate-950">프로필 사진 검토</p>
+                  <p className="text-sm text-slate-900/70">
+                    얼굴 노출, 개인정보 노출 여부를 확인한 뒤 승인 또는 반려합니다.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={profileImageLoading}
+                  onClick={() => {
+                    void refreshProfileImages();
+                  }}
+                >
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  새로고침
+                </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={profileImageStatusFilter}
+                  onValueChange={(value) => {
+                    const nextValue = value as "all" | "pending" | "approved" | "rejected";
+                    setProfileImageStatusFilter(nextValue);
+                    void refreshProfileImages(nextValue);
+                  }}
+                >
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">검토 대기만 보기</SelectItem>
+                    <SelectItem value="approved">승인만 보기</SelectItem>
+                    <SelectItem value="rejected">반려만 보기</SelectItem>
+                    <SelectItem value="all">전체 보기</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Badge variant="outline">
+                  {profileImageItems.length}건
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+          {profileImageLoading ? <LoadingState /> : null}
+          {profileImageError ? (
+            <Card className="border-rose-200 bg-rose-50/80">
+              <CardContent className="py-4 text-sm text-rose-700">{profileImageError}</CardContent>
+            </Card>
+          ) : null}
+          {!profileImageLoading && profileImageItems.length === 0 ? (
+            <Card>
+              <CardContent className="py-6 text-sm text-muted-foreground">
+                검토할 프로필 사진이 없습니다.
+              </CardContent>
+            </Card>
+          ) : null}
+          {profileImageItems.map((item) => (
+            <Card key={item.id}>
+              <CardContent className="grid gap-4 p-4 md:grid-cols-[168px_minmax(0,1fr)_auto]">
+                <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/5">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={`${item.nickname} 프로필 사진`}
+                      className="h-40 w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                      미리보기 없음
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-base font-semibold">{item.nickname}</p>
+                    {item.schoolName ? <Badge variant="secondary">{item.schoolName}</Badge> : null}
+                    <Badge variant={item.moderationStatus === "approved" ? "secondary" : "outline"}>
+                      {item.moderationStatus === "approved"
+                        ? "승인됨"
+                        : item.moderationStatus === "rejected"
+                          ? "반려됨"
+                          : "검토 중"}
+                    </Badge>
+                    {item.isPrimary ? <Badge variant="outline">대표 사진</Badge> : null}
+                    <Badge variant="outline">슬롯 {item.imageOrder}</Badge>
+                  </div>
+                  {item.email ? (
+                    <p className="text-sm text-muted-foreground">{item.email}</p>
+                  ) : null}
+                  {item.moderationReason ? (
+                    <p className="text-sm text-muted-foreground">{item.moderationReason}</p>
+                  ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    업로드 {item.createdAt.slice(0, 16).replace("T", " ")}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={profileImagePendingId === item.id || item.moderationStatus === "approved"}
+                    onClick={() => {
+                      void mutateProfileImage(item, "approve");
+                    }}
+                  >
+                    승인
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={profileImagePendingId === item.id}
+                    onClick={() => {
+                      void mutateProfileImage(item, "reject");
+                    }}
+                  >
+                    반려
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={profileImagePendingId === item.id}
+                    onClick={() => {
+                      void mutateProfileImage(item, "delete");
+                    }}
+                  >
+                    삭제
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </TabsContent>
 
