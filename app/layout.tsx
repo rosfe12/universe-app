@@ -3,6 +3,7 @@ import Script from "next/script";
 import type { Viewport } from "next";
 
 import "@/app/globals.css";
+import { NativeAppSetup } from "@/components/shared/native-app-setup";
 import { APP_MOTION_STORAGE_KEY, APP_THEME_STORAGE_KEY } from "@/lib/app-preferences";
 import { resolveAppUrl } from "@/lib/env";
 
@@ -94,6 +95,7 @@ export default function RootLayout({
         <Script id="pwa-register" strategy="afterInteractive">
           {serviceWorkerRegisterScript}
         </Script>
+        <NativeAppSetup />
         {children}
       </body>
     </html>

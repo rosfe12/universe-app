@@ -7,6 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "mobile:assets:ios": "python3 scripts/generate-ios-assets.py",
+    "mobile:doctor": "npx cap doctor",
+    "mobile:copy:ios": "npx cap copy ios",
+    "mobile:sync:ios": "npx cap sync ios",
+    "mobile:open:ios": "npx cap open ios",
     "typecheck": "rm -rf .next/types tsconfig.tsbuildinfo && next build >/dev/null && tsc --noEmit",
     "setup:supabase:schema": "node scripts/apply-supabase-sql.mjs schema",
     "setup:supabase:seed": "node scripts/apply-supabase-sql.mjs seed",
@@ -19,6 +24,13 @@
     "verify:live": "node scripts/verify-live.mjs"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/keyboard": "^8.0.2",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.6",
@@ -43,6 +55,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.0.2",
     "@types/node": "^22.13.8",
     "@types/nodemailer": "^7.0.11",
     "@types/react": "^19.0.10",

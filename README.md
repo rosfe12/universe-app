@@ -44,6 +44,7 @@ npm run dev
 npm run typecheck
 npm run lint
 npm run build
+npm run mobile:doctor
 npm run verify:deploy-config
 npm run verify:supabase-setup
 npm run verify:live
@@ -63,6 +64,9 @@ NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=false
 NEXT_PUBLIC_SHOW_TEST_ACCOUNTS=false
 NEXT_PUBLIC_SUPPORT_EMAIL=support@your-domain.com
 NEXT_PUBLIC_SUPPORT_URL=https://your-domain.com/support
+CAPACITOR_APP_ID=kr.universeapp.camverse
+CAPACITOR_APP_NAME=CAMVERSE
+CAPACITOR_SERVER_URL=https://www.universeapp.kr
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 SUPABASE_DB_URL=postgresql://postgres:password@db.your-project-ref.supabase.co:5432/postgres
 SUPABASE_MIGRATION_DB_URL=postgresql://postgres.project-ref:password@aws-0-your-region.pooler.supabase.com:5432/postgres
@@ -116,6 +120,25 @@ npm run verify:deploy-config
 ```bash
 curl https://your-domain.com/api/health
 ```
+
+## iOS 앱 패키징
+
+Capacitor iOS 프로젝트가 포함되어 있습니다.
+
+```bash
+npm install
+npm run mobile:assets:ios
+npm run mobile:sync:ios
+npm run mobile:open:ios
+```
+
+- iOS 프로젝트 위치: `ios/App`
+- Capacitor 설정: [`capacitor.config.ts`](/Users/rosfe/univers%20app/capacitor.config.ts)
+- 네이티브 초기화: [`components/shared/native-app-setup.tsx`](/Users/rosfe/univers%20app/components/shared/native-app-setup.tsx)
+- App Store/TestFlight 절차: [`docs/ios-release.md`](/Users/rosfe/univers%20app/docs/ios-release.md)
+
+- 현재 iOS 앱은 `CAPACITOR_SERVER_URL` 또는 기본값 `https://www.universeapp.kr`을 로드합니다.
+- 아이콘/스플래시는 [`scripts/generate-ios-assets.py`](/Users/rosfe/univers%20app/scripts/generate-ios-assets.py)로 다시 만들 수 있습니다.
 
 ## 카카오톡 공유 설정
 
