@@ -68,6 +68,18 @@ function withSinglePrimary(images: DraftProfileImage[]) {
   }));
 }
 
+function buildImageDraftSignature(images: DraftProfileImage[]) {
+  return [...images]
+    .sort((a, b) => a.imageOrder - b.imageOrder)
+    .map((image) => ({
+      id: image.id,
+      imageOrder: image.imageOrder,
+      isPrimary: image.isPrimary,
+      moderationStatus: image.moderationStatus,
+      localFile: Boolean(image.localFile),
+    }));
+}
+
 export function CommunityProfileSection({
   currentUser,
   onProfileChange,
@@ -102,6 +114,7 @@ export function CommunityProfileSection({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [draftImages, setDraftImages] = useState<DraftProfileImage[]>([]);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const skipDiscardConfirmRef = useRef(false);
 
   const orderedImages = useMemo(
     () => [...(profile?.images ?? [])].sort((a, b) => a.imageOrder - b.imageOrder),
@@ -187,6 +200,29 @@ export function CommunityProfileSection({
         })),
     [orderedDraftImages],
   );
+  const hasDraftChanges = useMemo(() => {
+    if (!profile) {
+      return false;
+    }
+
+    const normalizedDisplayName = formState.displayName.trim();
+    const normalizedBio = formState.bio.trim();
+    const normalizedInterests = parseInterestTokens(formState.interestsInput);
+
+    const textChanged =
+      normalizedDisplayName !== profile.displayName ||
+      normalizedBio !== (profile.bio ?? "") ||
+      formState.profileVisibility !== profile.profileVisibility ||
+      formState.showDepartment !== profile.showDepartment ||
+      formState.showAdmissionYear !== profile.showAdmissionYear ||
+      JSON.stringify(normalizedInterests) !== JSON.stringify(profile.interests);
+
+    const imageChanged =
+      JSON.stringify(buildImageDraftSignature(orderedDraftImages)) !==
+      JSON.stringify(buildImageDraftSignature(profile.images as DraftProfileImage[]));
+
+    return textChanged || imageChanged;
+  }, [formState, orderedDraftImages, profile]);
 
   function openImageViewer(imageId: string) {
     const sourceImages = open ? viewableDraftImages : viewableImages;
@@ -217,6 +253,18 @@ export function CommunityProfileSection({
     });
     setDraftImages(cloneDraftImages(profile.images));
     setOpen(true);
+  }
+
+  function requestCloseEditor() {
+    if (hasDraftChanges && typeof window !== "undefined") {
+      const confirmed = window.confirm("저장하지 않은 변경사항이 있어요. 닫으면 편집 내용이 사라집니다.");
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    skipDiscardConfirmRef.current = true;
+    setOpen(false);
   }
 
   function openFilePicker(order: number) {
@@ -317,6 +365,7 @@ export function CommunityProfileSection({
           setDraftImages(cloneDraftImages(nextProfile.images));
           setProfile(nextProfile);
           onProfileChange?.(nextProfile);
+          skipDiscardConfirmRef.current = true;
           setOpen(false);
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "프로필을 저장하지 못했습니다.");
@@ -561,6 +610,14 @@ export function CommunityProfileSection({
         open={open}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
+            if (skipDiscardConfirmRef.current) {
+              skipDiscardConfirmRef.current = false;
+            } else if (hasDraftChanges && typeof window !== "undefined") {
+              const confirmed = window.confirm("저장하지 않은 변경사항이 있어요. 닫으면 편집 내용이 사라집니다.");
+              if (!confirmed) {
+                return;
+              }
+            }
             cleanupDraftPreviewUrls(draftImages);
             setDraftImages([]);
           }
@@ -856,18 +913,14 @@ export function CommunityProfileSection({
             <Button
               type="button"
               variant="ghost"
-              onClick={() => {
-                cleanupDraftPreviewUrls(draftImages);
-                setDraftImages([]);
-                setOpen(false);
-              }}
+              onClick={requestCloseEditor}
             >
               닫기
             </Button>
             <Button
               type="button"
               onClick={() => void handleSave()}
-              disabled={isPending || formState.displayName.trim().length < 2}
+              disabled={isPending || formState.displayName.trim().length < 2 || !hasDraftChanges}
             >
               {isPending ? "저장 중" : "저장"}
             </Button>
