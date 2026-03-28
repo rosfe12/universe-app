@@ -60,7 +60,6 @@ import { addPostToSnapshot, removePostFromSnapshot } from "@/lib/runtime-mutatio
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   getAdmissionQuestion,
-  getCommentsByPostId,
   getLectureReviews,
   getSchoolScopedAdmissionQuestions,
   getSchoolScopedCommunityPosts,
@@ -250,6 +249,15 @@ export function SchoolPage({
       ].sort((a, b) => b.likes - a.likes || b.commentCount - a.commentCount),
     [clubPosts, foodPosts],
   );
+  const commentCountByPostId = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    snapshot.comments.forEach((comment) => {
+      counts.set(comment.postId, (counts.get(comment.postId) ?? 0) + 1);
+    });
+
+    return counts;
+  }, [snapshot.comments]);
   const hasSchoolUtilityContent =
     lectures.length > 0 || tradeItems.length > 0 || campusInfoCards.length > 0;
   const schoolDetailPosts = useMemo(
@@ -998,7 +1006,7 @@ export function SchoolPage({
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <MessageCircle className="h-3.5 w-3.5" />
-                        {getCommentsByPostId(post.id).length}
+                        {commentCountByPostId.get(post.id) ?? post.commentCount}
                       </span>
                     </div>
                   </CardContent>
