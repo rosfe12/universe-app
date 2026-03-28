@@ -22,13 +22,13 @@ export function AppShell({
   desktopWide?: boolean;
 }) {
   return (
-    <div className="app-page-backdrop min-h-[100dvh] md:px-4 md:py-5">
+    <div className="app-page-backdrop min-h-[100dvh] overflow-hidden md:px-4 md:py-5">
       <div
-        className={`app-shell-surface mx-auto flex min-h-[100dvh] flex-col md:min-h-[calc(100vh-2.5rem)] md:rounded-[36px] ${
+        className={`app-shell-surface mx-auto flex min-h-[100dvh] min-w-0 flex-col overflow-hidden md:min-h-[calc(100vh-2.5rem)] md:rounded-[36px] ${
           desktopWide ? "max-w-[440px] md:max-w-[1240px]" : "max-w-[440px]"
         }`}
       >
-        <header className="app-header-surface app-header-safe-cover sticky top-0 z-20 border-b border-white/10 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-4">
+        <header className="app-header-surface app-header-safe-cover sticky top-0 z-20 shrink-0 border-b border-white/10 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-500 dark:text-indigo-300">
@@ -46,7 +46,7 @@ export function AppShell({
         </header>
         <main
           data-app-scroll-root
-          className={`flex-1 space-y-7 px-4 pb-[calc(env(safe-area-inset-bottom)+6.75rem)] pt-5 ${
+          className={`flex-1 min-h-0 space-y-7 overflow-y-auto overscroll-contain px-4 pb-[calc(env(safe-area-inset-bottom)+8.25rem)] pt-5 ${
             desktopWide ? "md:px-6" : ""
           }`}
         >
@@ -54,7 +54,7 @@ export function AppShell({
           {children}
         </main>
         <div
-          className={`px-4 pt-2 ${showTabs ? "pb-[calc(env(safe-area-inset-bottom)+6rem)]" : "pb-4"}`}
+          className={`shrink-0 px-4 pt-2 ${showTabs ? "pb-[calc(env(safe-area-inset-bottom)+6.75rem)]" : "pb-4"}`}
         >
           <AppFooterLinks />
         </div>
