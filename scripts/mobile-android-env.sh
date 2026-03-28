@@ -5,6 +5,7 @@ if [[ -z "${JAVA_HOME:-}" ]]; then
   for candidate in \
     "/Applications/Android Studio.app/Contents/jbr/Contents/Home" \
     "/Applications/Android Studio.app/Contents/jre/Contents/Home" \
+    "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home" \
     "$HOME/Library/Java/JavaVirtualMachines/openjdk-21.jdk/Contents/Home" \
     "$HOME/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home"
   do
@@ -24,6 +25,7 @@ fi
 
 if [[ -z "${ANDROID_HOME:-}" && -z "${ANDROID_SDK_ROOT:-}" ]]; then
   for candidate in \
+    "/opt/homebrew/share/android-commandlinetools" \
     "$HOME/Library/Android/sdk" \
     "$HOME/Android/Sdk"
   do
