@@ -647,6 +647,14 @@ create table if not exists public.poll_votes (
   constraint poll_votes_unique_user unique (poll_id, user_id)
 );
 
+create table if not exists public.post_views (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.posts(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  constraint post_views_unique_user unique (post_id, user_id)
+);
+
 create table if not exists public.lectures (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -945,6 +953,8 @@ create index if not exists idx_polls_post_id on public.polls (post_id);
 create index if not exists idx_poll_options_poll_id on public.poll_options (poll_id, position);
 create index if not exists idx_poll_votes_poll_option on public.poll_votes (poll_id, option_id);
 create index if not exists idx_poll_votes_user_created_at on public.poll_votes (user_id, created_at desc);
+create index if not exists idx_post_views_post_created_at on public.post_views (post_id, created_at desc);
+create index if not exists idx_post_views_user_created_at on public.post_views (user_id, created_at desc);
 create index if not exists idx_reports_target on public.reports (target_type, target_id);
 create index if not exists idx_reports_reporter_created_at on public.reports (reporter_id, created_at desc);
 create index if not exists idx_notifications_user_created_at on public.notifications (user_id, created_at desc);
@@ -1425,6 +1435,38 @@ begin
 end;
 $$;
 
+create or replace function public.increment_post_view_once(p_post_id uuid, p_user_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  next_view_count integer;
+begin
+  insert into public.post_views (post_id, user_id)
+  values (p_post_id, p_user_id)
+  on conflict (post_id, user_id) do nothing;
+
+  if found then
+    update public.posts
+    set view_count = view_count + 1,
+        updated_at = timezone('utc', now())
+    where id = p_post_id
+    returning view_count into next_view_count;
+
+    return coalesce(next_view_count, 0);
+  end if;
+
+  select view_count
+    into next_view_count
+  from public.posts
+  where id = p_post_id;
+
+  return coalesce(next_view_count, 0);
+end;
+$$;
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -1801,6 +1843,7 @@ grant execute on function public.is_verified_student() to authenticated;
 grant execute on function public.can_access_profile(uuid) to authenticated;
 grant execute on function public.reorder_profile_images(uuid[]) to authenticated;
 grant execute on function public.set_primary_profile_image(uuid) to authenticated;
+grant execute on function public.increment_post_view_once(uuid, uuid) to authenticated;
 grant execute on function public.is_admin() to authenticated;
 
 alter table public.schools enable row level security;
@@ -1822,6 +1865,7 @@ alter table public.trade_messages enable row level security;
 alter table public.polls enable row level security;
 alter table public.poll_options enable row level security;
 alter table public.poll_votes enable row level security;
+alter table public.post_views enable row level security;
 alter table public.dating_profiles enable row level security;
 alter table public.profile_images enable row level security;
 alter table public.profile_blocks enable row level security;
@@ -1965,6 +2009,20 @@ on public.profile_reports
 for select
 to authenticated
 using (public.is_admin());
+
+drop policy if exists "post views own read" on public.post_views;
+create policy "post views own read"
+on public.post_views
+for select
+to authenticated
+using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "post views own insert" on public.post_views;
+create policy "post views own insert"
+on public.post_views
+for insert
+to authenticated
+with check (user_id = auth.uid());
 
 drop policy if exists "user_roles self or admin read" on public.user_roles;
 create policy "user_roles self or admin read"

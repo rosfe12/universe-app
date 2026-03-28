@@ -1383,28 +1383,26 @@ export async function votePoll(input: { postId: string; optionId: string }) {
 
 export async function trackPostView(postId: string) {
   const values = z.object({ postId: z.string().min(1) }).parse({ postId });
-  const admin = createAdminSupabaseClient();
-  const { data: postRow, error: postError } = await admin
-    .from("posts")
-    .select("id, view_count")
-    .eq("id", values.postId)
-    .single();
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (postError || !postRow) {
+  if (!user) {
     return { success: false };
   }
 
-  const nextViewCount = Number(postRow.view_count ?? 0) + 1;
-  const { error: updateError } = await admin
-    .from("posts")
-    .update({ view_count: nextViewCount })
-    .eq("id", values.postId);
+  const admin = createAdminSupabaseClient();
+  const { data: nextViewCount, error: viewError } = await admin.rpc("increment_post_view_once", {
+    p_post_id: values.postId,
+    p_user_id: user.id,
+  });
 
-  if (updateError) {
-    throw new Error(updateError.message);
+  if (viewError) {
+    return { success: false };
   }
 
-  if (nextViewCount % 5 === 0) {
+  if (Number(nextViewCount ?? 0) > 0 && Number(nextViewCount ?? 0) % 5 === 0) {
     await recalculatePostHotScore(admin, values.postId);
   }
   revalidateFeed(["/home", "/community", "/school"]);
