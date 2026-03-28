@@ -52,6 +52,10 @@ function hasSmtpConfig() {
   );
 }
 
+function isDeployedRuntime() {
+  return process.env.VERCEL === "1" || process.env.CI === "true";
+}
+
 async function verifySmtp() {
   if (!hasSmtpConfig()) {
     console.log("SMTP");
@@ -129,7 +133,14 @@ async function main() {
   }
 
   if (!isLocalAppUrl && !hasSmtpConfig()) {
-    throw new Error("운영 배포에서는 앱 SMTP 설정이 필요합니다.");
+    if (isDeployedRuntime()) {
+      throw new Error("운영 배포에서는 앱 SMTP 설정이 필요합니다.");
+    }
+
+    console.log("Notice");
+    console.log("- local env에는 앱 SMTP 값이 없습니다.");
+    console.log("- 실제 운영 Vercel 환경변수는 별도로 설정되어 있을 수 있습니다.");
+    console.log("");
   }
 }
 
