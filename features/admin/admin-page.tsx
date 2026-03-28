@@ -723,6 +723,7 @@ export function AdminPage({
   const [profileImagePendingId, setProfileImagePendingId] = useState<string | null>(null);
   const [moderationPendingKey, setModerationPendingKey] = useState<string | null>(null);
   const [adminDenied, setAdminDenied] = useState(false);
+  const [adminAccessChecked, setAdminAccessChecked] = useState(false);
   const [adminFeedback, setAdminFeedback] = useState<string | null>(null);
   const pendingVerificationCount = verificationItems.filter(
     (item) => item.status === "pending",
@@ -872,6 +873,16 @@ export function AdminPage({
   useEffect(() => {
     let active = true;
 
+    if (!isAuthenticated) {
+      setAdminAccessChecked(true);
+      setAdminDenied(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setAdminAccessChecked(false);
+
     async function loadVerificationRequests() {
       setVerificationLoading(true);
       if (!active) {
@@ -887,6 +898,7 @@ export function AdminPage({
       setVerificationError(result.error ?? "");
       setVerificationLoading(false);
       setAdminDenied(source === "supabase" && !result.canManage);
+      setAdminAccessChecked(true);
     }
 
     async function refreshAuditLogs() {
@@ -1012,7 +1024,7 @@ export function AdminPage({
     return () => {
       active = false;
     };
-  }, [source]);
+  }, [isAuthenticated, source]);
 
   useEffect(() => {
     if (!selectedMember?.id) {
@@ -1416,6 +1428,34 @@ export function AdminPage({
     window.open(`/api/admin/members?${searchParams.toString()}`, "_blank");
   }
 
+  if (loading || (isAuthenticated && !adminAccessChecked)) {
+    return (
+      <AppShell title="로그인" showTabs={false}>
+        <LoadingState />
+      </AppShell>
+    );
+  }
+
+  if (!isAuthenticated || adminDenied) {
+    return (
+      <AppShell title="로그인" showTabs={false}>
+        <Card className="border-dashed border-white/80 bg-white/92">
+          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+            <div className="space-y-1">
+              <p className="font-semibold">관리자 로그인 필요</p>
+              <p className="text-sm text-muted-foreground">
+                관리자 계정으로 로그인 후 이용할 수 있습니다.
+              </p>
+            </div>
+            <Button asChild className="min-w-[180px]">
+              <Link href="/login?next=%2Fadmin">로그인하기</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       title="관리자"
@@ -1425,45 +1465,6 @@ export function AdminPage({
       {adminFeedback ? (
         <ActionFeedbackBanner message={adminFeedback} onClose={() => setAdminFeedback(null)} />
       ) : null}
-      {!loading && !isAuthenticated ? (
-        <Card className="border-dashed border-white/80 bg-white/92">
-          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-            <div className="space-y-1">
-              <p className="font-semibold">관리자 로그인 필요</p>
-              <p className="text-sm text-muted-foreground">
-                관리자 화면은 로그인 후 접근할 수 있습니다.
-              </p>
-            </div>
-            <Button asChild className="min-w-[180px]">
-              <Link href="/login?next=%2Fadmin">로그인하기</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
-      {!loading && isAuthenticated && adminDenied ? (
-        <Card className="border-dashed border-white/80 bg-white/92">
-          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-            <div className="space-y-1">
-              <p className="font-semibold">관리자 권한이 필요합니다</p>
-              <p className="text-sm text-muted-foreground">
-                현재 계정은 관리자 작업 권한이 없습니다.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setAdminDenied(false);
-                void refresh();
-              }}
-            >
-              다시 확인
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
-      {!loading && (!isAuthenticated || adminDenied) ? null : (
-        <>
       {loading ? <LoadingState /> : null}
       <div className="flex justify-end">
         <Button asChild type="button" variant="outline">
@@ -3046,8 +3047,6 @@ export function AdminPage({
           ) : null}
         </DialogContent>
       </Dialog>
-        </>
-      )}
     </AppShell>
   );
 }
