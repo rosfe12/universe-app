@@ -210,7 +210,7 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         reports: false,
         blocks: true,
         datingProfiles: true,
-        mediaAssets: true,
+        mediaAssets: false,
         currentUserProfile: true,
       };
     case "messages":

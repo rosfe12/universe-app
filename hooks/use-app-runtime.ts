@@ -54,7 +54,7 @@ function getPrewarmScopes(
     case "notifications":
       return ["messages"];
     case "profile":
-      return ["notifications", "messages"];
+      return [];
     default:
       return [];
   }
