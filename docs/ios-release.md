@@ -21,7 +21,8 @@ npm run mobile:open:ios
 ```
 
 - Xcode에서 `ios/App/App.xcodeproj`를 엽니다.
-- `App` 타깃의 `Signing & Capabilities`에서 Apple Team을 지정합니다.
+- `App` 타깃의 `Signing & Capabilities`는 `T7568AP66M` 기준으로 맞춰져 있습니다.
+- Xcode `Settings > Accounts`에 Apple Developer 계정 로그인이 되어 있어야 합니다.
 - Bundle Identifier가 필요하면 `CAPACITOR_APP_ID` 기준으로 조정합니다.
 
 ## 3. 앱 기본값
@@ -52,7 +53,7 @@ npm run mobile:archive:ios
 - 서명된 archive가 필요하면 아래처럼 실행
 
 ```bash
-IOS_TEAM_ID=YOUR_TEAM_ID IOS_CODE_SIGNING_ALLOWED=YES npm run mobile:archive:ios
+IOS_CODE_SIGNING_ALLOWED=YES npm run mobile:archive:ios
 ```
 
 - Xcode Organizer에서 확인하려면 Xcode에서 `Window > Organizer`
@@ -62,7 +63,7 @@ IOS_TEAM_ID=YOUR_TEAM_ID IOS_CODE_SIGNING_ALLOWED=YES npm run mobile:archive:ios
 1. 아래 명령으로 export 옵션 생성
 
 ```bash
-IOS_TEAM_ID=YOUR_TEAM_ID npm run mobile:export-options:ios
+npm run mobile:export-options:ios
 ```
 
 2. 아래 명령 실행

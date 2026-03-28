@@ -2,12 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 const rootDir = path.resolve(new URL("..", import.meta.url).pathname);
-const teamId = process.env.IOS_TEAM_ID?.trim();
-
-if (!teamId) {
-  console.error("Missing IOS_TEAM_ID");
-  process.exit(1);
-}
+const teamId = process.env.IOS_TEAM_ID?.trim() || "T7568AP66M";
 
 const outputPath = process.env.IOS_EXPORT_OPTIONS_OUTPUT?.trim()
   ? path.resolve(process.env.IOS_EXPORT_OPTIONS_OUTPUT)
