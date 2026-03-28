@@ -1714,7 +1714,29 @@ export function AdminPage({
               </CardContent>
             </Card>
           ) : null}
-          <div className="grid gap-3 xl:grid-cols-2">
+          <div className="hidden xl:block">
+            <MemberDesktopTable
+              items={memberItems}
+              pendingKey={moderationPendingKey}
+              onOpenDetail={(member) => setSelectedMember(member)}
+              onRestrict={(member) => {
+                void mutateModerationAction({
+                  action: "restrict_user",
+                  userId: member.id,
+                });
+              }}
+              onUnrestrict={(member) => {
+                if (!confirmAdminAction("활동 정지를 해제하시겠습니까?")) {
+                  return;
+                }
+                void mutateModerationAction({
+                  action: "unrestrict_user",
+                  userId: member.id,
+                });
+              }}
+            />
+          </div>
+          <div className="space-y-3 xl:hidden">
             {memberItems.map((member) => (
               <MemberCard
                 key={member.id}
@@ -2023,7 +2045,24 @@ export function AdminPage({
               </CardContent>
             </Card>
           ) : null}
-          <div className="grid gap-3 xl:grid-cols-2">
+          <div className="hidden xl:block">
+            <ProfileImageDesktopTable
+              items={profileImageItems}
+              profileImagePendingId={profileImagePendingId}
+              onApprove={(item) => {
+                void mutateProfileImage(item, "approve");
+              }}
+              onReject={(item) => {
+                setRejectProfileImageItem(item);
+                setRejectProfileImageReasons([]);
+                setRejectProfileImageCustomReason("");
+              }}
+              onDelete={(item) => {
+                void mutateProfileImage(item, "delete");
+              }}
+            />
+          </div>
+          <div className="space-y-3 xl:hidden">
             {profileImageItems.map((item) => (
               <Card key={item.id}>
                 <CardContent className="grid gap-4 p-4 md:grid-cols-[168px_minmax(0,1fr)_auto]">
@@ -3220,6 +3259,97 @@ function SummaryCard({
   );
 }
 
+function MemberDesktopTable({
+  items,
+  pendingKey,
+  onOpenDetail,
+  onRestrict,
+  onUnrestrict,
+}: {
+  items: AdminMember[];
+  pendingKey: string | null;
+  onOpenDetail: (item: AdminMember) => void;
+  onRestrict: (item: AdminMember) => void;
+  onUnrestrict: (item: AdminMember) => void;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="grid grid-cols-[minmax(0,2.1fr)_minmax(0,1.2fr)_220px_220px] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold text-muted-foreground">
+          <span>회원</span>
+          <span>학교/상태</span>
+          <span>가입/최근 로그인</span>
+          <span className="text-right">관리</span>
+        </div>
+        <div className="divide-y divide-white/10">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="grid grid-cols-[minmax(0,2.1fr)_minmax(0,1.2fr)_220px_220px] gap-4 px-5 py-4"
+            >
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate font-semibold">{item.nickname}</p>
+                  {item.role ? <Badge variant="default">{item.role}</Badge> : null}
+                </div>
+                <p className="truncate text-sm text-muted-foreground">{item.email}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">{getUserTypeLabel(item.userType)}</Badge>
+                  {item.department ? <Badge variant="secondary">{item.department}</Badge> : null}
+                  {item.grade ? <Badge variant="secondary">{item.grade}학년</Badge> : null}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="secondary">{item.schoolName ?? "학교 미지정"}</Badge>
+                  {item.verified ? <Badge variant="success">학교 인증</Badge> : null}
+                  {item.isRestricted ? <Badge variant="danger">restricted</Badge> : null}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <TrustScoreBadge score={item.trustScore} />
+                  <Badge variant="secondary">신고 {item.reportCount}</Badge>
+                  <Badge variant="secondary">경고 {item.warningCount}</Badge>
+                </div>
+              </div>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <p>가입 {item.createdAt.slice(0, 16)}</p>
+                <p>{item.lastSignInAt ? `최근 ${item.lastSignInAt.slice(0, 16)}` : "로그인 이력 없음"}</p>
+                {item.schoolEmail ? <p className="truncate">{item.schoolEmail}</p> : null}
+              </div>
+              <div className="flex flex-wrap items-start justify-end gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => onOpenDetail(item)}>
+                  상세
+                </Button>
+                {item.isRestricted ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onUnrestrict(item)}
+                    disabled={pendingKey === `unrestrict_user:${item.id}`}
+                  >
+                    해제
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onRestrict(item)}
+                    disabled={pendingKey === `restrict_user:${item.id}`}
+                  >
+                    제한
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function MemberCard({
   item,
   pendingKey,
@@ -3288,6 +3418,109 @@ function MemberCard({
               활동 정지
             </Button>
           )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProfileImageDesktopTable({
+  items,
+  profileImagePendingId,
+  onApprove,
+  onReject,
+  onDelete,
+}: {
+  items: AdminProfileImageItem[];
+  profileImagePendingId: string | null;
+  onApprove: (item: AdminProfileImageItem) => void;
+  onReject: (item: AdminProfileImageItem) => void;
+  onDelete: (item: AdminProfileImageItem) => void;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-0">
+        <div className="grid grid-cols-[96px_minmax(0,1.4fr)_140px_140px_160px_220px] gap-4 border-b border-white/10 px-5 py-3 text-xs font-semibold text-muted-foreground">
+          <span>미리보기</span>
+          <span>사용자</span>
+          <span>학교</span>
+          <span>상태</span>
+          <span>업로드</span>
+          <span className="text-right">관리</span>
+        </div>
+        <div className="divide-y divide-white/10">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="grid grid-cols-[96px_minmax(0,1.4fr)_140px_140px_160px_220px] gap-4 px-5 py-4"
+            >
+              <div className="aspect-square overflow-hidden rounded-[18px] border border-white/10 bg-slate-950/5">
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={`${item.nickname} 프로필 사진`}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-[11px] text-muted-foreground">
+                    없음
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate font-semibold">{item.nickname}</p>
+                  {item.isPrimary ? <Badge variant="outline">대표</Badge> : null}
+                  <Badge variant="outline">슬롯 {item.imageOrder}</Badge>
+                </div>
+                {item.email ? <p className="truncate text-sm text-muted-foreground">{item.email}</p> : null}
+                {item.moderationReason ? (
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{item.moderationReason}</p>
+                ) : null}
+              </div>
+              <div className="text-sm text-muted-foreground">{item.schoolName ?? "-"}</div>
+              <div className="flex items-start">
+                <Badge variant={item.moderationStatus === "approved" ? "secondary" : "outline"}>
+                  {item.moderationStatus === "approved"
+                    ? "승인됨"
+                    : item.moderationStatus === "rejected"
+                      ? "반려됨"
+                      : "검토 중"}
+                </Badge>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {item.createdAt.slice(0, 16).replace("T", " ")}
+              </div>
+              <div className="flex flex-wrap items-start justify-end gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={profileImagePendingId === item.id || item.moderationStatus === "approved"}
+                  onClick={() => onApprove(item)}
+                >
+                  승인
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={profileImagePendingId === item.id}
+                  onClick={() => onReject(item)}
+                >
+                  반려
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={profileImagePendingId === item.id}
+                  onClick={() => onDelete(item)}
+                >
+                  삭제
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
