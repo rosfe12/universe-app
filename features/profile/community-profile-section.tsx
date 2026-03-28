@@ -901,11 +901,15 @@ export function CommunityProfileSection({
                         key={order}
                         type="button"
                         variant={active ? "secondary" : "outline"}
-                        className="h-10 justify-between rounded-full px-3 text-xs"
+                        className="relative h-11 min-w-0 justify-center overflow-hidden rounded-[18px] px-3 text-xs"
                         onClick={() => setActiveImageOrder(order)}
                       >
-                        <span>사진 {order}</span>
-                        {image?.isPrimary ? <Badge variant="success">대표</Badge> : null}
+                        <span className="truncate">사진 {order}</span>
+                        {image?.isPrimary ? (
+                          <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-emerald-200">
+                            대표
+                          </span>
+                        ) : null}
                       </Button>
                     );
                   })}
