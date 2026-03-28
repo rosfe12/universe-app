@@ -389,45 +389,14 @@ export function CommunityProfileSection({
     try {
       validateCommunityProfileImageFile(file);
       const analysis = await validateImageBeforeUpload(file);
-      if (analysis.faceBoxes.length > 0) {
-        setEditorState({
-          imageOrder: order,
-          file,
-          faceBoxes: analysis.faceBoxes,
-          sensitiveTextDetected: analysis.sensitiveTextDetected,
-          qrDetected: analysis.qrDetected,
-          processedFile: null,
-        });
-      } else {
-        const previewUrl = URL.createObjectURL(file);
-        setDraftImages((current) => {
-          const replacedImage = current.find((image) => image.imageOrder === order);
-          if (replacedImage?.localPreviewUrl) {
-            URL.revokeObjectURL(replacedImage.localPreviewUrl);
-          }
-          const filtered = current.filter((image) => image.imageOrder !== order);
-          const nextImages = withSinglePrimary(
-            filtered.concat({
-              id: crypto.randomUUID(),
-              userId: currentUser.id,
-              imagePath: "",
-              imageOrder: order as 1 | 2 | 3,
-              isPrimary: filtered.every((image) => !image.isPrimary),
-              moderationStatus: analysis.sensitiveTextDetected || analysis.qrDetected ? "pending" : "approved",
-              moderationReason:
-                analysis.sensitiveTextDetected || analysis.qrDetected
-                  ? "연락처, SNS, QR, 학생증 등 개인정보가 포함된 것으로 보여 검토 후 공개됩니다."
-                  : undefined,
-              imageUrl: previewUrl,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              localFile: file,
-              localPreviewUrl: previewUrl,
-            }),
-          );
-          return nextImages;
-        });
-      }
+      setEditorState({
+        imageOrder: order,
+        file,
+        faceBoxes: analysis.faceBoxes,
+        sensitiveTextDetected: analysis.sensitiveTextDetected,
+        qrDetected: analysis.qrDetected,
+        processedFile: null,
+      });
       setUploadingOrder(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");

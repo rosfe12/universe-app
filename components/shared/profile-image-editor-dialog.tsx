@@ -15,6 +15,7 @@ import {
 import {
   applyBlurToFaces,
   applyStickerToFaces,
+  buildManualCoverBoxes,
   validateImageBeforeUpload,
 } from "@/lib/profile-image-processing";
 import type { FaceBox, StickerType } from "@/lib/profile-image-processing";
@@ -134,8 +135,12 @@ export function ProfileImageEditorDialog({
 
   const hasDetectedFaces = faceBoxes.length > 0;
   const hasSensitiveWarning = sensitiveTextDetected || qrDetected;
-  const canMask = hasDetectedFaces && editableBoxes.length > 0;
-  const confirmLabel = hasSensitiveWarning && !hasDetectedFaces ? "검토 후 업로드" : "이 이미지 업로드";
+  const canMask = editableBoxes.length > 0;
+  const confirmLabel = canMask
+    ? "이 이미지 업로드"
+    : hasSensitiveWarning
+      ? "검토 후 업로드"
+      : "이대로 업로드";
 
   const syncPreviewMetrics = useCallback(() => {
     const frame = previewFrameRef.current;
@@ -240,6 +245,27 @@ export function ProfileImageEditorDialog({
 
   async function handleApplyBlur() {
     await applyMask({ kind: "blur" });
+  }
+
+  async function handleStartManualMasking() {
+    if (!file) return;
+
+    setError(null);
+    setIsProcessing(true);
+
+    try {
+      const nextBoxes =
+        editableBoxes.length > 0 ? editableBoxes : await buildManualCoverBoxes(file);
+      setEditableBoxes(nextBoxes);
+      const nextFile = await applyBlurToFaces(file, nextBoxes);
+      setProcessedFile(nextFile);
+      setHasAutoApplied(true);
+      setMaskMode({ kind: "blur" });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "가림 처리를 시작하지 못했습니다.");
+    } finally {
+      setIsProcessing(false);
+    }
   }
 
   async function handleApplySticker(nextStickerType: StickerType) {
@@ -390,6 +416,12 @@ export function ProfileImageEditorDialog({
             </div>
           ) : null}
 
+          {!hasDetectedFaces ? (
+            <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted-foreground">
+              얼굴이 자동으로 감지되진 않았어요. 필요하면 직접 가린 뒤 업로드할 수 있어요.
+            </div>
+          ) : null}
+
           {hasSensitiveWarning ? (
             <div className="rounded-[20px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
               전화번호, SNS 아이디, QR코드 등 개인정보도 함께 가려주세요.
@@ -455,7 +487,19 @@ export function ProfileImageEditorDialog({
                 가림 영역을 끌어 위치를 옮기고, 우하단 점을 끌어 크기를 조절할 수 있어요.
               </p>
             </div>
-          ) : null}
+          ) : (
+            <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isProcessing}
+                onClick={() => void handleStartManualMasking()}
+              >
+                <ScanFace className="h-4 w-4" />
+                직접 가리기 시작
+              </Button>
+            </div>
+          )}
 
           <div className={`grid grid-cols-1 gap-3 ${canMask ? "sm:grid-cols-2" : ""}`}>
             <div className="space-y-2">
