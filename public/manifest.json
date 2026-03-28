@@ -2,7 +2,7 @@
   "name": "CAMVERSE",
   "short_name": "CAMVERSE",
   "description": "익명으로 연결되는 캠퍼스 네트워크",
-  "start_url": "/home",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0F172A",
   "theme_color": "#0F172A",
