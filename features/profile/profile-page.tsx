@@ -16,6 +16,7 @@ import {
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { AppSettingsSection } from "@/components/shared/app-settings-section";
+import { EmptyState } from "@/components/shared/empty-state";
 import { MyPageLevelSection } from "@/components/shared/my-page-level-section";
 import { LoadingState } from "@/components/shared/loading-state";
 import { ProfileCard } from "@/components/shared/profile-card";
@@ -318,36 +319,36 @@ export function ProfilePage({
       title="마이"
     >
       {loading ? <LoadingState /> : null}
-      <section className="space-y-4 border-b border-gray-100 pb-5">
+      <section className="space-y-4 border-b border-border pb-5">
         <ProfileCard
           title={getAnonymousHandle(currentUser.id)}
           subtitle={adminAffiliationLabel}
           score={currentUser.trustScore}
           description="익명성과 신뢰를 함께 유지하는 기본 프로필"
         />
-        <div className="grid grid-cols-3 gap-3 border-t border-gray-100 pt-4">
+        <div className="grid grid-cols-3 gap-3 border-t border-border pt-4">
           <div className="space-y-1">
-            <p className="text-xs text-gray-400">현재 상태</p>
+            <p className="text-xs text-muted-foreground">현재 상태</p>
             <UserLevelText score={currentUser.trustScore} className="ml-0 text-sm font-medium" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-gray-400">{canAccessAdmin ? "운영 권한" : "학교 인증"}</p>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-xs text-muted-foreground">{canAccessAdmin ? "운영 권한" : "학교 인증"}</p>
+            <p className="text-sm font-medium text-foreground">
               {canAccessAdmin ? adminAffiliationLabel : verificationBadge.shortLabel}
             </p>
           </div>
           <div className="space-y-1 text-right">
-            <p className="text-xs text-gray-400">읽지 않은 알림</p>
-            <p className="text-sm font-medium text-gray-900">{unreadNotifications.length}건</p>
+            <p className="text-xs text-muted-foreground">읽지 않은 알림</p>
+            <p className="text-sm font-medium text-foreground">{unreadNotifications.length}건</p>
           </div>
         </div>
         <MyPageLevelSection score={currentUser.trustScore} />
       </section>
 
       {canAccessAdmin ? (
-        <section className="space-y-2 border-b border-gray-100 pb-5">
-          <p className="text-sm font-semibold text-gray-900">관리자 계정</p>
-          <p className="text-sm text-gray-500">
+        <section className="space-y-2 border-b border-border pb-5">
+          <p className="text-sm font-semibold text-foreground">관리자 계정</p>
+          <p className="text-sm text-muted-foreground">
             학교 인증 대신 학교 미리보기와 운영 권한을 사용합니다.
           </p>
           <div className="flex flex-wrap gap-3">
@@ -360,7 +361,7 @@ export function ProfilePage({
           </div>
         </section>
       ) : (
-      <section className="space-y-2 border-b border-gray-100 pb-5">
+      <section className="space-y-2 border-b border-border pb-5">
           {showVerifiedBanner ? (
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               대학생 인증이 완료되었습니다. 글쓰기와 댓글, 쪽지, 채팅이 바로 열립니다.
@@ -378,13 +379,13 @@ export function ProfilePage({
               학교 메일 확인이 완료되면 학생 정보 자동 판정이 진행됩니다.
             </div>
           ) : null}
-          <p className="text-sm font-semibold text-gray-900">대학생 인증 상태</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm font-semibold text-foreground">대학생 인증 상태</p>
+          <p className="text-sm text-muted-foreground">
             {currentUser.schoolEmail
               ? `인증 대상 메일: ${currentUser.schoolEmail}`
               : "학교 메일이 아직 등록되지 않았습니다."}
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             {verificationBadge.restrictionMessage}
           </p>
           {currentUser.verificationRejectionReason ? (
@@ -404,7 +405,7 @@ export function ProfilePage({
       )}
 
       <section className="space-y-3">
-        <SectionHeader title="내 활동 요약" description="반복 사용 지표를 바로 확인" />
+        <SectionHeader title="내 활동 요약" description="내 활동을 한눈에 확인" />
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="py-4">
@@ -434,7 +435,7 @@ export function ProfilePage({
       </section>
 
       <section className="space-y-3">
-        <SectionHeader title="기본 공개 범위" description="게시글과 댓글 작성 시 기본값으로 사용됩니다" />
+        <SectionHeader title="기본 공개 범위" description="글과 댓글 작성의 기본 공개 범위입니다" />
         <Card>
           <CardContent className="space-y-3 py-5">
             <VisibilityLevelSelect
@@ -467,7 +468,7 @@ export function ProfilePage({
               }}
             />
             <div className="rounded-[22px] bg-secondary/60 p-4 text-sm text-muted-foreground">
-              현재 기본 공개 메타: {adminAffiliationLabel}
+              현재 기본 표시: {adminAffiliationLabel}
             </div>
           </CardContent>
         </Card>
@@ -595,7 +596,7 @@ export function ProfilePage({
       </section>
 
       <section className="space-y-3 pt-1">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-4">
+        <div className="rounded-2xl border border-border bg-card px-4 py-4">
           <div className="space-y-3">
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">회원 탈퇴</p>
@@ -653,7 +654,7 @@ export function ProfilePage({
 
       {profile ? (
         <section className="space-y-3">
-          <SectionHeader title="내 연애 프로필" description="추후 스토리 / 미디어 기능으로 확장 가능" />
+          <SectionHeader title="내 연애 프로필" description="연애 탭에서 보여지는 내 소개" />
           <Card>
             <CardContent className="space-y-3 py-5">
               <div className="flex items-center justify-between">
@@ -682,8 +683,8 @@ export function ProfilePage({
             <TabsTrigger value="trade">내 매칭 글</TabsTrigger>
           </TabsList>
           <TabsContent value="posts" className="space-y-3">
-            {myPosts.map((post) => (
-              <Card key={post.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
+            {myPosts.length > 0 ? myPosts.map((post) => (
+              <Card key={post.id} className="transition-colors hover:bg-muted/40">
                 <button type="button" className="w-full cursor-pointer text-left" onClick={() => moveToPost(post.id)}>
                   <CardContent className="space-y-2 py-5">
                     <div className="flex items-center gap-2">
@@ -696,11 +697,13 @@ export function ProfilePage({
                   </CardContent>
                 </button>
               </Card>
-            ))}
+            )) : (
+              <EmptyState title="작성한 글이 아직 없습니다" description="첫 글을 남기면 여기서 바로 확인할 수 있어요." />
+            )}
           </TabsContent>
           <TabsContent value="comments" className="space-y-3">
-            {myComments.map((comment) => (
-              <Card key={comment.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
+            {myComments.length > 0 ? myComments.map((comment) => (
+              <Card key={comment.id} className="transition-colors hover:bg-muted/40">
                 <button
                   type="button"
                   className="w-full cursor-pointer text-left"
@@ -718,11 +721,13 @@ export function ProfilePage({
                   </CardContent>
                 </button>
               </Card>
-            ))}
+            )) : (
+              <EmptyState title="작성한 댓글이 아직 없습니다" description="댓글을 남기면 여기서 다시 볼 수 있어요." />
+            )}
           </TabsContent>
           <TabsContent value="reviews" className="space-y-3">
-            {myReviews.map((review) => (
-              <Card key={review.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
+            {myReviews.length > 0 ? myReviews.map((review) => (
+              <Card key={review.id} className="transition-colors hover:bg-muted/40">
                 <button
                   type="button"
                   className="w-full cursor-pointer text-left"
@@ -741,11 +746,13 @@ export function ProfilePage({
                   </CardContent>
                 </button>
               </Card>
-            ))}
+            )) : (
+              <EmptyState title="작성한 강의평이 아직 없습니다" description="강의평을 남기면 여기서 모아볼 수 있어요." />
+            )}
           </TabsContent>
           <TabsContent value="trade" className="space-y-3">
-            {myTradePosts.map((post) => (
-              <Card key={post.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
+            {myTradePosts.length > 0 ? myTradePosts.map((post) => (
+              <Card key={post.id} className="transition-colors hover:bg-muted/40">
                 <button
                   type="button"
                   className="w-full cursor-pointer text-left"
@@ -766,7 +773,9 @@ export function ProfilePage({
                   </CardContent>
                 </button>
               </Card>
-            ))}
+            )) : (
+              <EmptyState title="등록한 매칭 글이 아직 없습니다" description="수강신청 교환 글을 올리면 여기서 확인할 수 있어요." />
+            )}
           </TabsContent>
         </Tabs>
       </section>
