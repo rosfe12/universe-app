@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ImagePlus, Loader2, Pencil, Trash2 } from "lucide-react";
 
 import {
   deleteProfileImage,
@@ -863,10 +863,10 @@ export function CommunityProfileSection({
 
             <div className="space-y-3">
               <Label>프로필 공개 범위</Label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
                 <button
                   type="button"
-                  className={`rounded-[20px] border px-4 py-3 text-left ${
+                  className={`flex w-full items-center justify-between rounded-[18px] border px-4 py-3 text-left ${
                     formState.profileVisibility === "university_only"
                       ? "border-primary bg-primary/10"
                       : "border-white/10 bg-white/[0.02]"
@@ -878,14 +878,23 @@ export function CommunityProfileSection({
                     }))
                   }
                 >
-                  <p className="font-medium">전체 대학생에게 공개</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    다른 학교 학생도 내 프로필을 볼 수 있어요
-                  </p>
+                  <div className="min-w-0">
+                    <p className="font-medium">전체 대학생에게 공개</p>
+                    <p className="text-xs text-muted-foreground">다른 학교 학생도 볼 수 있어요</p>
+                  </div>
+                  <span
+                    className={`ml-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                      formState.profileVisibility === "university_only"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-white/15 text-transparent"
+                    }`}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </span>
                 </button>
                 <button
                   type="button"
-                  className={`rounded-[20px] border px-4 py-3 text-left ${
+                  className={`flex w-full items-center justify-between rounded-[18px] border px-4 py-3 text-left ${
                     formState.profileVisibility === "same_school_only"
                       ? "border-primary bg-primary/10"
                       : "border-white/10 bg-white/[0.02]"
@@ -897,10 +906,19 @@ export function CommunityProfileSection({
                     }))
                   }
                 >
-                  <p className="font-medium">같은 학교만 공개</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    같은 학교 학생에게만 내 프로필이 보여요
-                  </p>
+                  <div className="min-w-0">
+                    <p className="font-medium">같은 학교만 공개</p>
+                    <p className="text-xs text-muted-foreground">같은 학교 학생에게만 보여요</p>
+                  </div>
+                  <span
+                    className={`ml-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                      formState.profileVisibility === "same_school_only"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-white/15 text-transparent"
+                    }`}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </span>
                 </button>
               </div>
             </div>
