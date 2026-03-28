@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { Post } from "@/types";
 
 const APP_DISPLAY_TIME_ZONE = "Asia/Seoul";
 
@@ -69,4 +70,29 @@ export function isInternalQaTitle(title?: string | null) {
   }
 
   return /^\s*\[QA\d*\]/i.test(title);
+}
+
+export function getOfficialStarterMeta(
+  post?: Pick<Post, "title" | "tags" | "subcategory"> | null,
+) {
+  if (!post) {
+    return null;
+  }
+
+  const title = post.title?.trim() ?? "";
+  const tags = new Set((post.tags ?? []).filter(Boolean));
+  const hasOfficialSource = title.startsWith("[공식]") || tags.has("공식자료");
+  const isFreshmanGuide =
+    title.startsWith("[새내기 체크]") ||
+    (post.subcategory === "freshman" && hasOfficialSource);
+
+  if (!hasOfficialSource && !isFreshmanGuide) {
+    return null;
+  }
+
+  return {
+    name: "CAMVERSE 운영팀",
+    label: isFreshmanGuide ? "공식 예시 콘텐츠" : "운영팀 큐레이션",
+    badge: isFreshmanGuide ? "운영팀 가이드" : "운영팀",
+  };
 }

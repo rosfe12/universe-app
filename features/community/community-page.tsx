@@ -82,7 +82,7 @@ import {
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
 import { getStandardVisibilityLevel } from "@/lib/user-identity";
-import { cn, getPostViewCount } from "@/lib/utils";
+import { cn, getOfficialStarterMeta, getPostViewCount } from "@/lib/utils";
 import type { AppRuntimeSnapshot, Post, ReportReason, VisibilityLevel } from "@/types";
 import { createPostSharePayload } from "@/lib/share-utils";
 
@@ -269,6 +269,7 @@ function SharedFeedCard({
   onBlock: () => Promise<void> | void;
   repeatedlyReported: boolean;
 }) {
+  const officialStarter = getOfficialStarterMeta(post);
   return (
     <article className="border-b border-gray-100 last:border-b-0">
       <div className="space-y-3 px-4 py-4 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-white/5">
@@ -279,6 +280,11 @@ function SharedFeedCard({
           contentSchoolId={post.schoolId}
           anonymousMode={post.subcategory === "anonymous"}
           showPrimaryImage
+          nameOverride={officialStarter?.name}
+          labelOverride={officialStarter?.label}
+          badgeLabel={officialStarter?.badge}
+          disableProfileLink={Boolean(officialStarter)}
+          hideUserLevel={Boolean(officialStarter)}
           trailing={
             <div className="flex items-center gap-2 text-xs text-gray-400">
               {schoolHighlighted ? (
@@ -336,15 +342,17 @@ function SharedFeedCard({
           </button>
         ) : null}
         <div className="flex items-center justify-end gap-2">
-          <ReportBlockActions
-            compact
-            targetType="post"
-            targetId={post.id}
-            targetUserId={post.authorId}
-            repeatedlyReported={repeatedlyReported}
-            onReport={async ({ reason, memo }) => onReport({ reason, memo })}
-            onBlock={async () => onBlock()}
-          />
+          {officialStarter ? null : (
+            <ReportBlockActions
+              compact
+              targetType="post"
+              targetId={post.id}
+              targetUserId={post.authorId}
+              repeatedlyReported={repeatedlyReported}
+              onReport={async ({ reason, memo }) => onReport({ reason, memo })}
+              onBlock={async () => onBlock()}
+            />
+          )}
         </div>
       </div>
     </article>
@@ -583,6 +591,10 @@ export function CommunityPage({
   const detailPost = useMemo(
     () => accessibleAllFeedItems.find((post) => post.id === detailPostId) ?? null,
     [accessibleAllFeedItems, detailPostId],
+  );
+  const detailPostOfficialStarter = useMemo(
+    () => getOfficialStarterMeta(detailPost),
+    [detailPost],
   );
 
   const canComposeCommunity =
@@ -1176,6 +1188,11 @@ export function CommunityPage({
                     contentSchoolId={detailPost.schoolId}
                     anonymousMode={detailPost.subcategory === "anonymous"}
                     showProfilePreview
+                    nameOverride={detailPostOfficialStarter?.name}
+                    labelOverride={detailPostOfficialStarter?.label}
+                    badgeLabel={detailPostOfficialStarter?.badge}
+                    disableProfileLink={Boolean(detailPostOfficialStarter)}
+                    hideUserLevel={Boolean(detailPostOfficialStarter)}
                   />
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={getCardVariant(detailPost)}>{getCardLabel(detailPost)}</Badge>
@@ -1218,52 +1235,54 @@ export function CommunityPage({
                       payload={createPostSharePayload(detailPost)}
                     />
                   </div>
-                  <ReportBlockActions
-                    targetType="post"
-                    targetId={detailPost.id}
-                    targetUserId={detailPost.authorId}
-                    repeatedlyReported={isRepeatedlyReportedUser(detailPost.authorId)}
-                    onReport={async ({ reason, memo }) => {
-                      if (source === "supabase" && isAuthenticated) {
-                        await createReportRecord({
-                          reporterId: currentUser.id,
-                          targetType: "post",
-                          targetId: detailPost.id,
-                          reason,
-                          memo,
-                        });
-                        await refresh();
-                        return;
-                      }
+                  {detailPostOfficialStarter ? null : (
+                    <ReportBlockActions
+                      targetType="post"
+                      targetId={detailPost.id}
+                      targetUserId={detailPost.authorId}
+                      repeatedlyReported={isRepeatedlyReportedUser(detailPost.authorId)}
+                      onReport={async ({ reason, memo }) => {
+                        if (source === "supabase" && isAuthenticated) {
+                          await createReportRecord({
+                            reporterId: currentUser.id,
+                            targetType: "post",
+                            targetId: detailPost.id,
+                            reason,
+                            memo,
+                          });
+                          await refresh();
+                          return;
+                        }
 
-                      setSnapshot((current) =>
-                        addReportToSnapshot(current, {
-                          targetType: "post",
-                          targetId: detailPost.id,
-                          reporterId: currentUser.id,
-                          reason: reason ?? "other",
-                          memo,
-                        }),
-                      );
-                    }}
-                    onBlock={async () => {
-                      if (source === "supabase" && isAuthenticated) {
-                        await createBlockRecord({
-                          blockerId: currentUser.id,
-                          blockedUserId: detailPost.authorId,
-                        });
-                        await refresh();
-                        return;
-                      }
+                        setSnapshot((current) =>
+                          addReportToSnapshot(current, {
+                            targetType: "post",
+                            targetId: detailPost.id,
+                            reporterId: currentUser.id,
+                            reason: reason ?? "other",
+                            memo,
+                          }),
+                        );
+                      }}
+                      onBlock={async () => {
+                        if (source === "supabase" && isAuthenticated) {
+                          await createBlockRecord({
+                            blockerId: currentUser.id,
+                            blockedUserId: detailPost.authorId,
+                          });
+                          await refresh();
+                          return;
+                        }
 
-                      setSnapshot((current) =>
-                        addBlockToSnapshot(current, {
-                          blockerId: currentUser.id,
-                          blockedUserId: detailPost.authorId,
-                        }),
-                      );
-                    }}
-                  />
+                        setSnapshot((current) =>
+                          addBlockToSnapshot(current, {
+                            blockerId: currentUser.id,
+                            blockedUserId: detailPost.authorId,
+                          }),
+                        );
+                      }}
+                    />
+                  )}
                   {isAuthenticated && currentUser.id === detailPost.authorId ? (
                     <div className="flex justify-end">
                       <Button

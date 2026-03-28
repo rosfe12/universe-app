@@ -5,7 +5,7 @@ import { ReportBlockActions } from "@/components/shared/report-block-actions";
 import { Badge } from "@/components/ui/badge";
 import { CAREER_BOARD_LABELS, COMMUNITY_CATEGORY_LABELS } from "@/lib/constants";
 import { getCareerBoardKind } from "@/lib/mock-queries";
-import { cn, getPostViewCount } from "@/lib/utils";
+import { cn, getOfficialStarterMeta, getPostViewCount } from "@/lib/utils";
 import type { Post, ReportReason } from "@/types";
 
 import { PostAuthorRow } from "./post-author-row";
@@ -63,6 +63,7 @@ export function FeedPostCard({
   repeatedlyReported?: boolean;
 }) {
   const badge = getPostBadge(post);
+  const officialStarter = getOfficialStarterMeta(post);
   const featured = variant === "featured";
   const dense = variant === "dense";
   const content = (
@@ -159,6 +160,11 @@ export function FeedPostCard({
           anonymousMode={post.category === "community" && post.subcategory === "anonymous"}
           minimal={dense}
           showPrimaryImage
+          nameOverride={officialStarter?.name}
+          labelOverride={officialStarter?.label}
+          badgeLabel={officialStarter?.badge}
+          disableProfileLink={Boolean(officialStarter)}
+          hideUserLevel={Boolean(officialStarter)}
         />
         {interactiveContent}
         <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
@@ -182,7 +188,7 @@ export function FeedPostCard({
               </span>
             ) : null}
           </div>
-          {showActions ? (
+          {showActions && !officialStarter ? (
             <ReportBlockActions
               compact
               targetType="post"

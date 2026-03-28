@@ -31,6 +31,7 @@ import {
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
 import { createPostSharePayload } from "@/lib/share-utils";
+import { getOfficialStarterMeta } from "@/lib/utils";
 import type { AppRuntimeSnapshot } from "@/types";
 
 export function AdmissionDetailPage({
@@ -50,6 +51,7 @@ export function AdmissionDetailPage({
   } = useAppRuntime(initialSnapshot);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const question = getAdmissionQuestion(questionId);
+  const officialStarter = getOfficialStarterMeta(question);
 
   if (!question) {
     return (
@@ -81,6 +83,11 @@ export function AdmissionDetailPage({
             visibilityLevel={question.visibilityLevel}
             contentSchoolId={question.schoolId}
             showProfilePreview
+            nameOverride={officialStarter?.name}
+            labelOverride={officialStarter?.label}
+            badgeLabel={officialStarter?.badge}
+            disableProfileLink={Boolean(officialStarter)}
+            hideUserLevel={Boolean(officialStarter)}
           />
           <div className="space-y-2">
             <CardTitle className="text-xl leading-snug">{question.title}</CardTitle>
@@ -121,57 +128,59 @@ export function AdmissionDetailPage({
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <ReportBlockActions
-              compact
-              targetType="post"
-              targetId={question.id}
-              targetUserId={question.authorId}
-              repeatedlyReported={isRepeatedlyReportedUser(question.authorId)}
-              onReport={async ({ targetId, targetType, reason, memo }) => {
-                if (!targetId || !targetType) return;
+            {officialStarter ? null : (
+              <ReportBlockActions
+                compact
+                targetType="post"
+                targetId={question.id}
+                targetUserId={question.authorId}
+                repeatedlyReported={isRepeatedlyReportedUser(question.authorId)}
+                onReport={async ({ targetId, targetType, reason, memo }) => {
+                  if (!targetId || !targetType) return;
 
-                if (source === "supabase" && isAuthenticated) {
-                  await createReportRecord({
-                    reporterId: currentUser.id,
-                    targetType,
-                    targetId,
-                    reason,
-                    memo,
-                  });
-                  await refresh();
-                  return;
-                }
+                  if (source === "supabase" && isAuthenticated) {
+                    await createReportRecord({
+                      reporterId: currentUser.id,
+                      targetType,
+                      targetId,
+                      reason,
+                      memo,
+                    });
+                    await refresh();
+                    return;
+                  }
 
-                setSnapshot((current) =>
-                  addReportToSnapshot(current, {
-                    targetType,
-                    targetId,
-                    reporterId: currentUser.id,
-                    reason: reason ?? "other",
-                    memo,
-                  }),
-                );
-              }}
-              onBlock={async ({ targetUserId }) => {
-                if (!targetUserId) return;
+                  setSnapshot((current) =>
+                    addReportToSnapshot(current, {
+                      targetType,
+                      targetId,
+                      reporterId: currentUser.id,
+                      reason: reason ?? "other",
+                      memo,
+                    }),
+                  );
+                }}
+                onBlock={async ({ targetUserId }) => {
+                  if (!targetUserId) return;
 
-                if (source === "supabase" && isAuthenticated) {
-                  await createBlockRecord({
-                    blockerId: currentUser.id,
-                    blockedUserId: targetUserId,
-                  });
-                  await refresh();
-                  return;
-                }
+                  if (source === "supabase" && isAuthenticated) {
+                    await createBlockRecord({
+                      blockerId: currentUser.id,
+                      blockedUserId: targetUserId,
+                    });
+                    await refresh();
+                    return;
+                  }
 
-                setSnapshot((current) =>
-                  addBlockToSnapshot(current, {
-                    blockerId: currentUser.id,
-                    blockedUserId: targetUserId,
-                  }),
-                );
-              }}
-            />
+                  setSnapshot((current) =>
+                    addBlockToSnapshot(current, {
+                      blockerId: currentUser.id,
+                      blockedUserId: targetUserId,
+                    }),
+                  );
+                }}
+              />
+            )}
           </div>
           {isAuthenticated && currentUser.id === question.authorId ? (
             <div className="flex justify-end">

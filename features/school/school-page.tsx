@@ -77,7 +77,7 @@ import {
   getSchoolShortName,
   getStandardVisibilityLevel,
 } from "@/lib/user-identity";
-import { getPostViewCount } from "@/lib/utils";
+import { getOfficialStarterMeta, getPostViewCount } from "@/lib/utils";
 import { createPostSharePayload } from "@/lib/share-utils";
 import type { AppRuntimeSnapshot, Post, VisibilityLevel } from "@/types";
 
@@ -1049,12 +1049,20 @@ export function SchoolPage({
               </DialogHeader>
               <Card className="shadow-none">
                 <CardContent className="space-y-4 py-5">
+                  {(() => {
+                    const officialStarter = getOfficialStarterMeta(detailPost);
+                    return (
                   <PostAuthorRow
                     authorId={detailPost.authorId}
                     createdAt={detailPost.createdAt}
                     visibilityLevel={detailPost.visibilityLevel}
                     contentSchoolId={detailPost.schoolId}
                     showProfilePreview
+                    nameOverride={officialStarter?.name}
+                    labelOverride={officialStarter?.label}
+                    badgeLabel={officialStarter?.badge}
+                    disableProfileLink={Boolean(officialStarter)}
+                    hideUserLevel={Boolean(officialStarter)}
                     trailing={
                       detailPost.category === "admission" ? (
                         <Badge variant="secondary">입시 Q&A</Badge>
@@ -1069,6 +1077,8 @@ export function SchoolPage({
                       )
                     }
                   />
+                    );
+                  })()}
                   <div className="rounded-[22px] bg-secondary/55 px-4 py-4">
                     <p className="text-sm leading-7 text-muted-foreground">{detailPost.content}</p>
                   </div>

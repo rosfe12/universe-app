@@ -22,6 +22,11 @@ export function PostAuthorRow({
   minimal = false,
   showPrimaryImage = false,
   showProfilePreview = false,
+  nameOverride,
+  labelOverride,
+  badgeLabel,
+  disableProfileLink = false,
+  hideUserLevel = false,
 }: {
   authorId: string;
   createdAt: string;
@@ -32,6 +37,11 @@ export function PostAuthorRow({
   minimal?: boolean;
   showPrimaryImage?: boolean;
   showProfilePreview?: boolean;
+  nameOverride?: string;
+  labelOverride?: string;
+  badgeLabel?: string;
+  disableProfileLink?: boolean;
+  hideUserLevel?: boolean;
 }) {
   const effectiveVisibilityLevel =
     !anonymousMode && visibilityLevel === "anonymous" ? "school" : visibilityLevel;
@@ -39,24 +49,27 @@ export function PostAuthorRow({
     contentSchoolId,
   });
   const repeatedlyReported = isRepeatedlyReportedUser(authorId);
-  const canOpenProfile = !anonymousMode && identity.visibilityLevel !== "anonymous";
+  const canOpenProfile =
+    !disableProfileLink && !anonymousMode && identity.visibilityLevel !== "anonymous";
   const profilePreview = canOpenProfile ? getCommunityProfilePreview(authorId) : null;
   const previewInterests = profilePreview?.interests?.slice(0, 2) ?? [];
   const canRenderExpandedPreview =
     showProfilePreview &&
     Boolean(profilePreview?.imageUrl || profilePreview?.bio || previewInterests.length > 0);
   const canRenderInlineThumbnail = showPrimaryImage && !canRenderExpandedPreview && Boolean(profilePreview?.imageUrl);
+  const displayName = nameOverride ?? identity.nickname;
+  const displayLabel = labelOverride ?? identity.label;
 
   const nameNode = canOpenProfile ? (
     <Link
       href={`/profile/${authorId}`}
       className="min-w-0 max-w-full truncate font-semibold text-gray-900 transition-opacity hover:opacity-80 dark:text-gray-50"
     >
-      {identity.nickname}
+      {displayName}
     </Link>
   ) : (
     <p className="min-w-0 max-w-full truncate font-semibold text-gray-900 dark:text-gray-50">
-      {identity.nickname}
+      {displayName}
     </p>
   );
 
@@ -64,12 +77,17 @@ export function PostAuthorRow({
     <div className="space-y-1">
       <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm">
         {nameNode}
-        <UserLevelText score={identity.trustScore} />
+        {badgeLabel ? (
+          <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-300">
+            {badgeLabel}
+          </span>
+        ) : null}
+        {hideUserLevel ? null : <UserLevelText score={identity.trustScore} />}
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-        {identity.label !== identity.nickname ? (
+        {displayLabel !== displayName ? (
           <>
-            <p className="min-w-0 max-w-full truncate">{identity.label}</p>
+            <p className="min-w-0 max-w-full truncate">{displayLabel}</p>
             <span>·</span>
           </>
         ) : null}
