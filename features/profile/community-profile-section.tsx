@@ -934,13 +934,13 @@ export function CommunityProfileSection({
 
             <div className="space-y-3">
               <Label>프로필 공개 범위</Label>
-              <div className="space-y-2">
+              <div className="overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.02]">
                 <button
                   type="button"
-                  className={`flex w-full items-center justify-between rounded-[18px] border px-4 py-3 text-left ${
+                  className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm ${
                     formState.profileVisibility === "university_only"
-                      ? "border-primary bg-primary/10"
-                      : "border-white/10 bg-white/[0.02]"
+                      ? "bg-primary/10 text-foreground"
+                      : "text-muted-foreground"
                   }`}
                   onClick={() =>
                     setFormState((current) => ({
@@ -949,10 +949,7 @@ export function CommunityProfileSection({
                     }))
                   }
                 >
-                  <div className="min-w-0">
-                    <p className="font-medium">전체 대학생에게 공개</p>
-                    <p className="text-xs text-muted-foreground">다른 학교 학생도 볼 수 있어요</p>
-                  </div>
+                  <span className="font-medium">전체 공개</span>
                   <span
                     className={`ml-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
                       formState.profileVisibility === "university_only"
@@ -965,10 +962,10 @@ export function CommunityProfileSection({
                 </button>
                 <button
                   type="button"
-                  className={`flex w-full items-center justify-between rounded-[18px] border px-4 py-3 text-left ${
+                  className={`flex w-full items-center justify-between border-t border-white/10 px-4 py-3 text-left text-sm ${
                     formState.profileVisibility === "same_school_only"
-                      ? "border-primary bg-primary/10"
-                      : "border-white/10 bg-white/[0.02]"
+                      ? "bg-primary/10 text-foreground"
+                      : "text-muted-foreground"
                   }`}
                   onClick={() =>
                     setFormState((current) => ({
@@ -977,10 +974,7 @@ export function CommunityProfileSection({
                     }))
                   }
                 >
-                  <div className="min-w-0">
-                    <p className="font-medium">같은 학교만 공개</p>
-                    <p className="text-xs text-muted-foreground">같은 학교 학생에게만 보여요</p>
-                  </div>
+                  <span className="font-medium">학교만 공개</span>
                   <span
                     className={`ml-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
                       formState.profileVisibility === "same_school_only"
