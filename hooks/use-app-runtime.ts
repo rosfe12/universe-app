@@ -23,6 +23,43 @@ import {
 import { logPerformanceEvent } from "@/lib/ops";
 import type { AppRuntimeSnapshot } from "@/types";
 
+function getPrewarmScopes(
+  scope: RuntimeSnapshotScope,
+  isAuthenticated: boolean,
+): RuntimeSnapshotScope[] {
+  if (!isAuthenticated) {
+    switch (scope) {
+      case "home":
+        return ["community", "school"];
+      case "community":
+        return ["home"];
+      case "school":
+        return ["home", "community"];
+      default:
+        return [];
+    }
+  }
+
+  switch (scope) {
+    case "home":
+      return ["community", "school"];
+    case "community":
+      return ["home", "school"];
+    case "school":
+      return ["home", "community", "trade"];
+    case "trade":
+      return ["messages", "school"];
+    case "messages":
+      return ["notifications", "trade"];
+    case "notifications":
+      return ["messages"];
+    case "profile":
+      return ["notifications", "messages"];
+    default:
+      return [];
+  }
+}
+
 export function useAppRuntime(
   initialSnapshot?: AppRuntimeSnapshot,
   scope: RuntimeSnapshotScope = "full",
@@ -178,14 +215,15 @@ export function useAppRuntime(
       return;
     }
 
-    const scopes: RuntimeSnapshotScope[] = snapshot.isAuthenticated
-      ? ["home", "community", "school", "notifications", "profile", "trade", "messages"]
-      : ["home", "community", "school"];
+    const scopes = getPrewarmScopes(scope, snapshot.isAuthenticated);
+    if (scopes.length === 0) {
+      return;
+    }
 
     prewarmClientRuntimeSnapshots(
       scopes.filter((candidate) => candidate !== scope),
       {
-        key: `${snapshot.isAuthenticated ? "auth" : "guest"}:${snapshot.currentUser.id}`,
+        key: `${snapshot.isAuthenticated ? "auth" : "guest"}:${snapshot.currentUser.id}:${scope}`,
       },
     );
   }, [loading, scope, snapshot.currentUser.id, snapshot.isAuthenticated, snapshot.source]);

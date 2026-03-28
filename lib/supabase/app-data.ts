@@ -203,7 +203,7 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         lectures: true,
         lectureReviews: false,
         tradePosts: false,
-        notifications: true,
+        notifications: false,
         reports: false,
         blocks: false,
         datingProfiles: false,
@@ -1291,6 +1291,11 @@ export function prewarmClientRuntimeSnapshots(
 
   const run = async () => {
     for (const scope of scopes) {
+      const cachedSnapshot = lastClientRuntimeSnapshots.get(scope);
+      if (cachedSnapshot && Date.now() - cachedSnapshot.at < getClientRuntimeSnapshotTtlMs(scope)) {
+        continue;
+      }
+
       try {
         await loadClientRuntimeSnapshot({ scope });
       } catch {
@@ -1299,7 +1304,7 @@ export function prewarmClientRuntimeSnapshots(
     }
   };
 
-  const delayMs = options?.delayMs ?? 400;
+  const delayMs = options?.delayMs ?? 1200;
   const win = window as typeof window & {
     requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
   };

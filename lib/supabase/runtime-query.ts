@@ -261,43 +261,43 @@ export function collectRuntimeUserIds({
 export function getClientRuntimeSnapshotTtlMs(scope: string) {
   switch (scope) {
     case "home":
-      return 45000;
+      return 60000;
     case "community":
     case "school":
-      return 30000;
+      return 45000;
     case "lectures":
     case "trade":
     case "dating":
-      return 20000;
+      return 30000;
     case "search":
     case "chrome":
     case "messages":
     case "notifications":
-      return 20000;
+      return 30000;
     case "profile":
     case "admin":
-      return 10000;
+      return 20000;
     default:
-      return 15000;
+      return 20000;
   }
 }
 
 export function getServerRuntimeSnapshotTtlMs(scope: string) {
   switch (scope) {
     case "home":
-      return 60000;
+      return 90000;
     case "community":
     case "school":
-      return 30000;
+      return 45000;
     case "lectures":
     case "trade":
     case "dating":
     case "admission":
-      return 20000;
+      return 30000;
     case "notifications":
     case "messages":
     case "profile":
-      return 15000;
+      return 20000;
     default:
       return 0;
   }

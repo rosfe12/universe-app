@@ -120,7 +120,7 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         lectures: true,
         lectureReviews: false,
         tradePosts: false,
-        notifications: true,
+        notifications: false,
         reports: false,
         blocks: false,
         datingProfiles: false,
