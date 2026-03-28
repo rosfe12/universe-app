@@ -54,7 +54,7 @@ export function AppShell({
           {children}
         </main>
         <div
-          className={`shrink-0 px-4 pt-2 ${showTabs ? "pb-[calc(env(safe-area-inset-bottom)+4.75rem)]" : "pb-4"}`}
+          className={`shrink-0 px-4 pt-2 ${showTabs ? "pb-[calc(env(safe-area-inset-bottom)+5.15rem)]" : "pb-4"}`}
         >
           <AppFooterLinks />
         </div>
