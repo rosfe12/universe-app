@@ -77,6 +77,19 @@ import type {
 
 type MemberSort = "joined_desc" | "joined_asc" | "last_sign_in_desc" | "last_sign_in_asc";
 type MemberStatusFilter = "all" | "restricted" | "verified" | "unverified";
+type AdminTab =
+  | "dashboard"
+  | "members"
+  | "roles"
+  | "verification"
+  | "profile-images"
+  | "reports"
+  | "ops"
+  | "settings"
+  | "audit"
+  | "hidden"
+  | "reported-users"
+  | "low-trust";
 
 const PROFILE_IMAGE_REJECTION_OPTIONS = [
   "얼굴 노출",
@@ -725,6 +738,21 @@ export function AdminPage({
   const [adminDenied, setAdminDenied] = useState(false);
   const [adminAccessChecked, setAdminAccessChecked] = useState(false);
   const [adminFeedback, setAdminFeedback] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
+  const [loadedTabs, setLoadedTabs] = useState<Record<AdminTab, boolean>>({
+    dashboard: false,
+    members: false,
+    roles: false,
+    verification: false,
+    "profile-images": false,
+    reports: false,
+    ops: false,
+    settings: false,
+    audit: false,
+    hidden: true,
+    "reported-users": true,
+    "low-trust": true,
+  });
   const pendingVerificationCount = verificationItems.filter(
     (item) => item.status === "pending",
   ).length;
@@ -876,6 +904,18 @@ export function AdminPage({
     if (!isAuthenticated) {
       setAdminAccessChecked(true);
       setAdminDenied(false);
+      setLoadedTabs((current) => ({
+        ...current,
+        dashboard: false,
+        members: false,
+        roles: false,
+        verification: false,
+        "profile-images": false,
+        reports: false,
+        ops: false,
+        settings: false,
+        audit: false,
+      }));
       return () => {
         active = false;
       };
@@ -899,42 +939,10 @@ export function AdminPage({
       setVerificationLoading(false);
       setAdminDenied(source === "supabase" && !result.canManage);
       setAdminAccessChecked(true);
-    }
-
-    async function refreshAuditLogs() {
-      setAuditLoading(true);
-      const result = await loadAdminAuditLogs();
-
-      if (!active) {
-        return;
-      }
-
-      setAuditLogs(result.items);
-      setAuditError(result.error);
-      setAuditLoading(false);
-    }
-
-    async function refreshMembers() {
-      setMemberLoading(true);
-      const result = await loadAdminMembers({
-        page: 1,
-        query: "",
-        schoolId: "",
-        sort: "joined_desc",
-        status: "all",
-      });
-
-      if (!active) {
-        return;
-      }
-
-      setMemberItems(result.items);
-      setMemberTotal(result.total);
-      setMemberPage(result.page);
-      setMemberPageSize(result.pageSize);
-      setMemberHasNext(result.hasNext);
-      setMemberError(result.error);
-      setMemberLoading(false);
+      setLoadedTabs((current) => ({
+        ...current,
+        verification: true,
+      }));
     }
 
     async function refreshOverviewData() {
@@ -948,83 +956,66 @@ export function AdminPage({
       setOverview(result.item);
       setOverviewError(result.error);
       setOverviewLoading(false);
-    }
-
-    async function refreshReportItems() {
-      const result = await loadAdminReports();
-      if (!active) {
-        return;
-      }
-      setReportItems(result.items);
-      setReportError(result.error);
-    }
-
-    async function refreshProfileImageItems() {
-      setProfileImageLoading(true);
-      const result = await loadAdminProfileImages("pending");
-      if (!active) {
-        return;
-      }
-      setProfileImageItems(result.items);
-      setProfileImageError(result.error);
-      setProfileImageLoading(false);
-    }
-
-    async function refreshRoleItems() {
-      setRoleLoading(true);
-      const result = await loadAdminRoles("");
-      if (!active) {
-        return;
-      }
-      setRoleItems(result.items);
-      setRoleError(result.error);
-      setRoleLoading(false);
-    }
-
-    async function refreshOpsItems() {
-      setOpsLoading(true);
-      const result = await loadAdminOpsEvents({
-        query: "",
-        level: "all",
-        slowOnly: false,
-      });
-      if (!active) {
-        return;
-      }
-      setOpsItems(result.items);
-      setOpsError(result.error);
-      setOpsLoading(false);
-    }
-
-    async function refreshSettingsData() {
-      setSettingsLoading(true);
-      const result = await loadAdminSettings();
-      if (!active) {
-        return;
-      }
-      if (result.item) {
-        setFeatureFlags(result.item.featureFlags);
-        setNotices(result.item.notices);
-        setPromotions(result.item.promotions);
-      }
-      setSettingsError(result.error);
-      setSettingsLoading(false);
+      setLoadedTabs((current) => ({
+        ...current,
+        dashboard: true,
+      }));
     }
 
     void loadVerificationRequests();
-    void refreshAuditLogs();
-    void refreshMembers();
     void refreshOverviewData();
-    void refreshReportItems();
-    void refreshProfileImageItems();
-    void refreshRoleItems();
-    void refreshOpsItems();
-    void refreshSettingsData();
 
     return () => {
       active = false;
     };
   }, [isAuthenticated, source]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !adminAccessChecked || adminDenied || loadedTabs[activeTab]) {
+      return;
+    }
+
+    if (activeTab === "members") {
+      void refreshMemberList(1, "");
+      setLoadedTabs((current) => ({ ...current, members: true }));
+      return;
+    }
+
+    if (activeTab === "roles") {
+      void refreshRoles("");
+      setLoadedTabs((current) => ({ ...current, roles: true }));
+      return;
+    }
+
+    if (activeTab === "profile-images") {
+      void refreshProfileImages("pending");
+      setLoadedTabs((current) => ({ ...current, "profile-images": true }));
+      return;
+    }
+
+    if (activeTab === "reports") {
+      void refreshReports();
+      setLoadedTabs((current) => ({ ...current, reports: true }));
+      return;
+    }
+
+    if (activeTab === "ops") {
+      void refreshOpsLog("", "all", false);
+      setLoadedTabs((current) => ({ ...current, ops: true }));
+      return;
+    }
+
+    if (activeTab === "settings") {
+      void refreshSettings();
+      setLoadedTabs((current) => ({ ...current, settings: true }));
+      return;
+    }
+
+    if (activeTab === "audit") {
+      void refreshAuditLogsFromServer();
+      setLoadedTabs((current) => ({ ...current, audit: true }));
+    }
+  }, [activeTab, adminAccessChecked, adminDenied, isAuthenticated, loadedTabs]);
 
   useEffect(() => {
     if (!selectedMember?.id) {
@@ -1430,7 +1421,7 @@ export function AdminPage({
 
   if (loading || (isAuthenticated && !adminAccessChecked)) {
     return (
-      <AppShell title="로그인" showTabs={false}>
+      <AppShell title="로그인" showTabs={false} showTopNavActions={false}>
         <LoadingState />
       </AppShell>
     );
@@ -1438,7 +1429,7 @@ export function AdminPage({
 
   if (!isAuthenticated || adminDenied) {
     return (
-      <AppShell title="로그인" showTabs={false}>
+      <AppShell title="로그인" showTabs={false} showTopNavActions={false}>
         <Card className="border-dashed border-white/80 bg-white/92">
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
             <div className="space-y-1">
@@ -1486,7 +1477,7 @@ export function AdminPage({
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AdminTab)} className="space-y-4">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="dashboard">운영 현황</TabsTrigger>
           <TabsTrigger value="members">회원 목록</TabsTrigger>
