@@ -11,3 +11,5 @@ dist
 *.tsbuildinfo
 supabase/.temp
 pass/
+build/
+backup/
