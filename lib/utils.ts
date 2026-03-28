@@ -26,6 +26,7 @@ const OFFICIAL_EXAMPLE_AUTHOR_IDS = new Set([
   "3e777777-7777-4777-8777-777777777777",
   "3f888888-8888-4888-8888-888888888888",
   "832499d8-0b27-47f7-8039-28159445447f",
+  "f9ebebfa-bcbb-45a2-adce-b6f7e0397d3d",
 ]);
 
 export function cn(...inputs: ClassValue[]) {
