@@ -88,7 +88,7 @@ export function LoginPage() {
   const schoolVerificationExpired = searchParams.get("schoolVerificationExpired") === "1";
   const schoolVerificationFailed = searchParams.get("schoolVerificationFailed") === "1";
   const signupConfirmed = searchParams.get("signupConfirmed") === "1";
-  const { currentUser, isAuthenticated, loading, refresh } = useAppRuntime();
+  const { currentUser, isAuthenticated, loading, refresh } = useAppRuntime(undefined, "chrome");
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
