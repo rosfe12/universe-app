@@ -22,9 +22,9 @@ export function AppShell({
   desktopWide?: boolean;
 }) {
   return (
-    <div className="app-page-backdrop min-h-[100dvh] overflow-hidden md:px-4 md:py-5">
+    <div className="app-page-backdrop h-[100dvh] overflow-hidden md:px-4 md:py-5">
       <div
-        className={`app-shell-surface mx-auto flex min-h-[100dvh] min-w-0 flex-col overflow-hidden md:min-h-[calc(100vh-2.5rem)] md:rounded-[36px] ${
+        className={`app-shell-surface mx-auto flex h-[100dvh] min-w-0 flex-col overflow-hidden md:h-[calc(100vh-2.5rem)] md:rounded-[36px] ${
           desktopWide ? "max-w-[440px] md:max-w-[1240px]" : "max-w-[440px]"
         }`}
       >
@@ -54,7 +54,7 @@ export function AppShell({
           {children}
         </main>
         <div
-          className={`shrink-0 px-4 pt-2 ${showTabs ? "pb-[calc(env(safe-area-inset-bottom)+6.75rem)]" : "pb-4"}`}
+          className={`shrink-0 px-4 pt-2 ${showTabs ? "pb-[calc(env(safe-area-inset-bottom)+5.5rem)]" : "pb-4"}`}
         >
           <AppFooterLinks />
         </div>
