@@ -336,6 +336,26 @@ export function CommunityProfileSection({
     setUploadError(null);
   }
 
+  function handleProfileVisibilityChange(nextVisibility: ProfileVisibility) {
+    setFormState((current) => {
+      if (current.profileVisibility === nextVisibility) {
+        return current;
+      }
+
+      return {
+        ...current,
+        profileVisibility: nextVisibility,
+      };
+    });
+  }
+
+  function handleProfileFlagToggle(key: "showDepartment" | "showAdmissionYear") {
+    setFormState((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }
+
   function requestCloseEditor() {
     if (hasDraftChanges && typeof window !== "undefined") {
       const confirmed = window.confirm("저장하지 않은 변경사항이 있어요. 닫으면 편집 내용이 사라집니다.");
@@ -880,11 +900,20 @@ export function CommunityProfileSection({
           </DialogHeader>
 
           <div className="space-y-4">
-            {hasDraftChanges ? (
-              <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
-                저장 전 변경사항이 있어요. 저장해야 실제 프로필에 반영됩니다.
-              </div>
-            ) : null}
+            <div
+              aria-hidden={!hasDraftChanges}
+              className={`min-h-[52px] rounded-2xl px-4 py-3 text-sm transition-all ${
+                hasDraftChanges
+                  ? "border border-primary/20 bg-primary/10 text-primary opacity-100"
+                  : "border border-transparent bg-transparent text-transparent opacity-0"
+              }`}
+            >
+              {hasDraftChanges ? (
+                "저장 전 변경사항이 있어요. 저장해야 실제 프로필에 반영됩니다."
+              ) : (
+                <span>저장 전 변경사항이 있어요. 저장해야 실제 프로필에 반영됩니다.</span>
+              )}
+            </div>
             <div className="space-y-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -1205,12 +1234,7 @@ export function CommunityProfileSection({
                       ? "bg-primary/10 text-foreground"
                       : "text-muted-foreground"
                   }`}
-                  onClick={() =>
-                    setFormState((current) => ({
-                      ...current,
-                      profileVisibility: "university_only",
-                    }))
-                  }
+                  onClick={() => handleProfileVisibilityChange("university_only")}
                 >
                   <span className="font-medium">전체 공개</span>
                   <span
@@ -1230,12 +1254,7 @@ export function CommunityProfileSection({
                       ? "bg-primary/10 text-foreground"
                       : "text-muted-foreground"
                   }`}
-                  onClick={() =>
-                    setFormState((current) => ({
-                      ...current,
-                      profileVisibility: "same_school_only",
-                    }))
-                  }
+                  onClick={() => handleProfileVisibilityChange("same_school_only")}
                 >
                   <span className="font-medium">학교만 공개</span>
                   <span
@@ -1253,12 +1272,7 @@ export function CommunityProfileSection({
                   className={`flex w-full items-center justify-between border-t border-white/10 px-4 py-3 text-left text-sm ${
                     formState.showDepartment ? "bg-primary/10 text-foreground" : "text-muted-foreground"
                   }`}
-                  onClick={() =>
-                    setFormState((current) => ({
-                      ...current,
-                      showDepartment: !current.showDepartment,
-                    }))
-                  }
+                  onClick={() => handleProfileFlagToggle("showDepartment")}
                 >
                   <span className="font-medium">학과 공개</span>
                   <span className="text-xs">{formState.showDepartment ? "공개" : "비공개"}</span>
@@ -1268,12 +1282,7 @@ export function CommunityProfileSection({
                   className={`flex w-full items-center justify-between border-t border-white/10 px-4 py-3 text-left text-sm ${
                     formState.showAdmissionYear ? "bg-primary/10 text-foreground" : "text-muted-foreground"
                   }`}
-                  onClick={() =>
-                    setFormState((current) => ({
-                      ...current,
-                      showAdmissionYear: !current.showAdmissionYear,
-                    }))
-                  }
+                  onClick={() => handleProfileFlagToggle("showAdmissionYear")}
                 >
                   <span className="font-medium">입학년도 공개</span>
                   <span className="text-xs">{formState.showAdmissionYear ? "공개" : "비공개"}</span>
