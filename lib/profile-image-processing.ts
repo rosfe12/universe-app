@@ -18,10 +18,10 @@ export type ImageValidationResult = {
   qrDetected: boolean;
 };
 
-const MAX_OUTPUT_DIMENSION = 1600;
+const MAX_OUTPUT_DIMENSION = 1440;
 const MAX_DETECTION_DIMENSION = 1280;
 const DEFAULT_OUTPUT_TYPE = "image/jpeg";
-const DEFAULT_OUTPUT_QUALITY = 0.9;
+const DEFAULT_OUTPUT_QUALITY = 0.82;
 const HIGH_EFFICIENCY_IMAGE_TYPES = [
   "image/heic",
   "image/heif",
@@ -383,7 +383,7 @@ export async function prepareProfileImageForUpload(file: File) {
   const alreadySupported = PROFILE_IMAGE_ALLOWED_TYPES.includes(
     file.type as (typeof PROFILE_IMAGE_ALLOWED_TYPES)[number],
   );
-  if (alreadySupported && file.size <= MAX_PROFILE_IMAGE_BYTES) {
+  if (alreadySupported && file.size <= 1.2 * 1024 * 1024) {
     return file;
   }
 
@@ -438,8 +438,8 @@ export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
     const baseWidth = Math.max(24, Math.ceil(faceBox.width * scaleX));
     const baseHeight = Math.max(24, Math.ceil(faceBox.height * scaleY));
 
-    const paddingX = Math.max(18, Math.round(baseWidth * 0.2));
-    const paddingY = Math.max(18, Math.round(baseHeight * 0.24));
+    const paddingX = Math.max(28, Math.round(baseWidth * 0.34));
+    const paddingY = Math.max(28, Math.round(baseHeight * 0.38));
 
     const x = Math.max(0, baseX - paddingX);
     const y = Math.max(0, baseY - paddingY);
@@ -447,8 +447,8 @@ export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
     const height = Math.min(canvas.height - y, baseHeight + paddingY * 2);
 
     const pixelCanvas = document.createElement("canvas");
-    pixelCanvas.width = Math.max(1, Math.round(width / 10));
-    pixelCanvas.height = Math.max(1, Math.round(height / 10));
+    pixelCanvas.width = Math.max(1, Math.round(width / 18));
+    pixelCanvas.height = Math.max(1, Math.round(height / 18));
     const pixelContext = pixelCanvas.getContext("2d");
 
     if (!pixelContext) {
@@ -488,15 +488,15 @@ export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
       throw new Error("흐림 처리를 시작하지 못했습니다.");
     }
 
-    const blurRadius = Math.max(26, Math.round(Math.max(width, height) * 0.12));
-    blurredContext.filter = `blur(${blurRadius}px) saturate(0.8)`;
+    const blurRadius = Math.max(40, Math.round(Math.max(width, height) * 0.18));
+    blurredContext.filter = `blur(${blurRadius}px) saturate(0.55) contrast(1.08)`;
     blurredContext.drawImage(pixelatedCanvas, 0, 0);
 
     context.save();
     traceRoundedRect(context, x, y, width, height, Math.max(16, Math.round(Math.min(width, height) * 0.14)));
     context.clip();
     context.drawImage(blurredCanvas, x, y);
-    context.fillStyle = "rgba(15, 23, 42, 0.22)";
+    context.fillStyle = "rgba(15, 23, 42, 0.4)";
     context.fillRect(x, y, width, height);
     context.restore();
   }
@@ -523,16 +523,17 @@ export async function applyStickerToFaces(
     const height = Math.max(24, Math.ceil(faceBox.height * scaleY));
     const centerX = x + width / 2;
     const centerY = y + height / 2;
-    const radius = Math.max(width, height) * 0.42;
+    const radiusX = Math.max(width, height) * 0.56;
+    const radiusY = Math.max(width, height) * 0.62;
 
     context.save();
     context.fillStyle = stickerType === "dot" ? "rgba(79, 70, 229, 0.96)" : "rgba(15, 23, 42, 0.88)";
     context.beginPath();
-    context.ellipse(centerX, centerY, radius, radius, 0, 0, Math.PI * 2);
+    context.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
     context.fill();
 
     if (stickerType !== "dot") {
-      context.font = `${Math.max(28, Math.round(radius * 1.3))}px system-ui`;
+      context.font = `${Math.max(34, Math.round(Math.max(radiusX, radiusY) * 1.28))}px system-ui`;
       context.textAlign = "center";
       context.textBaseline = "middle";
       context.fillStyle = "#ffffff";

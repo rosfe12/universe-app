@@ -30,7 +30,14 @@ type ProfileImageEditorDialogProps = {
   initialProcessedFile?: File | null;
   onOpenChange: (open: boolean) => void;
   onReset: () => void;
-  onConfirm: (file: File, flags: { sensitiveTextDetected: boolean; qrDetected: boolean }) => Promise<void>;
+  onConfirm: (
+    file: File,
+    flags: {
+      sensitiveTextDetected: boolean;
+      qrDetected: boolean;
+      processedByEditor: boolean;
+    },
+  ) => Promise<void>;
 };
 
 type MaskMode =
@@ -374,14 +381,18 @@ export function ProfileImageEditorDialog({
     setIsProcessing(true);
     try {
       const uploadFile = processedFile ?? file;
-      const rechecked = await validateImageBeforeUpload(uploadFile);
-      if (rechecked.faceBoxes.length > 0) {
-        throw new Error("얼굴이 아직 보여요. 흐림 처리나 스티커를 다시 적용해주세요.");
+      const processedByEditor = Boolean(processedFile);
+      if (!processedByEditor) {
+        const rechecked = await validateImageBeforeUpload(uploadFile);
+        if (rechecked.faceBoxes.length > 0) {
+          throw new Error("얼굴이 아직 보여요. 흐림 처리나 스티커를 다시 적용해주세요.");
+        }
       }
 
       await onConfirm(uploadFile, {
         sensitiveTextDetected,
         qrDetected,
+        processedByEditor,
       });
       onOpenChange(false);
     } catch (cause) {
