@@ -839,6 +839,10 @@ export function CommunityProfileSection({
       <Dialog
         open={open}
         onOpenChange={(nextOpen) => {
+          if (!nextOpen && viewerIndex !== null) {
+            return;
+          }
+
           if (!nextOpen) {
             if (skipDiscardConfirmRef.current) {
               skipDiscardConfirmRef.current = false;
@@ -855,7 +859,19 @@ export function CommunityProfileSection({
           setOpen(nextOpen);
         }}
       >
-        <DialogContent className="max-h-[calc(100vh-3rem)] overflow-y-auto">
+        <DialogContent
+          className="max-h-[calc(100vh-3rem)] overflow-y-auto"
+          onInteractOutside={(event) => {
+            if (viewerIndex !== null) {
+              event.preventDefault();
+            }
+          }}
+          onEscapeKeyDown={(event) => {
+            if (viewerIndex !== null) {
+              event.preventDefault();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>내 홈 수정</DialogTitle>
             <DialogDescription>
