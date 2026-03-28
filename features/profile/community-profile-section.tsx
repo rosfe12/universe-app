@@ -1175,7 +1175,7 @@ export function CommunityProfileSection({
               <p className="text-xs text-muted-foreground">쉼표로 구분해서 최대 10개까지 입력할 수 있습니다.</p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label>프로필 공개 범위</Label>
               <div className="overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.02]">
                 <button
@@ -1228,44 +1228,37 @@ export function CommunityProfileSection({
                     <Check className="h-3.5 w-3.5" />
                   </span>
                 </button>
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between border-t border-white/10 px-4 py-3 text-left text-sm ${
+                    formState.showDepartment ? "bg-primary/10 text-foreground" : "text-muted-foreground"
+                  }`}
+                  onClick={() =>
+                    setFormState((current) => ({
+                      ...current,
+                      showDepartment: !current.showDepartment,
+                    }))
+                  }
+                >
+                  <span className="font-medium">학과 공개</span>
+                  <span className="text-xs">{formState.showDepartment ? "공개" : "비공개"}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between border-t border-white/10 px-4 py-3 text-left text-sm ${
+                    formState.showAdmissionYear ? "bg-primary/10 text-foreground" : "text-muted-foreground"
+                  }`}
+                  onClick={() =>
+                    setFormState((current) => ({
+                      ...current,
+                      showAdmissionYear: !current.showAdmissionYear,
+                    }))
+                  }
+                >
+                  <span className="font-medium">입학년도 공개</span>
+                  <span className="text-xs">{formState.showAdmissionYear ? "공개" : "비공개"}</span>
+                </button>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                className={`rounded-[20px] border px-4 py-3 text-left ${
-                  formState.showDepartment ? "border-primary bg-primary/10" : "border-white/10 bg-white/[0.02]"
-                }`}
-                onClick={() =>
-                  setFormState((current) => ({
-                    ...current,
-                    showDepartment: !current.showDepartment,
-                  }))
-                }
-              >
-                <p className="font-medium">학과 공개</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {formState.showDepartment ? "프로필을 볼 수 있는 학생에게 보여집니다." : "기본 비공개"}
-                </p>
-              </button>
-              <button
-                type="button"
-                className={`rounded-[20px] border px-4 py-3 text-left ${
-                  formState.showAdmissionYear ? "border-primary bg-primary/10" : "border-white/10 bg-white/[0.02]"
-                }`}
-                onClick={() =>
-                  setFormState((current) => ({
-                    ...current,
-                    showAdmissionYear: !current.showAdmissionYear,
-                  }))
-                }
-              >
-                <p className="font-medium">입학년도 공개</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {formState.showAdmissionYear ? "프로필을 볼 수 있는 학생에게 보여집니다." : "기본 비공개"}
-                </p>
-              </button>
             </div>
 
             {open && error ? (
