@@ -80,6 +80,17 @@ function buildImageDraftSignature(images: DraftProfileImage[]) {
     }));
 }
 
+function buildProfileFormState(profile: CommunityProfile): CommunityProfileFormState {
+  return {
+    displayName: profile.displayName,
+    bio: profile.bio ?? "",
+    interestsInput: profile.interests.join(", "),
+    profileVisibility: profile.profileVisibility,
+    showDepartment: profile.showDepartment,
+    showAdmissionYear: profile.showAdmissionYear,
+  };
+}
+
 export function CommunityProfileSection({
   currentUser,
   onProfileChange,
@@ -138,14 +149,7 @@ export function CommunityProfileSection({
         if (!active) return;
         setProfile(result);
         onProfileChange?.(result);
-        setFormState({
-          displayName: result.displayName,
-          bio: result.bio ?? "",
-          interestsInput: result.interests.join(", "),
-          profileVisibility: result.profileVisibility,
-          showDepartment: result.showDepartment,
-          showAdmissionYear: result.showAdmissionYear,
-        });
+        setFormState(buildProfileFormState(result));
       })
       .catch((cause) => {
         if (!active) return;
@@ -243,16 +247,20 @@ export function CommunityProfileSection({
     if (!profile) return;
     setError(null);
     cleanupDraftPreviewUrls(draftImages);
-    setFormState({
-      displayName: profile.displayName,
-      bio: profile.bio ?? "",
-      interestsInput: profile.interests.join(", "),
-      profileVisibility: profile.profileVisibility,
-      showDepartment: profile.showDepartment,
-      showAdmissionYear: profile.showAdmissionYear,
-    });
+    setFormState(buildProfileFormState(profile));
     setDraftImages(cloneDraftImages(profile.images));
     setOpen(true);
+  }
+
+  function resetDraftChanges() {
+    if (!profile) {
+      return;
+    }
+
+    cleanupDraftPreviewUrls(draftImages);
+    setFormState(buildProfileFormState(profile));
+    setDraftImages(cloneDraftImages(profile.images));
+    setError(null);
   }
 
   function requestCloseEditor() {
@@ -633,6 +641,11 @@ export function CommunityProfileSection({
           </DialogHeader>
 
           <div className="space-y-4">
+            {hasDraftChanges ? (
+              <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
+                저장 전 변경사항이 있어요. 저장해야 실제 프로필에 반영됩니다.
+              </div>
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="community-profile-display-name">닉네임</Label>
               <Input
@@ -910,6 +923,14 @@ export function CommunityProfileSection({
           </div>
 
           <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={resetDraftChanges}
+              disabled={isPending || !hasDraftChanges}
+            >
+              변경 초기화
+            </Button>
             <Button
               type="button"
               variant="ghost"

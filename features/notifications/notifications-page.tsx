@@ -466,22 +466,34 @@ export function NotificationsPage({
     });
   };
 
+  const handleRefresh = () => {
+    startTransition(() => {
+      void refresh();
+    });
+  };
+
   return (
     <AppShell
       title="알림"
       topAction={
-        unreadCount > 0 ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={isPending}
-            onClick={handleMarkAllRead}
-          >
-            <CheckCheck className="h-4 w-4" />
-            전체 읽음
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" disabled={isPending} onClick={handleRefresh}>
+            <RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
+            새로고침
           </Button>
-        ) : null
+          {unreadCount > 0 ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isPending}
+              onClick={handleMarkAllRead}
+            >
+              <CheckCheck className="h-4 w-4" />
+              전체 읽음
+            </Button>
+          ) : null}
+        </div>
       }
     >
       {loading ? <LoadingState /> : null}

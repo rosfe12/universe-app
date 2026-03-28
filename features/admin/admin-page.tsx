@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   Ban,
@@ -98,6 +99,25 @@ const PROFILE_IMAGE_REJECTION_OPTIONS = [
   "SNS 아이디 노출",
   "QR 코드 포함",
 ] as const;
+
+const VALID_ADMIN_TABS: AdminTab[] = [
+  "dashboard",
+  "members",
+  "roles",
+  "verification",
+  "profile-images",
+  "reports",
+  "ops",
+  "settings",
+  "audit",
+  "hidden",
+  "reported-users",
+  "low-trust",
+];
+
+function parseAdminTab(value: string | null): AdminTab {
+  return VALID_ADMIN_TABS.includes(value as AdminTab) ? (value as AdminTab) : "dashboard";
+}
 
 async function loadAdminVerificationRequests() {
   const response = await fetch("/api/admin/verification-requests", {
@@ -637,6 +657,10 @@ export function AdminPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedTab = useMemo(() => parseAdminTab(searchParams.get("tab")), [searchParams]);
   const {
     loading,
     refresh,
@@ -738,7 +762,7 @@ export function AdminPage({
   const [adminDenied, setAdminDenied] = useState(false);
   const [adminAccessChecked, setAdminAccessChecked] = useState(false);
   const [adminFeedback, setAdminFeedback] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
+  const [activeTab, setActiveTab] = useState<AdminTab>(requestedTab);
   const [loadedTabs, setLoadedTabs] = useState<Record<AdminTab, boolean>>({
     dashboard: false,
     members: false,
@@ -802,6 +826,31 @@ export function AdminPage({
       },
     },
   ];
+
+  useEffect(() => {
+    setActiveTab(requestedTab);
+  }, [requestedTab]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !adminAccessChecked || adminDenied) {
+      return;
+    }
+
+    const currentQuery = searchParams.toString();
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (activeTab === "dashboard") {
+      nextParams.delete("tab");
+    } else {
+      nextParams.set("tab", activeTab);
+    }
+
+    const nextQuery = nextParams.toString();
+    if (nextQuery === currentQuery) {
+      return;
+    }
+    const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+    router.replace(nextHref, { scroll: false });
+  }, [activeTab, adminAccessChecked, adminDenied, isAuthenticated, pathname, router, searchParams]);
 
   function confirmAdminAction(message: string) {
     if (typeof window === "undefined") {
