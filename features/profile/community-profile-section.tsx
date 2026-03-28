@@ -151,6 +151,7 @@ export function CommunityProfileSection({
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const skipDiscardConfirmRef = useRef(false);
   const swipeStartXRef = useRef<number | null>(null);
+  const swipeStartYRef = useRef<number | null>(null);
   const supportsNativeCamera = Capacitor.isNativePlatform();
 
   const orderedImages = useMemo(
@@ -388,19 +389,24 @@ export function CommunityProfileSection({
 
   function handleImagePanelTouchStart(event: React.TouchEvent<HTMLDivElement>) {
     swipeStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+    swipeStartYRef.current = event.changedTouches[0]?.clientY ?? null;
   }
 
   function handleImagePanelTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
     const startX = swipeStartXRef.current;
+    const startY = swipeStartYRef.current;
     const endX = event.changedTouches[0]?.clientX ?? null;
+    const endY = event.changedTouches[0]?.clientY ?? null;
     swipeStartXRef.current = null;
+    swipeStartYRef.current = null;
 
-    if (startX === null || endX === null) {
+    if (startX === null || startY === null || endX === null || endY === null) {
       return;
     }
 
     const deltaX = endX - startX;
-    if (Math.abs(deltaX) < 36) {
+    const deltaY = endY - startY;
+    if (Math.abs(deltaX) < 64 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.4) {
       return;
     }
 
@@ -946,15 +952,12 @@ export function CommunityProfileSection({
                         key={order}
                         type="button"
                         variant={active ? "secondary" : "outline"}
-                        className="relative h-11 min-w-0 justify-center overflow-hidden rounded-[18px] px-3 text-xs"
+                        className={`h-11 min-w-0 justify-center overflow-hidden rounded-[18px] px-3 text-xs ${
+                          image?.isPrimary ? "border-emerald-400/60 ring-1 ring-emerald-400/25" : ""
+                        }`}
                         onClick={() => setActiveImageOrder(order)}
                       >
                         <span className="truncate">사진 {order}</span>
-                        {image?.isPrimary ? (
-                          <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-emerald-200">
-                            대표
-                          </span>
-                        ) : null}
                       </Button>
                     );
                   })}
@@ -971,16 +974,15 @@ export function CommunityProfileSection({
                   return (
                     <div
                       key={order}
-                      className="space-y-3 rounded-[22px] border border-white/10 bg-slate-950/10 p-3"
-                      onTouchStart={handleImagePanelTouchStart}
-                      onTouchEnd={handleImagePanelTouchEnd}
+                      className={`space-y-3 rounded-[22px] border bg-slate-950/10 p-3 ${
+                        image?.isPrimary ? "border-emerald-400/35" : "border-white/10"
+                      }`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-foreground">
                             사진 {order}
                           </span>
-                          {image?.isPrimary ? <Badge variant="success">대표</Badge> : null}
                         </div>
                         {image ? (
                           <span className="text-[11px] text-muted-foreground">
@@ -993,7 +995,13 @@ export function CommunityProfileSection({
                         ) : null}
                       </div>
 
-                      <div className="app-muted-surface flex aspect-[0.92] items-center justify-center overflow-hidden rounded-[18px] border border-white/10">
+                      <div
+                        className={`app-muted-surface flex aspect-[0.92] items-center justify-center overflow-hidden rounded-[18px] border ${
+                          image?.isPrimary ? "border-emerald-400/55" : "border-white/10"
+                        }`}
+                        onTouchStart={handleImagePanelTouchStart}
+                        onTouchEnd={handleImagePanelTouchEnd}
+                      >
                         {image?.imageUrl ? (
                           <button
                             type="button"

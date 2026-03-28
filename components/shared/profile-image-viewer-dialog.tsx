@@ -75,7 +75,13 @@ export function ProfileImageViewerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[min(94vw,34rem)] border-white/10 bg-[#0f172a] p-3 sm:p-4">
+      <DialogContent
+        overlayClassName="z-[140] bg-slate-950/72 backdrop-blur-sm"
+        className="z-[141] max-w-[min(94vw,34rem)] border-white/10 bg-[#0f172a] p-3 sm:p-4"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+        }}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>프로필 사진 보기</DialogTitle>
           <DialogDescription>
