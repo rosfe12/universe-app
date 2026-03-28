@@ -94,6 +94,21 @@ function buildProfileFormState(profile: CommunityProfile): CommunityProfileFormS
   };
 }
 
+function applyTextDraftToProfile(
+  profile: CommunityProfile,
+  formState: CommunityProfileFormState,
+): CommunityProfile {
+  return {
+    ...profile,
+    displayName: formState.displayName,
+    bio: formState.bio.trim() ? formState.bio.trim() : undefined,
+    interests: parseInterestTokens(formState.interestsInput),
+    profileVisibility: formState.profileVisibility,
+    showDepartment: formState.showDepartment,
+    showAdmissionYear: formState.showAdmissionYear,
+  };
+}
+
 export function CommunityProfileSection({
   currentUser,
   initialProfile,
@@ -348,7 +363,7 @@ export function CommunityProfileSection({
           let nextProfile = profile;
 
           if (hasTextDraftChanges) {
-            nextProfile = await updateMyProfile({
+            await updateMyProfile({
               displayName: formState.displayName,
               bio: formState.bio,
               interests: parseInterestTokens(formState.interestsInput),
@@ -356,13 +371,14 @@ export function CommunityProfileSection({
               showDepartment: formState.showDepartment,
               showAdmissionYear: formState.showAdmissionYear,
             });
+            nextProfile = applyTextDraftToProfile(nextProfile, formState);
           }
 
           if (hasImageDraftChanges) {
-            await Promise.all(
+            const uploadedImageResults = await Promise.all(
               orderedDraftImages.map(async (draftImage) => {
                 if (!draftImage.localFile) {
-                  return;
+                  return null;
                 }
 
                 const formData = new FormData();
@@ -377,9 +393,10 @@ export function CommunityProfileSection({
                 if (draftImage.wasProcessed) {
                   formData.set("processedImage", "true");
                 }
-                await uploadProfileImage(formData);
+                return uploadProfileImage(formData);
               }),
             );
+            const uploadedImages = uploadedImageResults.filter(Boolean) as CommunityProfile["images"];
 
             await Promise.all(
               profile.images.map(async (originalImage) => {
@@ -397,26 +414,45 @@ export function CommunityProfileSection({
               }),
             );
 
-            nextProfile = await getMyProfile();
-          }
+            const uploadedImageByOrder = new Map(
+              uploadedImages.map((image) => [image.imageOrder, image] as const),
+            );
+            const keptExistingImages = profile.images.filter((originalImage) =>
+              orderedDraftImages.some((draftImage) => !draftImage.localFile && draftImage.id === originalImage.id),
+            );
+            const persistedImagesAfterUpload = [...keptExistingImages, ...uploadedImages].sort(
+              (a, b) => a.imageOrder - b.imageOrder,
+            );
 
-          const desiredOrderIds = orderedDraftImages
-            .map((draftImage) =>
-              draftImage.localFile
-                ? nextProfile.images.find((image) => image.imageOrder === draftImage.imageOrder)?.id
-                : draftImage.id,
-            )
-            .filter((value): value is string => Boolean(value));
+            nextProfile = {
+              ...nextProfile,
+              images: orderedDraftImages
+                .map((draftImage, index) => {
+                  const sourceImage = draftImage.localFile
+                    ? uploadedImageByOrder.get(draftImage.imageOrder)
+                    : keptExistingImages.find((image) => image.id === draftImage.id);
 
-          const currentOrderIds = [...nextProfile.images]
-            .sort((a, b) => a.imageOrder - b.imageOrder)
-            .map((image) => image.id);
+                  if (!sourceImage) {
+                    return null;
+                  }
 
-          if (
-            desiredOrderIds.length > 0 &&
-            JSON.stringify(desiredOrderIds) !== JSON.stringify(currentOrderIds)
-          ) {
-            nextProfile = await reorderProfileImages(desiredOrderIds);
+                  return {
+                    ...sourceImage,
+                    imageOrder: (index + 1) as 1 | 2 | 3,
+                  };
+                })
+                .filter((image): image is CommunityProfile["images"][number] => Boolean(image)),
+            };
+
+            const desiredOrderIds = nextProfile.images.map((image) => image.id);
+            const persistedOrderIds = persistedImagesAfterUpload.map((image) => image.id);
+
+            if (
+              desiredOrderIds.length > 0 &&
+              JSON.stringify(desiredOrderIds) !== JSON.stringify(persistedOrderIds)
+            ) {
+              await reorderProfileImages(desiredOrderIds);
+            }
           }
 
           const desiredPrimaryImage = orderedDraftImages.find(
@@ -431,7 +467,14 @@ export function CommunityProfileSection({
           if (desiredPrimaryId) {
             const currentPrimaryId = nextProfile.images.find((image) => image.isPrimary)?.id;
             if (currentPrimaryId !== desiredPrimaryId) {
-              nextProfile = await setPrimaryProfileImage(desiredPrimaryId);
+              await setPrimaryProfileImage(desiredPrimaryId);
+              nextProfile = {
+                ...nextProfile,
+                images: nextProfile.images.map((image) => ({
+                  ...image,
+                  isPrimary: image.id === desiredPrimaryId,
+                })),
+              };
             }
           }
 
@@ -465,7 +508,7 @@ export function CommunityProfileSection({
     startTransition(() => {
       void (async () => {
         try {
-          const nextProfile = await updateMyProfile({
+          await updateMyProfile({
             displayName: nextDisplayName,
             bio: profile.bio ?? "",
             interests: profile.interests,
@@ -474,6 +517,10 @@ export function CommunityProfileSection({
             showAdmissionYear: profile.showAdmissionYear,
           });
 
+          const nextProfile = {
+            ...profile,
+            displayName: nextDisplayName,
+          };
           setProfile(nextProfile);
           setDisplayNameDraft(nextProfile.displayName);
           setFormState(buildProfileFormState(nextProfile));

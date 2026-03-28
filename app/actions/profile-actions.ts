@@ -420,7 +420,6 @@ export async function updateMyProfile(input: z.infer<typeof communityProfileSche
   }
 
   revalidateCommunityProfileSurfaces(user.id);
-  return getMyProfile();
 }
 
 export async function uploadProfileImage(formData: FormData) {
@@ -585,7 +584,6 @@ export async function reorderProfileImages(imageIds: string[]) {
   }
 
   revalidateCommunityProfileSurfaces(user.id);
-  return getMyProfile();
 }
 
 export async function setPrimaryProfileImage(imageId: string) {
@@ -626,7 +624,6 @@ export async function setPrimaryProfileImage(imageId: string) {
   }
 
   revalidateCommunityProfileSurfaces(user.id);
-  return getMyProfile();
 }
 
 export async function getPrimaryProfileImage(targetUserId: string) {
