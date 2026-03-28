@@ -166,78 +166,80 @@ export function UserProfilePage({ userId }: { userId: string }) {
         />
       ) : null}
       {profile ? (
-        <>
-          <Card className="app-section-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">
-            <CardContent className="space-y-4 p-5">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
-                    {profile.displayName}
-                  </p>
-                  {profile.schoolName ? <Badge variant="secondary">{profile.schoolName}</Badge> : null}
-                  {profile.department ? <Badge variant="outline">{profile.department}</Badge> : null}
-                  {profile.admissionYear ? <Badge variant="outline">{profile.admissionYear}학번</Badge> : null}
-                </div>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {profile.bio || "등록된 한줄 소개가 없습니다."}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                {profile.images.length > 0 ? (
-                  profile.images.map((image) => (
-                    <div
-                      key={image.id}
-                      className="app-muted-surface overflow-hidden rounded-[20px] border border-white/10"
-                    >
-                      <div className="aspect-[0.92] w-full">
-                        {image.imageUrl ? (
-                          <button
-                            type="button"
-                            className="block h-full w-full"
-                            onClick={() => openImageViewer(image.id)}
-                          >
-                            <ProfileImage
-                              src={image.imageUrl}
-                              alt={`${profile.displayName} 프로필 사진 ${image.imageOrder}`}
-                              width={480}
-                              height={520}
-                              className="h-full w-full object-cover"
-                              fallback={
-                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                                  이미지 준비 중
-                                </div>
-                              }
-                            />
-                          </button>
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                            이미지 준비 중
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="col-span-3 rounded-[20px] border border-dashed border-white/10 px-4 py-8 text-center text-sm text-muted-foreground">
-                    공개된 프로필 사진이 없습니다.
+        profile.isOwner ? (
+          <CommunityProfileSection currentUser={currentUser} onProfileChange={setProfile} />
+        ) : (
+          <>
+            <Card className="app-section-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">
+              <CardContent className="space-y-4 p-5">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
+                      {profile.displayName}
+                    </p>
+                    {profile.schoolName ? <Badge variant="secondary">{profile.schoolName}</Badge> : null}
+                    {profile.department ? <Badge variant="outline">{profile.department}</Badge> : null}
+                    {profile.admissionYear ? <Badge variant="outline">{profile.admissionYear}학번</Badge> : null}
                   </div>
-                )}
-              </div>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {profile.bio || "등록된 한줄 소개가 없습니다."}
+                  </p>
+                </div>
 
-              <div className="flex flex-wrap gap-2">
-                {profile.interests.length > 0 ? (
-                  profile.interests.map((interest) => (
-                    <Badge key={interest} variant="secondary" className="rounded-full px-3 py-1">
-                      {interest}
-                    </Badge>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">등록된 관심사가 없습니다.</p>
-                )}
-              </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {profile.images.length > 0 ? (
+                    profile.images.map((image) => (
+                      <div
+                        key={image.id}
+                        className="app-muted-surface overflow-hidden rounded-[20px] border border-white/10"
+                      >
+                        <div className="aspect-[0.92] w-full">
+                          {image.imageUrl ? (
+                            <button
+                              type="button"
+                              className="block h-full w-full"
+                              onClick={() => openImageViewer(image.id)}
+                            >
+                              <ProfileImage
+                                src={image.imageUrl}
+                                alt={`${profile.displayName} 프로필 사진 ${image.imageOrder}`}
+                                width={480}
+                                height={520}
+                                className="h-full w-full object-cover"
+                                fallback={
+                                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                    이미지 준비 중
+                                  </div>
+                                }
+                              />
+                            </button>
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                              이미지 준비 중
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-3 rounded-[20px] border border-dashed border-white/10 px-4 py-8 text-center text-sm text-muted-foreground">
+                      공개된 프로필 사진이 없습니다.
+                    </div>
+                  )}
+                </div>
 
-              {profile.isOwner ? null : (
+                <div className="flex flex-wrap gap-2">
+                  {profile.interests.length > 0 ? (
+                    profile.interests.map((interest) => (
+                      <Badge key={interest} variant="secondary" className="rounded-full px-3 py-1">
+                        {interest}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">등록된 관심사가 없습니다.</p>
+                  )}
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" onClick={() => setReportOpen(true)}>
                     신고
@@ -293,21 +295,16 @@ export function UserProfilePage({ userId }: { userId: string }) {
                     </Button>
                   ) : null}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {error ? (
-            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-              {error}
-            </div>
-          ) : null}
+            {error ? (
+              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                {error}
+              </div>
+            ) : null}
 
-          {profile.isOwner ? (
-            <CommunityProfileSection currentUser={currentUser} onProfileChange={setProfile} />
-          ) : null}
-
-          <Dialog open={!profile.isOwner && reportOpen} onOpenChange={setReportOpen}>
+            <Dialog open={reportOpen} onOpenChange={setReportOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>프로필 신고</DialogTitle>
@@ -362,18 +359,19 @@ export function UserProfilePage({ userId }: { userId: string }) {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
-          <ProfileImageViewerDialog
-            open={viewerIndex !== null}
-            images={viewableImages}
-            initialIndex={viewerIndex ?? 0}
-            onOpenChange={(nextOpen) => {
-              if (!nextOpen) {
-                setViewerIndex(null);
-              }
-            }}
-          />
-        </>
+            </Dialog>
+            <ProfileImageViewerDialog
+              open={viewerIndex !== null}
+              images={viewableImages}
+              initialIndex={viewerIndex ?? 0}
+              onOpenChange={(nextOpen) => {
+                if (!nextOpen) {
+                  setViewerIndex(null);
+                }
+              }}
+            />
+          </>
+        )
       ) : error ? (
         <Card className="border-dashed border-white/10 bg-white/[0.03]">
           <CardContent className="py-8 text-center">
