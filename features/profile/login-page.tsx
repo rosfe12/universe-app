@@ -157,6 +157,19 @@ export function LoginPage() {
 
   const requiredSignupConsentsComplete =
     signupConsents.terms && signupConsents.privacy && signupConsents.age;
+  const watchedEmail = form.watch("email");
+  const watchedPassword = form.watch("password");
+  const watchedConfirmPassword = form.watch("confirmPassword");
+  const loginSubmitDisabled =
+    pending || loading || watchedEmail.trim().length === 0 || watchedPassword.trim().length === 0;
+  const signupSubmitDisabled =
+    pending ||
+    loading ||
+    !requiredSignupConsentsComplete ||
+    watchedEmail.trim().length === 0 ||
+    watchedPassword.length < 8 ||
+    watchedConfirmPassword?.trim().length === 0 ||
+    watchedPassword !== watchedConfirmPassword;
 
   const onSubmit = form.handleSubmit(async (values) => {
     setErrorMessage("");
@@ -285,7 +298,7 @@ export function LoginPage() {
               {adminOnlyFlow
                 ? "관리자 권한이 있는 계정으로 로그인합니다."
                 : mode === "login"
-                  ? "캠퍼스 라이프 플랫폼"
+                  ? "이메일로 바로 로그인할 수 있어요."
                   : "몇 분이면 가입하고 바로 둘러볼 수 있어요."}
             </p>
           </div>
@@ -380,6 +393,8 @@ export function LoginPage() {
                   setMode("login");
                   setErrorMessage("");
                   setSuccessMessage("");
+                  form.clearErrors();
+                  form.setValue("confirmPassword", "", { shouldDirty: false });
                 }}
               >
                 로그인
@@ -396,6 +411,7 @@ export function LoginPage() {
                   setMode("signup");
                   setErrorMessage("");
                   setSuccessMessage("");
+                  form.clearErrors();
                 }}
               >
                 회원가입
@@ -598,14 +614,12 @@ export function LoginPage() {
                   />
                 </label>
               </div>
-            ) : (
-              <div className="space-y-2 rounded-[22px] border border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
-                <p className="font-medium text-foreground">가입 후 안내</p>
-                <p>이메일 인증을 마치면 로그인할 수 있습니다.</p>
-                <p>대학생 권한은 학생 인증을 완료한 뒤 사용할 수 있습니다.</p>
-              </div>
-            )}
-            <Button type="submit" className="w-full" disabled={pending || loading}>
+            ) : null}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={mode === "login" ? loginSubmitDisabled : signupSubmitDisabled}
+            >
               <Mail className="h-4 w-4" />
               {pending
                 ? adminOnlyFlow
@@ -627,6 +641,10 @@ export function LoginPage() {
                   setMode((current) => (current === "login" ? "signup" : "login"));
                   setErrorMessage("");
                   setSuccessMessage("");
+                  form.clearErrors();
+                  if (mode === "signup") {
+                    form.setValue("confirmPassword", "", { shouldDirty: false });
+                  }
                 }}
               >
                 {mode === "login"
