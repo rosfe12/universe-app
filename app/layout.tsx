@@ -33,7 +33,8 @@ const serviceWorkerRegisterScript = `
 `;
 
 export const metadata: Metadata = {
-  title: "CAMVERSE – 대학생 커뮤니티",
+  applicationName: "CAMVERSE",
+  title: "CAMVERSE",
   description: "익명으로 연결되는 캠퍼스 네트워크",
   metadataBase: new URL(appUrl),
   manifest: "/manifest.json",
@@ -77,6 +78,7 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        <meta name="application-name" content="CAMVERSE" />
         <meta name="theme-color" content="#0F172A" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="CAMVERSE" />
