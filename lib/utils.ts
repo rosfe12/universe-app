@@ -62,3 +62,11 @@ export function getPostViewCount(input: {
 
   return Math.max(32, input.likes * 12 + input.commentCount * 18 + 24);
 }
+
+export function isInternalQaTitle(title?: string | null) {
+  if (!title) {
+    return false;
+  }
+
+  return /^\s*\[QA\d*\]/i.test(title);
+}

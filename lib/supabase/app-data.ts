@@ -54,7 +54,7 @@ import {
   toVerificationState,
 } from "@/lib/student-verification";
 import { buildInviteCode, clearRememberedReferralCode, normalizeReferralCode } from "@/lib/referral-code";
-import { getPostViewCount } from "@/lib/utils";
+import { getPostViewCount, isInternalQaTitle } from "@/lib/utils";
 import type {
   AdmissionQuestionMeta,
   AppRuntimeSnapshot,
@@ -1557,6 +1557,20 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
           };
         })()
       : guestUser;
+
+    if (scope !== "admin" && !isMasterAdminEmail(snapshot.currentUser.email)) {
+      const hiddenPostIds = new Set(
+        snapshot.posts.filter((post) => isInternalQaTitle(post.title)).map((post) => post.id),
+      );
+
+      if (hiddenPostIds.size > 0) {
+        snapshot.posts = snapshot.posts.filter((post) => !hiddenPostIds.has(post.id));
+        snapshot.comments = snapshot.comments.filter((comment) => !hiddenPostIds.has(comment.postId));
+        snapshot.notifications = snapshot.notifications.filter(
+          (notification) => notification.targetType !== "post" || !notification.targetId || !hiddenPostIds.has(notification.targetId),
+        );
+      }
+    }
 
     const requiresPrimaryContent =
       shouldRequirePrimaryContent(scope) && (include.posts || include.lectures);
