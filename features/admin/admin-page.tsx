@@ -2026,15 +2026,15 @@ export function AdminPage({
           {profileImageItems.map((item) => (
             <Card key={item.id}>
               <CardContent className="grid gap-4 p-4 md:grid-cols-[168px_minmax(0,1fr)_auto]">
-                <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/5">
+                <div className="aspect-square overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/5">
                   {item.imageUrl ? (
                     <img
                       src={item.imageUrl}
                       alt={`${item.nickname} 프로필 사진`}
-                      className="h-40 w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   ) : (
-                    <div className="flex h-40 items-center justify-center text-xs text-muted-foreground">
+                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
                       미리보기 없음
                     </div>
                   )}
