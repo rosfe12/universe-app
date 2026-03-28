@@ -244,6 +244,55 @@ async function listProfileImages(
   return images;
 }
 
+async function hasApprovedPrimaryImage(
+  supabase: Awaited<ReturnType<typeof requireAuthenticatedProfileUser>>["supabase"],
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from("profile_images")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("is_primary", true)
+    .eq("moderation_status", "approved")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Boolean(data);
+}
+
+async function assignNextPrimaryProfileImage(
+  supabase: Awaited<ReturnType<typeof requireAuthenticatedProfileUser>>["supabase"],
+  userId: string,
+) {
+  const { data: nextImage, error } = await supabase
+    .from("profile_images")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("moderation_status", "approved")
+    .order("image_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!nextImage) {
+    return;
+  }
+
+  const { error: rpcError } = await supabase.rpc("set_primary_profile_image", {
+    p_image_id: String(nextImage.id),
+  });
+
+  if (rpcError) {
+    throw new Error(rpcError.message);
+  }
+}
+
 async function hasProfileBlock(
   admin: ReturnType<typeof createAdminSupabaseClient>,
   userId: string,
@@ -393,6 +442,7 @@ export async function uploadProfileImage(formData: FormData) {
   const { supabase, admin, user } = await requireAuthenticatedProfileUser();
   requireVerifiedProfileFeature(user);
   await ensureOwnProfileRow(admin, user);
+  const hasPrimaryImage = await hasApprovedPrimaryImage(supabase, user.id);
 
   let moderation = await moderateCommunityProfileImage(file);
   if (moderation.status === "approved" && (sensitiveDetected || qrDetected)) {
@@ -434,7 +484,10 @@ export async function uploadProfileImage(formData: FormData) {
         user_id: user.id,
         image_path: imagePath,
         image_order: imageOrder,
-        is_primary: moderation.status === "approved" ? Boolean(existingRow?.is_primary) : false,
+        is_primary:
+          moderation.status === "approved"
+            ? Boolean(existingRow?.is_primary) || !hasPrimaryImage
+            : false,
         moderation_status: moderation.status,
         moderation_reason: moderation.reason ?? null,
       },
@@ -501,6 +554,7 @@ export async function deleteProfileImage(imageId: string) {
   }
 
   await admin.storage.from(PROFILE_IMAGE_BUCKET).remove([String(row.image_path)]).catch(() => null);
+  await assignNextPrimaryProfileImage(supabase, user.id).catch(() => null);
   revalidateCommunityProfileSurfaces(user.id);
 
   return { ok: true };

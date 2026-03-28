@@ -125,6 +125,63 @@ async function listAdminProfileImages(
   );
 }
 
+async function ensurePrimaryProfileImage(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  userId: string,
+) {
+  const { data: currentPrimary, error: currentPrimaryError } = await admin
+    .from("profile_images")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("is_primary", true)
+    .eq("moderation_status", "approved")
+    .maybeSingle();
+
+  if (currentPrimaryError) {
+    throw currentPrimaryError;
+  }
+
+  if (currentPrimary?.id) {
+    return;
+  }
+
+  const { data: nextImage, error: nextImageError } = await admin
+    .from("profile_images")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("moderation_status", "approved")
+    .order("image_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (nextImageError) {
+    throw nextImageError;
+  }
+
+  if (!nextImage?.id) {
+    return;
+  }
+
+  const { error: clearError } = await admin
+    .from("profile_images")
+    .update({ is_primary: false })
+    .eq("user_id", userId);
+
+  if (clearError) {
+    throw clearError;
+  }
+
+  const { error: updateError } = await admin
+    .from("profile_images")
+    .update({ is_primary: true })
+    .eq("id", String(nextImage.id))
+    .eq("user_id", userId);
+
+  if (updateError) {
+    throw updateError;
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { admin } = await requireAdminUser(request);
@@ -179,6 +236,8 @@ export async function PATCH(request: Request) {
       if (deleteError) {
         throw deleteError;
       }
+
+      await ensurePrimaryProfileImage(admin, String(row.user_id)).catch(() => null);
     } else if (action === "approve") {
       const { error: updateError } = await admin
         .from("profile_images")
@@ -191,6 +250,8 @@ export async function PATCH(request: Request) {
       if (updateError) {
         throw updateError;
       }
+
+      await ensurePrimaryProfileImage(admin, String(row.user_id)).catch(() => null);
     } else {
       const rejectionReason = reason?.trim() || "관리자 검토에서 반려되었습니다.";
       const { error: updateError } = await admin
@@ -205,6 +266,8 @@ export async function PATCH(request: Request) {
       if (updateError) {
         throw updateError;
       }
+
+      await ensurePrimaryProfileImage(admin, String(row.user_id)).catch(() => null);
 
       const { error: notificationError } = await admin.from("notifications").insert({
         user_id: String(row.user_id),
