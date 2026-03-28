@@ -40,7 +40,7 @@ const DialogContent = React.forwardRef<
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground transition-opacity hover:opacity-100">
         <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
+        <span className="sr-only">닫기</span>
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>

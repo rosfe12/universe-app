@@ -1051,7 +1051,7 @@ export function CommunityProfileSection({
             <Button
               type="button"
               onClick={() => void handleSave()}
-              disabled={isPending || formState.displayName.trim().length < 2 || !hasDraftChanges}
+              disabled={isPending || !hasDraftChanges}
             >
               {isPending ? "저장 중" : "저장"}
             </Button>
