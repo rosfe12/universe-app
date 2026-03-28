@@ -60,6 +60,8 @@
 
   html {
     -webkit-tap-highlight-color: transparent;
+    background: #0b1020;
+    overscroll-behavior-y: none;
   }
 
   body {
@@ -81,6 +83,7 @@
     word-break: keep-all;
     overflow-wrap: anywhere;
     line-height: 1.5;
+    overscroll-behavior-y: none;
   }
 
   button,
@@ -272,6 +275,7 @@
   }
 
   .app-header-surface {
+    position: relative;
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.88) 100%);
     backdrop-filter: blur(20px);
@@ -280,6 +284,18 @@
   html[data-theme="dark"] .app-header-surface {
     background:
       linear-gradient(180deg, rgba(8, 15, 31, 0.96) 0%, rgba(8, 15, 31, 0.88) 100%);
+  }
+
+  .app-header-safe-cover::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: calc(env(safe-area-inset-top) + 1rem);
+    background: inherit;
+    backdrop-filter: inherit;
+    pointer-events: none;
   }
 
   .app-section-surface {

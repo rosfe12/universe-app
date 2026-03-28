@@ -28,7 +28,7 @@ export function AppShell({
           desktopWide ? "max-w-[440px] md:max-w-[1240px]" : "max-w-[440px]"
         }`}
       >
-        <header className="app-header-surface sticky top-0 z-20 border-b border-white/10 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-4">
+        <header className="app-header-surface app-header-safe-cover sticky top-0 z-20 border-b border-white/10 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-500 dark:text-indigo-300">
