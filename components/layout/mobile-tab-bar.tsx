@@ -42,7 +42,7 @@ export function MobileTabBar() {
   }, [pathname, router]);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-slate-950/94 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-18px_40px_-28px_rgba(2,6,23,0.92)] backdrop-blur-xl">
+    <nav className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+0.4rem)] z-40 rounded-[30px] border border-white/10 bg-slate-950/94 px-2 py-2 shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)] backdrop-blur-xl">
       <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1">
         {tabs.map((tab) => {
           const Icon = icons[tab.href];
