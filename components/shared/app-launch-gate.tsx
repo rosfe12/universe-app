@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 import { ensureSupabaseSessionReady } from "@/lib/supabase/client";
@@ -174,7 +175,17 @@ export function AppLaunchGate({ children }: { children: ReactNode }) {
             phase === "exit" ? "opacity-0" : "opacity-100"
           }`}
         >
-          <div className="app-shell-surface flex w-full max-w-[440px] flex-col items-center justify-center gap-4 rounded-[36px] px-8 py-16 text-center">
+          <div className="app-shell-surface flex w-full max-w-[440px] flex-col items-center justify-center gap-5 rounded-[36px] px-8 py-16 text-center">
+            <div className="flex h-24 w-24 items-center justify-center rounded-[28px] border border-white/10 bg-white/5 shadow-[0_22px_48px_-28px_rgba(99,102,241,0.85)]">
+              <Image
+                src="/icons/icon-192.png"
+                alt="CAMVERSE"
+                width={72}
+                height={72}
+                priority
+                className="h-[72px] w-[72px] rounded-[22px]"
+              />
+            </div>
             <p className="text-sm font-bold uppercase tracking-[0.26em] text-indigo-500 dark:text-indigo-300">
               CAMVERSE
             </p>
