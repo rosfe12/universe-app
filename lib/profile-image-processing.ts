@@ -48,6 +48,23 @@ async function loadImageElement(file: File) {
   }
 }
 
+export async function buildManualCoverBoxes(file: File): Promise<FaceBox[]> {
+  const image = await loadImageElement(file);
+  const width = image.naturalWidth || image.width;
+  const height = image.naturalHeight || image.height;
+  const boxWidth = Math.round(width * 0.34);
+  const boxHeight = Math.round(height * 0.34);
+
+  return [
+    {
+      x: Math.round((width - boxWidth) / 2),
+      y: Math.round(height * 0.18),
+      width: boxWidth,
+      height: boxHeight,
+    },
+  ];
+}
+
 function fitCanvasSize(width: number, height: number) {
   if (Math.max(width, height) <= MAX_OUTPUT_DIMENSION) {
     return { width, height };

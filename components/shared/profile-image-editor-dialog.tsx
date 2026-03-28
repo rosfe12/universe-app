@@ -15,6 +15,7 @@ import {
 import {
   applyBlurToFaces,
   applyStickerToFaces,
+  buildManualCoverBoxes,
   validateImageBeforeUpload,
 } from "@/lib/profile-image-processing";
 import type { FaceBox, StickerType } from "@/lib/profile-image-processing";
@@ -49,6 +50,7 @@ export function ProfileImageEditorDialog({
   const [stickerType, setStickerType] = useState<StickerType>("smile");
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAutoApplied, setHasAutoApplied] = useState(false);
+  const [manualCoverBoxes, setManualCoverBoxes] = useState<FaceBox[]>([]);
 
   useEffect(() => {
     setProcessedFile(initialProcessedFile ?? null);
@@ -56,6 +58,7 @@ export function ProfileImageEditorDialog({
     setStickerType("smile");
     setIsProcessing(false);
     setHasAutoApplied(Boolean(initialProcessedFile));
+    setManualCoverBoxes([]);
   }, [file, initialProcessedFile, open]);
 
   useEffect(() => {
@@ -86,12 +89,41 @@ export function ProfileImageEditorDialog({
     };
   }, [processedPreviewUrl]);
 
-  const needsFaceMask = faceBoxes.length > 0;
+  const hasDetectedFaces = faceBoxes.length > 0;
   const hasSensitiveWarning = sensitiveTextDetected || qrDetected;
-  const confirmLabel = hasSensitiveWarning && !needsFaceMask ? "검토 후 업로드" : "이 이미지 업로드";
+  const editableBoxes = hasDetectedFaces ? faceBoxes : manualCoverBoxes;
+  const canMask = editableBoxes.length > 0;
+  const confirmLabel = hasSensitiveWarning && !hasDetectedFaces ? "검토 후 업로드" : "이 이미지 업로드";
 
   useEffect(() => {
-    if (!open || !file || !needsFaceMask || processedFile || initialProcessedFile || hasAutoApplied) {
+    if (!open || !file || hasDetectedFaces || manualCoverBoxes.length > 0) {
+      return;
+    }
+
+    let active = true;
+
+    void (async () => {
+      try {
+        const nextBoxes = await buildManualCoverBoxes(file);
+        if (!active) {
+          return;
+        }
+        setManualCoverBoxes(nextBoxes);
+      } catch {
+        if (!active) {
+          return;
+        }
+        setManualCoverBoxes([]);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [file, hasDetectedFaces, manualCoverBoxes.length, open]);
+
+  useEffect(() => {
+    if (!open || !file || !hasDetectedFaces || processedFile || initialProcessedFile || hasAutoApplied) {
       return;
     }
 
@@ -122,15 +154,15 @@ export function ProfileImageEditorDialog({
     return () => {
       active = false;
     };
-  }, [faceBoxes, file, hasAutoApplied, initialProcessedFile, needsFaceMask, open, processedFile]);
+  }, [faceBoxes, file, hasAutoApplied, hasDetectedFaces, initialProcessedFile, open, processedFile]);
 
   async function handleApplyBlur() {
-    if (!file || faceBoxes.length === 0) return;
+    if (!file || editableBoxes.length === 0) return;
     setError(null);
     setIsProcessing(true);
 
     try {
-      const nextFile = await applyBlurToFaces(file, faceBoxes);
+      const nextFile = await applyBlurToFaces(file, editableBoxes);
       setProcessedFile(nextFile);
       setHasAutoApplied(true);
     } catch (cause) {
@@ -141,12 +173,12 @@ export function ProfileImageEditorDialog({
   }
 
   async function handleApplySticker() {
-    if (!file || faceBoxes.length === 0) return;
+    if (!file || editableBoxes.length === 0) return;
     setError(null);
     setIsProcessing(true);
 
     try {
-      const nextFile = await applyStickerToFaces(file, faceBoxes, stickerType);
+      const nextFile = await applyStickerToFaces(file, editableBoxes, stickerType);
       setProcessedFile(nextFile);
       setHasAutoApplied(true);
     } catch (cause) {
@@ -159,7 +191,7 @@ export function ProfileImageEditorDialog({
   async function handleConfirm() {
     if (!file || imageOrder === null) return;
 
-    if (needsFaceMask && !processedFile) {
+    if (hasDetectedFaces && !processedFile) {
       setError("얼굴을 가린 뒤 업로드할 수 있어요.");
       return;
     }
@@ -204,7 +236,7 @@ export function ProfileImageEditorDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {needsFaceMask ? (
+          {hasDetectedFaces ? (
             <div className="rounded-[20px] border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
               얼굴이 감지됐어요. 캠버스에서는 얼굴이 보이지 않도록 가려야 해요.
             </div>
@@ -216,18 +248,24 @@ export function ProfileImageEditorDialog({
             </div>
           ) : null}
 
-          {needsFaceMask && processedPreviewUrl ? (
+          {!hasDetectedFaces && canMask ? (
+            <div className="rounded-[20px] border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">
+              얼굴을 자동으로 찾지 못했어요. 필요하면 아래 버튼으로 직접 가려서 업로드할 수 있어요.
+            </div>
+          ) : null}
+
+          {hasDetectedFaces && processedPreviewUrl ? (
             <div className="rounded-[20px] border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
               얼굴을 자동으로 가린 이미지를 준비했어요. 그대로 올리거나 스티커로 다시 가릴 수 있어요.
             </div>
           ) : null}
 
-          {needsFaceMask ? (
+          {canMask ? (
             <div className="space-y-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4">
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="secondary" disabled={isProcessing} onClick={() => void handleApplyBlur()}>
                   <ScanFace className="h-4 w-4" />
-                  자동 흐림 처리
+                  {hasDetectedFaces ? "자동 흐림 처리" : "수동 흐림 처리"}
                 </Button>
                 <Button type="button" variant="outline" disabled={isProcessing} onClick={() => void handleApplySticker()}>
                   <Sparkles className="h-4 w-4" />
@@ -271,7 +309,7 @@ export function ProfileImageEditorDialog({
             </div>
           ) : null}
 
-          <div className={`grid grid-cols-1 gap-3 ${needsFaceMask ? "sm:grid-cols-2" : ""}`}>
+          <div className={`grid grid-cols-1 gap-3 ${canMask ? "sm:grid-cols-2" : ""}`}>
             <div className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">원본</p>
               <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
@@ -288,7 +326,7 @@ export function ProfileImageEditorDialog({
               </div>
             </div>
 
-            {needsFaceMask ? (
+            {canMask ? (
               <div className="space-y-2">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                   가려진 이미지
@@ -318,7 +356,7 @@ export function ProfileImageEditorDialog({
             ) : null}
           </div>
 
-          {hasSensitiveWarning && !needsFaceMask ? (
+          {hasSensitiveWarning && !hasDetectedFaces ? (
             <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted-foreground">
               개인정보가 보이면 가린 이미지를 다시 선택해주세요. 그대로 올리면 검토 후 공개돼요.
             </div>
@@ -339,7 +377,7 @@ export function ProfileImageEditorDialog({
           >
             다시 선택
           </Button>
-          <Button type="button" disabled={isProcessing || (needsFaceMask && !processedFile)} onClick={() => void handleConfirm()}>
+          <Button type="button" disabled={isProcessing || (hasDetectedFaces && !processedFile)} onClick={() => void handleConfirm()}>
             {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />

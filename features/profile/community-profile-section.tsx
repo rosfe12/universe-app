@@ -219,30 +219,25 @@ export function CommunityProfileSection({
     try {
       validateCommunityProfileImageFile(file);
       const analysis = await validateImageBeforeUpload(file);
-      if (analysis.faceBoxes.length > 0 || analysis.sensitiveTextDetected || analysis.qrDetected) {
-        let processedFile: File | null = null;
+      let processedFile: File | null = null;
 
-        if (analysis.faceBoxes.length > 0) {
-          try {
-            processedFile = await applyBlurToFaces(file, analysis.faceBoxes);
-          } catch {
-            processedFile = null;
-          }
+      if (analysis.faceBoxes.length > 0) {
+        try {
+          processedFile = await applyBlurToFaces(file, analysis.faceBoxes);
+        } catch {
+          processedFile = null;
         }
-
-        setEditorState({
-          imageOrder: order,
-          file,
-          faceBoxes: analysis.faceBoxes,
-          sensitiveTextDetected: analysis.sensitiveTextDetected,
-          qrDetected: analysis.qrDetected,
-          processedFile,
-        });
-        setUploadingOrder(null);
-        return;
       }
 
-      await uploadSelectedImage(order, file);
+      setEditorState({
+        imageOrder: order,
+        file,
+        faceBoxes: analysis.faceBoxes,
+        sensitiveTextDetected: analysis.sensitiveTextDetected,
+        qrDetected: analysis.qrDetected,
+        processedFile,
+      });
+      setUploadingOrder(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
       setUploadingOrder(null);
