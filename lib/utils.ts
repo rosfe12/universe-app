@@ -3,6 +3,30 @@ import { twMerge } from "tailwind-merge";
 import type { Post } from "@/types";
 
 const APP_DISPLAY_TIME_ZONE = "Asia/Seoul";
+const OFFICIAL_EXAMPLE_AUTHOR_IDS = new Set([
+  "a1111111-1111-4111-8111-111111111111",
+  "b2222222-2222-4222-8222-222222222222",
+  "c3333333-3333-4333-8333-333333333333",
+  "d4444444-4444-4444-8444-444444444444",
+  "e5555555-5555-4555-8555-555555555555",
+  "f6666666-6666-4666-8666-666666666666",
+  "18888888-8888-4888-8888-888888888888",
+  "19999999-9999-4999-8999-999999999999",
+  "77777777-7777-4777-8777-777777777777",
+  "2a111111-1111-4111-8111-111111111111",
+  "2b222222-2222-4222-8222-222222222222",
+  "2c333333-3333-4333-8333-333333333333",
+  "2d444444-4444-4444-8444-444444444444",
+  "2e111111-1111-4111-8111-111111111111",
+  "2f222222-2222-4222-8222-222222222222",
+  "3a333333-3333-4333-8333-333333333333",
+  "3b444444-4444-4444-8444-444444444444",
+  "3c555555-5555-4555-8555-555555555555",
+  "3d666666-6666-4666-8666-666666666666",
+  "3e777777-7777-4777-8777-777777777777",
+  "3f888888-8888-4888-8888-888888888888",
+  "832499d8-0b27-47f7-8039-28159445447f",
+]);
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -73,7 +97,7 @@ export function isInternalQaTitle(title?: string | null) {
 }
 
 export function getOfficialStarterMeta(
-  post?: Pick<Post, "title" | "tags" | "subcategory"> | null,
+  post?: Pick<Post, "authorId" | "title" | "tags" | "subcategory"> | null,
 ) {
   if (!post) {
     return null;
@@ -81,7 +105,9 @@ export function getOfficialStarterMeta(
 
   const title = post.title?.trim() ?? "";
   const tags = new Set((post.tags ?? []).filter(Boolean));
-  const hasOfficialSource = title.startsWith("[공식]") || tags.has("공식자료");
+  const isOfficialExampleAuthor = OFFICIAL_EXAMPLE_AUTHOR_IDS.has(post.authorId ?? "");
+  const hasOfficialSource =
+    isOfficialExampleAuthor || title.startsWith("[공식]") || tags.has("공식자료");
   const isFreshmanGuide =
     title.startsWith("[새내기 체크]") ||
     (post.subcategory === "freshman" && hasOfficialSource);
@@ -92,7 +118,7 @@ export function getOfficialStarterMeta(
 
   return {
     name: "CAMVERSE 운영팀",
-    label: isFreshmanGuide ? "공식 예시 콘텐츠" : "운영팀 큐레이션",
+    label: isFreshmanGuide ? "공식 예시 콘텐츠" : isOfficialExampleAuthor ? "공식 예시 콘텐츠" : "운영팀 큐레이션",
     badge: isFreshmanGuide ? "운영팀 가이드" : "운영팀",
   };
 }
