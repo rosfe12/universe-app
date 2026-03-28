@@ -192,17 +192,39 @@ export async function PATCH(request: Request) {
         throw updateError;
       }
     } else {
+      const rejectionReason = reason?.trim() || "관리자 검토에서 반려되었습니다.";
       const { error: updateError } = await admin
         .from("profile_images")
         .update({
           moderation_status: "rejected",
-          moderation_reason: reason?.trim() || "관리자 검토에서 반려되었습니다.",
+          moderation_reason: rejectionReason,
           is_primary: false,
         })
         .eq("id", imageId);
 
       if (updateError) {
         throw updateError;
+      }
+
+      const { error: notificationError } = await admin.from("notifications").insert({
+        user_id: String(row.user_id),
+        type: "report_update",
+        title: "프로필 사진이 반려되었어요",
+        body: rejectionReason,
+        href: "/profile",
+        target_type: "profile",
+        target_id: String(row.user_id),
+        source_kind: "system",
+        delivery_mode: "instant",
+        metadata: {
+          imageId: String(row.id),
+          imageOrder: Number(row.image_order),
+          reason: rejectionReason,
+        },
+      });
+
+      if (notificationError) {
+        console.error("[admin] failed to create profile image moderation notification", notificationError);
       }
     }
 

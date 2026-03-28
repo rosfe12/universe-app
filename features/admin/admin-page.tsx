@@ -26,6 +26,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -76,6 +77,14 @@ import type {
 
 type MemberSort = "joined_desc" | "joined_asc" | "last_sign_in_desc" | "last_sign_in_asc";
 type MemberStatusFilter = "all" | "restricted" | "verified" | "unverified";
+
+const PROFILE_IMAGE_REJECTION_OPTIONS = [
+  "얼굴 노출",
+  "개인정보 노출",
+  "학생증 포함",
+  "SNS 아이디 노출",
+  "QR 코드 포함",
+] as const;
 
 async function loadAdminVerificationRequests() {
   const response = await fetch("/api/admin/verification-requests", {
@@ -633,6 +642,9 @@ export function AdminPage({
   const [profileImageStatusFilter, setProfileImageStatusFilter] = useState<
     "all" | "pending" | "approved" | "rejected"
   >("pending");
+  const [rejectProfileImageItem, setRejectProfileImageItem] = useState<AdminProfileImageItem | null>(null);
+  const [rejectProfileImageReasons, setRejectProfileImageReasons] = useState<string[]>([]);
+  const [rejectProfileImageCustomReason, setRejectProfileImageCustomReason] = useState("");
   const autoHiddenItems = useMemo(() => getAutoHiddenContent(), []);
   const reportedUsers = useMemo(() => getReportedUsersForAdmin(), []);
   const lowTrustUsers = useMemo(() => getLowTrustUsers(), []);
@@ -1079,32 +1091,15 @@ export function AdminPage({
   async function mutateProfileImage(
     item: AdminProfileImageItem,
     action: "approve" | "reject" | "delete",
+    reason?: string,
   ) {
     setProfileImageError("");
     setProfileImagePendingId(item.id);
 
     try {
-      let reason: string | undefined;
-
       if (action === "approve") {
         if (!confirmAdminAction("프로필 사진을 승인하시겠습니까?")) {
           return;
-        }
-      }
-
-      if (action === "reject") {
-        if (!confirmAdminAction("프로필 사진을 반려하시겠습니까?")) {
-          return;
-        }
-        if (typeof window !== "undefined") {
-          const input = window.prompt(
-            "반려 사유를 입력해주세요.",
-            item.moderationReason ?? "얼굴 또는 개인정보 노출로 반려했습니다.",
-          );
-          if (input === null) {
-            return;
-          }
-          reason = input.trim() || "얼굴 또는 개인정보 노출로 반려했습니다.";
         }
       }
 
@@ -1137,6 +1132,28 @@ export function AdminPage({
     } finally {
       setProfileImagePendingId(null);
     }
+  }
+
+  async function submitRejectProfileImage() {
+    if (!rejectProfileImageItem) {
+      return;
+    }
+
+    const reason = [
+      ...rejectProfileImageReasons,
+      rejectProfileImageCustomReason.trim(),
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    await mutateProfileImage(
+      rejectProfileImageItem,
+      "reject",
+      reason || "얼굴 또는 개인정보 노출로 반려했습니다.",
+    );
+    setRejectProfileImageItem(null);
+    setRejectProfileImageReasons([]);
+    setRejectProfileImageCustomReason("");
   }
 
   async function mutateModerationAction(
@@ -2063,7 +2080,9 @@ export function AdminPage({
                     variant="outline"
                     disabled={profileImagePendingId === item.id}
                     onClick={() => {
-                      void mutateProfileImage(item, "reject");
+                      setRejectProfileImageItem(item);
+                      setRejectProfileImageReasons([]);
+                      setRejectProfileImageCustomReason("");
                     }}
                   >
                     반려
@@ -2751,6 +2770,85 @@ export function AdminPage({
           ))}
         </TabsContent>
       </Tabs>
+      <Dialog
+        open={Boolean(rejectProfileImageItem)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectProfileImageItem(null);
+            setRejectProfileImageReasons([]);
+            setRejectProfileImageCustomReason("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>프로필 사진 반려</DialogTitle>
+            <DialogDescription>
+              반려 사유를 선택하거나 직접 입력한 뒤 사용자에게 안내합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {PROFILE_IMAGE_REJECTION_OPTIONS.map((item) => {
+                const selected = rejectProfileImageReasons.includes(item);
+
+                return (
+                  <Button
+                    key={item}
+                    type="button"
+                    size="sm"
+                    variant={selected ? "default" : "outline"}
+                    onClick={() => {
+                      setRejectProfileImageReasons((current) =>
+                        current.includes(item)
+                          ? current.filter((value) => value !== item)
+                          : [...current, item],
+                      );
+                    }}
+                  >
+                    {item}
+                  </Button>
+                );
+              })}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-image-reject-reason">직접 입력</Label>
+              <Textarea
+                id="profile-image-reject-reason"
+                value={rejectProfileImageCustomReason}
+                onChange={(event) => setRejectProfileImageCustomReason(event.target.value)}
+                placeholder="기타 반려 사유를 입력하세요"
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setRejectProfileImageItem(null);
+                setRejectProfileImageReasons([]);
+                setRejectProfileImageCustomReason("");
+              }}
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                !rejectProfileImageItem ||
+                profileImagePendingId === rejectProfileImageItem.id
+              }
+              onClick={() => {
+                void submitRejectProfileImage();
+              }}
+            >
+              반려하기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={Boolean(selectedMember)} onOpenChange={(open) => {
         if (!open) {
           setSelectedMember(null);
