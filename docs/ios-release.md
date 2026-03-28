@@ -8,6 +8,12 @@ npm run mobile:assets:ios
 npm run mobile:sync:ios
 ```
 
+## 1-1. CLI 빌드 확인
+
+```bash
+npm run mobile:build:ios
+```
+
 ## 2. Xcode 열기
 
 ```bash
@@ -37,16 +43,37 @@ npm run mobile:open:ios
 
 ## 5. Archive
 
-1. Xcode 상단 디바이스를 `Any iOS Device (arm64)`로 변경
-2. `Product > Archive`
-3. Organizer에서 Archive 확인
+```bash
+npm run mobile:archive:ios
+```
+
+- 산출물: `build/CAMVERSE.xcarchive`
+- 기본값은 로컬 검증용 unsigned archive
+- 서명된 archive가 필요하면 아래처럼 실행
+
+```bash
+IOS_TEAM_ID=YOUR_TEAM_ID IOS_CODE_SIGNING_ALLOWED=YES npm run mobile:archive:ios
+```
+
+- Xcode Organizer에서 확인하려면 Xcode에서 `Window > Organizer`
 
 ## 6. TestFlight
 
-1. Organizer에서 `Distribute App`
-2. `App Store Connect`
-3. `Upload`
-4. 업로드 후 App Store Connect에서 TestFlight 내부 테스트 진행
+1. 아래 명령으로 export 옵션 생성
+
+```bash
+IOS_TEAM_ID=YOUR_TEAM_ID npm run mobile:export-options:ios
+```
+
+2. 아래 명령 실행
+
+```bash
+IOS_EXPORT_OPTIONS_PLIST=build/ExportOptions-AppStore.plist npm run mobile:export:ios
+```
+
+3. 산출물: `build/export`
+4. Xcode Organizer 또는 Transporter로 업로드
+5. App Store Connect에서 TestFlight 내부 테스트 진행
 
 ## 7. App Store Connect 준비
 
