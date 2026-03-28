@@ -243,7 +243,7 @@ export function HomePage({
         <div className="grid grid-cols-2 gap-3">
           <Card className="app-section-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">
             <CardContent className="space-y-2 py-5">
-              <p className="app-kicker">Our campus</p>
+              <p className="app-kicker">우리 캠퍼스</p>
               <p className="text-lg font-semibold text-foreground">
                 {hasSelectedSchool ? currentSchool?.name : isApplicant ? "지망학교 선택" : "학교 선택"}
               </p>
@@ -254,7 +254,7 @@ export function HomePage({
           </Card>
           <Card className="app-section-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">
             <CardContent className="space-y-2 py-5">
-              <p className="app-kicker">Live topics</p>
+              <p className="app-kicker">지금 뜨는 주제</p>
               <div className="flex flex-wrap gap-2">
                 {trendingTopics.length ? (
                   trendingTopics.map((topic) => (
@@ -276,7 +276,7 @@ export function HomePage({
 
       <section className="space-y-4">
         <SectionHeader
-          eyebrow="Campus"
+          eyebrow="우리학교"
           title={isApplicant ? "🏫 지망학교 인기글" : "🏫 우리학교 인기글"}
           href="/school"
           actionLabel="학교 보기"
