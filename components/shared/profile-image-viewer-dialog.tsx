@@ -6,7 +6,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ProfileImage } from "@/components/shared/profile-image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type ProfileImageViewerItem = {
   id: string;
@@ -70,6 +76,12 @@ export function ProfileImageViewerDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[min(94vw,34rem)] border-white/10 bg-[#0f172a] p-3 sm:p-4">
+        <DialogHeader className="sr-only">
+          <DialogTitle>프로필 사진 보기</DialogTitle>
+          <DialogDescription>
+            프로필 사진을 확대해서 보고 좌우로 넘길 수 있습니다.
+          </DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3 px-1">
             <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
