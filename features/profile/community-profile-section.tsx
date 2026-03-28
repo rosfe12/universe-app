@@ -932,15 +932,17 @@ export function CommunityProfileSection({
                           event.currentTarget.value = "";
                         }}
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full"
-                        disabled={uploadingOrder === order || isPending}
-                        onClick={() => openFilePicker(order)}
-                      >
-                        {image ? "다른 사진 선택" : "사진 업로드"}
-                      </Button>
+                      {!image ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          disabled={uploadingOrder === order || isPending}
+                          onClick={() => openFilePicker(order)}
+                        >
+                          사진 업로드
+                        </Button>
+                      ) : null}
                       <p className="text-[11px] text-muted-foreground">JPG · PNG · WEBP · 5MB 이하</p>
                       {uploadingOrder === order ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
