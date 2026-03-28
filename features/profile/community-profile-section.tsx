@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, ImagePlus, Loader2, Pencil, Trash2 } from "lucide-react";
 
@@ -49,6 +48,26 @@ type CommunityProfileFormState = {
   showAdmissionYear: boolean;
 };
 
+type DraftProfileImage = CommunityProfile["images"][number] & {
+  localFile?: File | null;
+  localPreviewUrl?: string;
+};
+
+function cloneDraftImages(images: CommunityProfile["images"]) {
+  return images.map((image) => ({ ...image })) as DraftProfileImage[];
+}
+
+function withSinglePrimary(images: DraftProfileImage[]) {
+  const approvedImages = images.filter((image) => image.moderationStatus === "approved");
+  const activePrimaryId =
+    approvedImages.find((image) => image.isPrimary)?.id ?? approvedImages[0]?.id;
+
+  return images.map((image) => ({
+    ...image,
+    isPrimary: Boolean(activePrimaryId) && image.id === activePrimaryId,
+  }));
+}
+
 export function CommunityProfileSection({
   currentUser,
   onProfileChange,
@@ -81,6 +100,7 @@ export function CommunityProfileSection({
     processedFile: File | null;
   } | null>(null);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [draftImages, setDraftImages] = useState<DraftProfileImage[]>([]);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   const orderedImages = useMemo(
@@ -145,16 +165,48 @@ export function CommunityProfileSection({
         })),
     [orderedImages],
   );
+  const orderedDraftImages = useMemo(
+    () => [...draftImages].sort((a, b) => a.imageOrder - b.imageOrder),
+    [draftImages],
+  );
+  const draftImageByOrder = useMemo(() => {
+    const map = new Map<number, DraftProfileImage>();
+    for (const image of orderedDraftImages) {
+      map.set(image.imageOrder, image);
+    }
+    return map;
+  }, [orderedDraftImages]);
+  const viewableDraftImages = useMemo(
+    () =>
+      orderedDraftImages
+        .filter((image) => Boolean(image.imageUrl))
+        .map((image) => ({
+          id: image.id,
+          imageUrl: image.imageUrl,
+          alt: `프로필 사진 ${image.imageOrder}`,
+        })),
+    [orderedDraftImages],
+  );
 
   function openImageViewer(imageId: string) {
-    const nextIndex = viewableImages.findIndex((image) => image.id === imageId);
+    const sourceImages = open ? viewableDraftImages : viewableImages;
+    const nextIndex = sourceImages.findIndex((image) => image.id === imageId);
     if (nextIndex < 0) return;
     setViewerIndex(nextIndex);
+  }
+
+  function cleanupDraftPreviewUrls(images: DraftProfileImage[]) {
+    for (const image of images) {
+      if (image.localPreviewUrl) {
+        URL.revokeObjectURL(image.localPreviewUrl);
+      }
+    }
   }
 
   function openEditor() {
     if (!profile) return;
     setError(null);
+    cleanupDraftPreviewUrls(draftImages);
     setFormState({
       displayName: profile.displayName,
       bio: profile.bio ?? "",
@@ -163,6 +215,7 @@ export function CommunityProfileSection({
       showDepartment: profile.showDepartment,
       showAdmissionYear: profile.showAdmissionYear,
     });
+    setDraftImages(cloneDraftImages(profile.images));
     setOpen(true);
   }
 
@@ -178,7 +231,11 @@ export function CommunityProfileSection({
     startTransition(() => {
       void (async () => {
         try {
-          const nextProfile = await updateMyProfile({
+          if (!profile) {
+            return;
+          }
+
+          let nextProfile = await updateMyProfile({
             displayName: formState.displayName,
             bio: formState.bio,
             interests: parseInterestTokens(formState.interestsInput),
@@ -186,58 +243,86 @@ export function CommunityProfileSection({
             showDepartment: formState.showDepartment,
             showAdmissionYear: formState.showAdmissionYear,
           });
-          setProfile(nextProfile);
-          onProfileChange?.(nextProfile);
+
+          for (const draftImage of orderedDraftImages) {
+            if (!draftImage.localFile) {
+              continue;
+            }
+
+            const formData = new FormData();
+            formData.set("file", draftImage.localFile);
+            formData.set("imageOrder", String(draftImage.imageOrder));
+            if (draftImage.moderationReason?.includes("개인정보")) {
+              formData.set("sensitiveDetected", "true");
+            }
+            if (draftImage.moderationReason?.includes("QR")) {
+              formData.set("qrDetected", "true");
+            }
+            await uploadProfileImage(formData);
+          }
+
+          for (const originalImage of profile.images) {
+            const keptExistingImage = orderedDraftImages.some(
+              (draftImage) => !draftImage.localFile && draftImage.id === originalImage.id,
+            );
+            const replacedAtSameOrder = orderedDraftImages.some(
+              (draftImage) => draftImage.imageOrder === originalImage.imageOrder && Boolean(draftImage.localFile),
+            );
+
+            if (!keptExistingImage && !replacedAtSameOrder) {
+              await deleteProfileImage(originalImage.id);
+            }
+          }
+
+          nextProfile = await getMyProfile();
+
+          const desiredOrderIds = orderedDraftImages
+            .map((draftImage) =>
+              draftImage.localFile
+                ? nextProfile.images.find((image) => image.imageOrder === draftImage.imageOrder)?.id
+                : draftImage.id,
+            )
+            .filter((value): value is string => Boolean(value));
+
+          const currentOrderIds = [...nextProfile.images]
+            .sort((a, b) => a.imageOrder - b.imageOrder)
+            .map((image) => image.id);
+
+          if (
+            desiredOrderIds.length > 0 &&
+            JSON.stringify(desiredOrderIds) !== JSON.stringify(currentOrderIds)
+          ) {
+            nextProfile = await reorderProfileImages(desiredOrderIds);
+          }
+
+          const desiredPrimaryImage = orderedDraftImages.find(
+            (draftImage) => draftImage.isPrimary && draftImage.moderationStatus === "approved",
+          );
+          const desiredPrimaryId = desiredPrimaryImage
+            ? desiredPrimaryImage.localFile
+              ? nextProfile.images.find((image) => image.imageOrder === desiredPrimaryImage.imageOrder)?.id
+              : desiredPrimaryImage.id
+            : null;
+
+          if (desiredPrimaryId) {
+            const currentPrimaryId = nextProfile.images.find((image) => image.isPrimary)?.id;
+            if (currentPrimaryId !== desiredPrimaryId) {
+              nextProfile = await setPrimaryProfileImage(desiredPrimaryId);
+            }
+          }
+
           setError(null);
           setNotice("프로필을 저장했습니다.");
+          cleanupDraftPreviewUrls(draftImages);
+          setDraftImages(cloneDraftImages(nextProfile.images));
+          setProfile(nextProfile);
+          onProfileChange?.(nextProfile);
           setOpen(false);
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "프로필을 저장하지 못했습니다.");
         }
       })();
     });
-  }
-
-  async function uploadSelectedImage(
-    order: number,
-    file: File,
-    flags?: { sensitiveTextDetected: boolean; qrDetected: boolean },
-  ) {
-    const formData = new FormData();
-    formData.set("file", file);
-    formData.set("imageOrder", String(order));
-    if (flags?.sensitiveTextDetected) {
-      formData.set("sensitiveDetected", "true");
-    }
-    if (flags?.qrDetected) {
-      formData.set("qrDetected", "true");
-    }
-    setUploadingOrder(order);
-    setError(null);
-    setNotice(null);
-
-    try {
-      const nextImage = await uploadProfileImage(formData);
-      setProfile((current) => {
-        if (!current) return current;
-        const nextImages = current.images
-          .filter((image) => image.imageOrder !== order)
-          .concat(nextImage)
-          .sort((a, b) => a.imageOrder - b.imageOrder);
-        const nextProfile = {
-          ...current,
-          images: nextImages,
-        };
-        onProfileChange?.(nextProfile);
-        return nextProfile;
-      });
-      setNotice(`사진 ${order}번을 업로드했습니다.`);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
-      throw cause;
-    } finally {
-      setUploadingOrder(null);
-    }
   }
 
   async function handleImageUpload(order: number, file?: File | null) {
@@ -247,15 +332,45 @@ export function CommunityProfileSection({
     try {
       validateCommunityProfileImageFile(file);
       const analysis = await validateImageBeforeUpload(file);
-
-      setEditorState({
-        imageOrder: order,
-        file,
-        faceBoxes: analysis.faceBoxes,
-        sensitiveTextDetected: analysis.sensitiveTextDetected,
-        qrDetected: analysis.qrDetected,
-        processedFile: null,
-      });
+      if (analysis.faceBoxes.length > 0) {
+        setEditorState({
+          imageOrder: order,
+          file,
+          faceBoxes: analysis.faceBoxes,
+          sensitiveTextDetected: analysis.sensitiveTextDetected,
+          qrDetected: analysis.qrDetected,
+          processedFile: null,
+        });
+      } else {
+        const previewUrl = URL.createObjectURL(file);
+        setDraftImages((current) => {
+          const replacedImage = current.find((image) => image.imageOrder === order);
+          if (replacedImage?.localPreviewUrl) {
+            URL.revokeObjectURL(replacedImage.localPreviewUrl);
+          }
+          const filtered = current.filter((image) => image.imageOrder !== order);
+          const nextImages = withSinglePrimary(
+            filtered.concat({
+              id: crypto.randomUUID(),
+              userId: currentUser.id,
+              imagePath: "",
+              imageOrder: order as 1 | 2 | 3,
+              isPrimary: filtered.every((image) => !image.isPrimary),
+              moderationStatus: analysis.sensitiveTextDetected || analysis.qrDetected ? "pending" : "approved",
+              moderationReason:
+                analysis.sensitiveTextDetected || analysis.qrDetected
+                  ? "연락처, SNS, QR, 학생증 등 개인정보가 포함된 것으로 보여 검토 후 공개됩니다."
+                  : undefined,
+              imageUrl: previewUrl,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              localFile: file,
+              localPreviewUrl: previewUrl,
+            }),
+          );
+          return nextImages;
+        });
+      }
       setUploadingOrder(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "프로필 사진을 업로드하지 못했습니다.");
@@ -264,69 +379,41 @@ export function CommunityProfileSection({
   }
 
   async function handleImageDelete(imageId: string) {
-    startTransition(() => {
-      void (async () => {
-        try {
-          await deleteProfileImage(imageId);
-          setProfile((current) =>
-            current
-              ? (() => {
-                  const nextProfile = {
-                    ...current,
-                    images: current.images.filter((image) => image.id !== imageId),
-                  };
-                  onProfileChange?.(nextProfile);
-                  return nextProfile;
-                })()
-              : current,
-          );
-          setNotice("프로필 사진을 삭제했습니다.");
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "프로필 사진을 삭제하지 못했습니다.");
-        }
-      })();
+    setDraftImages((current) => {
+      const target = current.find((image) => image.id === imageId);
+      if (target?.localPreviewUrl) {
+        URL.revokeObjectURL(target.localPreviewUrl);
+      }
+      return withSinglePrimary(current.filter((image) => image.id !== imageId));
     });
   }
 
   async function handleMoveImage(imageId: string, direction: -1 | 1) {
-    if (!profile) return;
-    const currentIndex = orderedImages.findIndex((item) => item.id === imageId);
+    const currentIndex = orderedDraftImages.findIndex((item) => item.id === imageId);
     const nextIndex = currentIndex + direction;
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= orderedImages.length) {
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= orderedDraftImages.length) {
       return;
     }
 
-    const nextOrder = [...orderedImages];
+    const nextOrder = [...orderedDraftImages];
     [nextOrder[currentIndex], nextOrder[nextIndex]] = [nextOrder[nextIndex], nextOrder[currentIndex]];
-
-    startTransition(() => {
-      void (async () => {
-        try {
-          const nextProfile = await reorderProfileImages(nextOrder.map((item) => item.id));
-          setProfile(nextProfile);
-          onProfileChange?.(nextProfile);
-          setNotice("프로필 사진 순서를 정리했습니다.");
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "프로필 사진 순서를 바꾸지 못했습니다.");
-        }
-      })();
-    });
+    setDraftImages(
+      nextOrder.map((image, index) => ({
+        ...image,
+        imageOrder: (index + 1) as 1 | 2 | 3,
+      })),
+    );
   }
 
   async function handleSetPrimaryImage(imageId: string) {
-    startTransition(() => {
-      void (async () => {
-        try {
-          const nextProfile = await setPrimaryProfileImage(imageId);
-          setProfile(nextProfile);
-          onProfileChange?.(nextProfile);
-          setError(null);
-          setNotice("대표 사진을 설정했습니다.");
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "대표 사진을 설정하지 못했습니다.");
-        }
-      })();
-    });
+    setDraftImages((current) =>
+      withSinglePrimary(
+        current.map((image) => ({
+          ...image,
+          isPrimary: image.id === imageId && image.moderationStatus === "approved",
+        })),
+      ),
+    );
   }
 
   if (!profileEnabled) {
@@ -470,7 +557,16 @@ export function CommunityProfileSection({
         </CardContent>
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            cleanupDraftPreviewUrls(draftImages);
+            setDraftImages([]);
+          }
+          setOpen(nextOpen);
+        }}
+      >
         <DialogContent className="max-h-[calc(100vh-3rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>내 홈 수정</DialogTitle>
@@ -618,7 +714,7 @@ export function CommunityProfileSection({
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {Array.from({ length: 3 }, (_, index) => {
                   const order = index + 1;
-                  const image = imageByOrder.get(order);
+                  const image = draftImageByOrder.get(order);
                   return (
                     <div key={order} className="space-y-2 rounded-[20px] border border-white/10 p-3">
                       <div className="app-muted-surface flex aspect-[0.92] items-center justify-center overflow-hidden rounded-[16px]">
@@ -651,7 +747,7 @@ export function CommunityProfileSection({
                       </div>
 
                       {image ? (
-                        <div className="space-y-2">
+                          <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant={image.moderationStatus === "approved" ? "secondary" : "outline"}>
                               {image.moderationStatus === "approved"
@@ -661,6 +757,7 @@ export function CommunityProfileSection({
                                   : "차단됨"}
                             </Badge>
                             {image.isPrimary ? <Badge variant="success">대표 사진</Badge> : null}
+                            {image.localFile ? <Badge variant="outline">저장 전</Badge> : null}
                             {image.moderationReason ? (
                               <span className="text-[11px] text-muted-foreground">
                                 {image.moderationReason}
@@ -672,7 +769,7 @@ export function CommunityProfileSection({
                               type="button"
                               size="icon"
                               variant="outline"
-                              disabled={isPending || orderedImages[0]?.id === image.id}
+                              disabled={isPending || orderedDraftImages[0]?.id === image.id}
                               onClick={() => void handleMoveImage(image.id, -1)}
                             >
                               <ChevronLeft className="h-4 w-4" />
@@ -681,7 +778,7 @@ export function CommunityProfileSection({
                               type="button"
                               size="icon"
                               variant="outline"
-                              disabled={isPending || orderedImages[orderedImages.length - 1]?.id === image.id}
+                              disabled={isPending || orderedDraftImages[orderedDraftImages.length - 1]?.id === image.id}
                               onClick={() => void handleMoveImage(image.id, 1)}
                             >
                               <ChevronRight className="h-4 w-4" />
@@ -743,6 +840,9 @@ export function CommunityProfileSection({
                   );
                 })}
               </div>
+              <p className="text-xs text-muted-foreground">
+                수정창에서 바꾼 사진은 저장을 눌러야 반영돼요.
+              </p>
             </div>
 
             {open && error ? (
@@ -753,7 +853,15 @@ export function CommunityProfileSection({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                cleanupDraftPreviewUrls(draftImages);
+                setDraftImages([]);
+                setOpen(false);
+              }}
+            >
               닫기
             </Button>
             <Button
@@ -785,13 +893,39 @@ export function CommunityProfileSection({
         }}
         onConfirm={async (file, flags) => {
           if (!editorState) return;
-          await uploadSelectedImage(editorState.imageOrder, file, flags);
+          const previewUrl = URL.createObjectURL(file);
+          setDraftImages((current) => {
+            const replacedImage = current.find((image) => image.imageOrder === editorState.imageOrder);
+            if (replacedImage?.localPreviewUrl) {
+              URL.revokeObjectURL(replacedImage.localPreviewUrl);
+            }
+            const filtered = current.filter((image) => image.imageOrder !== editorState.imageOrder);
+            return withSinglePrimary(
+              filtered.concat({
+                id: crypto.randomUUID(),
+                userId: currentUser.id,
+                imagePath: "",
+                imageOrder: editorState.imageOrder as 1 | 2 | 3,
+                isPrimary: filtered.every((image) => !image.isPrimary),
+                moderationStatus: flags.sensitiveTextDetected || flags.qrDetected ? "pending" : "approved",
+                moderationReason:
+                  flags.sensitiveTextDetected || flags.qrDetected
+                    ? "연락처, SNS, QR, 학생증 등 개인정보가 포함된 것으로 보여 검토 후 공개됩니다."
+                    : undefined,
+                imageUrl: previewUrl,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                localFile: file,
+                localPreviewUrl: previewUrl,
+              }),
+            );
+          });
           setEditorState(null);
         }}
       />
       <ProfileImageViewerDialog
         open={viewerIndex !== null}
-        images={viewableImages}
+        images={open ? viewableDraftImages : viewableImages}
         initialIndex={viewerIndex ?? 0}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {

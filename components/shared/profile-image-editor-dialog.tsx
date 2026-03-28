@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RotateCcw, ScanFace, Sparkles } from "lucide-react";
+import { Loader2, RotateCcw, ScanFace, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,6 @@ import {
 import {
   applyBlurToFaces,
   applyStickerToFaces,
-  buildManualCoverBoxes,
   validateImageBeforeUpload,
 } from "@/lib/profile-image-processing";
 import type { FaceBox, StickerType } from "@/lib/profile-image-processing";
@@ -50,6 +49,7 @@ type PreviewMetrics = {
 };
 
 type DragState = {
+  mode: "move" | "resize";
   pointerId: number;
   boxIndex: number;
   startClientX: number;
@@ -78,7 +78,6 @@ export function ProfileImageEditorDialog({
   const [stickerType, setStickerType] = useState<StickerType>("smile");
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAutoApplied, setHasAutoApplied] = useState(false);
-  const [manualCoverBoxes, setManualCoverBoxes] = useState<FaceBox[]>([]);
   const [editableBoxes, setEditableBoxes] = useState<FaceBox[]>([]);
   const [maskMode, setMaskMode] = useState<MaskMode | null>(null);
   const [imageMetrics, setImageMetrics] = useState<ImageMetrics | null>(null);
@@ -94,7 +93,6 @@ export function ProfileImageEditorDialog({
     setStickerType("smile");
     setIsProcessing(false);
     setHasAutoApplied(Boolean(initialProcessedFile));
-    setManualCoverBoxes([]);
     setEditableBoxes(faceBoxes);
     setMaskMode(initialProcessedFile ? { kind: "blur" } : null);
     setImageMetrics(null);
@@ -136,7 +134,7 @@ export function ProfileImageEditorDialog({
 
   const hasDetectedFaces = faceBoxes.length > 0;
   const hasSensitiveWarning = sensitiveTextDetected || qrDetected;
-  const canMask = editableBoxes.length > 0;
+  const canMask = hasDetectedFaces && editableBoxes.length > 0;
   const confirmLabel = hasSensitiveWarning && !hasDetectedFaces ? "검토 후 업로드" : "이 이미지 업로드";
 
   const syncPreviewMetrics = useCallback(() => {
@@ -156,44 +154,10 @@ export function ProfileImageEditorDialog({
   }, []);
 
   useEffect(() => {
-    if (!open || !file || hasDetectedFaces || manualCoverBoxes.length > 0) {
-      return;
-    }
-
-    let active = true;
-
-    void (async () => {
-      try {
-        const nextBoxes = await buildManualCoverBoxes(file);
-        if (!active) {
-          return;
-        }
-        setManualCoverBoxes(nextBoxes);
-        setEditableBoxes(nextBoxes);
-      } catch {
-        if (!active) {
-          return;
-        }
-        setManualCoverBoxes([]);
-        setEditableBoxes([]);
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [file, hasDetectedFaces, manualCoverBoxes.length, open]);
-
-  useEffect(() => {
     if (hasDetectedFaces) {
       setEditableBoxes(faceBoxes);
-      return;
     }
-
-    if (manualCoverBoxes.length > 0) {
-      setEditableBoxes(manualCoverBoxes);
-    }
-  }, [faceBoxes, hasDetectedFaces, manualCoverBoxes]);
+  }, [faceBoxes, hasDetectedFaces]);
 
   useEffect(() => {
     if (!open || !file || !hasDetectedFaces || processedFile || initialProcessedFile || hasAutoApplied) {
@@ -296,6 +260,30 @@ export function ProfileImageEditorDialog({
     }
 
     setDragState({
+      mode: "move",
+      pointerId: event.pointerId,
+      boxIndex: index,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startBox: nextBox,
+    });
+  }
+
+  function handleResizePointerDown(index: number, event: React.PointerEvent<HTMLElement>) {
+    if (!imageMetrics || !previewMetrics) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const nextBox = editableBoxes[index];
+    if (!nextBox) {
+      return;
+    }
+
+    setDragState({
+      mode: "resize",
       pointerId: event.pointerId,
       boxIndex: index,
       startClientX: event.clientX,
@@ -323,8 +311,15 @@ export function ProfileImageEditorDialog({
 
         return {
           ...box,
-          x: clamp(dragState.startBox.x + deltaX, 0, imageMetrics.width - dragState.startBox.width),
-          y: clamp(dragState.startBox.y + deltaY, 0, imageMetrics.height - dragState.startBox.height),
+          ...(dragState.mode === "move"
+            ? {
+                x: clamp(dragState.startBox.x + deltaX, 0, imageMetrics.width - dragState.startBox.width),
+                y: clamp(dragState.startBox.y + deltaY, 0, imageMetrics.height - dragState.startBox.height),
+              }
+            : {
+                width: clamp(dragState.startBox.width + deltaX, 24, imageMetrics.width - dragState.startBox.x),
+                height: clamp(dragState.startBox.height + deltaY, 24, imageMetrics.height - dragState.startBox.y),
+              }),
         };
       }),
     );
@@ -401,12 +396,6 @@ export function ProfileImageEditorDialog({
             </div>
           ) : null}
 
-          {!hasDetectedFaces && canMask ? (
-            <div className="rounded-[20px] border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">
-              얼굴을 자동으로 찾지 못했어요. 필요하면 아래 버튼으로 직접 가려서 업로드할 수 있어요.
-            </div>
-          ) : null}
-
           {hasDetectedFaces && processedPreviewUrl ? (
             <div className="rounded-[20px] border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
               얼굴을 자동으로 가린 이미지를 준비했어요. 그대로 올리거나 스티커로 다시 가릴 수 있어요.
@@ -463,7 +452,7 @@ export function ProfileImageEditorDialog({
                 ))}
               </div>
               <p className="text-xs leading-5 text-muted-foreground">
-                가림 영역을 눌러 끌면 위치를 조절할 수 있어요. 스티커 버튼을 누르면 바로 적용됩니다.
+                가림 영역을 끌어 위치를 옮기고, 우하단 점을 끌어 크기를 조절할 수 있어요.
               </p>
             </div>
           ) : null}
@@ -521,6 +510,13 @@ export function ProfileImageEditorDialog({
                           <span className="pointer-events-none absolute inset-x-2 bottom-2 rounded-full bg-black/45 px-2 py-1 text-[10px] font-medium text-white">
                             위치 조절
                           </span>
+                          <div
+                            className="absolute bottom-2 right-2 h-5 w-5 rounded-full border border-white/70 bg-black/50"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="가림 크기 조절"
+                            onPointerDown={(event) => handleResizePointerDown(index, event)}
+                          />
                         </button>
                       ))}
                     </div>
@@ -535,15 +531,31 @@ export function ProfileImageEditorDialog({
                   가려진 이미지
                 </p>
                 <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
-                  <div className="aspect-[0.92] w-full">
+                  <div className="relative aspect-[0.92] w-full">
                     {processedPreviewUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={processedPreviewUrl}
-                      alt="편집 미리보기"
-                      className="h-full w-full object-contain"
-                    />
-                  ) : isProcessing ? (
+                      <>
+                        <img
+                          src={processedPreviewUrl}
+                          alt="편집 미리보기"
+                          className="h-full w-full object-contain"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="secondary"
+                          className="absolute right-3 top-3 h-8 w-8 rounded-full"
+                          disabled={isProcessing}
+                          onClick={() => {
+                            setProcessedFile(null);
+                            setMaskMode(null);
+                            setError(null);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : isProcessing ? (
                       <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-muted-foreground">
                         <Loader2 className="h-5 w-5 animate-spin" />
                         <span>가린 이미지를 만드는 중이에요.</span>
