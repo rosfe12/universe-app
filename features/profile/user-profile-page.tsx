@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { blockUser, getUserProfile, reportProfile, unblockUser } from "@/app/actions/profile-actions";
 import { AppShell } from "@/components/layout/app-shell";
@@ -42,6 +43,7 @@ export function UserProfilePage({
   initialProfile?: CommunityProfile;
   initialProfileError?: string;
 }) {
+  const router = useRouter();
   const { currentUser, isAuthenticated, loading } = useAppRuntime(initialSnapshot, "chrome");
   const [profile, setProfile] = useState<CommunityProfile | null>(initialProfile ?? null);
   const [profileLoading, setProfileLoading] = useState(!initialProfile && !initialProfileError);
@@ -66,6 +68,25 @@ export function UserProfilePage({
     const nextIndex = viewableImages.findIndex((image) => image.id === imageId);
     if (nextIndex < 0) return;
     setViewerIndex(nextIndex);
+  }
+
+  function handleBack() {
+    if (typeof window === "undefined") {
+      router.push("/home");
+      return;
+    }
+
+    const canGoBack =
+      window.history.length > 1 &&
+      typeof document.referrer === "string" &&
+      document.referrer.startsWith(window.location.origin);
+
+    if (canGoBack) {
+      router.back();
+      return;
+    }
+
+    router.push("/home");
   }
 
   useEffect(() => {
@@ -122,11 +143,9 @@ export function UserProfilePage({
         title="프로필"
         showTopNavActions={false}
         topAction={
-          <Button asChild size="sm" variant="outline">
-            <Link href="/community">
-              <ChevronLeft className="h-4 w-4" />
-              돌아가기
-            </Link>
+          <Button type="button" size="sm" variant="outline" onClick={handleBack}>
+            <ChevronLeft className="h-4 w-4" />
+            돌아가기
           </Button>
         }
       >
@@ -174,11 +193,9 @@ export function UserProfilePage({
       title="프로필"
       showTopNavActions={false}
       topAction={
-        <Button asChild size="sm" variant="outline">
-          <Link href="/community">
-            <ChevronLeft className="h-4 w-4" />
-            돌아가기
-          </Link>
+        <Button type="button" size="sm" variant="outline" onClick={handleBack}>
+          <ChevronLeft className="h-4 w-4" />
+          돌아가기
         </Button>
       }
     >
