@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CAMVERSE</string>
+    <string name="title_activity_main">CAMVERSE</string>
+    <string name="package_name">kr.universeapp.camverse</string>
+    <string name="custom_url_scheme">kr.universeapp.camverse</string>
+</resources>
