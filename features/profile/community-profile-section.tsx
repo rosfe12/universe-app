@@ -147,8 +147,10 @@ export function CommunityProfileSection({
   } | null>(null);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [draftImages, setDraftImages] = useState<DraftProfileImage[]>([]);
+  const [activeImageOrder, setActiveImageOrder] = useState<1 | 2 | 3>(1);
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const skipDiscardConfirmRef = useRef(false);
+  const swipeStartXRef = useRef<number | null>(null);
   const supportsNativeCamera = Capacitor.isNativePlatform();
 
   const orderedImages = useMemo(
@@ -317,6 +319,7 @@ export function CommunityProfileSection({
     cleanupDraftPreviewUrls(draftImages);
     setFormState(buildProfileFormState(profile));
     setDraftImages(cloneDraftImages(profile.images));
+    setActiveImageOrder(1);
     setOpen(true);
   }
 
@@ -328,6 +331,7 @@ export function CommunityProfileSection({
     cleanupDraftPreviewUrls(draftImages);
     setFormState(buildProfileFormState(profile));
     setDraftImages(cloneDraftImages(profile.images));
+    setActiveImageOrder(1);
     setError(null);
     setUploadError(null);
   }
@@ -350,6 +354,37 @@ export function CommunityProfileSection({
     }
 
     fileInputRefs.current[order]?.click();
+  }
+
+  function moveActiveImageTab(direction: -1 | 1) {
+    setActiveImageOrder((current) => {
+      const next = current + direction;
+      if (next < 1 || next > 3) {
+        return current;
+      }
+      return next as 1 | 2 | 3;
+    });
+  }
+
+  function handleImagePanelTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    swipeStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+  }
+
+  function handleImagePanelTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    const startX = swipeStartXRef.current;
+    const endX = event.changedTouches[0]?.clientX ?? null;
+    swipeStartXRef.current = null;
+
+    if (startX === null || endX === null) {
+      return;
+    }
+
+    const deltaX = endX - startX;
+    if (Math.abs(deltaX) < 36) {
+      return;
+    }
+
+    moveActiveImageTab(deltaX < 0 ? 1 : -1);
   }
 
   async function handleSave() {
@@ -855,12 +890,42 @@ export function CommunityProfileSection({
                   {uploadError}
                 </div>
               ) : null}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {Array.from({ length: 3 }, (_, index) => {
-                  const order = index + 1;
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  {([1, 2, 3] as const).map((order) => {
+                    const image = draftImageByOrder.get(order);
+                    const active = activeImageOrder === order;
+
+                    return (
+                      <Button
+                        key={order}
+                        type="button"
+                        variant={active ? "secondary" : "outline"}
+                        className="h-10 justify-between rounded-full px-3 text-xs"
+                        onClick={() => setActiveImageOrder(order)}
+                      >
+                        <span>사진 {order}</span>
+                        {image?.isPrimary ? <Badge variant="success">대표</Badge> : null}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                {([1, 2, 3] as const).map((order) => {
                   const image = draftImageByOrder.get(order);
+                  const active = activeImageOrder === order;
+
+                  if (!active) {
+                    return null;
+                  }
+
                   return (
-                    <div key={order} className="space-y-3 rounded-[22px] border border-white/10 bg-slate-950/10 p-3">
+                    <div
+                      key={order}
+                      className="space-y-3 rounded-[22px] border border-white/10 bg-slate-950/10 p-3"
+                      onTouchStart={handleImagePanelTouchStart}
+                      onTouchEnd={handleImagePanelTouchEnd}
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-foreground">
@@ -1042,6 +1107,27 @@ export function CommunityProfileSection({
                           ) : null}
                         </div>
                       ) : null}
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-1 disabled:opacity-40"
+                          disabled={order === 1}
+                          onClick={() => moveActiveImageTab(-1)}
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                          이전 사진
+                        </button>
+                        <span>{order} / 3</span>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-1 disabled:opacity-40"
+                          disabled={order === 3}
+                          onClick={() => moveActiveImageTab(1)}
+                        >
+                          다음 사진
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                       <p className="text-[11px] text-muted-foreground">JPG · PNG · WEBP · HEIC · 5MB 이하</p>
                       {uploadingOrder === order ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
