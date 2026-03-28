@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RotateCcw, ScanFace, Sparkles, X } from "lucide-react";
+import { ArrowDownRight, Loader2, Move, RotateCcw, ScanFace, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -501,7 +501,7 @@ export function ProfileImageEditorDialog({
                 </div>
               </div>
               <p className="text-xs leading-5 text-muted-foreground">
-                가림 영역을 끌어 위치를 옮기고, 우하단 점을 끌어 크기를 조절할 수 있어요.
+                박스를 끌어 이동하고, 우하단 아이콘으로 크기를 조절할 수 있어요.
               </p>
             </div>
           ) : null}
@@ -556,16 +556,18 @@ export function ProfileImageEditorDialog({
                           }}
                           onPointerDown={(event) => handleBoxPointerDown(index, event)}
                         >
-                          <span className="pointer-events-none absolute inset-x-2 bottom-2 rounded-full bg-black/45 px-2 py-1 text-[10px] font-medium text-white">
-                            위치 조절
+                          <span className="pointer-events-none absolute left-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white shadow-sm">
+                            <Move className="h-3.5 w-3.5" />
                           </span>
                           <div
-                            className="absolute bottom-2 right-2 h-5 w-5 rounded-full border border-white/70 bg-black/50"
+                            className="absolute bottom-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-black/55 text-white shadow-sm"
                             role="button"
                             tabIndex={0}
                             aria-label="가림 크기 조절"
                             onPointerDown={(event) => handleResizePointerDown(index, event)}
-                          />
+                          >
+                            <ArrowDownRight className="h-3.5 w-3.5" />
+                          </div>
                         </button>
                       ))}
                     </div>

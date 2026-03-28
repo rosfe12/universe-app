@@ -282,6 +282,29 @@ async function createOutputFile(
   });
 }
 
+function traceRoundedRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  const appliedRadius = Math.min(radius, width / 2, height / 2);
+
+  context.beginPath();
+  context.moveTo(x + appliedRadius, y);
+  context.lineTo(x + width - appliedRadius, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + appliedRadius);
+  context.lineTo(x + width, y + height - appliedRadius);
+  context.quadraticCurveTo(x + width, y + height, x + width - appliedRadius, y + height);
+  context.lineTo(x + appliedRadius, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - appliedRadius);
+  context.lineTo(x, y + appliedRadius);
+  context.quadraticCurveTo(x, y, x + appliedRadius, y);
+  context.closePath();
+}
+
 export async function detectFaceInImage(file: File): Promise<FaceBox[]> {
   const detectionInput = await renderDetectionInput(file);
   const faceDetectorCtor = typeof window !== "undefined" ? window.FaceDetector : undefined;
@@ -398,28 +421,84 @@ export async function prepareProfileImageForUpload(file: File) {
 
 export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
   const { canvas, context, scaleX, scaleY } = await renderBaseCanvas(file);
+  const sourceCanvas = document.createElement("canvas");
+  sourceCanvas.width = canvas.width;
+  sourceCanvas.height = canvas.height;
+  const sourceContext = sourceCanvas.getContext("2d");
+
+  if (!sourceContext) {
+    throw new Error("흐림 처리를 시작하지 못했습니다.");
+  }
+
+  sourceContext.drawImage(canvas, 0, 0);
 
   for (const faceBox of faceBoxes) {
-    const x = Math.max(0, Math.floor(faceBox.x * scaleX));
-    const y = Math.max(0, Math.floor(faceBox.y * scaleY));
-    const width = Math.max(24, Math.ceil(faceBox.width * scaleX));
-    const height = Math.max(24, Math.ceil(faceBox.height * scaleY));
+    const baseX = Math.max(0, Math.floor(faceBox.x * scaleX));
+    const baseY = Math.max(0, Math.floor(faceBox.y * scaleY));
+    const baseWidth = Math.max(24, Math.ceil(faceBox.width * scaleX));
+    const baseHeight = Math.max(24, Math.ceil(faceBox.height * scaleY));
 
-    const sampleCanvas = document.createElement("canvas");
-    sampleCanvas.width = Math.max(1, Math.round(width / 18));
-    sampleCanvas.height = Math.max(1, Math.round(height / 18));
-    const sampleContext = sampleCanvas.getContext("2d");
+    const paddingX = Math.max(18, Math.round(baseWidth * 0.2));
+    const paddingY = Math.max(18, Math.round(baseHeight * 0.24));
 
-    if (!sampleContext) {
+    const x = Math.max(0, baseX - paddingX);
+    const y = Math.max(0, baseY - paddingY);
+    const width = Math.min(canvas.width - x, baseWidth + paddingX * 2);
+    const height = Math.min(canvas.height - y, baseHeight + paddingY * 2);
+
+    const pixelCanvas = document.createElement("canvas");
+    pixelCanvas.width = Math.max(1, Math.round(width / 10));
+    pixelCanvas.height = Math.max(1, Math.round(height / 10));
+    const pixelContext = pixelCanvas.getContext("2d");
+
+    if (!pixelContext) {
       throw new Error("흐림 처리를 시작하지 못했습니다.");
     }
 
-    sampleContext.drawImage(canvas, x, y, width, height, 0, 0, sampleCanvas.width, sampleCanvas.height);
-    context.imageSmoothingEnabled = false;
-    context.drawImage(sampleCanvas, 0, 0, sampleCanvas.width, sampleCanvas.height, x, y, width, height);
-    context.imageSmoothingEnabled = true;
-    context.fillStyle = "rgba(15, 23, 42, 0.28)";
+    pixelContext.drawImage(sourceCanvas, x, y, width, height, 0, 0, pixelCanvas.width, pixelCanvas.height);
+
+    const pixelatedCanvas = document.createElement("canvas");
+    pixelatedCanvas.width = width;
+    pixelatedCanvas.height = height;
+    const pixelatedContext = pixelatedCanvas.getContext("2d");
+
+    if (!pixelatedContext) {
+      throw new Error("흐림 처리를 시작하지 못했습니다.");
+    }
+
+    pixelatedContext.imageSmoothingEnabled = false;
+    pixelatedContext.drawImage(
+      pixelCanvas,
+      0,
+      0,
+      pixelCanvas.width,
+      pixelCanvas.height,
+      0,
+      0,
+      pixelatedCanvas.width,
+      pixelatedCanvas.height,
+    );
+
+    const blurredCanvas = document.createElement("canvas");
+    blurredCanvas.width = width;
+    blurredCanvas.height = height;
+    const blurredContext = blurredCanvas.getContext("2d");
+
+    if (!blurredContext) {
+      throw new Error("흐림 처리를 시작하지 못했습니다.");
+    }
+
+    const blurRadius = Math.max(26, Math.round(Math.max(width, height) * 0.12));
+    blurredContext.filter = `blur(${blurRadius}px) saturate(0.8)`;
+    blurredContext.drawImage(pixelatedCanvas, 0, 0);
+
+    context.save();
+    traceRoundedRect(context, x, y, width, height, Math.max(16, Math.round(Math.min(width, height) * 0.14)));
+    context.clip();
+    context.drawImage(blurredCanvas, x, y);
+    context.fillStyle = "rgba(15, 23, 42, 0.22)";
     context.fillRect(x, y, width, height);
+    context.restore();
   }
 
   return createOutputFile(canvas, "masked");
