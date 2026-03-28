@@ -34,7 +34,7 @@ import {
   parseInterestTokens,
   validateCommunityProfileImageFile,
 } from "@/lib/community-profile";
-import { validateImageBeforeUpload } from "@/lib/profile-image-processing";
+import { prepareProfileImageForUpload, validateImageBeforeUpload } from "@/lib/profile-image-processing";
 import type { FaceBox } from "@/lib/profile-image-processing";
 import type { CommunityProfile, ProfileVisibility, User } from "@/types";
 
@@ -491,11 +491,12 @@ export function CommunityProfileSection({
     setUploadingOrder(order);
     try {
       setUploadError(null);
-      validateCommunityProfileImageFile(file);
-      const analysis = await validateImageBeforeUpload(file);
+      const preparedFile = await prepareProfileImageForUpload(file);
+      validateCommunityProfileImageFile(preparedFile);
+      const analysis = await validateImageBeforeUpload(preparedFile);
       setEditorState({
         imageOrder: order,
-        file,
+        file: preparedFile,
         faceBoxes: analysis.faceBoxes,
         sensitiveTextDetected: analysis.sensitiveTextDetected,
         qrDetected: analysis.qrDetected,
@@ -920,7 +921,7 @@ export function CommunityProfileSection({
                           fileInputRefs.current[order] = node;
                         }}
                         type="file"
-                        accept="image/jpeg,image/png,image/webp"
+                        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
                         disabled={uploadingOrder === order || isPending}
                         hidden
                         aria-hidden="true"
@@ -943,7 +944,7 @@ export function CommunityProfileSection({
                           사진 업로드
                         </Button>
                       ) : null}
-                      <p className="text-[11px] text-muted-foreground">JPG · PNG · WEBP · 5MB 이하</p>
+                      <p className="text-[11px] text-muted-foreground">JPG · PNG · WEBP · HEIC · 5MB 이하</p>
                       {uploadingOrder === order ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Loader2 className="h-3 w-3 animate-spin" />

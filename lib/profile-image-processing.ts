@@ -1,3 +1,8 @@
+import {
+  MAX_PROFILE_IMAGE_BYTES,
+  PROFILE_IMAGE_ALLOWED_TYPES,
+} from "@/lib/community-profile";
+
 export type FaceBox = {
   x: number;
   y: number;
@@ -16,6 +21,12 @@ export type ImageValidationResult = {
 const MAX_OUTPUT_DIMENSION = 1600;
 const DEFAULT_OUTPUT_TYPE = "image/jpeg";
 const DEFAULT_OUTPUT_QUALITY = 0.9;
+const HIGH_EFFICIENCY_IMAGE_TYPES = [
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+] as const;
 
 type BrowserFaceDetector = {
   detect(input: ImageBitmapSource): Promise<Array<{ boundingBox: DOMRectReadOnly }>>;
@@ -46,6 +57,20 @@ async function loadImageElement(file: File) {
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
+}
+
+function isHighEfficiencyImage(file: File) {
+  return (
+    HIGH_EFFICIENCY_IMAGE_TYPES.includes(
+      file.type as (typeof HIGH_EFFICIENCY_IMAGE_TYPES)[number],
+    ) || /\.(heic|heif)$/i.test(file.name)
+  );
+}
+
+async function canvasToBlob(canvas: HTMLCanvasElement, quality: number) {
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, DEFAULT_OUTPUT_TYPE, quality);
+  });
 }
 
 export async function buildManualCoverBoxes(file: File): Promise<FaceBox[]> {
@@ -127,10 +152,11 @@ function keywordFaceBoxes(file: File, width: number, height: number): FaceBox[] 
   ];
 }
 
-async function createOutputFile(canvas: HTMLCanvasElement, suffix: "masked" | "stickered") {
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, DEFAULT_OUTPUT_TYPE, DEFAULT_OUTPUT_QUALITY);
-  });
+async function createOutputFile(
+  canvas: HTMLCanvasElement,
+  suffix: "masked" | "stickered" | "normalized",
+) {
+  const blob = await canvasToBlob(canvas, DEFAULT_OUTPUT_QUALITY);
 
   if (!blob) {
     throw new Error("편집한 이미지를 저장하지 못했습니다.");
@@ -193,6 +219,46 @@ export async function validateImageBeforeUpload(file: File): Promise<ImageValida
     sensitiveTextDetected,
     qrDetected,
   };
+}
+
+export async function prepareProfileImageForUpload(file: File) {
+  const alreadySupported = PROFILE_IMAGE_ALLOWED_TYPES.includes(
+    file.type as (typeof PROFILE_IMAGE_ALLOWED_TYPES)[number],
+  );
+  if (alreadySupported && file.size <= MAX_PROFILE_IMAGE_BYTES) {
+    return file;
+  }
+
+  try {
+    const { canvas } = await renderBaseCanvas(file);
+
+    let quality = DEFAULT_OUTPUT_QUALITY;
+    let blob = await canvasToBlob(canvas, quality);
+
+    while (blob && blob.size > MAX_PROFILE_IMAGE_BYTES && quality > 0.45) {
+      quality -= 0.1;
+      blob = await canvasToBlob(canvas, quality);
+    }
+
+    if (!blob) {
+      throw new Error("이미지를 준비하지 못했습니다.");
+    }
+
+    if (blob.size > MAX_PROFILE_IMAGE_BYTES) {
+      throw new Error("프로필 사진은 5MB 이하만 업로드할 수 있습니다.");
+    }
+
+    return new File([blob], `profile-normalized-${Date.now()}.jpg`, {
+      type: DEFAULT_OUTPUT_TYPE,
+      lastModified: Date.now(),
+    });
+  } catch (cause) {
+    if (isHighEfficiencyImage(file)) {
+      throw new Error("HEIC 사진을 처리하지 못했습니다. 사진 앱에서 JPG로 저장하거나 스크린샷으로 다시 올려주세요.");
+    }
+
+    throw cause instanceof Error ? cause : new Error("이미지를 준비하지 못했습니다.");
+  }
 }
 
 export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
