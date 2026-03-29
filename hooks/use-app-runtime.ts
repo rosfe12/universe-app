@@ -60,6 +60,20 @@ function getPrewarmScopes(
   }
 }
 
+function getPrewarmDelayMs(scope: RuntimeSnapshotScope) {
+  switch (scope) {
+    case "home":
+    case "community":
+    case "school":
+    case "trade":
+    case "messages":
+    case "notifications":
+      return 2400;
+    default:
+      return 1200;
+  }
+}
+
 export function useAppRuntime(
   initialSnapshot?: AppRuntimeSnapshot,
   scope: RuntimeSnapshotScope = "full",
@@ -224,6 +238,7 @@ export function useAppRuntime(
       scopes.filter((candidate) => candidate !== scope),
       {
         key: `${snapshot.isAuthenticated ? "auth" : "guest"}:${snapshot.currentUser.id}:${scope}`,
+        delayMs: getPrewarmDelayMs(scope),
       },
     );
   }, [loading, scope, snapshot.currentUser.id, snapshot.isAuthenticated, snapshot.source]);

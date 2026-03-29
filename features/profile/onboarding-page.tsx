@@ -36,7 +36,7 @@ import {
   getStudentVerificationBadge,
 } from "@/lib/user-identity";
 import { getVerificationRestrictionMessage } from "@/lib/student-verification";
-import type { StudentVerification } from "@/types";
+import type { AppRuntimeSnapshot, StudentVerification } from "@/types";
 
 const onboardingSchema = z.object({
   userType: z.enum(["student", "applicant", "freshman"]),
@@ -102,12 +102,16 @@ const onboardingSchema = z.object({
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
-export function OnboardingPage() {
+export function OnboardingPage({
+  initialSnapshot,
+}: {
+  initialSnapshot?: AppRuntimeSnapshot;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/home";
   const isVerificationMode = searchParams.get("mode") === "verification";
-  const { currentUser, schools, loading, isAuthenticated, refresh } = useAppRuntime(undefined, "chrome");
+  const { currentUser, schools, loading, isAuthenticated, refresh } = useAppRuntime(initialSnapshot, "chrome");
   const [pending, setPending] = useState(false);
   const [verificationRequestPending, setVerificationRequestPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");

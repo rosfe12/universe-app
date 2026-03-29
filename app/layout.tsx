@@ -35,6 +35,49 @@ const serviceWorkerRegisterScript = `
 })();
 `;
 
+const bootSplashBypassScript = `
+(() => {
+  const pathname = window.location.pathname || "/";
+  const shouldSkipSplash =
+    pathname === "/" ||
+    pathname === "/home" ||
+    pathname.startsWith("/home/") ||
+    pathname === "/community" ||
+    pathname.startsWith("/community/") ||
+    pathname === "/school" ||
+    pathname.startsWith("/school/") ||
+    pathname === "/trade" ||
+    pathname.startsWith("/trade/") ||
+    pathname === "/notifications" ||
+    pathname.startsWith("/notifications/") ||
+    pathname === "/messages" ||
+    pathname.startsWith("/messages/") ||
+    pathname === "/dating" ||
+    pathname.startsWith("/dating/") ||
+    pathname === "/lectures" ||
+    pathname.startsWith("/lectures/") ||
+    pathname === "/profile" ||
+    pathname.startsWith("/profile/");
+
+  if (!shouldSkipSplash) {
+    return;
+  }
+
+  const hideSplash = () => {
+    const splash = document.getElementById("app-boot-splash");
+    if (!splash) {
+      return;
+    }
+    splash.style.opacity = "0";
+    splash.style.display = "none";
+    splash.setAttribute("aria-hidden", "true");
+  };
+
+  hideSplash();
+  window.requestAnimationFrame(hideSplash);
+})();
+`;
+
 export const metadata: Metadata = {
   applicationName: "CAMVERSE",
   title: "CAMVERSE",
@@ -92,6 +135,7 @@ export default function RootLayout({
       </head>
       <body>
         <LaunchScreen id="app-boot-splash" fixed />
+        <script dangerouslySetInnerHTML={{ __html: bootSplashBypassScript }} />
         <Script id="theme-boot" strategy="beforeInteractive">
           {themeBootScript}
         </Script>

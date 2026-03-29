@@ -1,18 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { Capacitor } from "@capacitor/core";
-import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
-import { SplashScreen } from "@capacitor/splash-screen";
-import { StatusBar, Style } from "@capacitor/status-bar";
-
-import {
-  bindNativePushAuthSync,
-  initializeNativePushNotifications,
-  removeNativePushListeners,
-  requestNativePushPermissionAndRegister,
-} from "@/lib/native-push";
-import { ensureSupabaseSessionReady } from "@/lib/supabase/client";
 
 function waitForNextPaint() {
   return new Promise<void>((resolve) => {
@@ -43,13 +31,35 @@ async function waitForBootSplashReady() {
 
 export function NativeAppSetup() {
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
-      return;
-    }
-
-    const pushSubscription = bindNativePushAuthSync();
+    let active = true;
+    let unsubscribePushSync = () => {};
+    let removePushListeners = async () => {};
 
     void (async () => {
+      const [
+        { Capacitor },
+        { Keyboard, KeyboardResize },
+        { SplashScreen },
+        { StatusBar, Style },
+        nativePushModule,
+        { ensureSupabaseSessionReady },
+      ] = await Promise.all([
+        import("@capacitor/core"),
+        import("@capacitor/keyboard"),
+        import("@capacitor/splash-screen"),
+        import("@capacitor/status-bar"),
+        import("@/lib/native-push"),
+        import("@/lib/supabase/client"),
+      ]);
+
+      if (!active || !Capacitor.isNativePlatform()) {
+        return;
+      }
+
+      const pushSubscription = nativePushModule.bindNativePushAuthSync();
+      unsubscribePushSync = () => pushSubscription.unsubscribe();
+      removePushListeners = nativePushModule.removeNativePushListeners;
+
       try {
         await StatusBar.setOverlaysWebView({ overlay: false });
         await StatusBar.setBackgroundColor({ color: "#0F172A" });
@@ -66,17 +76,18 @@ export function NativeAppSetup() {
       } catch {}
 
       try {
-        await initializeNativePushNotifications();
+        await nativePushModule.initializeNativePushNotifications();
         const session = await ensureSupabaseSessionReady();
         if (session?.user) {
-          await requestNativePushPermissionAndRegister();
+          await nativePushModule.requestNativePushPermissionAndRegister();
         }
       } catch {}
     })();
 
     return () => {
-      pushSubscription.unsubscribe();
-      void removeNativePushListeners();
+      active = false;
+      unsubscribePushSync();
+      void removePushListeners();
     };
   }, []);
 

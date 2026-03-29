@@ -100,7 +100,11 @@ async function waitForAuthenticatedSnapshot(
   return nextSnapshot;
 }
 
-export function LoginPage() {
+export function LoginPage({
+  initialSnapshot,
+}: {
+  initialSnapshot?: AppRuntimeSnapshot;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/home";
@@ -111,7 +115,7 @@ export function LoginPage() {
   const schoolVerificationExpired = searchParams.get("schoolVerificationExpired") === "1";
   const schoolVerificationFailed = searchParams.get("schoolVerificationFailed") === "1";
   const signupConfirmed = searchParams.get("signupConfirmed") === "1";
-  const { currentUser, isAuthenticated, loading, refresh } = useAppRuntime(undefined, "chrome");
+  const { currentUser, isAuthenticated, loading, refresh } = useAppRuntime(initialSnapshot, "chrome");
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
