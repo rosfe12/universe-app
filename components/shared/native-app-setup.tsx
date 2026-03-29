@@ -14,6 +14,33 @@ import {
 } from "@/lib/native-push";
 import { ensureSupabaseSessionReady } from "@/lib/supabase/client";
 
+function waitForNextPaint() {
+  return new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  });
+}
+
+async function waitForBootSplashReady() {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return;
+  }
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 3000) {
+    const bootSplash = document.getElementById("app-boot-splash");
+    if (bootSplash) {
+      await waitForNextPaint();
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 16);
+    });
+  }
+}
+
 export function NativeAppSetup() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
@@ -34,6 +61,7 @@ export function NativeAppSetup() {
       } catch {}
 
       try {
+        await waitForBootSplashReady();
         await SplashScreen.hide();
       } catch {}
 

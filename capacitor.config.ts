@@ -5,6 +5,16 @@ const config: CapacitorConfig = {
   appName: process.env.CAPACITOR_APP_NAME?.trim() || "CAMVERSE",
   webDir: "mobile-shell",
   backgroundColor: "#0F172A",
+  plugins: {
+    SplashScreen: {
+      launchAutoHide: false,
+      backgroundColor: "#0F172A",
+      showSpinner: false,
+      androidScaleType: "CENTER_CROP",
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+  },
   loggingBehavior: process.env.NODE_ENV === "production" ? "none" : "debug",
   server: {
     url: process.env.CAPACITOR_SERVER_URL?.trim() || "https://www.universeapp.kr",
