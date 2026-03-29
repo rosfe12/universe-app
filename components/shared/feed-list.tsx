@@ -10,7 +10,7 @@ export function FeedList({
   return (
     <div
       className={cn(
-        "app-section-surface overflow-hidden rounded-[26px]",
+        "app-section-surface overflow-hidden rounded-[26px] p-2",
         className,
       )}
     >

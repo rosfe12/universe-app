@@ -144,11 +144,11 @@ export function FeedPostCard({
   );
 
   return (
-    <article className="border-b border-gray-100 last:border-b-0">
+    <article className="group py-1.5 first:pt-1 last:pb-1">
       <div
         className={cn(
-          "space-y-4 px-4 py-4 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-white/5",
-          featured && "px-5 py-5",
+          "space-y-4 rounded-[24px] border border-white/8 bg-slate-950/[0.04] px-4 py-4 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.9)] transition-all duration-150 group-hover:border-white/14 group-hover:bg-slate-950/[0.06] dark:bg-white/[0.03] dark:group-hover:bg-white/[0.05]",
+          featured && "rounded-[26px] px-5 py-5",
           dense && "space-y-3 py-3.5",
         )}
       >
@@ -167,7 +167,7 @@ export function FeedPostCard({
           hideUserLevel={Boolean(officialStarter)}
         />
         {interactiveContent}
-        <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 border-t border-white/8 pt-3 text-sm text-muted-foreground">
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1">
               <Eye className="h-4 w-4" />
@@ -201,7 +201,7 @@ export function FeedPostCard({
           ) : null}
         </div>
         {post.tags?.length ? (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 border-t border-white/8 pt-3">
             {post.tags.slice(0, 3).map((tag) => (
               <Badge key={tag} variant="secondary" className={cn("text-[10px]")}>
                 {tag}
