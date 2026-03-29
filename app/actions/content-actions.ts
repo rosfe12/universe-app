@@ -1558,11 +1558,15 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
     }
 
     if (tradePost.status === "open") {
-      await admin
+      const { error: tradeStatusError } = await admin
         .from("trade_posts")
-        .update({ status: "matching" })
+        .update({ status: "matched" })
         .eq("id", values.tradePostId)
         .eq("status", "open");
+
+      if (tradeStatusError) {
+        throw new Error(tradeStatusError.message);
+      }
     }
 
     try {
