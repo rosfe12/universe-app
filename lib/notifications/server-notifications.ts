@@ -5,6 +5,7 @@ import {
   env,
   hasApnsPushConfig,
   hasFirebasePushConfig,
+  hasNativePushServerConfig,
   isNativePushEnabled,
 } from "@/lib/env";
 import { logServerEvent } from "@/lib/ops";
@@ -396,7 +397,7 @@ export async function deliverNativePushNotifications(
     admin?: ReturnType<typeof createAdminSupabaseClient>;
   },
 ) {
-  if (!isNativePushEnabled()) {
+  if (!isNativePushEnabled() || !hasNativePushServerConfig()) {
     return;
   }
 

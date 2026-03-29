@@ -13,6 +13,14 @@ function parseFlag(value) {
   return ["1", "true", "yes", "on"].includes(String(value).trim().toLowerCase());
 }
 
+function parseOptionalFlag(value) {
+  if (!value || String(value).trim().length === 0) {
+    return null;
+  }
+
+  return parseFlag(value);
+}
+
 function resolveAppUrl() {
   return (
     process.env.SUPABASE_AUTH_SITE_URL ||
@@ -54,8 +62,9 @@ function hasSmtpConfig() {
 }
 
 function hasNativePushConfig() {
+  const enabled = parseOptionalFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED) ?? true;
   return Boolean(
-    parseFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED) &&
+    enabled &&
       process.env.FIREBASE_PROJECT_ID &&
       process.env.FIREBASE_CLIENT_EMAIL &&
       process.env.FIREBASE_PRIVATE_KEY,
@@ -63,8 +72,9 @@ function hasNativePushConfig() {
 }
 
 function hasApnsPushConfig() {
+  const enabled = parseOptionalFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED) ?? true;
   return Boolean(
-    parseFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED) &&
+    enabled &&
       process.env.APNS_TEAM_ID &&
       process.env.APNS_KEY_ID &&
       process.env.APNS_PRIVATE_KEY &&
@@ -72,8 +82,21 @@ function hasApnsPushConfig() {
   );
 }
 
+function hasAndroidGoogleServicesEnvConfig() {
+  if (process.env.GOOGLE_SERVICES_JSON || process.env.GOOGLE_SERVICES_JSON_BASE64) {
+    return true;
+  }
+
+  return Boolean(
+    process.env.FIREBASE_ANDROID_PROJECT_NUMBER &&
+      (process.env.FIREBASE_ANDROID_PROJECT_ID || process.env.FIREBASE_PROJECT_ID) &&
+      process.env.FIREBASE_ANDROID_API_KEY &&
+      process.env.FIREBASE_ANDROID_APP_ID,
+  );
+}
+
 function hasAndroidGoogleServices() {
-  return existsSync("android/app/google-services.json");
+  return existsSync("android/app/google-services.json") || hasAndroidGoogleServicesEnvConfig();
 }
 
 function isDeployedRuntime() {
@@ -112,7 +135,8 @@ async function main() {
   const appUrl = resolveAppUrl();
   const redirectUrls = resolveRedirectUrls();
   const googleEnabled = parseFlag(process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED);
-  const nativePushEnabled = parseFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED);
+  const nativePushConfigured = parseOptionalFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED);
+  const nativePushEnabled = nativePushConfigured ?? true;
   const isLocalAppUrl = /^https?:\/\/(127\.0\.0\.1|localhost)/.test(appUrl);
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "";
   const supportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL || "";
@@ -177,16 +201,31 @@ async function main() {
 
   if (nativePushEnabled) {
     if (!hasNativePushConfig()) {
-      throw new Error("네이티브 푸시 활성화 시 Firebase 서버 설정이 필요합니다.");
+      if (nativePushConfigured !== null || isDeployedRuntime()) {
+        throw new Error("네이티브 푸시 활성화 시 Firebase 서버 설정이 필요합니다.");
+      }
+
+      console.log("Notice");
+      console.log("- Firebase 서버 푸시 값이 로컬 env에 없습니다.");
+      console.log("- 운영 env가 연결되면 Android 푸시 전송이 활성화됩니다.");
+      console.log("");
     }
 
     if (!hasApnsPushConfig()) {
-      throw new Error("네이티브 푸시 활성화 시 APNs 서버 설정이 필요합니다.");
+      if (nativePushConfigured !== null || isDeployedRuntime()) {
+        throw new Error("네이티브 푸시 활성화 시 APNs 서버 설정이 필요합니다.");
+      }
+
+      console.log("Notice");
+      console.log("- APNs 서버 푸시 값이 로컬 env에 없습니다.");
+      console.log("- 운영 env가 연결되면 iOS 푸시 전송이 활성화됩니다.");
+      console.log("");
     }
 
     if (!hasAndroidGoogleServices()) {
       console.log("Notice");
-      console.log("- android/app/google-services.json 이 없어 Android 푸시는 동작하지 않습니다.");
+      console.log("- Android Firebase 클라이언트 설정이 없습니다.");
+      console.log("- GOOGLE_SERVICES_JSON 또는 FIREBASE_ANDROID_* env가 있으면 자동 생성됩니다.");
       console.log("");
     }
   }

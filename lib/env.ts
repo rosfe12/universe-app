@@ -133,12 +133,21 @@ function parseFlag(value?: string | null) {
   return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
+function parseOptionalFlag(value?: string | null) {
+  if (!value || value.trim().length === 0) {
+    return null;
+  }
+
+  return parseFlag(value);
+}
+
 export function isGoogleAuthEnabled() {
   return parseFlag(publicEnv.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED);
 }
 
 export function isNativePushEnabled() {
-  return parseFlag(publicEnv.NEXT_PUBLIC_NATIVE_PUSH_ENABLED);
+  const configured = parseOptionalFlag(publicEnv.NEXT_PUBLIC_NATIVE_PUSH_ENABLED);
+  return configured ?? true;
 }
 
 export function shouldShowTestAccounts() {
