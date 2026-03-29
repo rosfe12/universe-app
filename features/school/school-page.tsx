@@ -433,6 +433,7 @@ export function SchoolPage({
 
   useEffect(() => {
     if (!detailParam) {
+      setDetailPostId(null);
       return;
     }
 
