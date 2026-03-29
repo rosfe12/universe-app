@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { env, hasAppSmtpConfig, hasNativePushServerConfig, isNativePushEnabled } from "@/lib/env";
+import {
+  env,
+  hasApnsPushConfig,
+  hasAppSmtpConfig,
+  hasFirebasePushConfig,
+  hasNativePushServerConfig,
+  isNativePushEnabled,
+} from "@/lib/env";
 import { verifyAppSmtpConnection } from "@/lib/email/server-mailer";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { logServerEvent } from "@/lib/ops";
@@ -71,6 +78,10 @@ export async function GET() {
       firebaseProjectId: Boolean(env.FIREBASE_PROJECT_ID),
       firebaseClientEmail: Boolean(env.FIREBASE_CLIENT_EMAIL),
       firebasePrivateKey: Boolean(env.FIREBASE_PRIVATE_KEY),
+      apnsTeamId: Boolean(env.APNS_TEAM_ID),
+      apnsKeyId: Boolean(env.APNS_KEY_ID),
+      apnsPrivateKey: Boolean(env.APNS_PRIVATE_KEY),
+      apnsBundleId: Boolean(env.APNS_BUNDLE_ID),
     } as const;
 
     let mail = "supabase_auth_fallback";
@@ -84,8 +95,18 @@ export async function GET() {
 
     let push = "disabled";
     if (isNativePushEnabled()) {
-      if (hasNativePushServerConfig()) {
+      const firebaseReady = hasFirebasePushConfig();
+      const apnsReady = hasApnsPushConfig();
+      if (firebaseReady && apnsReady) {
         push = "native_push_ready";
+      } else if (hasNativePushServerConfig()) {
+        push = "native_push_partial";
+        if (!firebaseReady) {
+          warnings.push("native_push_firebase_not_configured");
+        }
+        if (!apnsReady) {
+          warnings.push("native_push_apns_not_configured");
+        }
       } else {
         push = "native_push_server_missing";
         warnings.push("native_push_server_not_configured");

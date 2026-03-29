@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { insertAdminAuditLog, listAdminAuditLogs, requireAdminUser } from "@/app/api/admin/_utils";
+import { insertNotificationsAsSystem } from "@/lib/notifications/server-notifications";
 import { logServerEvent } from "@/lib/ops";
 import type { Report } from "@/types";
 
@@ -128,28 +129,31 @@ export async function PATCH(request: Request) {
             ? "신고가 확인되어 조치가 반영되었습니다."
             : "신고가 검토되었고 추가 조치 없이 종료되었습니다.";
 
-      const { error: notificationError } = await admin.from("notifications").insert({
-        user_id: String(report.reporter_id),
-        type: "report_update",
-        title: notificationTitle,
-        body: notificationBody,
-        href: "/notifications",
-        target_type: "report",
-        target_id: String(report.id),
-        source_kind: "system",
-        delivery_mode: "instant",
-        metadata: {
-          reportId: String(report.id),
-          targetType: String(report.target_type),
-          targetId: String(report.target_id),
-          reason: String(report.reason),
-          status,
-        },
-      });
-
-      if (notificationError) {
+      await insertNotificationsAsSystem(
+        [
+          {
+            user_id: String(report.reporter_id),
+            type: "report_update",
+            title: notificationTitle,
+            body: notificationBody,
+            href: "/notifications",
+            target_type: "report",
+            target_id: String(report.id),
+            source_kind: "system",
+            delivery_mode: "instant",
+            metadata: {
+              reportId: String(report.id),
+              targetType: String(report.target_type),
+              targetId: String(report.target_id),
+              reason: String(report.reason),
+              status,
+            },
+          },
+        ],
+        { admin },
+      ).catch((notificationError) => {
         console.error("[admin] failed to create report update notification", notificationError);
-      }
+      });
     }
 
     await insertAdminAuditLog(admin, {

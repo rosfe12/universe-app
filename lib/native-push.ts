@@ -180,6 +180,15 @@ export async function initializeNativePushNotifications() {
     return;
   }
 
+  if (platform === "android") {
+    await dependencies.PushNotifications.createChannel({
+      id: "default",
+      name: "CAMVERSE 기본 알림",
+      description: "댓글, 쪽지, 인증 관련 알림",
+      importance: 5,
+    }).catch(() => {});
+  }
+
   pushListenersInitialized = true;
 
   pushListenerHandles = await Promise.all([

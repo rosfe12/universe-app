@@ -26,6 +26,11 @@ const serverEnvSchema = publicEnvSchema.extend({
   FIREBASE_PROJECT_ID: z.string().optional(),
   FIREBASE_CLIENT_EMAIL: z.string().optional(),
   FIREBASE_PRIVATE_KEY: z.string().optional(),
+  APNS_TEAM_ID: z.string().optional(),
+  APNS_KEY_ID: z.string().optional(),
+  APNS_PRIVATE_KEY: z.string().optional(),
+  APNS_BUNDLE_ID: z.string().optional(),
+  APNS_USE_SANDBOX: z.string().optional(),
 });
 
 export const publicEnv = publicEnvSchema.parse({
@@ -64,6 +69,11 @@ export const serverEnv = serverEnvSchema.parse({
   FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
   FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
   FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
+  APNS_TEAM_ID: process.env.APNS_TEAM_ID,
+  APNS_KEY_ID: process.env.APNS_KEY_ID,
+  APNS_PRIVATE_KEY: process.env.APNS_PRIVATE_KEY,
+  APNS_BUNDLE_ID: process.env.APNS_BUNDLE_ID,
+  APNS_USE_SANDBOX: process.env.APNS_USE_SANDBOX,
 });
 
 export const env = serverEnv;
@@ -153,10 +163,23 @@ export function hasAppSmtpConfig() {
   );
 }
 
-export function hasNativePushServerConfig() {
+export function hasFirebasePushConfig() {
   return Boolean(
     serverEnv.FIREBASE_PROJECT_ID &&
       serverEnv.FIREBASE_CLIENT_EMAIL &&
       serverEnv.FIREBASE_PRIVATE_KEY,
   );
+}
+
+export function hasApnsPushConfig() {
+  return Boolean(
+    serverEnv.APNS_TEAM_ID &&
+      serverEnv.APNS_KEY_ID &&
+      serverEnv.APNS_PRIVATE_KEY &&
+      (serverEnv.APNS_BUNDLE_ID ?? "kr.universeapp.camverse"),
+  );
+}
+
+export function hasNativePushServerConfig() {
+  return hasFirebasePushConfig() || hasApnsPushConfig();
 }

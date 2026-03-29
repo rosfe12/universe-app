@@ -6,6 +6,7 @@ import { z } from "zod";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { PROFILE_IMAGE_BUCKET } from "@/lib/community-profile";
 import { classifyContentLevel, findBlockedKeyword } from "@/lib/moderation";
+import { insertNotificationsAsSystem } from "@/lib/notifications/server-notifications";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { MEDIA_BUCKET, getStoragePathFromPublicUrl } from "@/lib/supabase/storage";
@@ -528,44 +529,6 @@ function getPostNotificationHref(post: {
 
   const filter = getCommunityFilterFromPost(post);
   return filter ? `/community?filter=${filter}&post=${post.id}` : "/community";
-}
-
-async function insertNotificationsAsSystem(
-  payload: Array<{
-    user_id: string;
-    type:
-      | "comment"
-      | "reply"
-      | "trending_post"
-      | "lecture_reaction"
-      | "trade_match"
-      | "admission_answer"
-      | "school_recommendation"
-      | "freshman_trending"
-      | "admission_unanswered"
-      | "verification_approved"
-      | "report_update"
-      | "announcement";
-    title: string;
-    body: string;
-    href?: string | null;
-    target_type?: string | null;
-    target_id?: string | null;
-    source_kind?: "activity" | "recommendation" | "system";
-    delivery_mode?: "instant" | "daily";
-    metadata?: Record<string, unknown>;
-  }>,
-) {
-  if (payload.length === 0) {
-    return;
-  }
-
-  const admin = createAdminSupabaseClient();
-  const { error } = await admin.from("notifications").insert(payload);
-
-  if (error) {
-    throw new Error(error.message);
-  }
 }
 
 async function guardPostSubmission(

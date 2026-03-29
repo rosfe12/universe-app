@@ -62,6 +62,16 @@ function hasNativePushConfig() {
   );
 }
 
+function hasApnsPushConfig() {
+  return Boolean(
+    parseFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED) &&
+      process.env.APNS_TEAM_ID &&
+      process.env.APNS_KEY_ID &&
+      process.env.APNS_PRIVATE_KEY &&
+      process.env.APNS_BUNDLE_ID,
+  );
+}
+
 function hasAndroidGoogleServices() {
   return existsSync("android/app/google-services.json");
 }
@@ -136,6 +146,7 @@ async function main() {
   console.log("Native Push");
   console.log(`- enabled: ${nativePushEnabled ? "yes" : "no"}`);
   console.log(`- firebase server: ${hasNativePushConfig() ? "ready" : "missing"}`);
+  console.log(`- apns server: ${hasApnsPushConfig() ? "ready" : "missing"}`);
   console.log(`- android google services: ${hasAndroidGoogleServices() ? "ready" : "missing"}`);
   console.log("");
 
@@ -167,6 +178,10 @@ async function main() {
   if (nativePushEnabled) {
     if (!hasNativePushConfig()) {
       throw new Error("네이티브 푸시 활성화 시 Firebase 서버 설정이 필요합니다.");
+    }
+
+    if (!hasApnsPushConfig()) {
+      throw new Error("네이티브 푸시 활성화 시 APNs 서버 설정이 필요합니다.");
     }
 
     if (!hasAndroidGoogleServices()) {

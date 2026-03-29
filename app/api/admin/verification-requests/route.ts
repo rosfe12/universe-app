@@ -11,6 +11,7 @@ import {
 } from "@/app/api/admin/_utils";
 import { hasAppSmtpConfig, publicEnv, resolveAuthSiteUrl } from "@/lib/env";
 import { sendStudentVerificationEmail } from "@/lib/email/server-mailer";
+import { insertNotificationsAsSystem } from "@/lib/notifications/server-notifications";
 import { logServerEvent } from "@/lib/ops";
 import type { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -570,27 +571,28 @@ export async function PATCH(request: Request) {
         await deleteVerificationDocuments(admin, verification.id, user.id);
       }
 
-      const { error: notificationError } = await admin
-        .from("notifications")
-        .insert({
-          user_id: target.user_id,
-          type: "verification_approved",
-          title: "대학생 인증이 승인되었어요",
-          body: "학생 인증이 완료되어 글쓰기, 댓글, 쪽지와 채팅까지 사용할 수 있습니다.",
-          href: "/profile",
-          target_type: "verification",
-          target_id: target.id,
-          source_kind: "system",
-          delivery_mode: "instant",
-          metadata: {
-            requestId: target.id,
-            schoolId: target.school_id,
+      await insertNotificationsAsSystem(
+        [
+          {
+            user_id: target.user_id,
+            type: "verification_approved",
+            title: "대학생 인증이 승인되었어요",
+            body: "학생 인증이 완료되어 글쓰기, 댓글, 쪽지와 채팅까지 사용할 수 있습니다.",
+            href: "/profile",
+            target_type: "verification",
+            target_id: target.id,
+            source_kind: "system",
+            delivery_mode: "instant",
+            metadata: {
+              requestId: target.id,
+              schoolId: target.school_id,
+            },
           },
-        });
-
-      if (notificationError) {
+        ],
+        { admin },
+      ).catch((notificationError) => {
         console.error("[admin] failed to create verification notification", notificationError);
-      }
+      });
 
       await insertAdminAuditLog(admin, {
         adminUserId: user.id,

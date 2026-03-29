@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { ensureMasterAdminRole } from "@/lib/admin/master-admin";
+import { insertNotificationsAsSystem } from "@/lib/notifications/server-notifications";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -103,25 +104,28 @@ export async function updateStudentVerificationRequest(
       throw new Error(userError?.message ?? requestUpdateError?.message ?? "인증 승인에 실패했습니다.");
     }
 
-    const { error: notificationError } = await admin.from("notifications").insert({
-      user_id: request.user_id,
-      type: "verification_approved",
-      title: "학교 메일 인증이 승인되었어요",
-      body: "대학생 전용 기능이 열렸습니다. 강의평, 수강신청 교환, 미팅 기능을 바로 이용할 수 있어요.",
-      href: "/profile",
-      target_type: "verification",
-      target_id: request.id,
-      source_kind: "system",
-      delivery_mode: "instant",
-      metadata: {
-        requestId: request.id,
-        schoolId: request.school_id,
-      },
-    });
-
-    if (notificationError) {
+    await insertNotificationsAsSystem(
+      [
+        {
+          user_id: request.user_id,
+          type: "verification_approved",
+          title: "학교 메일 인증이 승인되었어요",
+          body: "대학생 전용 기능이 열렸습니다. 강의평, 수강신청 교환, 미팅 기능을 바로 이용할 수 있어요.",
+          href: "/profile",
+          target_type: "verification",
+          target_id: request.id,
+          source_kind: "system",
+          delivery_mode: "instant",
+          metadata: {
+            requestId: request.id,
+            schoolId: request.school_id,
+          },
+        },
+      ],
+      { admin },
+    ).catch((notificationError) => {
       console.error("[admin] failed to create verification notification", notificationError);
-    }
+    });
 
     if (request.verification_user_id && request.verification_user_id !== request.user_id) {
       await admin.auth.admin.deleteUser(request.verification_user_id).catch(() => null);

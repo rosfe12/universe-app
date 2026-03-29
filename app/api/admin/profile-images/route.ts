@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { insertAdminAuditLog, listAdminAuditLogs, requireAdminUser } from "@/app/api/admin/_utils";
+import { insertNotificationsAsSystem } from "@/lib/notifications/server-notifications";
 import { logServerEvent } from "@/lib/ops";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { AdminProfileImageItem, ProfileImageModerationStatus } from "@/types";
@@ -269,26 +270,29 @@ export async function PATCH(request: Request) {
 
       await ensurePrimaryProfileImage(admin, String(row.user_id)).catch(() => null);
 
-      const { error: notificationError } = await admin.from("notifications").insert({
-        user_id: String(row.user_id),
-        type: "report_update",
-        title: "프로필 사진이 반려되었어요",
-        body: rejectionReason,
-        href: "/profile",
-        target_type: "profile",
-        target_id: String(row.user_id),
-        source_kind: "system",
-        delivery_mode: "instant",
-        metadata: {
-          imageId: String(row.id),
-          imageOrder: Number(row.image_order),
-          reason: rejectionReason,
-        },
-      });
-
-      if (notificationError) {
+      await insertNotificationsAsSystem(
+        [
+          {
+            user_id: String(row.user_id),
+            type: "report_update",
+            title: "프로필 사진이 반려되었어요",
+            body: rejectionReason,
+            href: "/profile",
+            target_type: "profile",
+            target_id: String(row.user_id),
+            source_kind: "system",
+            delivery_mode: "instant",
+            metadata: {
+              imageId: String(row.id),
+              imageOrder: Number(row.image_order),
+              reason: rejectionReason,
+            },
+          },
+        ],
+        { admin },
+      ).catch((notificationError) => {
         console.error("[admin] failed to create profile image moderation notification", notificationError);
-      }
+      });
     }
 
     await insertAdminAuditLog(admin, {
