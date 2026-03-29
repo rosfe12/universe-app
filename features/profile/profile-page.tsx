@@ -8,6 +8,7 @@ import {
   BellRing,
   ChevronRight,
   GraduationCap,
+  KeyRound,
   Shield,
   UserPlus2,
   UserRound,
@@ -580,6 +581,12 @@ export function ProfilePage({
               title: "알림 페이지",
               description: "내 알림 피드를 전체 확인",
               href: "/notifications",
+            },
+            {
+              icon: KeyRound,
+              title: "비밀번호 변경",
+              description: "로그인 비밀번호를 새로 설정합니다",
+              href: "/reset-password?mode=change",
             },
             {
               icon: UserPlus2,

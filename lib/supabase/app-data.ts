@@ -1765,6 +1765,25 @@ export async function signUpWithSupabase({
   return { ...signUpResult, needsEmailConfirmation: false };
 }
 
+export async function requestPasswordReset(email: string) {
+  const supabase = createClient();
+  const redirectTo =
+    typeof window === "undefined"
+      ? undefined
+      : `${resolveAppUrl(window.location.origin)}/reset-password?mode=recovery`;
+
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+}
+
+export async function updateSupabasePassword(password: string) {
+  const supabase = createClient();
+  return supabase.auth.updateUser({
+    password,
+  });
+}
+
 export async function signOutFromSupabase() {
   const supabase = createClient();
   await unregisterNativePushDevice(true).catch(() => {});

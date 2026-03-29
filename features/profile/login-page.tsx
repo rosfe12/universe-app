@@ -25,6 +25,7 @@ import {
   getAuthFlowHref,
   isGoogleSignInEnabled,
   isSupabaseEnabled,
+  requestPasswordReset,
   resetClientAuthRuntime,
   signInWithGoogle,
   signInWithSupabase,
@@ -634,8 +635,44 @@ export function LoginPage() {
                   ? "관리자 로그인"
                   : mode === "login"
                     ? "로그인"
-                    : "회원가입"}
+                  : "회원가입"}
             </Button>
+            {mode === "login" ? (
+              <button
+                type="button"
+                className="w-full text-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                onClick={async () => {
+                  setErrorMessage("");
+                  setSuccessMessage("");
+
+                  const email = form.getValues("email").trim();
+                  if (!email) {
+                    form.setError("email", {
+                      message: "비밀번호를 찾을 이메일을 먼저 입력해주세요.",
+                    });
+                    return;
+                  }
+
+                  if (!isSupabaseEnabled()) {
+                    setSuccessMessage("비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해주세요.");
+                    return;
+                  }
+
+                  setPending(true);
+                  const result = await requestPasswordReset(email);
+                  setPending(false);
+
+                  if (result.error) {
+                    setErrorMessage(result.error.message);
+                    return;
+                  }
+
+                  setSuccessMessage("비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해주세요.");
+                }}
+              >
+                비밀번호 찾기
+              </button>
+            ) : null}
             {!adminOnlyFlow ? (
               <button
                 type="button"
