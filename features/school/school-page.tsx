@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { createPost, deletePost } from "@/app/actions/content-actions";
+import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
 import { AppShell } from "@/components/layout/app-shell";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -50,6 +51,7 @@ import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { SCHOOL_FEED_AD_RULES, injectInlineAdSlots } from "@/lib/ads";
 import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
 import {
@@ -224,6 +226,22 @@ export function SchoolPage({
     .slice(0, 4);
   const admissionPosts = getSchoolScopedAdmissionQuestions(schoolId)
     .slice(0, 4);
+  const schoolBoardFeedSlots = useMemo(
+    () => injectInlineAdSlots(schoolBoardPosts, SCHOOL_FEED_AD_RULES),
+    [schoolBoardPosts],
+  );
+  const freshmanZoneFeedSlots = useMemo(
+    () => injectInlineAdSlots(freshmanZonePosts, SCHOOL_FEED_AD_RULES),
+    [freshmanZonePosts],
+  );
+  const admissionFeedSlots = useMemo(
+    () => injectInlineAdSlots(admissionPosts, SCHOOL_FEED_AD_RULES),
+    [admissionPosts],
+  );
+  const tradeFeedSlots = useMemo(
+    () => injectInlineAdSlots(tradeItems, SCHOOL_FEED_AD_RULES),
+    [tradeItems],
+  );
   const recentSchoolBoardCount = schoolBoardPosts.filter((post) => isRecentActivity(post.createdAt)).length;
   const recentFreshmanCount = freshmanZonePosts.filter((post) => isRecentActivity(post.createdAt)).length;
   const recentAdmissionCount = admissionPosts.filter((post) => isRecentActivity(post.createdAt)).length;
@@ -810,14 +828,26 @@ export function SchoolPage({
             />
           ) : (
             <FeedList>
-              {schoolBoardPosts.map((post) => (
-                <FeedPostCard
-                  key={post.id}
-                  post={post}
-                  href={`/school?tab=school&post=${post.id}`}
-                  onOpen={() => setDetailPostId(post.id)}
-                />
-              ))}
+              {schoolBoardFeedSlots.map((slot) => {
+                if (slot.kind === "ad") {
+                  return (
+                    <div key={slot.id} className="px-1 py-2">
+                      <AdPlaceholderCard placement={slot.placement} />
+                    </div>
+                  );
+                }
+
+                const post = slot.item;
+
+                return (
+                  <FeedPostCard
+                    key={post.id}
+                    post={post}
+                    href={`/school?tab=school&post=${post.id}`}
+                    onOpen={() => setDetailPostId(post.id)}
+                  />
+                );
+              })}
             </FeedList>
           )}
         </div>
@@ -840,14 +870,26 @@ export function SchoolPage({
             />
           ) : (
             <FeedList>
-              {freshmanZonePosts.map((post) => (
-                <FeedPostCard
-                  key={post.id}
-                  post={post}
-                  href={`/school?tab=freshman&post=${post.id}`}
-                  onOpen={() => setDetailPostId(post.id)}
-                />
-              ))}
+              {freshmanZoneFeedSlots.map((slot) => {
+                if (slot.kind === "ad") {
+                  return (
+                    <div key={slot.id} className="px-1 py-2">
+                      <AdPlaceholderCard placement={slot.placement} />
+                    </div>
+                  );
+                }
+
+                const post = slot.item;
+
+                return (
+                  <FeedPostCard
+                    key={post.id}
+                    post={post}
+                    href={`/school?tab=freshman&post=${post.id}`}
+                    onOpen={() => setDetailPostId(post.id)}
+                  />
+                );
+              })}
             </FeedList>
           )}
         </div>
@@ -893,9 +935,25 @@ export function SchoolPage({
             />
           ) : (
             <FeedList>
-              {admissionPosts.map((post) => (
-                <FeedPostCard key={post.id} post={post} href={`/school?tab=admission&post=${post.id}`} />
-              ))}
+              {admissionFeedSlots.map((slot) => {
+                if (slot.kind === "ad") {
+                  return (
+                    <div key={slot.id} className="px-1 py-2">
+                      <AdPlaceholderCard placement={slot.placement} />
+                    </div>
+                  );
+                }
+
+                const post = slot.item;
+
+                return (
+                  <FeedPostCard
+                    key={post.id}
+                    post={post}
+                    href={`/school?tab=admission&post=${post.id}`}
+                  />
+                );
+              })}
             </FeedList>
           )}
         </div>
@@ -948,9 +1006,13 @@ export function SchoolPage({
             />
           ) : (
             <div className="space-y-3">
-              {tradeItems.map((tradePost) => (
-                <TradePostCard key={tradePost.id} tradePost={tradePost} />
-              ))}
+              {tradeFeedSlots.map((slot) => {
+                if (slot.kind === "ad") {
+                  return <AdPlaceholderCard key={slot.id} placement={slot.placement} />;
+                }
+
+                return <TradePostCard key={slot.item.id} tradePost={slot.item} />;
+              })}
             </div>
           )}
         </section>
@@ -975,56 +1037,70 @@ export function SchoolPage({
           />
         ) : (
           <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {campusInfoCards.map((post) => (
-              <Link
-                key={`${post.boardLabel}-${post.id}`}
-                href={`/school?tab=${post.boardLabel === "동아리" ? "club" : "food"}&post=${post.id}`}
-                className="block min-w-[280px] snap-start"
-              >
-                <Card
-                  className={
-                    highlightSection === (post.boardLabel === "동아리" ? "club" : "food")
-                      ? "h-full border-primary/25 bg-primary/5"
-                      : "h-full border-border bg-card"
-                  }
+            {campusInfoCards.map((post) => {
+              const officialStarter = getOfficialStarterMeta(post);
+
+              return (
+                <Link
+                  key={`${post.boardLabel}-${post.id}`}
+                  href={`/school?tab=${post.boardLabel === "동아리" ? "club" : "food"}&post=${post.id}`}
+                  className="block min-w-[280px] snap-start"
                 >
-                  <CardContent className="space-y-4 py-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <Badge variant={post.boardLabel === "동아리" ? "secondary" : "warning"}>
-                        {post.boardLabel}
-                      </Badge>
-                      {post.boardLabel === "동아리" ? (
-                        <Users className="h-4 w-4 text-primary" />
-                      ) : (
-                        <UtensilsCrossed className="h-4 w-4 text-primary" />
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[18px] font-semibold leading-7 text-foreground line-clamp-2">
-                        {post.title}
-                      </p>
-                      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-                        {post.content}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <Eye className="h-3.5 w-3.5" />
-                        {getPostViewCount(post)}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Heart className="h-3.5 w-3.5" />
-                        {post.likes}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <MessageCircle className="h-3.5 w-3.5" />
-                        {commentCountByPostId.get(post.id) ?? post.commentCount}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                  <Card
+                    className={
+                      highlightSection === (post.boardLabel === "동아리" ? "club" : "food")
+                        ? "h-full border-primary/25 bg-primary/5"
+                        : "h-full border-border bg-card"
+                    }
+                  >
+                    <CardContent className="space-y-4 py-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <Badge variant={post.boardLabel === "동아리" ? "secondary" : "warning"}>
+                          {post.boardLabel}
+                        </Badge>
+                        {post.boardLabel === "동아리" ? (
+                          <Users className="h-4 w-4 text-primary" />
+                        ) : (
+                          <UtensilsCrossed className="h-4 w-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {officialStarter ? (
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <span className="font-semibold text-slate-300 dark:text-slate-200">
+                              {officialStarter.name}
+                            </span>
+                            <span className="rounded-full bg-violet-500/10 px-2 py-0.5 font-medium text-violet-300">
+                              {officialStarter.badge}
+                            </span>
+                          </div>
+                        ) : null}
+                        <p className="text-[18px] font-semibold leading-7 text-foreground line-clamp-2">
+                          {post.title}
+                        </p>
+                        <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                          {post.content}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Eye className="h-3.5 w-3.5" />
+                          {getPostViewCount(post)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Heart className="h-3.5 w-3.5" />
+                          {post.likes}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          {commentCountByPostId.get(post.id) ?? post.commentCount}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>
@@ -1224,6 +1300,7 @@ export function SchoolPage({
                         tags: [values.track, schoolShortName],
                         meta,
                       });
+                      setSnapshot((current) => addPostToSnapshot(current, localPost));
                       setSuccessMessage("입시 질문이 등록되었습니다.");
                       admissionForm.reset({
                         title: "",
@@ -1235,7 +1312,7 @@ export function SchoolPage({
                         visibilityLevel: defaultSchoolVisibilityLevel,
                       });
                       setAdmissionComposerOpen(false);
-                      await refresh();
+                      void refresh();
                     } catch (error) {
                       admissionForm.setError("root", {
                         message: error instanceof Error ? error.message : "입시 질문 등록에 실패했습니다.",
@@ -1378,6 +1455,7 @@ export function SchoolPage({
                         content: values.content,
                         tags: ["학교 게시판"],
                       });
+                      setSnapshot((current) => addPostToSnapshot(current, localPost));
                       setSuccessMessage("학교 게시판 글이 등록되었습니다.");
                       schoolBoardForm.reset({
                         title: "",
@@ -1385,7 +1463,7 @@ export function SchoolPage({
                         visibilityLevel: defaultSchoolVisibilityLevel,
                       });
                       setSchoolBoardComposerOpen(false);
-                      await refresh();
+                      void refresh();
                     } catch (error) {
                       schoolBoardForm.setError("root", {
                         message: error instanceof Error ? error.message : "학교 게시판 글 작성에 실패했습니다.",
@@ -1516,6 +1594,7 @@ export function SchoolPage({
                         content: values.content,
                         tags: ["새내기존", schoolShortName],
                       });
+                      setSnapshot((current) => addPostToSnapshot(current, localPost));
                       setSuccessMessage("새내기 게시글이 등록되었습니다.");
                       freshmanForm.reset({
                         title: "",
@@ -1523,7 +1602,7 @@ export function SchoolPage({
                         visibilityLevel: defaultSchoolVisibilityLevel,
                       });
                       setComposerOpen(false);
-                      await refresh();
+                      void refresh();
                     } catch (error) {
                       freshmanForm.setError("root", {
                         message: error instanceof Error ? error.message : "새내기 게시판 글 작성에 실패했습니다.",

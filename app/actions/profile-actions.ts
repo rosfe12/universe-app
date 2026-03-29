@@ -709,18 +709,41 @@ export async function saveCommunityProfileDraft(formData: FormData) {
     await assignNextPrimaryProfileImage(supabase, user.id).catch(() => null);
   }
 
-  const [profile, images, schoolName] = await Promise.all([
-    getProfileRow(admin, user.id),
-    listProfileImages(admin, user.id, true),
-    getSchoolName(admin, user.school_id),
-  ]);
+  const fallbackPrimaryId =
+    resolvedImages.find((item) => item.row.moderation_status === "approved")?.row.id ?? null;
+  const finalPrimaryId = desiredPrimaryId ?? fallbackPrimaryId;
+  const images = await Promise.all(
+    resolvedImages.map(async ({ row }, index) => ({
+      id: String(row.id),
+      userId: String(row.user_id),
+      imagePath: String(row.image_path),
+      imageOrder: (index + 1) as 1 | 2 | 3,
+      isPrimary: finalPrimaryId ? String(row.id) === String(finalPrimaryId) : false,
+      moderationStatus: row.moderation_status,
+      moderationReason: row.moderation_reason ? String(row.moderation_reason) : undefined,
+      imageUrl: await createSignedImageUrl(admin, String(row.image_path)),
+      createdAt: String(row.created_at),
+      updatedAt: String(row.updated_at),
+    })),
+  );
+  const schoolName = await getSchoolName(admin, user.school_id);
 
   revalidateCommunityProfileSurfaces(user.id);
 
   return mapCommunityProfile({
     viewer: user,
     target: user,
-    profile,
+    profile: {
+      id: user.id,
+      display_name: parsedPayload.profile.displayName,
+      bio: parsedPayload.profile.bio?.trim() ? parsedPayload.profile.bio.trim() : null,
+      interests: parsedPayload.profile.interests,
+      profile_visibility: parsedPayload.profile.profileVisibility,
+      show_department: parsedPayload.profile.showDepartment,
+      show_admission_year: parsedPayload.profile.showAdmissionYear,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
     schoolName,
     images,
     owner: true,

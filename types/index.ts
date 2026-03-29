@@ -701,6 +701,7 @@ export interface AppRuntimeSnapshot extends AppCollections {
   currentUser: User;
   source: "mock" | "supabase";
   isAuthenticated: boolean;
+  runtimeScope?: string;
   setupStatus?: "ready" | "demo" | "supabase-error";
   setupIssue?: string;
 }

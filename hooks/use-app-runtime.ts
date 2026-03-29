@@ -68,9 +68,9 @@ function getPrewarmDelayMs(scope: RuntimeSnapshotScope) {
     case "trade":
     case "messages":
     case "notifications":
-      return 2400;
+      return 700;
     default:
-      return 1200;
+      return 900;
   }
 }
 
@@ -78,11 +78,17 @@ export function useAppRuntime(
   initialSnapshot?: AppRuntimeSnapshot,
   scope: RuntimeSnapshotScope = "full",
 ) {
-  const scopedSnapshot = initialSnapshot ?? peekClientRuntimeSnapshot(scope);
-  const seedSnapshot = scopedSnapshot ?? getRuntimeSnapshot();
+  const initialSnapshotScope = initialSnapshot?.runtimeScope;
+  const initialSnapshotMatchesScope = !initialSnapshot || initialSnapshotScope === scope;
+  const scopedSnapshot = initialSnapshotMatchesScope
+    ? (initialSnapshot ?? peekClientRuntimeSnapshot(scope))
+    : peekClientRuntimeSnapshot(scope);
+  const seedSnapshot = scopedSnapshot ?? initialSnapshot ?? getRuntimeSnapshot();
   const mountedAtRef = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
   const [snapshot, setSnapshotState] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
-  const [loading, setLoading] = useState(!initialSnapshot && !scopedSnapshot);
+  const [loading, setLoading] = useState(
+    (!initialSnapshot && !scopedSnapshot) || Boolean(initialSnapshot && !initialSnapshotMatchesScope),
+  );
   const setSnapshot = useCallback((nextValue: SetStateAction<AppRuntimeSnapshot>) => {
     setSnapshotState((currentSnapshot) => {
       const nextSnapshot =
@@ -156,6 +162,11 @@ export function useAppRuntime(
       }
 
       if (initialSnapshot) {
+        if (!initialSnapshotMatchesScope) {
+          await bootstrap(false, true);
+          return;
+        }
+
         if (!initialSnapshot.isAuthenticated) {
           if (hasPersistedSupabaseSession() || hasSupabaseAuthCookie()) {
             setLoading(true);
@@ -222,7 +233,7 @@ export function useAppRuntime(
       active = false;
       subscription.unsubscribe();
     };
-  }, [initialSnapshot, scope, setSnapshot]);
+  }, [initialSnapshot, initialSnapshotMatchesScope, scope, setSnapshot]);
 
   useEffect(() => {
     if (loading || snapshot.source !== "supabase") {

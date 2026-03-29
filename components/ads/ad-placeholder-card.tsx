@@ -15,6 +15,9 @@ const AD_COPY: Record<
     sponsor: string;
     title: string;
     description: string;
+    previewTitle: string;
+    previewDescription: string;
+    previewTags: string[];
     ctaLabel: string;
     href: string;
   }
@@ -24,6 +27,9 @@ const AD_COPY: Record<
     sponsor: "CAMVERSE 프로모션",
     title: "학교별 커뮤니티, 수강교환, 프로필을 한 곳에서",
     description: "지금 보고 있는 CAMVERSE에서 대학생 커뮤니티와 학교 기능을 더 편하게 이어가보세요.",
+    previewTitle: "우리학교 인기글과 수강교환을 한 번에 보기",
+    previewDescription: "익명 커뮤니티, 알림, 프로필 흐름까지 앱 안에서 자연스럽게 이어집니다.",
+    previewTags: ["우리학교", "수강교환", "프로필"],
     ctaLabel: "CAMVERSE 보기",
     href: "/home",
   },
@@ -32,6 +38,9 @@ const AD_COPY: Record<
     sponsor: "CAMVERSE 프로모션",
     title: "지금 뜨는 글부터 익명 커뮤니티까지 CAMVERSE에서 확인",
     description: "핫한 글, 우리학교 이야기, 알림과 메시지까지 앱처럼 빠르게 이어집니다.",
+    previewTitle: "급상승 글과 실시간 반응을 바로 확인",
+    previewDescription: "지금 뜨는 글, 댓글 반응, 학교별 흐름을 한 화면에서 이어서 볼 수 있습니다.",
+    previewTags: ["급상승", "익명", "알림"],
     ctaLabel: "커뮤니티로 이동",
     href: "/community",
   },
@@ -40,6 +49,9 @@ const AD_COPY: Record<
     sponsor: "CAMVERSE 프로모션",
     title: "강의평, 수강신청 매칭, 학교 정보까지 함께 쓰세요",
     description: "강의 상세를 보다가 바로 교환 글과 우리학교 정보까지 이어서 확인할 수 있습니다.",
+    previewTitle: "강의평에서 수강교환까지 바로 연결",
+    previewDescription: "강의 정보 확인 후 교환 후보와 학교 생활 정보까지 끊김 없이 이어집니다.",
+    previewTags: ["강의평", "수강교환", "학교정보"],
     ctaLabel: "수강교환 보기",
     href: "/trade",
   },
@@ -110,15 +122,30 @@ export function AdPlaceholderCard({
                   LIVE
                 </div>
               </div>
-              <div className="mt-3 space-y-2">
-                <div className="h-2.5 w-3/4 rounded-full bg-white/80" />
-                <div className="h-2.5 w-full rounded-full bg-white/20" />
-                <div className="h-2.5 w-5/6 rounded-full bg-white/20" />
+              <div className="mt-3 space-y-2.5">
+                <div className="rounded-[14px] border border-white/10 bg-white/8 px-3 py-2.5">
+                  <p className="text-[10px] font-medium tracking-[0.08em] text-slate-400">CAMVERSE 미리보기</p>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-white">{copy.previewTitle}</p>
+                  <p className="mt-1 text-[11px] leading-4 text-slate-300">{copy.previewDescription}</p>
+                </div>
+                <div className="rounded-[14px] border border-white/10 bg-slate-900/60 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold text-white">앱 안에서 바로 이어보기</p>
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
+                      READY
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-4 text-slate-300">
+                    커뮤니티, 학교 기능, 프로필 흐름을 따로 열지 않고 이어서 탐색할 수 있습니다.
+                  </p>
+                </div>
               </div>
-              <div className="mt-3 flex gap-2">
-                <div className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-slate-200">우리학교</div>
-                <div className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-slate-200">수강교환</div>
-                <div className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-slate-200">프로필</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {copy.previewTags.map((tag) => (
+                  <div key={tag} className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] text-slate-200">
+                    {tag}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

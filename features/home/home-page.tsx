@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
   BarChart3,
@@ -24,8 +24,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FeedPostCard } from "@/features/common/feed-post-card";
 import { LectureSummaryCard } from "@/features/common/lecture-summary-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { MAIN_FEED_AD_RULES, SCHOOL_FEED_AD_RULES, injectInlineAdSlots } from "@/lib/ads";
 import { TRADE_STATUS_LABELS } from "@/lib/constants";
-import { isAdPlacementEnabled } from "@/lib/ads";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import {
   getAllCommunityFeedPosts,
@@ -123,6 +123,18 @@ export function HomePage({
   ]
     .sort((a, b) => getEngagementScore(b) - getEngagementScore(a))
     .slice(0, 5);
+  const hotNowFeedSlots = useMemo(
+    () => injectInlineAdSlots(hotNowPosts, MAIN_FEED_AD_RULES),
+    [hotNowPosts],
+  );
+  const schoolPopularFeedSlots = useMemo(
+    () => injectInlineAdSlots(schoolPopularPosts, SCHOOL_FEED_AD_RULES),
+    [schoolPopularPosts],
+  );
+  const allPopularFeedSlots = useMemo(
+    () => injectInlineAdSlots(allPopularPosts, MAIN_FEED_AD_RULES),
+    [allPopularPosts],
+  );
 
   const todayViewedPosts = [
     ...hotNowPosts,
@@ -223,21 +235,27 @@ export function HomePage({
         />
         {hotNowPosts.length ? (
           <FeedList className="rounded-[32px]">
-            <FeedPostCard
-              post={hotNowPosts[0]}
-              href={getPostHref(hotNowPosts[0].id)}
-              variant="featured"
-              emphasis={hotNowPosts[0].schoolId === schoolId ? "school" : "trending"}
-            />
-            {hotNowPosts.slice(1, 4).map((post) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                href={getPostHref(post.id)}
-                variant="dense"
-                emphasis={post.schoolId === schoolId ? "school" : "trending"}
-              />
-            ))}
+            {hotNowFeedSlots.map((slot) => {
+              if (slot.kind === "ad") {
+                return (
+                  <div key={slot.id} className="px-1 py-2">
+                    <AdPlaceholderCard placement={slot.placement} />
+                  </div>
+                );
+              }
+
+              const post = slot.item;
+
+              return (
+                <FeedPostCard
+                  key={post.id}
+                  post={post}
+                  href={getPostHref(post.id)}
+                  variant={post.id === hotNowPosts[0]?.id ? "featured" : "dense"}
+                  emphasis={post.schoolId === schoolId ? "school" : "trending"}
+                />
+              );
+            })}
           </FeedList>
         ) : null}
         <div className="grid grid-cols-2 gap-3">
@@ -329,15 +347,27 @@ export function HomePage({
         )}
         {schoolPopularPosts.length ? (
           <FeedList>
-            {schoolPopularPosts.map((post, index) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                href={getPostHref(post.id)}
-                emphasis="school"
-                variant={index === 0 ? "featured" : "default"}
-              />
-            ))}
+            {schoolPopularFeedSlots.map((slot) => {
+              if (slot.kind === "ad") {
+                return (
+                  <div key={slot.id} className="px-1 py-2">
+                    <AdPlaceholderCard placement={slot.placement} />
+                  </div>
+                );
+              }
+
+              const post = slot.item;
+
+              return (
+                <FeedPostCard
+                  key={post.id}
+                  post={post}
+                  href={getPostHref(post.id)}
+                  emphasis="school"
+                  variant={post.id === schoolPopularPosts[0]?.id ? "featured" : "default"}
+                />
+              );
+            })}
           </FeedList>
         ) : (
           <Card className="app-section-surface rounded-[28px] border-white/10 shadow-none">
@@ -411,15 +441,27 @@ export function HomePage({
             />
             {allPopularPosts.length ? (
               <FeedList>
-                {allPopularPosts.map((post) => (
-                  <FeedPostCard
-                    key={post.id}
-                    post={post}
-                    href={getPostHref(post.id)}
-                    variant="dense"
-                    emphasis={post.schoolId === schoolId ? "school" : "trending"}
-                  />
-                ))}
+                {allPopularFeedSlots.map((slot) => {
+                  if (slot.kind === "ad") {
+                    return (
+                      <div key={slot.id} className="px-1 py-2">
+                        <AdPlaceholderCard placement={slot.placement} />
+                      </div>
+                    );
+                  }
+
+                  const post = slot.item;
+
+                  return (
+                    <FeedPostCard
+                      key={post.id}
+                      post={post}
+                      href={getPostHref(post.id)}
+                      variant="dense"
+                      emphasis={post.schoolId === schoolId ? "school" : "trending"}
+                    />
+                  );
+                })}
               </FeedList>
             ) : null}
           </section>
@@ -478,7 +520,6 @@ export function HomePage({
                 </CardContent>
               </Card>
             )}
-          {isAdPlacementEnabled("feedInline") ? <AdPlaceholderCard placement="feedInline" /> : null}
         </div>
       </section>
 

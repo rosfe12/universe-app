@@ -253,7 +253,7 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         tradePosts: true,
         notifications: true,
         reports: false,
-        blocks: true,
+        blocks: false,
         datingProfiles: true,
         mediaAssets: false,
         currentUserProfile: true,
@@ -1515,6 +1515,7 @@ export async function loadServerRuntimeSnapshot(
       currentUser: guestUser,
       source: "supabase",
       isAuthenticated: Boolean(authUser),
+      runtimeScope: scope,
       setupStatus: "ready",
       setupIssue: undefined,
     };

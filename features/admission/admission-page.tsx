@@ -38,7 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createPost } from "@/app/actions/content-actions";
 import { PostAuthorRow } from "@/features/common/post-author-row";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { injectInlineAdSlots } from "@/lib/ads";
+import { injectInlineAdSlots, SCHOOL_FEED_AD_RULES } from "@/lib/ads";
 import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
 import { getRuntimeSnapshot } from "@/lib/runtime-state";
@@ -136,7 +136,7 @@ export function AdmissionPage({
     [departmentFilter, questions, selectedSchool],
   );
   const questionFeedSlots = useMemo(
-    () => injectInlineAdSlots(filteredQuestions),
+    () => injectInlineAdSlots(filteredQuestions, SCHOOL_FEED_AD_RULES),
     [filteredQuestions],
   );
   const onSubmit = form.handleSubmit(async (values) => {
@@ -191,10 +191,11 @@ export function AdmissionPage({
               tags: [values.track, values.interestUniversity],
               meta: localQuestion.meta,
             });
+            setSnapshot((current) => addPostToSnapshot(current, localQuestion));
             setOpen(false);
             form.reset();
             setSuccessMessage("질문이 등록되었습니다.");
-            await refresh();
+            void refresh();
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "질문 등록에 실패했습니다.",

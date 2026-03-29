@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { AdPlaceholderCard } from "@/components/ads/ad-placeholder-card";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -51,6 +52,7 @@ import {
 } from "@/app/actions/content-actions";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { injectInlineAdSlots, SCHOOL_FEED_AD_RULES } from "@/lib/ads";
 import { STANDARD_VISIBILITY_LEVELS, TRADE_STATUS_LABELS } from "@/lib/constants";
 import { validateTradeSubmission } from "@/lib/moderation";
 import {
@@ -322,6 +324,10 @@ export function TradePage({
         match: getTradeMatchInsight(item.id),
       })),
     [tradeItems],
+  );
+  const tradeFeedSlots = useMemo(
+    () => injectInlineAdSlots(items, SCHOOL_FEED_AD_RULES),
+    [items],
   );
   const hiddenTradeCount = getHiddenTradePostCount();
   const blockedContentCount = getBlockedContentCount();
@@ -747,58 +753,66 @@ export function TradePage({
             description="첫 번째 매칭 글을 등록해보세요."
           />
         ) : (
-          items.map((item) => (
-            <TradePostCard
-              key={item.id}
-              tradePost={item}
-              onDetail={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.set("post", item.id);
-                router.push(`${pathname}?${params.toString()}`);
-              }}
-              repeatedlyReported={isRepeatedlyReportedUser(item.userId)}
-              onReport={async ({ reason, memo }) => {
-                if (source === "supabase" && isAuthenticated) {
-                  await createReportRecord({
-                    reporterId: currentUser.id,
-                    targetType: "user",
-                    targetId: item.userId,
-                    reason,
-                    memo,
-                  });
-                  await refresh();
-                  return;
-                }
+          tradeFeedSlots.map((slot) => {
+            if (slot.kind === "ad") {
+              return <AdPlaceholderCard key={slot.id} placement={slot.placement} />;
+            }
 
-                setSnapshot((current) =>
-                  addReportToSnapshot(current, {
-                    targetType: "user",
-                    targetId: item.userId,
-                    reporterId: currentUser.id,
-                    reason: reason ?? "other",
-                    memo,
-                  }),
-                );
-              }}
-              onBlock={async () => {
-                if (source === "supabase" && isAuthenticated) {
-                  await createBlockRecord({
-                    blockerId: currentUser.id,
-                    blockedUserId: item.userId,
-                  });
-                  await refresh();
-                  return;
-                }
+            const item = slot.item;
 
-                setSnapshot((current) =>
-                  addBlockToSnapshot(current, {
-                    blockerId: currentUser.id,
-                    blockedUserId: item.userId,
-                  }),
-                );
-              }}
-            />
-          ))
+            return (
+              <TradePostCard
+                key={item.id}
+                tradePost={item}
+                onDetail={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set("post", item.id);
+                  router.push(`${pathname}?${params.toString()}`);
+                }}
+                repeatedlyReported={isRepeatedlyReportedUser(item.userId)}
+                onReport={async ({ reason, memo }) => {
+                  if (source === "supabase" && isAuthenticated) {
+                    await createReportRecord({
+                      reporterId: currentUser.id,
+                      targetType: "user",
+                      targetId: item.userId,
+                      reason,
+                      memo,
+                    });
+                    await refresh();
+                    return;
+                  }
+
+                  setSnapshot((current) =>
+                    addReportToSnapshot(current, {
+                      targetType: "user",
+                      targetId: item.userId,
+                      reporterId: currentUser.id,
+                      reason: reason ?? "other",
+                      memo,
+                    }),
+                  );
+                }}
+                onBlock={async () => {
+                  if (source === "supabase" && isAuthenticated) {
+                    await createBlockRecord({
+                      blockerId: currentUser.id,
+                      blockedUserId: item.userId,
+                    });
+                    await refresh();
+                    return;
+                  }
+
+                  setSnapshot((current) =>
+                    addBlockToSnapshot(current, {
+                      blockerId: currentUser.id,
+                      blockedUserId: item.userId,
+                    }),
+                  );
+                }}
+              />
+            );
+          })
         )}
       </section>
 

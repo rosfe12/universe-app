@@ -65,6 +65,7 @@ import {
 } from "@/lib/supabase/app-data";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { canUseCommunityProfileFeature } from "@/lib/community-profile";
+import { getOfficialStarterMeta } from "@/lib/utils";
 import {
   getStandardVisibilityLevel,
   getStudentVerificationBadge,
@@ -286,27 +287,48 @@ export function ProfilePage({
     setBlockedUsersLoading(true);
     setBlockedUsersError(null);
 
-    void getMyBlockedProfiles()
-      .then((items) => {
-        if (!active) {
-          return;
-        }
-        setBlockedUsers(items);
-        setBlockedUsersLoading(false);
-      })
-      .catch((cause) => {
-        if (!active) {
-          return;
-        }
-        setBlockedUsers([]);
-        setBlockedUsersLoading(false);
-        setBlockedUsersError(
-          cause instanceof Error ? cause.message : "차단 목록을 불러오지 못했습니다.",
-        );
-      });
+    const loadBlockedUsers = () => {
+      void getMyBlockedProfiles()
+        .then((items) => {
+          if (!active) {
+            return;
+          }
+          setBlockedUsers(items);
+          setBlockedUsersLoading(false);
+        })
+        .catch((cause) => {
+          if (!active) {
+            return;
+          }
+          setBlockedUsers([]);
+          setBlockedUsersLoading(false);
+          setBlockedUsersError(
+            cause instanceof Error ? cause.message : "차단 목록을 불러오지 못했습니다.",
+          );
+        });
+    };
+
+    const win = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+
+    let idleId: number | null = null;
+    const timeoutId = window.setTimeout(() => {
+      if (typeof win.requestIdleCallback === "function") {
+        idleId = win.requestIdleCallback(loadBlockedUsers, { timeout: 1200 });
+        return;
+      }
+
+      loadBlockedUsers();
+    }, 260);
 
     return () => {
       active = false;
+      window.clearTimeout(timeoutId);
+      if (idleId !== null && typeof win.cancelIdleCallback === "function") {
+        win.cancelIdleCallback(idleId);
+      }
     };
   }, [
     canAccessAdmin,
@@ -797,25 +819,31 @@ export function ProfilePage({
             <TabsTrigger value="trade">내 매칭 글</TabsTrigger>
           </TabsList>
           <TabsContent value="posts" className="space-y-3">
-            {myPosts.length > 0 ? myPosts.map((post) => (
-              <Card key={post.id} className="transition-colors hover:bg-muted/40">
-                <button type="button" className="w-full cursor-pointer text-left" onClick={() => moveToPost(post.id)}>
-                  <CardContent className="space-y-2 py-5">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{getPostCategoryLabel(post.category)}</Badge>
-                      {post.subcategory ? (
-                        <Badge variant="secondary">{getSubcategoryLabel(post.subcategory)}</Badge>
-                      ) : null}
-                      {post.visibilityLevel ? (
-                        <Badge variant="secondary">{getVisibilityLabel(post.visibilityLevel)}</Badge>
-                      ) : null}
-                    </div>
-                    <p className="font-semibold">{post.title}</p>
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
-                  </CardContent>
-                </button>
-              </Card>
-            )) : (
+            {myPosts.length > 0 ? myPosts.map((post) => {
+              const officialStarter = getOfficialStarterMeta(post);
+
+              return (
+                <Card key={post.id} className="transition-colors hover:bg-muted/40">
+                  <button type="button" className="w-full cursor-pointer text-left" onClick={() => moveToPost(post.id)}>
+                    <CardContent className="space-y-2 py-5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{getPostCategoryLabel(post.category)}</Badge>
+                        {post.subcategory ? (
+                          <Badge variant="secondary">{getSubcategoryLabel(post.subcategory)}</Badge>
+                        ) : null}
+                        {post.visibilityLevel ? (
+                          <Badge variant="secondary">{getVisibilityLabel(post.visibilityLevel)}</Badge>
+                        ) : null}
+                        {officialStarter ? <Badge variant="outline">{officialStarter.name}</Badge> : null}
+                        {officialStarter ? <Badge variant="secondary">{officialStarter.badge}</Badge> : null}
+                      </div>
+                      <p className="font-semibold">{post.title}</p>
+                      <p className="line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
+                    </CardContent>
+                  </button>
+                </Card>
+              );
+            }) : (
               <EmptyState title="작성한 글이 아직 없습니다" description="첫 글을 남기면 여기서 바로 확인할 수 있어요." />
             )}
           </TabsContent>

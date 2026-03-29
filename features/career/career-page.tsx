@@ -185,6 +185,7 @@ export function CareerPage({
               visibilityLevel: values.visibilityLevel,
               tags: [boardLabel, values.board === "careerInfo" ? "합격루틴" : "인턴"],
             });
+            setSnapshot((current) => addPostToSnapshot(current, localPost));
             setComposerOpen(false);
             form.reset({
               board: values.board,
@@ -193,7 +194,7 @@ export function CareerPage({
               visibilityLevel: values.visibilityLevel,
             });
             setSuccessMessage("게시글이 등록되었습니다.");
-            await refresh();
+            void refresh();
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "취업 글 작성에 실패했습니다.",

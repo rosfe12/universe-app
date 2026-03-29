@@ -77,7 +77,7 @@
       Helvetica,
       Arial,
       sans-serif;
-    background: #ffffff;
+    background: #0b1020;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     word-break: keep-all;
@@ -95,6 +95,10 @@
 
   ::selection {
     background: rgba(99, 102, 241, 0.18);
+  }
+
+  html[data-theme="light"] body {
+    background: #ffffff;
   }
 
   html[data-theme="dark"] body {

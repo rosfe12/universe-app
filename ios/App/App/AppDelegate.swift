@@ -5,9 +5,20 @@ import Capacitor
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    private let appBackgroundColor = UIColor(
+        red: 15.0 / 255.0,
+        green: 23.0 / 255.0,
+        blue: 42.0 / 255.0,
+        alpha: 1.0
+    )
+
+    private func applyWindowBackground() {
+        window?.backgroundColor = appBackgroundColor
+        window?.rootViewController?.view.backgroundColor = appBackgroundColor
+    }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        applyWindowBackground()
         return true
     }
 
@@ -26,7 +37,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        applyWindowBackground()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

@@ -46,7 +46,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createPost, deletePost, trackPostView } from "@/app/actions/content-actions";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { injectInlineAdSlots, isAdPlacementEnabled } from "@/lib/ads";
+import { injectInlineAdSlots, isAdPlacementEnabled, MAIN_FEED_AD_RULES } from "@/lib/ads";
 import {
   CAREER_BOARD_LABELS,
   STANDARD_VISIBILITY_LEVELS,
@@ -250,6 +250,28 @@ function getFilterForPost(post: Post): SharedFilter {
   return "advice";
 }
 
+function OfficialStarterInline({
+  post,
+  compact = false,
+}: {
+  post: Post;
+  compact?: boolean;
+}) {
+  const officialStarter = getOfficialStarterMeta(post);
+  if (!officialStarter) {
+    return null;
+  }
+
+  return (
+    <div className={cn("flex flex-wrap items-center gap-1.5", compact ? "text-[11px]" : "text-xs")}>
+      <span className="font-semibold text-slate-300 dark:text-slate-200">{officialStarter.name}</span>
+      <span className="rounded-full bg-violet-500/10 px-2 py-0.5 font-medium text-violet-300">
+        {officialStarter.badge}
+      </span>
+    </div>
+  );
+}
+
 function SharedFeedCard({
   post,
   hotScore,
@@ -383,6 +405,7 @@ export function CommunityPage({
     setSnapshot,
   } = useAppRuntime(initialSnapshot, "community");
   const currentUser = runtimeUser;
+  const recoveredEmptyGuestFeedRef = useRef(false);
   const [activeFilter, setActiveFilter] = useState<SharedFilter>(
     isSharedFilter(filterParam) ? filterParam : "all",
   );
@@ -413,6 +436,23 @@ export function CommunityPage({
       setFeedScope("all");
     }
   }, [canViewSchoolScope, feedScope]);
+
+  useEffect(() => {
+    if (recoveredEmptyGuestFeedRef.current) {
+      return;
+    }
+
+    if (loading || source !== "supabase" || isAuthenticated) {
+      return;
+    }
+
+    if (snapshot.posts.length > 0) {
+      return;
+    }
+
+    recoveredEmptyGuestFeedRef.current = true;
+    void refresh();
+  }, [isAuthenticated, loading, refresh, snapshot.posts.length, source]);
 
   const schoolFeedItems = useMemo(
     () => getSchoolCommunityFeedPosts(currentUser.schoolId),
@@ -587,7 +627,10 @@ export function CommunityPage({
       .slice(0, 6)
       .map(([tag]) => tag);
   }, [sortedItems]);
-  const feedSlots = useMemo(() => injectInlineAdSlots(sortedItems), [sortedItems]);
+  const feedSlots = useMemo(
+    () => injectInlineAdSlots(sortedItems, MAIN_FEED_AD_RULES),
+    [sortedItems],
+  );
 
   const detailPost = useMemo(
     () => accessibleAllFeedItems.find((post) => post.id === detailPostId) ?? null,
@@ -781,9 +824,10 @@ export function CommunityPage({
             form.setValue("pollEnabled", false);
             form.setValue("pollQuestion", "");
             form.setValue("pollOptions", ["", ""]);
+            setSnapshot((current) => addPostToSnapshot(current, localPost));
             setActiveFilter(getFilterFromBoard(values.board));
             setSuccessMessage("게시글이 등록되었습니다.");
-            await refresh();
+            void refresh();
           } catch (error) {
             form.setError("root", {
               message: error instanceof Error ? error.message : "글 작성에 실패했습니다.",
@@ -943,6 +987,7 @@ export function CommunityPage({
                 onClick={() => openPost(featuredItem)}
                 className="block w-full rounded-[24px] bg-slate-950/5 px-4 py-4 text-left transition-colors hover:bg-slate-950/10 dark:bg-white/5 dark:hover:bg-white/10"
               >
+                <OfficialStarterInline post={featuredItem} />
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="rounded-full bg-indigo-500/10 px-2.5 py-1 font-medium text-indigo-600 dark:bg-indigo-400/10 dark:text-indigo-300">
                     {getCardLabel(featuredItem)}
@@ -988,6 +1033,7 @@ export function CommunityPage({
                         onClick={() => openPost(post)}
                         className="app-muted-surface block w-full rounded-[20px] px-4 py-3 text-left"
                       >
+                        <OfficialStarterInline post={post} compact />
                         <p className="text-sm font-semibold text-foreground">{post.title}</p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
                           {getCardLabel(post)} · 댓글 {post.commentCount}
@@ -1026,6 +1072,7 @@ export function CommunityPage({
                             onClick={() => openPost(post)}
                             className="app-muted-surface block w-full rounded-[20px] px-4 py-3 text-left"
                           >
+                            <OfficialStarterInline post={post} compact />
                             <p className="text-sm font-semibold text-foreground">{post.title}</p>
                             <p className="mt-1 text-xs leading-5 text-muted-foreground">
                               {post.pollVoteCount ?? post.poll?.totalVotes ?? 0}명 참여
@@ -1048,6 +1095,7 @@ export function CommunityPage({
                             onClick={() => openPost(post)}
                             className="app-muted-surface block w-full rounded-[20px] px-4 py-3 text-left"
                           >
+                            <OfficialStarterInline post={post} compact />
                             <p className="text-sm font-semibold text-foreground">{post.title}</p>
                             <p className="mt-1 text-xs leading-5 text-muted-foreground">
                               {getCardLabel(post)} · {getSchoolName(post.schoolId)}
@@ -1150,6 +1198,7 @@ export function CommunityPage({
                 onClick={() => openPost(post)}
                 className="app-section-surface app-soft-hover rounded-[24px] border-white/10 px-4 py-4 text-left"
               >
+                <OfficialStarterInline post={post} />
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span className="rounded-full bg-sky-500/10 px-2.5 py-1 font-medium text-sky-300">
                     댓글 {post.commentCount}

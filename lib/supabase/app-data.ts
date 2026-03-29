@@ -335,7 +335,7 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         tradePosts: true,
         notifications: true,
         reports: false,
-        blocks: true,
+        blocks: false,
         datingProfiles: true,
         mediaAssets: false,
         currentUserProfile: true,
@@ -1353,21 +1353,19 @@ export function prewarmClientRuntimeSnapshots(
   prewarmedRuntimeSnapshotKeys.add(key);
 
   const run = async () => {
-    for (const scope of scopes) {
-      const cachedSnapshot = lastClientRuntimeSnapshots.get(scope);
-      if (cachedSnapshot && Date.now() - cachedSnapshot.at < getClientRuntimeSnapshotTtlMs(scope)) {
-        continue;
-      }
+    await Promise.allSettled(
+      scopes.map(async (scope) => {
+        const cachedSnapshot = lastClientRuntimeSnapshots.get(scope);
+        if (cachedSnapshot && Date.now() - cachedSnapshot.at < getClientRuntimeSnapshotTtlMs(scope)) {
+          return;
+        }
 
-      try {
         await loadClientRuntimeSnapshot({ scope });
-      } catch {
-        // ignore background prewarm failures
-      }
-    }
+      }),
+    );
   };
 
-  const delayMs = options?.delayMs ?? 1200;
+  const delayMs = options?.delayMs ?? 700;
   const win = window as typeof window & {
     requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
   };
@@ -1375,7 +1373,7 @@ export function prewarmClientRuntimeSnapshots(
   if (typeof win.requestIdleCallback === "function") {
     win.requestIdleCallback(() => {
       void run();
-    }, { timeout: 1500 });
+    }, { timeout: delayMs });
     return;
   }
 
@@ -1594,6 +1592,7 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
       currentUser: guestUser,
       source: "supabase",
       isAuthenticated: Boolean(authUser),
+      runtimeScope: scope,
       setupStatus: "ready",
       setupIssue: undefined,
     };

@@ -502,10 +502,12 @@ export function CommunityProfileSection({
     setUploadStatus("사진을 준비 중이에요.");
     try {
       setUploadError(null);
-      const preparedFile = await prepareProfileImageForUpload(file);
-      setUploadStatus("얼굴과 개인정보를 확인 중이에요.");
+      setUploadStatus("사진을 최적화하고 확인 중이에요.");
+      const [preparedFile, analysis] = await Promise.all([
+        prepareProfileImageForUpload(file),
+        validateImageBeforeUpload(file),
+      ]);
       validateCommunityProfileImageFile(preparedFile);
-      const analysis = await validateImageBeforeUpload(preparedFile);
       setEditorState({
         imageOrder: order,
         file: preparedFile,

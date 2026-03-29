@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { prewarmClientRuntimeSnapshots, type RuntimeSnapshotScope } from "@/lib/supabase/app-data";
 import { cn } from "@/lib/utils";
 
 const icons = {
@@ -30,6 +31,13 @@ const tabs = [
 ] as const;
 
 const AUTH_SENSITIVE_TABS = new Set(["/notifications", "/profile"]);
+const TAB_RUNTIME_SCOPES: Record<(typeof tabs)[number]["href"], RuntimeSnapshotScope> = {
+  "/home": "home",
+  "/community": "community",
+  "/school": "school",
+  "/notifications": "notifications",
+  "/profile": "profile",
+};
 
 export function MobileTabBar() {
   const pathname = usePathname();
@@ -60,6 +68,18 @@ export function MobileTabBar() {
     scrollActiveViewToTop();
   }
 
+  function prewarmTab(href: (typeof tabs)[number]["href"]) {
+    const scope = TAB_RUNTIME_SCOPES[href];
+    if (!scope || href === pathname || AUTH_SENSITIVE_TABS.has(href)) {
+      return;
+    }
+
+    prewarmClientRuntimeSnapshots([scope], {
+      key: `tab:${href}:${pathname}`,
+      delayMs: 0,
+    });
+  }
+
   useEffect(() => {
     tabs.forEach((tab) => {
       if (tab.href !== pathname && !AUTH_SENSITIVE_TABS.has(tab.href)) {
@@ -70,10 +90,10 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className="fixed left-1/2 z-50 flex w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 flex-col justify-end rounded-t-[26px] border border-b-0 border-white/10 bg-slate-950/96 px-2 pt-1.5 shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)] backdrop-blur-xl"
+      className="fixed left-1/2 z-50 flex w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 flex-col justify-end overflow-hidden rounded-t-[26px] border border-b-0 border-white/10 bg-slate-950/96 px-2 pt-1 shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)] backdrop-blur-xl"
       style={{
         bottom: "0",
-        paddingBottom: "max(0.2rem, calc(env(safe-area-inset-bottom) - 0.35rem))",
+        paddingBottom: "max(0.12rem, calc(env(safe-area-inset-bottom) - 0.9rem))",
       }}
     >
       <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1">
@@ -88,8 +108,10 @@ export function MobileTabBar() {
                 prefetch={AUTH_SENSITIVE_TABS.has(tab.href) ? false : undefined}
                 aria-current={active ? "page" : undefined}
                 onClick={(event) => handleTabClick(event, active)}
+                onTouchStart={() => prewarmTab(tab.href)}
+                onMouseEnter={() => prewarmTab(tab.href)}
                 className={cn(
-                  "group relative flex min-w-0 flex-col items-center gap-1 rounded-[20px] px-1 py-1.5 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
+                  "group relative flex min-w-0 flex-col items-center gap-1 rounded-[20px] px-1 py-1 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
                   active
                     ? "bg-[linear-gradient(180deg,rgba(99,102,241,0.16),rgba(79,70,229,0.08))] text-white"
                     : "hover:bg-white/[0.03]",

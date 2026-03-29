@@ -53,6 +53,7 @@ const baseMockRuntimeSnapshot: AppRuntimeSnapshot = {
   currentUser: guestUser,
   source: "mock",
   isAuthenticated: false,
+  runtimeScope: "full",
   setupStatus: "demo",
   setupIssue: undefined,
 };

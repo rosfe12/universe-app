@@ -10,6 +10,16 @@ export const adConfig = {
   },
 } as const;
 
+export const MAIN_FEED_AD_RULES = {
+  firstAdAfter: 4,
+  repeatInterval: 5,
+} as const;
+
+export const SCHOOL_FEED_AD_RULES = {
+  firstAdAfter: 4,
+  repeatInterval: 7,
+} as const;
+
 export function isAdPlacementEnabled(placement: AdPlacement) {
   return adConfig.enabled && adConfig.placements[placement];
 }
@@ -26,7 +36,13 @@ export type FeedSlot<T extends { id: string }> =
       placement: AdPlacement;
     };
 
-export function injectInlineAdSlots<T extends { id: string }>(items: T[]) {
+export function injectInlineAdSlots<T extends { id: string }>(
+  items: T[],
+  options?: {
+    firstAdAfter?: number;
+    repeatInterval?: number;
+  },
+) {
   if (!isAdPlacementEnabled("feedInline") || adConfig.feedInterval <= 0) {
     return items.map<FeedSlot<T>>((item) => ({
       kind: "item",
@@ -34,6 +50,9 @@ export function injectInlineAdSlots<T extends { id: string }>(items: T[]) {
       item,
     }));
   }
+
+  const firstAdAfter = Math.max(1, options?.firstAdAfter ?? adConfig.feedInterval);
+  const repeatInterval = Math.max(5, options?.repeatInterval ?? adConfig.feedInterval);
 
   return items.flatMap<FeedSlot<T>>((item, index) => {
     const slots: FeedSlot<T>[] = [
@@ -44,8 +63,13 @@ export function injectInlineAdSlots<T extends { id: string }>(items: T[]) {
       },
     ];
 
+    const itemCount = index + 1;
+    const passedFirstSlot = itemCount >= firstAdAfter;
+    const offsetFromFirstSlot = itemCount - firstAdAfter;
     const shouldInsertAd =
-      (index + 1) % adConfig.feedInterval === 0 && index < items.length - 1;
+      passedFirstSlot &&
+      offsetFromFirstSlot % repeatInterval === 0 &&
+      index < items.length - 1;
 
     if (shouldInsertAd) {
       slots.push({
