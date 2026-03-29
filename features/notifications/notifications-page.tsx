@@ -486,21 +486,12 @@ export function NotificationsPage({
     });
   };
 
-  const handleRefresh = () => {
-    startTransition(() => {
-      void refresh();
-    });
-  };
-
   return (
     <AppShell
       title="알림"
+      onPullToRefresh={refresh}
       topAction={
         <div className="flex items-center gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={isPending} onClick={handleRefresh}>
-            <RefreshCw className={`h-4 w-4 ${isPending ? "animate-spin" : ""}`} />
-            새로고침
-          </Button>
           {unreadCount > 0 ? (
             <Button
               type="button"

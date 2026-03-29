@@ -1,4 +1,7 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
 
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { TopNavActions } from "@/components/layout/top-nav-actions";
@@ -11,6 +14,7 @@ export function AppShell({
   topAction,
   showTopNavActions = true,
   desktopWide = false,
+  onPullToRefresh,
 }: {
   children: ReactNode;
   title: string;
@@ -19,7 +23,29 @@ export function AppShell({
   topAction?: ReactNode;
   showTopNavActions?: boolean;
   desktopWide?: boolean;
+  onPullToRefresh?: (() => Promise<unknown> | unknown) | null;
 }) {
+  const pullStartYRef = useRef<number | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
+  const pullEnabled = Boolean(onPullToRefresh);
+
+  async function handlePullRefresh() {
+    if (!onPullToRefresh || isPullRefreshing) {
+      setPullDistance(0);
+      return;
+    }
+
+    setIsPullRefreshing(true);
+    setPullDistance(56);
+    try {
+      await onPullToRefresh();
+    } finally {
+      setIsPullRefreshing(false);
+      setPullDistance(0);
+    }
+  }
+
   return (
     <div className="app-page-backdrop h-[100dvh] overflow-hidden md:px-4 md:py-5">
       <div
@@ -52,7 +78,74 @@ export function AppShell({
           } pt-5 ${
             desktopWide ? "md:px-6" : ""
           }`}
+          onTouchStart={(event) => {
+            if (!pullEnabled || isPullRefreshing || event.currentTarget.scrollTop > 0) {
+              pullStartYRef.current = null;
+              return;
+            }
+
+            pullStartYRef.current = event.touches[0]?.clientY ?? null;
+          }}
+          onTouchMove={(event) => {
+            if (!pullEnabled || isPullRefreshing || pullStartYRef.current === null) {
+              return;
+            }
+
+            if (event.currentTarget.scrollTop > 0) {
+              setPullDistance(0);
+              return;
+            }
+
+            const currentY = event.touches[0]?.clientY ?? pullStartYRef.current;
+            const deltaY = currentY - pullStartYRef.current;
+
+            if (deltaY <= 0) {
+              setPullDistance(0);
+              return;
+            }
+
+            setPullDistance(Math.min(78, deltaY * 0.42));
+          }}
+          onTouchEnd={() => {
+            if (!pullEnabled || isPullRefreshing) {
+              pullStartYRef.current = null;
+              return;
+            }
+
+            const shouldRefresh = pullDistance >= 52;
+            pullStartYRef.current = null;
+
+            if (shouldRefresh) {
+              void handlePullRefresh();
+              return;
+            }
+
+            setPullDistance(0);
+          }}
+          onTouchCancel={() => {
+            pullStartYRef.current = null;
+            if (!isPullRefreshing) {
+              setPullDistance(0);
+            }
+          }}
         >
+          {pullEnabled ? (
+            <div
+              className="sticky top-0 z-10 -mb-2 flex justify-center overflow-hidden transition-[height,opacity] duration-200"
+              style={{
+                height:
+                  pullDistance > 0 || isPullRefreshing
+                    ? `${Math.max(pullDistance, isPullRefreshing ? 56 : 0)}px`
+                    : "0px",
+                opacity: pullDistance > 0 || isPullRefreshing ? 1 : 0,
+              }}
+            >
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white/80 backdrop-blur">
+                <RefreshCw className={`h-3.5 w-3.5 ${isPullRefreshing ? "animate-spin" : ""}`} />
+                {isPullRefreshing ? "새로고침 중" : pullDistance >= 52 ? "놓으면 새로고침" : "당겨서 새로고침"}
+              </div>
+            </div>
+          ) : null}
           <RuntimeSetupNotice />
           {children}
         </main>

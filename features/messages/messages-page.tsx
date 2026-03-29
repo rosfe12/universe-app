@@ -161,7 +161,6 @@ export function MessagesPage({
   );
   const [chatThreads, setChatThreads] = useState<MessageThreadItem[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
-  const [isRefreshing, startRefreshTransition] = useTransition();
   const showInitialLoading = loading && source === "mock";
 
   const tradeUnreadCounts = useMemo(
@@ -368,14 +367,14 @@ export function MessagesPage({
 
   if (showInitialLoading) {
     return (
-      <AppShell title="메시지">
+      <AppShell title="메시지" onPullToRefresh={refresh}>
         <LoadingState />
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="메시지">
+    <AppShell title="메시지" onPullToRefresh={refresh}>
       {loading ? <LoadingState /> : null}
       {!isAuthenticated ? (
         <EmptyState
@@ -403,20 +402,6 @@ export function MessagesPage({
                   최근 반응과 대화를 한 곳에서 바로 이어볼 수 있어요.
                 </p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={isRefreshing}
-                onClick={() => {
-                  startRefreshTransition(() => {
-                    void refresh();
-                  });
-                }}
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                새로고침
-              </Button>
             </CardContent>
           </Card>
           <TabsList className="grid w-full grid-cols-2">
