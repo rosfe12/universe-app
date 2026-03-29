@@ -632,6 +632,16 @@ export function CommunityPage({
     }
   }, [activeFilter, canAccessAnonymousBoard]);
 
+  useEffect(() => {
+    if (!composerOpen) {
+      return;
+    }
+
+    form.setValue("board", getDefaultBoard(activeFilter), {
+      shouldValidate: true,
+    });
+  }, [activeFilter, composerOpen, form]);
+
   const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
     const createdAt = new Date().toISOString();
