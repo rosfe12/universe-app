@@ -153,9 +153,12 @@ export function MessagesPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const { loading, isAuthenticated, currentUser, source, refresh } = useAppRuntime(initialSnapshot, "messages");
+  const { snapshot, loading, isAuthenticated, currentUser, source, refresh } = useAppRuntime(initialSnapshot, "messages");
   const canUseMessaging = isVerifiedStudent(currentUser) || isMasterAdminEmail(currentUser.email);
-  const notifications = getNotifications(currentUser.id);
+  const notifications = useMemo(
+    () => getNotifications(currentUser.id),
+    [currentUser.id, snapshot.notifications],
+  );
   const [chatThreads, setChatThreads] = useState<MessageThreadItem[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [isRefreshing, startRefreshTransition] = useTransition();
@@ -262,7 +265,7 @@ export function MessagesPage({
           targetId: item.id,
           sectionLabel: `${getTradeStatusLabel(item.status)} · ${item.status === "matching" ? "대화 진행 중" : "대화 시작 전"}`,
         })),
-    [currentUser.id, tradeUnreadCounts],
+    [currentUser.id, snapshot.lectures, snapshot.tradePosts, tradeUnreadCounts],
   );
 
   useEffect(() => {
@@ -353,7 +356,15 @@ export function MessagesPage({
     };
 
     void loadChatThreads();
-  }, [currentUser.id, fallbackChatThreads, isAuthenticated, source, tradeUnreadCounts]);
+  }, [
+    currentUser.id,
+    fallbackChatThreads,
+    isAuthenticated,
+    snapshot.lectures,
+    snapshot.tradePosts,
+    source,
+    tradeUnreadCounts,
+  ]);
 
   if (showInitialLoading) {
     return (
