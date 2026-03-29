@@ -2175,18 +2175,26 @@ to authenticated
 with check (
   auth.uid() = author_id
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
-  and (public.is_verified_student() or public.is_admin())
   and (category <> 'dating' or public.is_verified_student())
   and (
     scope = 'global'
     or school_id = public.current_user_school_id()
   )
   and (
-    subcategory is distinct from 'freshman'
+    (
+      subcategory = 'freshman'
+      and (
+        public.is_admin()
+        or (
+          public.current_user_type() = 'freshman'
+          and scope = 'school'
+          and school_id = public.current_user_school_id()
+        )
+      )
+    )
     or (
-      public.current_user_type() = 'freshman'
-      and scope = 'school'
-      and school_id = public.current_user_school_id()
+      subcategory is distinct from 'freshman'
+      and (public.is_verified_student() or public.is_admin())
     )
   )
 );
@@ -2224,17 +2232,31 @@ to authenticated
 with check (
   auth.uid() = author_id
   and exists (select 1 from public.users where id = auth.uid() and not is_restricted)
-  and (public.is_verified_student() or public.is_admin())
   and public.can_read_post_by_id(post_id)
-  and not exists (
-    select 1
-    from public.posts
-    where posts.id = comments.post_id
-      and posts.subcategory = 'freshman'
-      and (
-        public.current_user_type() <> 'freshman'
-        or posts.school_id is distinct from public.current_user_school_id()
+  and (
+    (
+      not exists (
+        select 1
+        from public.posts
+        where posts.id = comments.post_id
+          and posts.subcategory = 'freshman'
       )
+      and (public.is_verified_student() or public.is_admin())
+    )
+    or exists (
+      select 1
+      from public.posts
+      where posts.id = comments.post_id
+        and posts.subcategory = 'freshman'
+        and (
+          public.is_admin()
+          or (
+            public.is_verified_student()
+            and public.current_user_type() = 'student'
+            and posts.school_id = public.current_user_school_id()
+          )
+        )
+    )
   )
   and (
     parent_comment_id is null
