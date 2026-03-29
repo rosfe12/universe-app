@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export function LaunchScreen({
   id,
   fixed = false,
@@ -62,14 +64,12 @@ export function LaunchScreen({
             boxShadow: "0 22px 48px -28px rgba(99,102,241,0.85)",
           }}
         >
-          <img
+          <Image
             src="/icons/icon-192.png"
             alt="CAMVERSE"
             width={72}
             height={72}
-            fetchPriority="high"
-            decoding="sync"
-            loading="eager"
+            priority
             className="h-[72px] w-[72px] rounded-[22px]"
             style={{ height: 72, width: 72, borderRadius: 22 }}
           />

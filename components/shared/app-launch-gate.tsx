@@ -8,9 +8,9 @@ import {
   type RuntimeSnapshotScope,
 } from "@/lib/supabase/app-data";
 
-const MIN_LAUNCH_SCREEN_MS = 2400;
-const PRELOAD_DEADLINE_MS = 3400;
-const EXIT_TRANSITION_MS = 220;
+const MIN_LAUNCH_SCREEN_MS = 650;
+const PRELOAD_DEADLINE_MS = 1200;
+const EXIT_TRANSITION_MS = 160;
 
 function wait(ms: number) {
   return new Promise<void>((resolve) => {
@@ -28,47 +28,47 @@ function normalizePathname(pathname: string | null) {
 
 function getLaunchPreloadScopes(pathname: string): RuntimeSnapshotScope[] {
   if (pathname === "/home" || pathname.startsWith("/home/")) {
-    return ["home", "chrome"];
+    return [];
   }
 
   if (pathname === "/community" || pathname.startsWith("/community/")) {
-    return ["community", "chrome"];
+    return [];
   }
 
   if (pathname === "/school" || pathname.startsWith("/school/")) {
-    return ["school", "chrome"];
+    return [];
   }
 
   if (pathname === "/notifications" || pathname.startsWith("/notifications/")) {
-    return ["notifications", "chrome"];
+    return [];
   }
 
   if (pathname === "/messages" || pathname.startsWith("/messages/")) {
-    return ["messages", "chrome"];
+    return [];
   }
 
   if (pathname === "/trade" || pathname.startsWith("/trade/")) {
-    return ["trade", "chrome"];
+    return [];
   }
 
   if (pathname === "/dating" || pathname.startsWith("/dating/")) {
-    return ["dating", "chrome"];
+    return [];
   }
 
   if (pathname === "/lectures") {
-    return ["lectures", "chrome"];
+    return [];
   }
 
   if (pathname.startsWith("/lectures/")) {
-    return ["full"];
+    return [];
   }
 
   if (pathname === "/profile") {
-    return ["profile", "chrome"];
+    return [];
   }
 
   if (pathname.startsWith("/profile/")) {
-    return ["chrome"];
+    return [];
   }
 
   if (pathname === "/login") {
@@ -76,7 +76,7 @@ function getLaunchPreloadScopes(pathname: string): RuntimeSnapshotScope[] {
   }
 
   if (pathname === "/onboarding") {
-    return ["full"];
+    return ["chrome"];
   }
 
   if (pathname === "/invite") {
@@ -84,7 +84,7 @@ function getLaunchPreloadScopes(pathname: string): RuntimeSnapshotScope[] {
   }
 
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    return ["admin"];
+    return [];
   }
 
   return [];
