@@ -174,6 +174,7 @@ export interface User {
   department?: string;
   grade?: number;
   verified: boolean;
+  birthDate?: string;
   adultVerified?: boolean;
   adultVerifiedAt?: string;
   studentVerificationStatus?: StudentVerificationStatus;

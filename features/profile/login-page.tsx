@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
+  AUTH_PENDING_BIRTH_DATE_STORAGE_KEY,
   AUTH_SAVED_EMAIL_STORAGE_KEY,
   getKeepLoggedInPreference,
   setKeepLoggedInPreference,
@@ -44,6 +45,7 @@ const authSchema = z.object({
   email: z.string().email("이메일 형식이 필요합니다."),
   password: z.string().min(4, "비밀번호를 4자 이상 입력해주세요."),
   confirmPassword: z.string().optional(),
+  birthDate: z.string().optional(),
 });
 
 type AuthFormValues = z.infer<typeof authSchema>;
@@ -51,11 +53,32 @@ type AuthMode = "login" | "signup";
 type SignupConsentState = {
   terms: boolean;
   privacy: boolean;
-  age: boolean;
   marketingPush: boolean;
   marketingEmail: boolean;
   marketingSms: boolean;
 };
+
+function parseBirthDate(value?: string) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isAtLeastFourteen(value?: string) {
+  const birthDate = parseBirthDate(value);
+  if (!birthDate) {
+    return false;
+  }
+
+  const today = new Date();
+  const threshold = new Date(birthDate);
+  threshold.setFullYear(threshold.getFullYear() + 14);
+
+  return threshold <= today;
+}
 
 async function waitForAuthenticatedSnapshot(
   refresh: () => Promise<AppRuntimeSnapshot>,
@@ -98,7 +121,6 @@ export function LoginPage() {
   const [signupConsents, setSignupConsents] = useState<SignupConsentState>({
     terms: false,
     privacy: false,
-    age: false,
     marketingPush: false,
     marketingEmail: false,
     marketingSms: false,
@@ -111,6 +133,7 @@ export function LoginPage() {
       email: "",
       password: "",
       confirmPassword: "",
+      birthDate: "",
     },
   });
 
@@ -150,10 +173,11 @@ export function LoginPage() {
   }, [currentUser, isAuthenticated, loading, nextPath, router]);
 
   const requiredSignupConsentsComplete =
-    signupConsents.terms && signupConsents.privacy && signupConsents.age;
+    signupConsents.terms && signupConsents.privacy && isAtLeastFourteen(form.watch("birthDate"));
   const watchedEmail = form.watch("email");
   const watchedPassword = form.watch("password");
   const watchedConfirmPassword = form.watch("confirmPassword");
+  const watchedBirthDate = form.watch("birthDate");
   const loginSubmitDisabled =
     pending || loading || watchedEmail.trim().length === 0 || watchedPassword.trim().length === 0;
   const signupSubmitDisabled =
@@ -175,7 +199,16 @@ export function LoginPage() {
     }
 
     if (mode === "signup" && !requiredSignupConsentsComplete) {
-      setErrorMessage("필수 약관과 개인정보 수집·이용, 만 14세 이상 확인에 동의해야 합니다.");
+      setErrorMessage("필수 약관 동의와 생년월일 확인이 필요합니다.");
+      if (!watchedBirthDate?.trim()) {
+        form.setError("birthDate", {
+          message: "생년월일을 입력해주세요.",
+        });
+      } else if (!isAtLeastFourteen(watchedBirthDate)) {
+        form.setError("birthDate", {
+          message: "만 14세 이상만 가입할 수 있습니다.",
+        });
+      }
       return;
     }
 
@@ -204,6 +237,7 @@ export function LoginPage() {
             email: values.email,
             password: values.password,
             referralCode: getRememberedReferralCode(),
+            birthDate: values.birthDate?.trim() || undefined,
             consents: signupConsents,
           });
     setPending(false);
@@ -343,8 +377,24 @@ export function LoginPage() {
                   }
 
                   if (mode === "signup" && !requiredSignupConsentsComplete) {
-                    setErrorMessage("필수 약관과 개인정보 수집·이용, 만 14세 이상 확인에 동의해야 합니다.");
+                    setErrorMessage("필수 약관 동의와 생년월일 확인이 필요합니다.");
+                    if (!watchedBirthDate?.trim()) {
+                      form.setError("birthDate", {
+                        message: "생년월일을 입력해주세요.",
+                      });
+                    } else if (!isAtLeastFourteen(watchedBirthDate)) {
+                      form.setError("birthDate", {
+                        message: "만 14세 이상만 가입할 수 있습니다.",
+                      });
+                    }
                     return;
+                  }
+
+                  if (typeof window !== "undefined" && watchedBirthDate?.trim()) {
+                    window.sessionStorage.setItem(
+                      AUTH_PENDING_BIRTH_DATE_STORAGE_KEY,
+                      watchedBirthDate.trim(),
+                    );
                   }
 
                   setSupabaseSessionPersistence(keepLoggedIn);
@@ -451,6 +501,24 @@ export function LoginPage() {
                     필수 항목은 가입 전에 전문을 열람할 수 있으며, 동의 후에만 회원가입이 진행됩니다.
                   </p>
                   <div className="space-y-2 rounded-[18px] border border-border/80 bg-background/40 p-3">
+                    <Label htmlFor="signup-birth-date">생년월일</Label>
+                    <Input
+                      id="signup-birth-date"
+                      type="date"
+                      autoComplete="bday"
+                      {...form.register("birthDate")}
+                    />
+                    {form.formState.errors.birthDate ? (
+                      <p className="text-xs text-rose-500">
+                        {form.formState.errors.birthDate.message}
+                      </p>
+                    ) : (
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        만 14세 이상 여부를 확인합니다.
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2 rounded-[18px] border border-border/80 bg-background/40 p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <label className="block text-sm leading-6 text-foreground">
@@ -508,22 +576,6 @@ export function LoginPage() {
                       />
                     </div>
                   </div>
-                  <label className="flex items-start justify-between gap-3 text-sm">
-                    <span className="space-y-1 leading-6 text-foreground">
-                      <span className="font-medium">[필수] </span>만 14세 이상입니다
-                      <span className="block text-xs leading-5 text-muted-foreground">
-                        만 14세 미만은 법정대리인 동의 없이는 가입할 수 없습니다.
-                      </span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-4 w-4 accent-indigo-600"
-                      checked={signupConsents.age}
-                      onChange={(event) =>
-                        setSignupConsents((current) => ({ ...current, age: event.target.checked }))
-                      }
-                    />
-                  </label>
                   <div className="space-y-2 border-t border-border pt-3">
                     <p className="text-sm font-medium text-foreground">[선택] 광고성 정보 수신</p>
                     <p className="text-xs leading-5 text-muted-foreground">

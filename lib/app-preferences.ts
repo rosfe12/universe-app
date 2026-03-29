@@ -3,6 +3,7 @@ export type ThemeMode = "light" | "dark" | "system";
 export const APP_THEME_STORAGE_KEY = "univers-theme-mode";
 export const APP_MOTION_STORAGE_KEY = "univers-reduce-motion";
 export const AUTH_KEEP_LOGGED_IN_STORAGE_KEY = "univers-auth-keep-logged-in";
+export const AUTH_PENDING_BIRTH_DATE_STORAGE_KEY = "univers-auth-pending-birth-date";
 export const AUTH_SAVED_EMAIL_STORAGE_KEY = "univers-auth-saved-email";
 export const SUPABASE_AUTH_STORAGE_KEY = "univers-supabase-auth-token";
 export const AUTH_SESSION_MARKER_STORAGE_KEY = "univers-auth-session-active";

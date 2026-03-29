@@ -222,6 +222,7 @@ create table if not exists public.users (
   created_at timestamptz not null default timezone('utc', now()),
   name text,
   verified boolean not null default false,
+  birth_date date,
   adult_verified boolean not null default false,
   adult_verified_at timestamptz,
   student_verification_status public.student_verification_status not null default 'unverified',
@@ -285,6 +286,9 @@ alter table public.users
 
 alter table public.users
   add column if not exists adult_verified_at timestamptz;
+
+alter table public.users
+  add column if not exists birth_date date;
 
 alter table public.users
   add column if not exists marketing_push_opt_in boolean not null default false;
@@ -1049,6 +1053,13 @@ as $$
 declare
   actor_can_override boolean := auth.uid() is null or public.is_admin();
 begin
+  if tg_op = 'UPDATE'
+    and old.birth_date is not null
+    and new.birth_date is distinct from old.birth_date
+    and not actor_can_override then
+    raise exception '생년월일은 고객센터를 통해 변경할 수 있습니다.';
+  end if;
+
   if new.school_email is not null then
     new.school_email := lower(btrim(new.school_email::text))::citext;
   end if;
@@ -1065,6 +1076,22 @@ begin
       when new.user_type = 'applicant' and new.school_id is not null then 'school'::public.visibility_level
       else 'school'::public.visibility_level
     end;
+  end if;
+
+  if new.birth_date is null then
+    new.adult_verified := false;
+    new.adult_verified_at := null;
+  else
+    if new.birth_date > current_date then
+      raise exception '생년월일 형식을 확인해주세요.';
+    end if;
+
+    if (new.birth_date + interval '14 years')::date > current_date then
+      raise exception '만 14세 이상만 가입할 수 있습니다.';
+    end if;
+
+    new.adult_verified := true;
+    new.adult_verified_at := coalesce(old.adult_verified_at, new.adult_verified_at, timezone('utc', now()));
   end if;
 
   if new.user_type <> 'student' then
@@ -1237,6 +1264,7 @@ begin
     email,
     name,
     nickname,
+    birth_date,
     marketing_push_opt_in,
     marketing_email_opt_in,
     marketing_sms_opt_in,
@@ -1247,6 +1275,7 @@ begin
     coalesce(new.email, new.raw_user_meta_data ->> 'email', ''),
     coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', split_part(coalesce(new.email, ''), '@', 1)),
     public.generate_user_nickname(new.id, null),
+    nullif(new.raw_user_meta_data ->> 'birth_date', '')::date,
     coalesce((new.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'push')::boolean, false),
     coalesce((new.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'email')::boolean, false),
     coalesce((new.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'sms')::boolean, false),

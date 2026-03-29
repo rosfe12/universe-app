@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
+import { AUTH_PENDING_BIRTH_DATE_STORAGE_KEY } from "@/lib/app-preferences";
 import {
   canUseSchoolVerificationEmail,
   normalizeSchoolEmail,
@@ -39,6 +40,7 @@ import type { StudentVerification } from "@/types";
 
 const onboardingSchema = z.object({
   userType: z.enum(["student", "applicant", "freshman"]),
+  birthDate: z.string().min(1, "생년월일을 입력해주세요."),
   schoolId: z.string().min(1),
   schoolEmail: z.string().email("학교 메일 형식이 필요합니다.").optional().or(z.literal("")),
   studentNumber: z.string().optional(),
@@ -75,6 +77,27 @@ const onboardingSchema = z.object({
       message: "입학년도를 입력해주세요.",
     });
   }
+
+  const birthDate = new Date(`${value.birthDate}T00:00:00`);
+  if (Number.isNaN(birthDate.getTime())) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["birthDate"],
+      message: "생년월일 형식을 확인해주세요.",
+    });
+    return;
+  }
+
+  const threshold = new Date(birthDate);
+  threshold.setFullYear(threshold.getFullYear() + 14);
+
+  if (threshold > new Date()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["birthDate"],
+      message: "만 14세 이상만 가입할 수 있습니다.",
+    });
+  }
 });
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
@@ -99,11 +122,16 @@ export function OnboardingPage() {
     () => schools.map((school) => ({ id: school.id, name: school.name })),
     [schools],
   );
+  const pendingBirthDate =
+    typeof window === "undefined"
+      ? ""
+      : window.sessionStorage.getItem(AUTH_PENDING_BIRTH_DATE_STORAGE_KEY) ?? "";
 
   const form = useForm<OnboardingFormValues>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       userType: isVerificationMode ? "student" : currentUser.userType,
+      birthDate: currentUser.birthDate ?? pendingBirthDate,
       schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
       schoolEmail: currentUser.schoolEmail ?? "",
       studentNumber: currentUser.studentNumber ?? "",
@@ -180,6 +208,7 @@ export function OnboardingPage() {
   });
   const currentLoginEmail =
     authEmail || (currentUser.email !== "guest@univers.app" ? currentUser.email : "");
+  const birthDateLocked = Boolean(currentUser.birthDate);
   const typeGuide =
     selectedUserType === "student"
       ? {
@@ -228,6 +257,7 @@ export function OnboardingPage() {
 
     form.reset({
       userType: isVerificationMode ? "student" : currentUser.userType,
+      birthDate: currentUser.birthDate ?? pendingBirthDate,
       schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
       schoolEmail: currentUser.schoolEmail ?? "",
       studentNumber: currentUser.studentNumber ?? "",
@@ -242,6 +272,7 @@ export function OnboardingPage() {
     currentUser.bio,
     currentUser.department,
     currentUser.grade,
+    currentUser.birthDate,
     currentUser.studentNumber,
     currentUser.admissionYear,
     currentUser.schoolEmail,
@@ -251,6 +282,7 @@ export function OnboardingPage() {
     form,
     isVerificationMode,
     loading,
+    pendingBirthDate,
     schoolOptions,
   ]);
 
@@ -325,6 +357,7 @@ export function OnboardingPage() {
     const result = await upsertUserProfile({
       ...currentUser,
       userType: values.userType,
+      birthDate: values.birthDate,
       schoolId: values.schoolId,
       nickname:
         currentUser.nickname ||
@@ -386,6 +419,9 @@ export function OnboardingPage() {
     }
 
     await refresh();
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(AUTH_PENDING_BIRTH_DATE_STORAGE_KEY);
+    }
     setPending(false);
     if (options?.redirectOnSuccess !== false) {
       router.push(nextPath);
@@ -592,6 +628,28 @@ export function OnboardingPage() {
             {errorMessage ? (
               <ErrorState title="온보딩 저장 실패" description={errorMessage} />
             ) : null}
+            <div className="space-y-2">
+              <Label>생년월일</Label>
+              <Input
+                type="date"
+                autoComplete="bday"
+                disabled={pending || birthDateLocked}
+                {...form.register("birthDate")}
+              />
+              {form.formState.errors.birthDate ? (
+                <p className="text-sm text-rose-600">
+                  {form.formState.errors.birthDate.message}
+                </p>
+              ) : birthDateLocked ? (
+                <p className="text-xs text-muted-foreground">
+                  생년월일 변경이 필요하면 문의하기로 요청해주세요.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  만 14세 이상 여부를 확인합니다.
+                </p>
+              )}
+            </div>
             {isVerificationMode ? (
               <div className="space-y-2">
                 <Label>인증 유형</Label>

@@ -807,6 +807,7 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     department: row.department ? String(row.department) : undefined,
     grade: typeof row.grade === "number" ? row.grade : undefined,
     verified: verificationState === "student_verified" || Boolean(row.verified),
+    birthDate: row.birth_date ? String(row.birth_date) : undefined,
     adultVerified: Boolean(row.adult_verified),
     adultVerifiedAt: row.adult_verified_at ? String(row.adult_verified_at) : undefined,
     studentVerificationStatus,
@@ -1183,6 +1184,7 @@ function createFallbackUser(authUser: SupabaseAuthUser): User {
     department: undefined,
     grade: undefined,
     verified: false,
+    birthDate: undefined,
     adultVerified: false,
     adultVerifiedAt: undefined,
     studentVerificationStatus: "unverified",
@@ -1263,9 +1265,13 @@ export function isSupabaseEnabled() {
 }
 
 export function hasCompletedOnboarding(
-  user?: { schoolId?: User["schoolId"]; email?: User["email"] } | null,
+  user?: {
+    schoolId?: User["schoolId"];
+    email?: User["email"];
+    adultVerified?: User["adultVerified"];
+  } | null,
 ) {
-  return Boolean(user?.schoolId) || isMasterAdminEmail(user?.email);
+  return (Boolean(user?.schoolId) && Boolean(user?.adultVerified)) || isMasterAdminEmail(user?.email);
 }
 
 export function getAuthFlowHref({
@@ -1750,15 +1756,16 @@ export async function signUpWithSupabase({
   email,
   password,
   referralCode,
+  birthDate,
   consents,
 }: {
   email: string;
   password: string;
   referralCode?: string;
+  birthDate?: string;
   consents?: {
     terms: boolean;
     privacy: boolean;
-    age: boolean;
     marketingPush?: boolean;
     marketingEmail?: boolean;
     marketingSms?: boolean;
@@ -1780,11 +1787,12 @@ export async function signUpWithSupabase({
         name: email.split("@")[0],
         full_name: email.split("@")[0],
         referral_code: normalizedReferralCode,
+        birth_date: birthDate ?? null,
         signup_consents: consents
           ? {
               terms_agreed_at: consents.terms ? agreedAt : null,
               privacy_agreed_at: consents.privacy ? agreedAt : null,
-              age_confirmed_at: consents.age ? agreedAt : null,
+              age_confirmed_at: birthDate ? agreedAt : null,
               marketing: {
                 push: Boolean(consents.marketingPush),
                 email: Boolean(consents.marketingEmail),
@@ -2018,13 +2026,12 @@ export async function upsertUserProfile(user: User) {
       referral_code: resolvedReferralCode,
       referred_by_code: resolvedReferredByCode ?? null,
       referred_by_user_id: resolvedReferredByUserId ?? null,
+      ...(user.birthDate !== undefined ? { birth_date: user.birthDate || null } : {}),
       user_type: fromUserType(user.userType),
       school_id: user.schoolId ?? null,
       department: user.department ?? null,
       grade: user.grade ?? null,
       verified: user.verified,
-      adult_verified: user.adultVerified ?? false,
-      adult_verified_at: user.adultVerifiedAt ?? null,
       student_verification_status:
         user.studentVerificationStatus ??
         (user.userType === "student" ? "unverified" : "none"),
