@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 
-import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { TopNavActions } from "@/components/layout/top-nav-actions";
 import { RuntimeSetupNotice } from "@/components/shared/runtime-setup-notice";
@@ -46,18 +45,17 @@ export function AppShell({
         </header>
         <main
           data-app-scroll-root
-          className={`flex-1 min-h-0 space-y-7 overflow-y-auto overscroll-contain px-4 pb-[calc(env(safe-area-inset-bottom)+8.25rem)] pt-5 ${
+          className={`flex-1 min-h-0 space-y-7 overflow-y-auto overscroll-contain px-4 ${
+            showTabs
+              ? "pb-[calc(env(safe-area-inset-bottom)+6.9rem)]"
+              : "pb-5"
+          } pt-5 ${
             desktopWide ? "md:px-6" : ""
           }`}
         >
           <RuntimeSetupNotice />
           {children}
         </main>
-        <div
-          className={`shrink-0 px-4 pt-2 ${showTabs ? "pb-[calc(env(safe-area-inset-bottom)+5.15rem)]" : "pb-4"}`}
-        >
-          <AppFooterLinks />
-        </div>
       </div>
       {showTabs ? <MobileTabBar /> : null}
     </div>

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { AccountRequiredCard } from "@/components/shared/account-required-card";
 import { AppSettingsSection } from "@/components/shared/app-settings-section";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -318,6 +319,9 @@ export function ProfilePage({
     return (
       <AppShell title="마이">
         <LoadingState />
+        <div className="border-t border-border pt-3">
+          <AppFooterLinks />
+        </div>
       </AppShell>
     );
   }
@@ -331,6 +335,9 @@ export function ProfilePage({
           title="로그인 후 이용할 수 있습니다"
           description="내 활동과 설정은 로그인 후 확인할 수 있습니다."
         />
+        <div className="border-t border-border pt-3">
+          <AppFooterLinks />
+        </div>
       </AppShell>
     );
   }
@@ -345,6 +352,9 @@ export function ProfilePage({
           title="프로필 설정이 아직 끝나지 않았습니다"
           description="유저 타입과 학교를 먼저 선택하면 글쓰기와 댓글이 바로 열립니다."
         />
+        <div className="border-t border-border pt-3">
+          <AppFooterLinks />
+        </div>
       </AppShell>
     );
   }
@@ -889,6 +899,10 @@ export function ProfilePage({
             )}
           </CardContent>
         </Card>
+      </section>
+
+      <section className="border-t border-border pt-3">
+        <AppFooterLinks />
       </section>
     </AppShell>
   );
