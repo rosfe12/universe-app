@@ -11,6 +11,7 @@ import {
   BellRing,
   CheckCircle2,
   Clock3,
+  Hourglass,
   MessageCircle,
 } from "lucide-react";
 
@@ -43,7 +44,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createTradeMessage, createTradePost } from "@/app/actions/content-actions";
+import {
+  createTradeMessage,
+  createTradePost,
+  updateTradeChatParticipantStatus,
+} from "@/app/actions/content-actions";
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { STANDARD_VISIBILITY_LEVELS, TRADE_STATUS_LABELS } from "@/lib/constants";
@@ -102,6 +107,19 @@ type TradeMessage = {
   createdAt: string;
 };
 
+type TradeChatParticipant = {
+  id: string;
+  tradePostId: string;
+  userId: string;
+  status: "pending" | "accepted" | "rejected";
+  firstMessageAt: string;
+  acceptedAt: string | null;
+  lastDecisionAt: string | null;
+  lastMessageAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export function TradePage({
   initialSnapshot,
 }: {
@@ -131,11 +149,14 @@ export function TradePage({
   );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tradeMessages, setTradeMessages] = useState<TradeMessage[]>([]);
+  const [tradeParticipants, setTradeParticipants] = useState<TradeChatParticipant[]>([]);
   const [tradeMessageInput, setTradeMessageInput] = useState("");
   const [tradeMessageError, setTradeMessageError] = useState<string | null>(null);
   const [tradeMessageLoading, setTradeMessageLoading] = useState(false);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [isSendingMessage, startSendMessageTransition] = useTransition();
+  const [isUpdatingTradeRequest, startTradeRequestTransition] = useTransition();
+  const [tradeRequestActionUserId, setTradeRequestActionUserId] = useState<string | null>(null);
   const canCompose =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canAccessTrade(currentUser);
   const currentSchool = schools.find((school) => school.id === schoolId) ?? null;
@@ -182,6 +203,7 @@ export function TradePage({
   useEffect(() => {
     if (!detailId) {
       setTradeMessages([]);
+      setTradeParticipants([]);
       setTradeMessageInput("");
       setTradeMessageError(null);
       setTradeMessageLoading(false);
@@ -190,6 +212,7 @@ export function TradePage({
 
     if (source !== "supabase" || !isAuthenticated) {
       setTradeMessages([]);
+      setTradeParticipants([]);
       return;
     }
 
@@ -197,29 +220,52 @@ export function TradePage({
     setTradeMessageLoading(true);
     setTradeMessageError(null);
 
-    void supabase
-      .from("trade_messages")
-      .select("id, trade_post_id, sender_id, content, created_at")
-      .eq("trade_post_id", detailId)
-      .order("created_at", { ascending: true })
-      .then(({ data, error }) => {
-        if (error) {
-          setTradeMessageError("채팅을 불러오지 못했습니다.");
-          setTradeMessageLoading(false);
-          return;
-        }
-
-        setTradeMessages(
-          (data ?? []).map((item) => ({
-            id: String(item.id),
-            tradePostId: String(item.trade_post_id),
-            senderId: String(item.sender_id),
-            content: String(item.content),
-            createdAt: String(item.created_at),
-          })),
-        );
+    void Promise.all([
+      supabase
+        .from("trade_messages")
+        .select("id, trade_post_id, sender_id, content, created_at")
+        .eq("trade_post_id", detailId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("trade_chat_participants")
+        .select(
+          "id, trade_post_id, user_id, status, first_message_at, accepted_at, last_decision_at, last_message_at, created_at, updated_at",
+        )
+        .eq("trade_post_id", detailId)
+        .order("created_at", { ascending: true }),
+    ]).then(([messageResult, participantResult]) => {
+      if (messageResult.error) {
+        setTradeMessageError("채팅을 불러오지 못했습니다.");
         setTradeMessageLoading(false);
-      });
+        return;
+      }
+
+      setTradeMessages(
+        (messageResult.data ?? []).map((item) => ({
+          id: String(item.id),
+          tradePostId: String(item.trade_post_id),
+          senderId: String(item.sender_id),
+          content: String(item.content),
+          createdAt: String(item.created_at),
+        })),
+      );
+      setTradeParticipants(
+        (participantResult.data ?? []).map((item) => ({
+          id: String(item.id),
+          tradePostId: String(item.trade_post_id),
+          userId: String(item.user_id),
+          status:
+            item.status === "accepted" || item.status === "rejected" ? item.status : "pending",
+          firstMessageAt: String(item.first_message_at),
+          acceptedAt: item.accepted_at ? String(item.accepted_at) : null,
+          lastDecisionAt: item.last_decision_at ? String(item.last_decision_at) : null,
+          lastMessageAt: String(item.last_message_at),
+          createdAt: String(item.created_at),
+          updatedAt: String(item.updated_at),
+        })),
+      );
+      setTradeMessageLoading(false);
+    });
   }, [detailId, isAuthenticated, source]);
 
   const detailItem = tradeItems.find((item) => item.id === detailId) ?? null;
@@ -240,11 +286,27 @@ export function TradePage({
     [detailItem],
   );
   const detailParticipants = useMemo(
+    () => (detailItem ? 1 + tradeParticipants.filter((item) => item.status === "accepted").length : 0),
+    [detailItem, tradeParticipants],
+  );
+  const isTradeAuthor = detailItem?.userId === currentUser.id;
+  const currentTradeParticipant = useMemo(
+    () => tradeParticipants.find((item) => item.userId === currentUser.id) ?? null,
+    [currentUser.id, tradeParticipants],
+  );
+  const pendingTradeRequests = useMemo(
+    () => (isTradeAuthor ? tradeParticipants.filter((item) => item.status === "pending") : []),
+    [isTradeAuthor, tradeParticipants],
+  );
+  const isAwaitingTradeApproval =
+    !isTradeAuthor && currentTradeParticipant?.status === "pending";
+  const latestMessageBySender = useMemo(
     () =>
-      detailItem
-        ? new Set([detailItem.userId, ...tradeMessages.map((message) => message.senderId)]).size
-        : 0,
-    [detailItem, tradeMessages],
+      tradeMessages.reduce((map, item) => {
+        map.set(item.senderId, item);
+        return map;
+      }, new Map<string, TradeMessage>()),
+    [tradeMessages],
   );
   const quickReplies = [
     "시간표 먼저 맞춰볼까요?",
@@ -300,7 +362,42 @@ export function TradePage({
                 createdAt: String(created.created_at),
               },
             ]);
-            if (shouldPromoteToMatching) {
+            if (detailItem.userId !== currentUser.id && result.conversationStatus === "pending") {
+              setTradeParticipants((current) => {
+                const existing = current.find((item) => item.userId === currentUser.id);
+                if (existing) {
+                  return current.map((item) =>
+                    item.userId === currentUser.id
+                      ? {
+                          ...item,
+                          status: "pending",
+                          acceptedAt: null,
+                          lastDecisionAt: null,
+                          lastMessageAt: String(created.created_at),
+                          updatedAt: String(created.created_at),
+                        }
+                      : item,
+                  );
+                }
+
+                return [
+                  ...current,
+                  {
+                    id: `trade-participant-local-${current.length + 1}`,
+                    tradePostId: detailItem.id,
+                    userId: currentUser.id,
+                    status: "pending",
+                    firstMessageAt: String(created.created_at),
+                    acceptedAt: null,
+                    lastDecisionAt: null,
+                    lastMessageAt: String(created.created_at),
+                    createdAt: String(created.created_at),
+                    updatedAt: String(created.created_at),
+                  },
+                ];
+              });
+            }
+            if (shouldPromoteToMatching && result.conversationStatus === "accepted") {
               setTradeItems((current) =>
                 current.map((item) =>
                   item.id === detailItem.id ? { ...item, status: "matching" } : item,
@@ -349,6 +446,66 @@ export function TradePage({
       }));
     }
     setTradeMessageInput("");
+  };
+
+  const handleTradeRequestAction = (participantUserId: string, action: "accept" | "reject") => {
+    if (!detailItem) return;
+
+    setTradeMessageError(null);
+    setTradeRequestActionUserId(participantUserId);
+    startTradeRequestTransition(() => {
+      void (async () => {
+        try {
+          const result = await updateTradeChatParticipantStatus({
+            tradePostId: detailItem.id,
+            participantUserId,
+            action,
+          });
+
+          if (!result.ok) {
+            setTradeMessageError(result.error);
+            return;
+          }
+
+          setTradeParticipants((current) =>
+            current.map((item) =>
+              item.userId === participantUserId
+                ? {
+                    ...item,
+                    status: result.status as "accepted" | "rejected",
+                    acceptedAt:
+                      result.status === "accepted" ? new Date().toISOString() : null,
+                    lastDecisionAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  }
+                : item,
+            ),
+          );
+
+          if (action === "accept" && detailItem.status === "open") {
+            setTradeItems((current) =>
+              current.map((item) =>
+                item.id === detailItem.id ? { ...item, status: "matching" } : item,
+              ),
+            );
+            setSnapshot((current) => ({
+              ...current,
+              tradePosts: current.tradePosts.map((item) =>
+                item.id === detailItem.id ? { ...item, status: "matching" } : item,
+              ),
+            }));
+          }
+
+          await refresh();
+        } catch (error) {
+          setTradeMessageError(
+            error instanceof Error ? error.message : "대화 요청 상태를 바꾸지 못했습니다.",
+          );
+        } finally {
+          setTradeRequestActionUserId(null);
+        }
+      })();
+    });
   };
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -882,6 +1039,64 @@ export function TradePage({
                       <span className="text-xs text-muted-foreground">참여 {detailParticipants}명</span>
                     </div>
                   </div>
+                  {pendingTradeRequests.length > 0 ? (
+                    <div className="space-y-2 rounded-[20px] border border-amber-500/20 bg-amber-500/10 p-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
+                        <Hourglass className="h-4 w-4" />
+                        새 대화 요청 {pendingTradeRequests.length}건
+                      </div>
+                      <div className="space-y-2">
+                        {pendingTradeRequests.map((participant) => (
+                          <div
+                            key={participant.userId}
+                            className="rounded-[16px] border border-white/10 bg-background/70 p-3"
+                          >
+                            <p className="text-sm font-medium">
+                              {getAnonymousHandle(participant.userId)}
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {latestMessageBySender.get(participant.userId)?.content ??
+                                "첫 메시지를 확인해 주세요."}
+                            </p>
+                            <div className="mt-3 flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() =>
+                                  handleTradeRequestAction(participant.userId, "accept")
+                                }
+                                disabled={
+                                  isUpdatingTradeRequest &&
+                                  tradeRequestActionUserId === participant.userId
+                                }
+                              >
+                                수락
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  handleTradeRequestAction(participant.userId, "reject")
+                                }
+                                disabled={
+                                  isUpdatingTradeRequest &&
+                                  tradeRequestActionUserId === participant.userId
+                                }
+                              >
+                                거절
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {isAwaitingTradeApproval ? (
+                    <div className="rounded-[18px] border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
+                      첫 메시지를 보냈습니다. 글 작성자가 수락하면 계속 대화할 수 있습니다.
+                    </div>
+                  ) : null}
                   <div className="max-h-64 space-y-3 overflow-y-auto rounded-[20px] bg-secondary/40 p-3">
                     {tradeMessageLoading ? (
                       <p className="text-sm text-muted-foreground">대화를 불러오는 중입니다.</p>
@@ -923,6 +1138,7 @@ export function TradePage({
                           key={reply}
                           type="button"
                           onClick={() => setTradeMessageInput(reply)}
+                          disabled={isAwaitingTradeApproval}
                           className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 transition-colors hover:bg-gray-50"
                         >
                           {reply}
@@ -933,7 +1149,12 @@ export function TradePage({
                       rows={3}
                       value={tradeMessageInput}
                       onChange={(event) => setTradeMessageInput(event.target.value)}
-                      placeholder="예: 원하는 시간대 확인 가능할까요?"
+                      placeholder={
+                        isAwaitingTradeApproval
+                          ? "상대가 첫 메시지를 수락하면 계속 입력할 수 있습니다."
+                          : "예: 원하는 시간대 확인 가능할까요?"
+                      }
+                      disabled={isAwaitingTradeApproval}
                     />
                     {tradeMessageError ? (
                       <p className="text-sm text-rose-600">{tradeMessageError}</p>
@@ -942,10 +1163,10 @@ export function TradePage({
                       type="button"
                       className="w-full"
                       onClick={handleSendTradeMessage}
-                      disabled={isSendingMessage}
+                      disabled={isSendingMessage || isAwaitingTradeApproval}
                     >
                       <MessageCircle className="h-4 w-4" />
-                      대화 보내기
+                      {isAwaitingTradeApproval ? "수락 대기 중" : "대화 보내기"}
                     </Button>
                   </div>
                 </CardContent>

@@ -832,6 +832,9 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,
     isRestricted: Boolean(row.is_restricted),
+    marketingPushOptIn: Boolean(row.marketing_push_opt_in),
+    marketingEmailOptIn: Boolean(row.marketing_email_opt_in),
+    marketingSmsOptIn: Boolean(row.marketing_sms_opt_in),
     defaultVisibilityLevel:
       (() => {
         const fallback = getDefaultVisibilityLevel({
@@ -2045,6 +2048,15 @@ export async function upsertUserProfile(user: User) {
       report_count: user.reportCount ?? 0,
       warning_count: user.warningCount ?? 0,
       is_restricted: user.isRestricted ?? false,
+      ...(user.marketingPushOptIn !== undefined
+        ? { marketing_push_opt_in: user.marketingPushOptIn }
+        : {}),
+      ...(user.marketingEmailOptIn !== undefined
+        ? { marketing_email_opt_in: user.marketingEmailOptIn }
+        : {}),
+      ...(user.marketingSmsOptIn !== undefined
+        ? { marketing_sms_opt_in: user.marketingSmsOptIn }
+        : {}),
       default_visibility_level:
         getStandardVisibilityLevel(
           user.defaultVisibilityLevel ?? getDefaultVisibilityLevel(user),

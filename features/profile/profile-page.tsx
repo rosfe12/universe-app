@@ -102,6 +102,8 @@ function getTradeStatusLabel(status: keyof typeof TRADE_STATUS_LABELS | string) 
   return TRADE_STATUS_LABELS[status as keyof typeof TRADE_STATUS_LABELS] ?? status;
 }
 
+type NotificationSettingKey = "comment" | "answer" | "trade" | "marketing";
+
 export function ProfilePage({
   initialSnapshot,
 }: {
@@ -147,6 +149,8 @@ export function ProfilePage({
     trade: true,
     marketing: false,
   });
+  const [settingsPendingKey, setSettingsPendingKey] = useState<NotificationSettingKey | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [blockedUsers, setBlockedUsers] = useState<BlockedProfileSummary[]>([]);
   const [blockedUsersLoading, setBlockedUsersLoading] = useState(false);
   const [blockedUserActionId, setBlockedUserActionId] = useState<string | null>(null);
@@ -243,6 +247,27 @@ export function ProfilePage({
   ]);
 
   useEffect(() => {
+    const marketingOptIn = Boolean(
+      currentUser.marketingPushOptIn ||
+        currentUser.marketingEmailOptIn ||
+        currentUser.marketingSmsOptIn,
+    );
+
+    setSettings((current) =>
+      current.marketing === marketingOptIn
+        ? current
+        : {
+            ...current,
+            marketing: marketingOptIn,
+          },
+    );
+  }, [
+    currentUser.marketingEmailOptIn,
+    currentUser.marketingPushOptIn,
+    currentUser.marketingSmsOptIn,
+  ]);
+
+  useEffect(() => {
     if (loading || !isAuthenticated || !hasCompletedOnboarding(currentUser)) {
       setBlockedUsers([]);
       setBlockedUsersLoading(false);
@@ -297,6 +322,42 @@ export function ProfilePage({
   };
   const moveToLectureReview = (lectureId: string) => {
     router.push(`/lectures/${lectureId}`);
+  };
+
+  const handleSettingToggle = async (key: NotificationSettingKey) => {
+    const nextValue = !settings[key];
+
+    setSettings((current) => ({
+      ...current,
+      [key]: nextValue,
+    }));
+
+    if (key !== "marketing") {
+      return;
+    }
+
+    setSettingsError(null);
+    setSettingsPendingKey(key);
+
+    const result = await upsertUserProfile({
+      ...currentUser,
+      marketingPushOptIn: nextValue,
+      marketingEmailOptIn: nextValue,
+      marketingSmsOptIn: nextValue,
+    });
+
+    setSettingsPendingKey(null);
+
+    if (result.error) {
+      setSettings((current) => ({
+        ...current,
+        marketing: !nextValue,
+      }));
+      setSettingsError("광고성 정보 수신 설정을 저장하지 못했습니다.");
+      return;
+    }
+
+    await refresh();
   };
   const moveToTradePost = (postId: string) => {
     router.push(`/trade?post=${postId}`);
@@ -527,9 +588,13 @@ export function ProfilePage({
             { key: "comment", title: "내 글 댓글 알림", description: "게시글과 커뮤니티 댓글 반응" },
             { key: "answer", title: "입시 답변 / 채택 알림", description: "질문 답변과 채택 상태" },
             { key: "trade", title: "수강신청 매칭 알림", description: "매칭 후보와 관심 반응" },
-            { key: "marketing", title: "추천 소식 받기", description: "인기 글과 신규 기능 소식" },
+            {
+              key: "marketing",
+              title: "추천 소식 받기",
+              description: "앱 푸시·이메일·문자 마케팅 수신 설정",
+            },
           ].map((item) => {
-            const enabled = settings[item.key as keyof typeof settings];
+            const enabled = settings[item.key as NotificationSettingKey];
 
             return (
               <Card key={item.key}>
@@ -546,12 +611,8 @@ export function ProfilePage({
                   <Button
                     size="sm"
                     variant={enabled ? "default" : "outline"}
-                    onClick={() =>
-                      setSettings((current) => ({
-                        ...current,
-                        [item.key]: !current[item.key as keyof typeof current],
-                      }))
-                    }
+                    disabled={settingsPendingKey === item.key}
+                    onClick={() => void handleSettingToggle(item.key as NotificationSettingKey)}
                   >
                     {enabled ? "ON" : "OFF"}
                   </Button>
@@ -560,6 +621,7 @@ export function ProfilePage({
             );
           })}
         </div>
+        {settingsError ? <p className="text-sm text-rose-600">{settingsError}</p> : null}
       </section>
 
       <AppSettingsSection />

@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
   AUTH_SAVED_EMAIL_STORAGE_KEY,
-  AUTH_SAVED_PASSWORD_STORAGE_KEY,
   getKeepLoggedInPreference,
   setKeepLoggedInPreference,
 } from "@/lib/app-preferences";
@@ -95,7 +94,6 @@ export function LoginPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [mode, setMode] = useState<AuthMode>(adminOnlyFlow ? "login" : "login");
   const [saveEmail, setSaveEmail] = useState(true);
-  const [savePassword, setSavePassword] = useState(false);
   const [keepLoggedIn, setKeepLoggedIn] = useState(true);
   const [signupConsents, setSignupConsents] = useState<SignupConsentState>({
     terms: false,
@@ -128,19 +126,14 @@ export function LoginPage() {
     }
 
     const savedEmail = window.localStorage.getItem(AUTH_SAVED_EMAIL_STORAGE_KEY);
-    const savedPassword = window.localStorage.getItem(AUTH_SAVED_PASSWORD_STORAGE_KEY);
     const rememberedSession = getKeepLoggedInPreference();
 
     setSaveEmail(Boolean(savedEmail));
-    setSavePassword(Boolean(savedPassword));
     setKeepLoggedIn(rememberedSession);
+    window.localStorage.removeItem("univers-auth-saved-password");
 
     if (savedEmail) {
       form.setValue("email", savedEmail, { shouldDirty: false });
-    }
-
-    if (savedPassword) {
-      form.setValue("password", savedPassword, { shouldDirty: false });
     }
   }, [form]);
 
@@ -225,12 +218,6 @@ export function LoginPage() {
         window.localStorage.setItem(AUTH_SAVED_EMAIL_STORAGE_KEY, values.email);
       } else {
         window.localStorage.removeItem(AUTH_SAVED_EMAIL_STORAGE_KEY);
-      }
-
-      if (savePassword) {
-        window.localStorage.setItem(AUTH_SAVED_PASSWORD_STORAGE_KEY, values.password);
-      } else {
-        window.localStorage.removeItem(AUTH_SAVED_PASSWORD_STORAGE_KEY);
       }
     }
 
@@ -597,15 +584,6 @@ export function LoginPage() {
                     className="h-4 w-4 accent-indigo-600"
                     checked={saveEmail}
                     onChange={(event) => setSaveEmail(event.target.checked)}
-                  />
-                </label>
-                <label className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-medium text-foreground">비밀번호 저장</span>
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-indigo-600"
-                    checked={savePassword}
-                    onChange={(event) => setSavePassword(event.target.checked)}
                   />
                 </label>
                 <label className="flex items-center justify-between gap-3 text-sm">

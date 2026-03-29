@@ -149,7 +149,6 @@ async function updateAdminVerificationRequest(
   action: "approve" | "reject" | "resend",
   options?: {
     reason?: string;
-    autoDeleteDocuments?: boolean;
   },
 ) {
   const response = await fetch("/api/admin/verification-requests", {
@@ -162,7 +161,6 @@ async function updateAdminVerificationRequest(
       requestId,
       action,
       reason: options?.reason,
-      autoDeleteDocuments: options?.autoDeleteDocuments,
     }),
   });
   const payload = (await response.json().catch(() => null)) as
@@ -1101,7 +1099,6 @@ export function AdminPage({
     action: "approve" | "reject" | "resend",
     options?: {
       reason?: string;
-      autoDeleteDocuments?: boolean;
     },
   ) {
     setVerificationError("");
@@ -2003,11 +2000,8 @@ export function AdminPage({
                 if (!confirmAdminAction("학생 인증 요청을 승인하시겠습니까?")) {
                   return;
                 }
-                const autoDeleteDocuments = confirmAdminAction(
-                  "승인 후 업로드된 인증 문서를 자동 삭제하시겠습니까?",
-                );
                 if (source === "supabase") {
-                  void mutateVerificationRequest(item.id, "approve", { autoDeleteDocuments });
+                  void mutateVerificationRequest(item.id, "approve");
                   return;
                 }
 
@@ -2035,14 +2029,8 @@ export function AdminPage({
                 if (reason === null) {
                   return;
                 }
-                const autoDeleteDocuments = confirmAdminAction(
-                  "반려 후 업로드된 인증 문서를 자동 삭제하시겠습니까?",
-                );
                 if (source === "supabase") {
-                  void mutateVerificationRequest(item.id, "reject", {
-                    reason,
-                    autoDeleteDocuments,
-                  });
+                  void mutateVerificationRequest(item.id, "reject", { reason });
                   return;
                 }
 

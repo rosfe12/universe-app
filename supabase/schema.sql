@@ -216,6 +216,9 @@ create table if not exists public.users (
   report_count integer not null default 0,
   warning_count integer not null default 0,
   is_restricted boolean not null default false,
+  marketing_push_opt_in boolean not null default false,
+  marketing_email_opt_in boolean not null default false,
+  marketing_sms_opt_in boolean not null default false,
   created_at timestamptz not null default timezone('utc', now()),
   name text,
   verified boolean not null default false,
@@ -282,6 +285,32 @@ alter table public.users
 
 alter table public.users
   add column if not exists adult_verified_at timestamptz;
+
+alter table public.users
+  add column if not exists marketing_push_opt_in boolean not null default false;
+
+alter table public.users
+  add column if not exists marketing_email_opt_in boolean not null default false;
+
+alter table public.users
+  add column if not exists marketing_sms_opt_in boolean not null default false;
+
+update public.users user_row
+set
+  marketing_push_opt_in = coalesce(
+    (auth_user.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'push')::boolean,
+    user_row.marketing_push_opt_in
+  ),
+  marketing_email_opt_in = coalesce(
+    (auth_user.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'email')::boolean,
+    user_row.marketing_email_opt_in
+  ),
+  marketing_sms_opt_in = coalesce(
+    (auth_user.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'sms')::boolean,
+    user_row.marketing_sms_opt_in
+  )
+from auth.users auth_user
+where auth_user.id = user_row.id;
 
 update public.users
 set user_type = 'applicant'
@@ -721,6 +750,21 @@ create table if not exists public.trade_messages (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.trade_chat_participants (
+  id uuid primary key default gen_random_uuid(),
+  trade_post_id uuid not null references public.trade_posts(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  status text not null default 'pending',
+  first_message_at timestamptz not null default timezone('utc', now()),
+  accepted_at timestamptz,
+  last_decision_at timestamptz,
+  last_message_at timestamptz not null default timezone('utc', now()),
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  constraint trade_chat_participants_status_check check (status in ('pending', 'accepted', 'rejected')),
+  constraint trade_chat_participants_trade_post_user_unique unique (trade_post_id, user_id)
+);
+
 create table if not exists public.dating_profiles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.users(id) on delete cascade,
@@ -966,6 +1010,8 @@ create index if not exists idx_lecture_reviews_author_created_at on public.lectu
 create index if not exists idx_trade_posts_school_status on public.trade_posts (school_id, status);
 create index if not exists idx_trade_posts_author_created_at on public.trade_posts (author_id, created_at desc);
 create index if not exists idx_trade_messages_trade_post_created_at on public.trade_messages (trade_post_id, created_at desc);
+create index if not exists idx_trade_chat_participants_post_status on public.trade_chat_participants (trade_post_id, status, created_at desc);
+create index if not exists idx_trade_chat_participants_user_created_at on public.trade_chat_participants (user_id, created_at desc);
 create index if not exists idx_polls_post_id on public.polls (post_id);
 create index if not exists idx_poll_options_poll_id on public.poll_options (poll_id, position);
 create index if not exists idx_poll_votes_poll_option on public.poll_votes (poll_id, option_id);
@@ -1181,6 +1227,9 @@ begin
     email,
     name,
     nickname,
+    marketing_push_opt_in,
+    marketing_email_opt_in,
+    marketing_sms_opt_in,
     created_at
   )
   values (
@@ -1188,6 +1237,9 @@ begin
     coalesce(new.email, new.raw_user_meta_data ->> 'email', ''),
     coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', split_part(coalesce(new.email, ''), '@', 1)),
     public.generate_user_nickname(new.id, null),
+    coalesce((new.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'push')::boolean, false),
+    coalesce((new.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'email')::boolean, false),
+    coalesce((new.raw_user_meta_data -> 'signup_consents' -> 'marketing' ->> 'sms')::boolean, false),
     coalesce(new.created_at, timezone('utc', now()))
   )
   on conflict (id) do update
@@ -1887,6 +1939,7 @@ alter table public.lectures enable row level security;
 alter table public.lecture_reviews enable row level security;
 alter table public.trade_posts enable row level security;
 alter table public.trade_messages enable row level security;
+alter table public.trade_chat_participants enable row level security;
 alter table public.polls enable row level security;
 alter table public.poll_options enable row level security;
 alter table public.poll_votes enable row level security;
@@ -2413,11 +2466,31 @@ using (
     select 1
     from public.trade_posts trade_post
     where trade_post.id = trade_post_id
-      and (
-        trade_post.author_id = auth.uid()
-        or public.is_admin()
-        or trade_post.school_id = public.current_user_school_id()
+      and trade_post.author_id = auth.uid()
+  )
+  or (
+    exists (
+      select 1
+      from public.trade_chat_participants viewer
+      where viewer.trade_post_id = trade_post_id
+        and viewer.user_id = auth.uid()
+        and viewer.status = 'accepted'
+    )
+    and (
+      exists (
+        select 1
+        from public.trade_posts trade_post
+        where trade_post.id = trade_post_id
+          and trade_post.author_id = sender_id
       )
+      or exists (
+        select 1
+        from public.trade_chat_participants speaker
+        where speaker.trade_post_id = trade_post_id
+          and speaker.user_id = sender_id
+          and speaker.status = 'accepted'
+      )
+    )
   )
 );
 
@@ -2441,6 +2514,107 @@ with check (
     )
   )
 );
+
+drop policy if exists "trade_chat_participants author or self read" on public.trade_chat_participants;
+create policy "trade_chat_participants author or self read"
+on public.trade_chat_participants
+for select
+to authenticated
+using (
+  user_id = auth.uid()
+  or public.is_admin()
+  or exists (
+    select 1
+    from public.trade_posts trade_post
+    where trade_post.id = trade_post_id
+      and trade_post.author_id = auth.uid()
+  )
+);
+
+drop policy if exists "trade_chat_participants verified student insert" on public.trade_chat_participants;
+create policy "trade_chat_participants verified student insert"
+on public.trade_chat_participants
+for insert
+to authenticated
+with check (
+  auth.uid() = user_id
+  and (
+    public.is_admin()
+    or (
+      public.is_verified_student()
+      and exists (
+        select 1
+        from public.trade_posts trade_post
+        where trade_post.id = trade_post_id
+          and trade_post.school_id = public.current_user_school_id()
+          and trade_post.author_id <> auth.uid()
+      )
+    )
+  )
+);
+
+drop policy if exists "trade_chat_participants author update" on public.trade_chat_participants;
+create policy "trade_chat_participants author update"
+on public.trade_chat_participants
+for update
+to authenticated
+using (
+  public.is_admin()
+  or exists (
+    select 1
+    from public.trade_posts trade_post
+    where trade_post.id = trade_post_id
+      and trade_post.author_id = auth.uid()
+  )
+)
+with check (
+  public.is_admin()
+  or exists (
+    select 1
+    from public.trade_posts trade_post
+    where trade_post.id = trade_post_id
+      and trade_post.author_id = auth.uid()
+  )
+);
+
+insert into public.trade_chat_participants (
+  trade_post_id,
+  user_id,
+  status,
+  first_message_at,
+  accepted_at,
+  last_message_at,
+  created_at,
+  updated_at
+)
+select
+  message.trade_post_id,
+  message.sender_id,
+  'accepted',
+  min(message.created_at),
+  min(message.created_at),
+  max(message.created_at),
+  min(message.created_at),
+  max(message.created_at)
+from public.trade_messages message
+join public.trade_posts trade_post
+  on trade_post.id = message.trade_post_id
+where message.sender_id <> trade_post.author_id
+group by message.trade_post_id, message.sender_id
+on conflict (trade_post_id, user_id) do update
+set
+  status = case
+    when trade_chat_participants.status = 'rejected' then trade_chat_participants.status
+    else 'accepted'
+  end,
+  accepted_at = coalesce(trade_chat_participants.accepted_at, excluded.accepted_at),
+  last_message_at = greatest(trade_chat_participants.last_message_at, excluded.last_message_at),
+  updated_at = greatest(trade_chat_participants.updated_at, excluded.updated_at);
+
+delete from public.trade_chat_participants participant
+using public.trade_posts trade_post
+where trade_post.id = participant.trade_post_id
+  and trade_post.author_id = participant.user_id;
 
 drop policy if exists "polls read via post" on public.polls;
 create policy "polls read via post"

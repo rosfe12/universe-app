@@ -59,6 +59,9 @@ type UserRow = {
   report_count: number;
   warning_count: number;
   is_restricted: boolean;
+  marketing_push_opt_in: boolean;
+  marketing_email_opt_in: boolean;
+  marketing_sms_opt_in: boolean;
   created_at: string;
   name: string | null;
   verified: boolean;
@@ -88,6 +91,9 @@ type UserInsert = {
   report_count?: number;
   warning_count?: number;
   is_restricted?: boolean;
+  marketing_push_opt_in?: boolean;
+  marketing_email_opt_in?: boolean;
+  marketing_sms_opt_in?: boolean;
   created_at?: string;
   name?: string | null;
   verified?: boolean;
@@ -460,6 +466,32 @@ type TradeMessageInsert = {
   created_at?: string;
 };
 
+type TradeChatParticipantRow = {
+  id: string;
+  trade_post_id: string;
+  user_id: string;
+  status: "pending" | "accepted" | "rejected";
+  first_message_at: string;
+  accepted_at: string | null;
+  last_decision_at: string | null;
+  last_message_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type TradeChatParticipantInsert = {
+  id?: string;
+  trade_post_id: string;
+  user_id: string;
+  status?: "pending" | "accepted" | "rejected";
+  first_message_at?: string;
+  accepted_at?: string | null;
+  last_decision_at?: string | null;
+  last_message_at?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
 type PollRow = {
   id: string;
   post_id: string;
@@ -740,6 +772,10 @@ export interface Database {
       lecture_reviews: SupabaseTable<LectureReviewRow, LectureReviewInsert>;
       trade_posts: SupabaseTable<TradePostRow, TradePostInsert>;
       trade_messages: SupabaseTable<TradeMessageRow, TradeMessageInsert>;
+      trade_chat_participants: SupabaseTable<
+        TradeChatParticipantRow,
+        TradeChatParticipantInsert
+      >;
       polls: SupabaseTable<PollRow, PollInsert>;
       poll_options: SupabaseTable<PollOptionRow, PollOptionInsert>;
       poll_votes: SupabaseTable<PollVoteRow, PollVoteInsert>;

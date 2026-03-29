@@ -190,6 +190,9 @@ export interface User {
   reportCount?: number;
   warningCount?: number;
   isRestricted?: boolean;
+  marketingPushOptIn?: boolean;
+  marketingEmailOptIn?: boolean;
+  marketingSmsOptIn?: boolean;
   defaultVisibilityLevel?: VisibilityLevel;
   createdAt: string;
   bio?: string;

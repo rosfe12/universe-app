@@ -22,13 +22,11 @@ const patchSchema = z.discriminatedUnion("action", [
   z.object({
     requestId: z.string().uuid(),
     action: z.literal("approve"),
-    autoDeleteDocuments: z.boolean().optional(),
   }),
   z.object({
     requestId: z.string().uuid(),
     action: z.literal("reject"),
     reason: z.string().trim().max(500).optional(),
-    autoDeleteDocuments: z.boolean().optional(),
   }),
   z.object({
     requestId: z.string().uuid(),
@@ -514,7 +512,6 @@ export async function PATCH(request: Request) {
         },
       }).catch(() => null);
     } else if (action === "approve") {
-      const autoDeleteDocuments = parsed.data.autoDeleteDocuments ?? true;
       const [{ error: userError }, { error: requestError }, verificationUpdate] = await Promise.all([
         admin
           .from("users")
@@ -567,7 +564,7 @@ export async function PATCH(request: Request) {
         );
       }
 
-      if (verification?.id && autoDeleteDocuments) {
+      if (verification?.id) {
         await deleteVerificationDocuments(admin, verification.id, user.id);
       }
 
@@ -608,7 +605,6 @@ export async function PATCH(request: Request) {
       }).catch(() => null);
     } else {
       const rejectionReason = parsed.data.reason?.trim() || "학생 확인 자료가 부족하거나 학교 규칙과 일치하지 않았습니다.";
-      const autoDeleteDocuments = parsed.data.autoDeleteDocuments ?? false;
       const [{ error: userError }, { error: requestError }, verificationUpdate] = await Promise.all([
         admin
           .from("users")
@@ -659,7 +655,7 @@ export async function PATCH(request: Request) {
         );
       }
 
-      if (verification?.id && autoDeleteDocuments) {
+      if (verification?.id) {
         await deleteVerificationDocuments(admin, verification.id, user.id);
       }
 

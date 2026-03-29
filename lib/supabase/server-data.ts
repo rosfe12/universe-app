@@ -823,6 +823,9 @@ function mapUserRow(row: Record<string, unknown>, schools: School[]): User {
     reportCount: typeof row.report_count === "number" ? row.report_count : 0,
     warningCount: typeof row.warning_count === "number" ? row.warning_count : 0,
     isRestricted: Boolean(row.is_restricted),
+    marketingPushOptIn: Boolean(row.marketing_push_opt_in),
+    marketingEmailOptIn: Boolean(row.marketing_email_opt_in),
+    marketingSmsOptIn: Boolean(row.marketing_sms_opt_in),
     defaultVisibilityLevel:
       (() => {
         const fallback = getDefaultVisibilityLevel({

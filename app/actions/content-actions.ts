@@ -102,6 +102,12 @@ const tradeMessageSchema = z.object({
   content: z.string().trim().min(1).max(1000),
 });
 
+const tradeChatParticipantActionSchema = z.object({
+  tradePostId: z.string().uuid(),
+  participantUserId: z.string().uuid(),
+  action: z.enum(["accept", "reject"]),
+});
+
 const datingProfileSchema = z.object({
   schoolId: z.string().uuid().optional(),
   department: z.string().trim().max(80).optional(),
@@ -170,6 +176,8 @@ const ONE_MINUTE_MS = 60 * 1000;
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_REPORTS_PER_DAY = 20;
+const MAX_NEW_TRADE_CHATS_PER_DAY = 10;
+const TRADE_CHAT_RETRY_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 
 function normalizeModerationText(value: string) {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
@@ -181,6 +189,14 @@ function occurredWithin(createdAt: string, windowMs: number) {
 
 function windowStart(windowMs: number) {
   return new Date(Date.now() - windowMs).toISOString();
+}
+
+function formatCooldownWindow(remainingMs: number) {
+  const remainingMinutes = Math.max(1, Math.ceil(remainingMs / ONE_MINUTE_MS));
+  if (remainingMinutes >= 60) {
+    return `${Math.ceil(remainingMinutes / 60)}시간`;
+  }
+  return `${remainingMinutes}분`;
 }
 
 async function requireCurrentUser() {
@@ -1559,6 +1575,7 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
     ensureWritableTrustLevel(profile);
     requireVerifiedStudentProfile(profile, "수강신청 교환 대화", authUser.email);
     const admin = createAdminSupabaseClient();
+    const nowIso = new Date().toISOString();
 
     const { data: tradePost, error: tradePostError } = await supabase
       .from("trade_posts")
@@ -1583,7 +1600,106 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
       throw new Error("노골적인 성적 표현은 대화에 사용할 수 없습니다.");
     }
 
-    const { data, error } = await supabase
+    const isTradeAuthor = String(tradePost.author_id) === authUser.id;
+    let conversationStatus: "pending" | "accepted" = "accepted";
+
+    if (!isTradeAuthor) {
+      const { data: participant, error: participantError } = await admin
+        .from("trade_chat_participants")
+        .select("trade_post_id, user_id, status, last_decision_at")
+        .eq("trade_post_id", values.tradePostId)
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+
+      if (participantError) {
+        throw new Error(participantError.message);
+      }
+
+      if (!participant) {
+        const { data: recentStarts, error: recentStartsError } = await admin
+          .from("trade_chat_participants")
+          .select("id")
+          .eq("user_id", authUser.id)
+          .gte("created_at", windowStart(ONE_DAY_MS))
+          .order("created_at", { ascending: false })
+          .limit(MAX_NEW_TRADE_CHATS_PER_DAY + 1);
+
+        if (recentStartsError) {
+          throw new Error(recentStartsError.message);
+        }
+
+        if ((recentStarts ?? []).length >= MAX_NEW_TRADE_CHATS_PER_DAY) {
+          throw new Error("새 대화 시작은 하루 10회까지만 가능합니다.");
+        }
+
+        const { error: participantInsertError } = await admin
+          .from("trade_chat_participants")
+          .insert({
+            trade_post_id: values.tradePostId,
+            user_id: authUser.id,
+            status: "pending",
+            first_message_at: nowIso,
+            last_message_at: nowIso,
+            created_at: nowIso,
+            updated_at: nowIso,
+          });
+
+        if (participantInsertError) {
+          throw new Error(participantInsertError.message);
+        }
+
+        conversationStatus = "pending";
+      } else if (participant.status === "pending") {
+        throw new Error("첫 메시지를 보냈습니다. 상대가 수락하면 계속 대화할 수 있습니다.");
+      } else if (participant.status === "rejected") {
+        const lastDecisionAt = participant.last_decision_at
+          ? new Date(String(participant.last_decision_at)).getTime()
+          : null;
+        const remainingCooldown =
+          lastDecisionAt === null
+            ? 0
+            : TRADE_CHAT_RETRY_COOLDOWN_MS - (Date.now() - lastDecisionAt);
+
+        if (remainingCooldown > 0) {
+          throw new Error(
+            `같은 글에는 ${formatCooldownWindow(remainingCooldown)} 후 다시 대화를 시작할 수 있습니다.`,
+          );
+        }
+
+        const { error: participantUpdateError } = await admin
+          .from("trade_chat_participants")
+          .update({
+            status: "pending",
+            accepted_at: null,
+            last_decision_at: null,
+            last_message_at: nowIso,
+            updated_at: nowIso,
+          })
+          .eq("trade_post_id", values.tradePostId)
+          .eq("user_id", authUser.id);
+
+        if (participantUpdateError) {
+          throw new Error(participantUpdateError.message);
+        }
+
+        conversationStatus = "pending";
+      } else {
+        const { error: participantTouchError } = await admin
+          .from("trade_chat_participants")
+          .update({
+            last_message_at: nowIso,
+            updated_at: nowIso,
+          })
+          .eq("trade_post_id", values.tradePostId)
+          .eq("user_id", authUser.id);
+
+        if (participantTouchError) {
+          throw new Error(participantTouchError.message);
+        }
+      }
+    }
+
+    const { data, error } = await admin
       .from("trade_messages")
       .insert({
         trade_post_id: values.tradePostId,
@@ -1597,7 +1713,7 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
       throw new Error(error?.message ?? "채팅 전송에 실패했습니다.");
     }
 
-    if (tradePost.status === "open") {
+    if (tradePost.status === "open" && (isTradeAuthor || conversationStatus === "accepted")) {
       const { error: tradeStatusError } = await admin
         .from("trade_posts")
         .update({ status: "matched" })
@@ -1610,20 +1726,37 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
     }
 
     try {
-      const { data: participantRows } = await admin
-        .from("trade_messages")
-        .select("sender_id")
-        .eq("trade_post_id", values.tradePostId);
-
       const recipientIds = new Set<string>();
-      if (String(tradePost.author_id) !== authUser.id) {
-        recipientIds.add(String(tradePost.author_id));
-      }
 
-      for (const row of participantRows ?? []) {
-        const participantId = String(row.sender_id);
-        if (participantId !== authUser.id) {
-          recipientIds.add(participantId);
+      if (isTradeAuthor) {
+        const { data: participantRows } = await admin
+          .from("trade_chat_participants")
+          .select("user_id")
+          .eq("trade_post_id", values.tradePostId)
+          .eq("status", "accepted");
+
+        for (const row of participantRows ?? []) {
+          const participantId = String(row.user_id);
+          if (participantId !== authUser.id) {
+            recipientIds.add(participantId);
+          }
+        }
+      } else if (conversationStatus === "pending") {
+        recipientIds.add(String(tradePost.author_id));
+      } else {
+        recipientIds.add(String(tradePost.author_id));
+
+        const { data: participantRows } = await admin
+          .from("trade_chat_participants")
+          .select("user_id")
+          .eq("trade_post_id", values.tradePostId)
+          .eq("status", "accepted");
+
+        for (const row of participantRows ?? []) {
+          const participantId = String(row.user_id);
+          if (participantId !== authUser.id) {
+            recipientIds.add(participantId);
+          }
         }
       }
 
@@ -1631,7 +1764,10 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
         [...recipientIds].map((userId) => ({
           user_id: userId,
           type: "trade_match",
-          title: "수강신청 교환 대화에 새 메시지가 도착했어요",
+          title:
+            conversationStatus === "pending" && !isTradeAuthor
+              ? "수강신청 교환 대화 요청이 도착했어요"
+              : "수강신청 교환 대화에 새 메시지가 도착했어요",
           body: values.content.slice(0, 80),
           href: `/trade?post=${values.tradePostId}&chat=1`,
           target_type: "trade",
@@ -1642,6 +1778,7 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
             actorUserId: authUser.id,
             tradePostId: values.tradePostId,
             tradeMessageId: String(data.id),
+            conversationStatus,
           },
         })),
       );
@@ -1650,11 +1787,126 @@ export async function createTradeMessage(input: z.input<typeof tradeMessageSchem
     }
 
     revalidateFeed(["/trade", "/messages", "/notifications"]);
-    return { ok: true as const, data };
+    return { ok: true as const, data, conversationStatus };
   } catch (error) {
     return {
       ok: false as const,
       error: error instanceof Error ? error.message : "채팅 전송에 실패했습니다.",
+    };
+  }
+}
+
+export async function updateTradeChatParticipantStatus(
+  input: z.input<typeof tradeChatParticipantActionSchema>,
+) {
+  try {
+    const values = tradeChatParticipantActionSchema.parse(input);
+    const { supabase, authUser, profile } = await requireCurrentUser();
+    requireVerifiedStudentProfile(profile, "수강신청 교환 대화", authUser.email);
+    const admin = createAdminSupabaseClient();
+    const nowIso = new Date().toISOString();
+
+    const { data: tradePost, error: tradePostError } = await supabase
+      .from("trade_posts")
+      .select("id, author_id, status")
+      .eq("id", values.tradePostId)
+      .single();
+
+    if (tradePostError || !tradePost) {
+      throw new Error("대화 요청을 찾을 수 없습니다.");
+    }
+
+    if (String(tradePost.author_id) !== authUser.id && !isMasterAdminEmail(authUser.email)) {
+      throw new Error("교환 글 작성자만 대화 요청을 처리할 수 있습니다.");
+    }
+
+    const { data: participant, error: participantError } = await admin
+      .from("trade_chat_participants")
+      .select("trade_post_id, user_id, status")
+      .eq("trade_post_id", values.tradePostId)
+      .eq("user_id", values.participantUserId)
+      .maybeSingle();
+
+    if (participantError || !participant) {
+      throw new Error("대화 요청을 찾을 수 없습니다.");
+    }
+
+    const updatePayload =
+      values.action === "accept"
+        ? {
+            status: "accepted" as const,
+            accepted_at: nowIso,
+            last_decision_at: nowIso,
+            updated_at: nowIso,
+          }
+        : {
+            status: "rejected" as const,
+            accepted_at: null,
+            last_decision_at: nowIso,
+            updated_at: nowIso,
+          };
+
+    const { error: updateError } = await admin
+      .from("trade_chat_participants")
+      .update(updatePayload)
+      .eq("trade_post_id", values.tradePostId)
+      .eq("user_id", values.participantUserId);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    if (values.action === "accept" && tradePost.status === "open") {
+      const { error: tradeStatusError } = await admin
+        .from("trade_posts")
+        .update({ status: "matched" })
+        .eq("id", values.tradePostId)
+        .eq("status", "open");
+
+      if (tradeStatusError) {
+        throw new Error(tradeStatusError.message);
+      }
+    }
+
+    try {
+      await insertNotificationsAsSystem([
+        {
+          user_id: values.participantUserId,
+          type: "trade_match",
+          title:
+            values.action === "accept"
+              ? "수강신청 교환 대화 요청이 수락되었어요"
+              : "수강신청 교환 대화 요청이 거절되었어요",
+          body:
+            values.action === "accept"
+              ? "이제 같은 글 안에서 계속 대화를 이어갈 수 있습니다."
+              : "같은 글에는 잠시 후 다시 대화를 시작할 수 있습니다.",
+          href: `/trade?post=${values.tradePostId}&chat=1`,
+          target_type: "trade",
+          target_id: values.tradePostId,
+          source_kind: "activity",
+          delivery_mode: "instant",
+          metadata: {
+            actorUserId: authUser.id,
+            tradePostId: values.tradePostId,
+            participantUserId: values.participantUserId,
+            action: values.action,
+          },
+        },
+      ]);
+    } catch {
+      // noop
+    }
+
+    revalidateFeed(["/trade", "/messages", "/notifications"]);
+    return {
+      ok: true as const,
+      status: values.action === "accept" ? "accepted" : "rejected",
+    };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error: error instanceof Error ? error.message : "대화 요청 상태를 변경하지 못했습니다.",
     };
   }
 }
