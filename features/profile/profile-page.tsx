@@ -715,7 +715,7 @@ export function ProfilePage({
             <div className="space-y-1">
               <p className="text-sm font-medium text-muted-foreground">회원 탈퇴</p>
               <p className="text-xs leading-5 text-muted-foreground">
-                계정과 활동 기록이 함께 삭제되며 복구할 수 없습니다.
+                계정과 활동 기록은 즉시 삭제되며, 최소 탈퇴 이력만 별도 보관됩니다.
               </p>
             </div>
           <Button
@@ -727,7 +727,7 @@ export function ProfilePage({
               if (
                 typeof window !== "undefined" &&
                 !window.confirm(
-                  "회원 탈퇴 시 내가 쓴 글, 댓글, 강의평, 매칭 글, 알림, 등급이 모두 삭제되며 복구할 수 없습니다. 탈퇴하시겠습니까?",
+                  "회원 탈퇴 시 계정과 내가 쓴 글, 댓글, 강의평, 매칭 글, 알림은 즉시 삭제되며 복구할 수 없습니다. 부정 이용 방지와 분쟁 대응을 위한 최소 탈퇴 이력만 별도 보관됩니다. 탈퇴하시겠습니까?",
                 )
               ) {
                 return;

@@ -958,6 +958,14 @@ create table if not exists public.admin_audit_logs (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.account_deletion_logs (
+  id uuid primary key default gen_random_uuid(),
+  deleted_user_id uuid not null,
+  email_hash text,
+  deletion_origin text not null default 'self_service',
+  created_at timestamptz not null default timezone('utc', now())
+);
+
 create table if not exists public.ops_events (
   id uuid primary key default gen_random_uuid(),
   level text not null,
@@ -1028,6 +1036,8 @@ create index if not exists idx_push_devices_platform_last_seen on public.push_de
 create index if not exists idx_media_assets_owner on public.media_assets (owner_type, owner_id);
 create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs (created_at desc);
 create index if not exists idx_admin_audit_logs_target on public.admin_audit_logs (target_type, target_id);
+create index if not exists idx_account_deletion_logs_created_at on public.account_deletion_logs (created_at desc);
+create index if not exists idx_account_deletion_logs_user on public.account_deletion_logs (deleted_user_id, created_at desc);
 create index if not exists idx_ops_events_created_at on public.ops_events (created_at desc);
 create index if not exists idx_ops_events_level_created_at on public.ops_events (level, created_at desc);
 
@@ -1954,6 +1964,7 @@ alter table public.notifications enable row level security;
 alter table public.push_devices enable row level security;
 alter table public.media_assets enable row level security;
 alter table public.admin_audit_logs enable row level security;
+alter table public.account_deletion_logs enable row level security;
 alter table public.ops_events enable row level security;
 alter table public.admin_settings enable row level security;
 
@@ -2890,6 +2901,13 @@ on public.admin_audit_logs
 for insert
 to authenticated
 with check (public.is_admin() and auth.uid() = admin_user_id);
+
+drop policy if exists "account deletion logs read" on public.account_deletion_logs;
+create policy "account deletion logs read"
+on public.account_deletion_logs
+for select
+to authenticated
+using (public.is_admin());
 
 drop policy if exists "ops events read" on public.ops_events;
 create policy "ops events read"

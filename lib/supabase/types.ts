@@ -170,6 +170,22 @@ type ProfileBlockInsert = {
   created_at?: string;
 };
 
+type AccountDeletionLogRow = {
+  id: string;
+  deleted_user_id: string;
+  email_hash: string | null;
+  deletion_origin: string;
+  created_at: string;
+};
+
+type AccountDeletionLogInsert = {
+  id?: string;
+  deleted_user_id: string;
+  email_hash?: string | null;
+  deletion_origin?: string;
+  created_at?: string;
+};
+
 type ProfileReportRow = {
   id: string;
   target_user_id: string;
@@ -760,6 +776,7 @@ export interface Database {
       profiles: SupabaseTable<ProfileRow, ProfileInsert>;
       profile_images: SupabaseTable<ProfileImageRow, ProfileImageInsert>;
       profile_blocks: SupabaseTable<ProfileBlockRow, ProfileBlockInsert>;
+      account_deletion_logs: SupabaseTable<AccountDeletionLogRow, AccountDeletionLogInsert>;
       profile_reports: SupabaseTable<ProfileReportRow, ProfileReportInsert>;
       user_roles: SupabaseTable<UserRoleRow, UserRoleInsert>;
       student_verification_requests: SupabaseTable<

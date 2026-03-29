@@ -1,5 +1,7 @@
 "use server";
 
+import { createHash } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -1312,16 +1314,26 @@ export async function deleteCurrentAccount() {
     await admin.storage.from(MEDIA_BUCKET).remove(mediaPaths).catch(() => null);
   }
 
-  const { error: deleteUserRowError } = await admin.from("users").delete().eq("id", authUser.id);
-
-  if (deleteUserRowError) {
-    throw new Error(deleteUserRowError.message);
-  }
-
   const { error } = await admin.auth.admin.deleteUser(authUser.id);
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  const emailHash = authUser.email
+    ? createHash("sha256").update(authUser.email.trim().toLowerCase()).digest("hex")
+    : null;
+
+  const { error: deletionLogError } = await admin
+    .from("account_deletion_logs")
+    .insert({
+      deleted_user_id: authUser.id,
+      email_hash: emailHash,
+      deletion_origin: "self_service",
+    });
+
+  if (deletionLogError) {
+    console.error("[account-delete] failed to write deletion log", deletionLogError);
   }
 
   revalidateFeed([
