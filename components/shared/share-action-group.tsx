@@ -49,7 +49,7 @@ export function ShareActionGroup({
               try {
                 const shared = await shareToKakao(payload);
                 if (shared) {
-                  publishFeedback("카카오톡 공유 창을 열었습니다.");
+                  publishFeedback("공유 창을 열었습니다.");
                   return;
                 }
 
@@ -69,7 +69,7 @@ export function ShareActionGroup({
           }}
         >
           <MessageCircleMore className="h-4 w-4" />
-          카카오톡 공유
+          공유
         </Button>
         <Button
           type="button"
