@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
+import { PROFILE_IMAGE_BUCKET } from "@/lib/community-profile";
 import { classifyContentLevel, findBlockedKeyword } from "@/lib/moderation";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { MEDIA_BUCKET, getStoragePathFromPublicUrl } from "@/lib/supabase/storage";
 import { getDefaultVisibilityLevel, isReliabilityRestricted } from "@/lib/user-identity";
 
 const visibilitySchema = z.enum([
@@ -25,6 +27,8 @@ const reportReasonSchema = z.enum([
   "sexual_content",
   "other",
 ]);
+
+const VERIFICATION_DOCUMENTS_BUCKET = "verification-documents";
 
 const postSchema = z.object({
   category: z.enum(["admission", "community", "dating"]),
@@ -1251,6 +1255,45 @@ export async function deleteComment(commentId: string) {
 export async function deleteCurrentAccount() {
   const { authUser } = await requireCurrentUser();
   const admin = createAdminSupabaseClient();
+
+  const [{ data: profileImages }, { data: verificationDocuments }, { data: uploadedPosts }, { data: userRow }] =
+    await Promise.all([
+      admin.from("profile_images").select("image_path").eq("user_id", authUser.id),
+      admin.from("verification_documents").select("file_path").eq("user_id", authUser.id),
+      admin.from("posts").select("image_url").eq("author_id", authUser.id).not("image_url", "is", null),
+      admin.from("users").select("avatar_url").eq("id", authUser.id).maybeSingle(),
+    ]);
+
+  const profileImagePaths = (profileImages ?? [])
+    .map((row) => String(row.image_path ?? "").trim())
+    .filter(Boolean);
+  const verificationDocumentPaths = (verificationDocuments ?? [])
+    .map((row) => String(row.file_path ?? "").trim())
+    .filter(Boolean);
+  const mediaPaths = [
+    ...((uploadedPosts ?? [])
+      .map((row) => getStoragePathFromPublicUrl(String(row.image_url ?? "")))
+      .filter((value): value is string => Boolean(value))),
+    getStoragePathFromPublicUrl(String(userRow?.avatar_url ?? "")),
+  ].filter((value): value is string => Boolean(value));
+
+  if (profileImagePaths.length > 0) {
+    await admin.storage.from(PROFILE_IMAGE_BUCKET).remove(profileImagePaths).catch(() => null);
+  }
+
+  if (verificationDocumentPaths.length > 0) {
+    await admin.storage.from(VERIFICATION_DOCUMENTS_BUCKET).remove(verificationDocumentPaths).catch(() => null);
+  }
+
+  if (mediaPaths.length > 0) {
+    await admin.storage.from(MEDIA_BUCKET).remove(mediaPaths).catch(() => null);
+  }
+
+  const { error: deleteUserRowError } = await admin.from("users").delete().eq("id", authUser.id);
+
+  if (deleteUserRowError) {
+    throw new Error(deleteUserRowError.message);
+  }
 
   const { error } = await admin.auth.admin.deleteUser(authUser.id);
 
