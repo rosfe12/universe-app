@@ -109,7 +109,7 @@ export function LectureDetailPage({
     isAuthenticated,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "lecture-detail");
   const currentUser = runtimeUser;
   const lecture = getLectureById(lectureId);
   const [open, setOpen] = useState(false);

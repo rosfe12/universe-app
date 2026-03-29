@@ -159,6 +159,7 @@ export type RuntimeSnapshotScope =
   | "community"
   | "school"
   | "lectures"
+  | "lecture-detail"
   | "trade"
   | "notifications"
   | "profile"
@@ -268,6 +269,20 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         mediaAssets: false,
         currentUserProfile: true,
       };
+    case "lecture-detail":
+      return {
+        posts: false,
+        comments: false,
+        lectures: true,
+        lectureReviews: true,
+        tradePosts: false,
+        notifications: false,
+        reports: true,
+        blocks: true,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
     case "trade":
       return {
         posts: false,
@@ -347,7 +362,7 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         tradePosts: false,
         notifications: false,
         reports: true,
-        blocks: true,
+        blocks: false,
         datingProfiles: true,
         mediaAssets: false,
         currentUserProfile: true,
@@ -372,6 +387,14 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
 
 function shouldRequirePrimaryContent(scope: RuntimeSnapshotScope) {
   return !["chrome", "notifications", "profile", "messages"].includes(scope);
+}
+
+function shouldLoadRelatedUsers(scope: RuntimeSnapshotScope) {
+  return !["chrome", "search", "notifications"].includes(scope);
+}
+
+function shouldLoadProfilePreviews(scope: RuntimeSnapshotScope) {
+  return ["full", "home", "community", "school", "lectures", "trade", "dating", "admission"].includes(scope);
 }
 
 type RuntimeQueryContext = {
@@ -673,12 +696,14 @@ async function buildVisibleProfilePreviewMap(
     return empty;
   }
 
+  const uniqueUserIds = [...new Set(userIds)];
+
   const [profilesResult, primaryImagesResult] = await Promise.all([
-    supabase.from("profiles").select(PROFILE_PREVIEW_SELECT).in("id", userIds),
+    supabase.from("profiles").select(PROFILE_PREVIEW_SELECT).in("id", uniqueUserIds),
     supabase
       .from("profile_images")
       .select(PRIMARY_PROFILE_IMAGE_SELECT)
-      .in("user_id", userIds)
+      .in("user_id", uniqueUserIds)
       .eq("is_primary", true)
       .eq("moderation_status", "approved"),
   ]);
@@ -1464,17 +1489,21 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
     }
 
     const schools = schoolsResult.data.map(mapSchoolRow);
-    const relatedUserIds = collectRuntimeUserIds({
-      currentUserId: authUser?.id,
-      postRows,
-      commentRows: asRecordRows(commentsResult?.data),
-      lectureReviewRows: asRecordRows(lectureReviewsResult?.data),
-      tradePostRows: asRecordRows(tradePostsResult?.data),
-      datingProfileRows: asRecordRows(datingProfilesResult?.data),
-      blockRows: asRecordRows(blocksResult?.data),
-    });
+    const loadRelatedUsers = shouldLoadRelatedUsers(scope);
+    const loadProfilePreviews = loadRelatedUsers && shouldLoadProfilePreviews(scope);
+    const relatedUserIds = loadRelatedUsers
+      ? collectRuntimeUserIds({
+          currentUserId: authUser?.id,
+          postRows,
+          commentRows: asRecordRows(commentsResult?.data),
+          lectureReviewRows: asRecordRows(lectureReviewsResult?.data),
+          tradePostRows: asRecordRows(tradePostsResult?.data),
+          datingProfileRows: asRecordRows(datingProfilesResult?.data),
+          blockRows: asRecordRows(blocksResult?.data),
+        })
+      : [];
     const usersResult =
-      relatedUserIds.length > 0
+      loadRelatedUsers && relatedUserIds.length > 0
         ? await supabase.rpc("list_user_public_profiles_by_ids", { user_ids: relatedUserIds })
         : { data: [], error: null };
 
@@ -1482,14 +1511,15 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
       return createSupabaseFallbackSnapshot(getSupabaseSetupIssue(usersResult.error));
     }
 
-    const profilePreviewTargetIds = authUser?.id
-      ? relatedUserIds.filter((id) => id !== authUser.id)
-      : relatedUserIds;
-    const profilePreviewByUserId = await buildVisibleProfilePreviewMap(
-      supabase,
-      profilePreviewTargetIds,
-      currentUserProfileRow?.verification_state === "student_verified",
-    );
+    const profilePreviewByUserId = loadProfilePreviews
+      ? await buildVisibleProfilePreviewMap(
+          supabase,
+          authUser?.id
+            ? relatedUserIds.filter((id) => id !== authUser.id)
+            : relatedUserIds,
+          currentUserProfileRow?.verification_state === "student_verified",
+        )
+      : new Map();
     const users = (usersResult.data ?? []).map((row: Record<string, unknown>) => {
       const mappedUser = mapUserRow(row, schools);
       const profilePreview = profilePreviewByUserId.get(mappedUser.id);

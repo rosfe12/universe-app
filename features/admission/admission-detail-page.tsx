@@ -48,7 +48,7 @@ export function AdmissionDetailPage({
     isAuthenticated,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "admission");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const question = getAdmissionQuestion(questionId);
   const officialStarter = getOfficialStarterMeta(question);
@@ -209,6 +209,7 @@ export function AdmissionDetailPage({
         postId={question.id}
         allowAccept
         initialSnapshot={initialSnapshot}
+        runtimeScope="admission"
         onMutationComplete={refresh}
       />
     </AppShell>

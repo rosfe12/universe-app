@@ -5,5 +5,5 @@ export async function getLecturesPageSnapshot() {
 }
 
 export async function getLectureDetailSnapshot() {
-  return loadServerRuntimeSnapshot("lectures");
+  return loadServerRuntimeSnapshot("lecture-detail");
 }

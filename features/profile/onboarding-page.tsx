@@ -84,7 +84,7 @@ export function OnboardingPage() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/home";
   const isVerificationMode = searchParams.get("mode") === "verification";
-  const { currentUser, schools, loading, isAuthenticated, refresh } = useAppRuntime();
+  const { currentUser, schools, loading, isAuthenticated, refresh } = useAppRuntime(undefined, "chrome");
   const [pending, setPending] = useState(false);
   const [verificationRequestPending, setVerificationRequestPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");

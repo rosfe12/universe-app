@@ -20,6 +20,7 @@ import { validateCommentSubmission } from "@/lib/moderation";
 import {
   createBlockRecord,
   createReportRecord,
+  type RuntimeSnapshotScope,
 } from "@/lib/supabase/app-data";
 import {
   addBlockToSnapshot,
@@ -64,6 +65,7 @@ export function CommentThread({
   accountRequiredTitle,
   accountRequiredDescription,
   initialSnapshot,
+  runtimeScope = "full",
   onMutationComplete,
 }: {
   postId: string;
@@ -72,6 +74,7 @@ export function CommentThread({
   accountRequiredTitle?: string;
   accountRequiredDescription?: string;
   initialSnapshot?: AppRuntimeSnapshot;
+  runtimeScope?: RuntimeSnapshotScope;
   onMutationComplete?: () => Promise<unknown> | unknown;
 }) {
   const {
@@ -85,7 +88,7 @@ export function CommentThread({
     source,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, runtimeScope);
   const currentUser = runtimeUser;
   const pathname = usePathname();
   const isReliabilityBlocked = isAuthenticated && isReliabilityRestricted(currentUser.trustScore);

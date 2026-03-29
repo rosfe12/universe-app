@@ -91,7 +91,7 @@ export function AdmissionPage({
     schools,
     refresh,
     setSnapshot,
-  } = useAppRuntime(initialSnapshot);
+  } = useAppRuntime(initialSnapshot, "admission");
   const currentUser = runtimeUser;
   const [open, setOpen] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState("all");

@@ -762,6 +762,7 @@ export function DatingPage({
               <CommentThread
                 postId={detailPost.id}
                 initialSnapshot={snapshot}
+                runtimeScope="dating"
                 onMutationComplete={refresh}
               />
             </>

@@ -266,6 +266,7 @@ export function getClientRuntimeSnapshotTtlMs(scope: string) {
     case "school":
       return 45000;
     case "lectures":
+    case "lecture-detail":
     case "trade":
     case "dating":
       return 30000;
@@ -292,6 +293,7 @@ export function getServerRuntimeSnapshotTtlMs(scope: string) {
     case "chrome":
       return 30000;
     case "lectures":
+    case "lecture-detail":
     case "trade":
     case "dating":
     case "admission":

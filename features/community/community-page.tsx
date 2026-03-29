@@ -1322,6 +1322,7 @@ export function CommunityPage({
               <CommentThread
                 postId={detailPost.id}
                 initialSnapshot={snapshot}
+                runtimeScope="community"
                 onMutationComplete={refresh}
               />
             </>
