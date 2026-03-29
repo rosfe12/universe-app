@@ -438,17 +438,19 @@ export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
     const baseWidth = Math.max(24, Math.ceil(faceBox.width * scaleX));
     const baseHeight = Math.max(24, Math.ceil(faceBox.height * scaleY));
 
-    const paddingX = Math.max(28, Math.round(baseWidth * 0.34));
-    const paddingY = Math.max(28, Math.round(baseHeight * 0.38));
+    const paddingLeft = Math.max(54, Math.round(baseWidth * 0.72));
+    const paddingRight = Math.max(54, Math.round(baseWidth * 0.72));
+    const paddingTop = Math.max(48, Math.round(baseHeight * 0.58));
+    const paddingBottom = Math.max(72, Math.round(baseHeight * 1.08));
 
-    const x = Math.max(0, baseX - paddingX);
-    const y = Math.max(0, baseY - paddingY);
-    const width = Math.min(canvas.width - x, baseWidth + paddingX * 2);
-    const height = Math.min(canvas.height - y, baseHeight + paddingY * 2);
+    const x = Math.max(0, baseX - paddingLeft);
+    const y = Math.max(0, baseY - paddingTop);
+    const width = Math.min(canvas.width - x, baseWidth + paddingLeft + paddingRight);
+    const height = Math.min(canvas.height - y, baseHeight + paddingTop + paddingBottom);
 
     const pixelCanvas = document.createElement("canvas");
-    pixelCanvas.width = Math.max(1, Math.round(width / 18));
-    pixelCanvas.height = Math.max(1, Math.round(height / 18));
+    pixelCanvas.width = Math.max(1, Math.round(width / 80));
+    pixelCanvas.height = Math.max(1, Math.round(height / 80));
     const pixelContext = pixelCanvas.getContext("2d");
 
     if (!pixelContext) {
@@ -488,15 +490,28 @@ export async function applyBlurToFaces(file: File, faceBoxes: FaceBox[]) {
       throw new Error("흐림 처리를 시작하지 못했습니다.");
     }
 
-    const blurRadius = Math.max(40, Math.round(Math.max(width, height) * 0.18));
-    blurredContext.filter = `blur(${blurRadius}px) saturate(0.55) contrast(1.08)`;
+    const blurRadius = Math.max(88, Math.round(Math.max(width, height) * 0.42));
+    blurredContext.filter = `blur(${blurRadius}px) saturate(0.08) contrast(1.24) brightness(0.66)`;
     blurredContext.drawImage(pixelatedCanvas, 0, 0);
 
     context.save();
-    traceRoundedRect(context, x, y, width, height, Math.max(16, Math.round(Math.min(width, height) * 0.14)));
+    traceRoundedRect(context, x, y, width, height, Math.max(28, Math.round(Math.min(width, height) * 0.32)));
     context.clip();
     context.drawImage(blurredCanvas, x, y);
-    context.fillStyle = "rgba(15, 23, 42, 0.4)";
+    context.fillStyle = "rgba(15, 23, 42, 0.88)";
+    context.fillRect(x, y, width, height);
+    const centerGradient = context.createRadialGradient(
+      baseX + baseWidth / 2,
+      baseY + baseHeight / 2,
+      Math.max(12, baseWidth * 0.12),
+      baseX + baseWidth / 2,
+      baseY + baseHeight / 2,
+      Math.max(width, height) * 0.58,
+    );
+    centerGradient.addColorStop(0, "rgba(2, 6, 23, 0.72)");
+    centerGradient.addColorStop(0.55, "rgba(2, 6, 23, 0.42)");
+    centerGradient.addColorStop(1, "rgba(2, 6, 23, 0)");
+    context.fillStyle = centerGradient;
     context.fillRect(x, y, width, height);
     context.restore();
   }
