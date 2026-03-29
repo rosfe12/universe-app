@@ -1566,19 +1566,19 @@ export function AdminPage({
               </CardContent>
             </Card>
 
-            <TabsList className="h-auto w-full justify-start overflow-x-auto md:flex md:flex-wrap md:overflow-visible lg:flex lg:flex-col lg:items-stretch lg:rounded-[28px] lg:p-2">
-              <TabsTrigger className="lg:w-full lg:justify-start" value="dashboard">운영 현황</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="members">회원 목록</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="roles">권한 관리</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="verification">학생 인증</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="profile-images">프로필 사진 검토</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="reports">신고 목록</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="ops">운영 로그</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="settings">공지/프로모션</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="audit">운영 이력</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="hidden">자동 숨김</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="reported-users">신고 많은 사용자</TabsTrigger>
-              <TabsTrigger className="lg:w-full lg:justify-start" value="low-trust">낮은 신뢰도</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-[24px] p-2 md:flex md:flex-wrap md:overflow-visible lg:flex lg:flex-col lg:items-stretch lg:rounded-[28px]">
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="dashboard">운영 현황</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="members">회원 목록</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="roles">권한 관리</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="verification">학생 인증</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="profile-images">프로필 사진 검토</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="reports">신고 목록</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="ops">운영 로그</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="settings">공지/프로모션</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="audit">운영 이력</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="hidden">자동 숨김</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="reported-users">신고 많은 사용자</TabsTrigger>
+              <TabsTrigger className="w-full justify-start md:w-auto lg:w-full" value="low-trust">낮은 신뢰도</TabsTrigger>
             </TabsList>
           </aside>
 
