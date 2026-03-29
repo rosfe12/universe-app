@@ -355,12 +355,24 @@ export function NotificationsPage({
   } = useAppRuntime(initialSnapshot, "notifications");
   const [tab, setTab] = useState<NotificationTab>("all");
   const [isPending, startTransition] = useTransition();
+  const [optimisticReadIds, setOptimisticReadIds] = useState<string[]>([]);
+  const [optimisticMarkAllRead, setOptimisticMarkAllRead] = useState(false);
   const schoolId = currentUser.schoolId;
   const schoolName = schools.find((school) => school.id === schoolId)?.name;
   const showInitialLoading = loading && source === "mock";
 
   const actualItems = getNotifications(currentUser.id);
+  const effectiveActualItems = actualItems.map((item) =>
+    item.isRead || optimisticMarkAllRead || optimisticReadIds.includes(item.id)
+      ? { ...item, isRead: true }
+      : item,
+  );
   const recommendedItems = buildRecommendedNotifications(currentUser.id, schoolName, schoolId);
+
+  useEffect(() => {
+    setOptimisticReadIds([]);
+    setOptimisticMarkAllRead(false);
+  }, [actualItems]);
 
   useEffect(() => {
     if (!isAuthenticated || !isSupabaseEnabled()) {
@@ -389,14 +401,14 @@ export function NotificationsPage({
     };
   }, [currentUser.id, isAuthenticated, refresh]);
 
-  const activityItems = actualItems.filter((item) => item.category === "activity");
-  const noticeItems = actualItems.filter((item) => item.category === "notice");
-  const unreadCount = actualItems.filter((item) => !item.isRead).length;
+  const activityItems = effectiveActualItems.filter((item) => item.category === "activity");
+  const noticeItems = effectiveActualItems.filter((item) => item.category === "notice");
+  const unreadCount = effectiveActualItems.filter((item) => !item.isRead).length;
   const activityUnreadCount = activityItems.filter((item) => !item.isRead).length;
   const noticeUnreadCount = noticeItems.filter((item) => !item.isRead).length;
 
   const actualByTab: Record<NotificationTab, Notification[]> = {
-    all: actualItems,
+    all: effectiveActualItems,
     activity: activityItems,
     notice: noticeItems,
   };
@@ -446,10 +458,13 @@ export function NotificationsPage({
     startTransition(() => {
       void (async () => {
         if (!item.isRead && !item.recommended) {
+          setOptimisticReadIds((current) =>
+            current.includes(item.id) ? current : [...current, item.id],
+          );
           try {
             await markNotificationRead(item.id);
           } catch {
-            // noop
+            setOptimisticReadIds((current) => current.filter((id) => id !== item.id));
           }
         }
         router.push(href);
@@ -460,8 +475,13 @@ export function NotificationsPage({
   const handleMarkAllRead = () => {
     startTransition(() => {
       void (async () => {
-        await markAllNotificationsRead();
-        await refresh();
+        setOptimisticMarkAllRead(true);
+        try {
+          await markAllNotificationsRead();
+          await refresh();
+        } catch {
+          setOptimisticMarkAllRead(false);
+        }
       })();
     });
   };
@@ -518,7 +538,7 @@ export function NotificationsPage({
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-[22px] border border-white/80 bg-white/86 px-4 py-3">
               <p className="text-xs font-medium text-muted-foreground">전체</p>
-              <p className="mt-2 text-lg font-semibold text-foreground">{actualItems.length}</p>
+              <p className="mt-2 text-lg font-semibold text-foreground">{effectiveActualItems.length}</p>
             </div>
             <div className="rounded-[22px] border border-white/80 bg-white/86 px-4 py-3">
               <p className="text-xs font-medium text-muted-foreground">활동</p>
