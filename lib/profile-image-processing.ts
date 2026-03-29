@@ -18,10 +18,12 @@ export type ImageValidationResult = {
   qrDetected: boolean;
 };
 
-const MAX_OUTPUT_DIMENSION = 1440;
+const MAX_OUTPUT_DIMENSION = 1280;
 const MAX_DETECTION_DIMENSION = 1280;
 const DEFAULT_OUTPUT_TYPE = "image/jpeg";
 const DEFAULT_OUTPUT_QUALITY = 0.82;
+const FAST_UPLOAD_SKIP_REENCODE_BYTES = 900 * 1024;
+const TARGET_OUTPUT_BYTES = 1024 * 1024;
 const HIGH_EFFICIENCY_IMAGE_TYPES = [
   "image/heic",
   "image/heif",
@@ -270,10 +272,20 @@ async function createOutputFile(
   canvas: HTMLCanvasElement,
   suffix: "masked" | "stickered" | "normalized",
 ) {
-  const blob = await canvasToBlob(canvas, DEFAULT_OUTPUT_QUALITY);
+  let quality = DEFAULT_OUTPUT_QUALITY;
+  let blob = await canvasToBlob(canvas, quality);
 
   if (!blob) {
     throw new Error("편집한 이미지를 저장하지 못했습니다.");
+  }
+
+  while (blob.size > TARGET_OUTPUT_BYTES && quality > 0.5) {
+    quality -= 0.08;
+    blob = await canvasToBlob(canvas, quality);
+
+    if (!blob) {
+      throw new Error("편집한 이미지를 저장하지 못했습니다.");
+    }
   }
 
   return new File([blob], `profile-${suffix}-${Date.now()}.jpg`, {
@@ -383,7 +395,7 @@ export async function prepareProfileImageForUpload(file: File) {
   const alreadySupported = PROFILE_IMAGE_ALLOWED_TYPES.includes(
     file.type as (typeof PROFILE_IMAGE_ALLOWED_TYPES)[number],
   );
-  if (alreadySupported && file.size <= 1.2 * 1024 * 1024) {
+  if (alreadySupported && file.size <= FAST_UPLOAD_SKIP_REENCODE_BYTES) {
     return file;
   }
 
@@ -393,7 +405,12 @@ export async function prepareProfileImageForUpload(file: File) {
     let quality = DEFAULT_OUTPUT_QUALITY;
     let blob = await canvasToBlob(canvas, quality);
 
-    while (blob && blob.size > MAX_PROFILE_IMAGE_BYTES && quality > 0.45) {
+    while (blob && blob.size > TARGET_OUTPUT_BYTES && quality > 0.5) {
+      quality -= 0.08;
+      blob = await canvasToBlob(canvas, quality);
+    }
+
+    while (blob && blob.size > MAX_PROFILE_IMAGE_BYTES && quality > 0.42) {
       quality -= 0.1;
       blob = await canvasToBlob(canvas, quality);
     }

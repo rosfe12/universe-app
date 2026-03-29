@@ -27,6 +27,7 @@ type ProfileImageEditorDialogProps = {
   faceBoxes: FaceBox[];
   sensitiveTextDetected: boolean;
   qrDetected: boolean;
+  skipDuplicateValidation?: boolean;
   initialProcessedFile?: File | null;
   onOpenChange: (open: boolean) => void;
   onReset: () => void;
@@ -82,6 +83,7 @@ export function ProfileImageEditorDialog({
   faceBoxes,
   sensitiveTextDetected,
   qrDetected,
+  skipDuplicateValidation = false,
   initialProcessedFile,
   onOpenChange,
   onReset,
@@ -405,7 +407,7 @@ export function ProfileImageEditorDialog({
         }
       }
 
-      if (!processedByEditor) {
+      if (!processedByEditor && !skipDuplicateValidation) {
         const rechecked = await validateImageBeforeUpload(uploadFile);
         if (rechecked.faceBoxes.length > 0) {
           throw new Error("얼굴이 아직 보여요. 흐림 처리나 스티커를 다시 적용해주세요.");

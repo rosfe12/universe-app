@@ -27,6 +27,30 @@ import type {
 
 const targetUserSchema = z.string().uuid();
 const reorderProfileImagesSchema = z.array(z.string().uuid()).min(1).max(3);
+const profileDraftImageSchema = z.object({
+  id: z.string().uuid().optional(),
+  imageOrder: z.number().int().min(1).max(3),
+  isPrimary: z.boolean(),
+  localFileField: z.string().min(1).optional(),
+  sensitiveTextDetected: z.boolean().optional(),
+  qrDetected: z.boolean().optional(),
+  wasProcessed: z.boolean().optional(),
+});
+const saveCommunityProfileDraftSchema = z
+  .object({
+    profile: communityProfileSchema,
+    images: z.array(profileDraftImageSchema).max(3),
+  })
+  .superRefine((value, context) => {
+    const orders = value.images.map((image) => image.imageOrder);
+    if (new Set(orders).size !== orders.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["images"],
+        message: "사진 슬롯 정보가 올바르지 않습니다.",
+      });
+    }
+  });
 
 type CurrentProfileUserRow = {
   id: string;
@@ -244,6 +268,25 @@ async function listProfileImages(
   return images;
 }
 
+async function listOwnProfileImageRows(
+  supabase: Awaited<ReturnType<typeof requireAuthenticatedProfileUser>>["supabase"],
+  userId: string,
+) {
+  const { data, error } = await supabase
+    .from("profile_images")
+    .select(
+      "id, user_id, image_path, image_order, is_primary, moderation_status, moderation_reason, created_at, updated_at",
+    )
+    .eq("user_id", userId)
+    .order("image_order", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as ProfileImageRow[];
+}
+
 async function hasApprovedPrimaryImage(
   supabase: Awaited<ReturnType<typeof requireAuthenticatedProfileUser>>["supabase"],
   userId: string,
@@ -261,6 +304,158 @@ async function hasApprovedPrimaryImage(
   }
 
   return Boolean(data);
+}
+
+async function upsertOwnProfileRow(
+  admin: ReturnType<typeof createAdminSupabaseClient>,
+  user: CurrentProfileUserRow,
+  input: z.infer<typeof communityProfileSchema>,
+) {
+  const payload = {
+    id: user.id,
+    display_name: input.displayName,
+    bio: input.bio?.trim() ? input.bio.trim() : null,
+    interests: input.interests,
+    profile_visibility: input.profileVisibility,
+    show_department: input.showDepartment,
+    show_admission_year: input.showAdmissionYear,
+  };
+
+  const { data: existingProfile, error: existingProfileError } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (existingProfileError) {
+    throw new Error(existingProfileError.message);
+  }
+
+  if (existingProfile?.id) {
+    const { error: updateError } = await admin
+      .from("profiles")
+      .update({
+        display_name: payload.display_name,
+        bio: payload.bio,
+        interests: payload.interests,
+        profile_visibility: payload.profile_visibility,
+        show_department: payload.show_department,
+        show_admission_year: payload.show_admission_year,
+      })
+      .eq("id", user.id);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+    return;
+  }
+
+  const { error: insertError } = await admin.from("profiles").insert(payload);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}
+
+async function saveProfileImageSlot(params: {
+  supabase: Awaited<ReturnType<typeof requireAuthenticatedProfileUser>>["supabase"];
+  admin: ReturnType<typeof createAdminSupabaseClient>;
+  user: CurrentProfileUserRow;
+  file: File;
+  imageOrder: number;
+  sensitiveDetected?: boolean;
+  qrDetected?: boolean;
+  processedImage?: boolean;
+  allowFallbackPrimary?: boolean;
+}) {
+  const {
+    supabase,
+    admin,
+    user,
+    file,
+    imageOrder,
+    sensitiveDetected = false,
+    qrDetected = false,
+    processedImage = false,
+    allowFallbackPrimary = true,
+  } = params;
+
+  validateCommunityProfileImageFile(file);
+
+  const hasPrimaryImage = allowFallbackPrimary
+    ? await hasApprovedPrimaryImage(supabase, user.id)
+    : false;
+
+  let moderation = await moderateCommunityProfileImage(file);
+  if (processedImage && !sensitiveDetected && !qrDetected) {
+    moderation = {
+      status: "approved" as const,
+      reason: undefined,
+    };
+  }
+  if (moderation.status === "approved" && (sensitiveDetected || qrDetected)) {
+    moderation = {
+      status: "pending" as const,
+      reason: "연락처, SNS, QR, 학생증 등 개인정보가 포함된 것으로 보여 검토 후 공개됩니다.",
+    };
+  }
+  if (moderation.status === "rejected") {
+    throw new Error(moderation.reason);
+  }
+
+  const { data: existingRow, error: existingError } = await supabase
+    .from("profile_images")
+    .select("id, image_path, is_primary")
+    .eq("user_id", user.id)
+    .eq("image_order", imageOrder)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  const imagePath = buildCommunityProfileImagePath(user.id, file);
+  const uploadResult = await admin.storage.from(PROFILE_IMAGE_BUCKET).upload(imagePath, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type,
+  });
+
+  if (uploadResult.error) {
+    throw new Error(uploadResult.error.message);
+  }
+
+  const { data: savedRow, error: saveError } = await supabase
+    .from("profile_images")
+    .upsert(
+      {
+        user_id: user.id,
+        image_path: imagePath,
+        image_order: imageOrder,
+        is_primary:
+          moderation.status === "approved"
+            ? Boolean(existingRow?.is_primary) || (allowFallbackPrimary && !hasPrimaryImage)
+            : false,
+        moderation_status: moderation.status,
+        moderation_reason: moderation.reason ?? null,
+      },
+      { onConflict: "user_id,image_order" },
+    )
+    .select(
+      "id, user_id, image_path, image_order, is_primary, moderation_status, moderation_reason, created_at, updated_at",
+    )
+    .single();
+
+  if (saveError || !savedRow) {
+    await admin.storage.from(PROFILE_IMAGE_BUCKET).remove([imagePath]).catch(() => null);
+    throw new Error(saveError?.message ?? "프로필 사진을 저장하지 못했습니다.");
+  }
+
+  if (existingRow?.image_path && existingRow.image_path !== imagePath) {
+    await admin.storage.from(PROFILE_IMAGE_BUCKET).remove([String(existingRow.image_path)]).catch(() => null);
+  }
+
+  return savedRow as ProfileImageRow;
 }
 
 async function assignNextPrimaryProfileImage(
@@ -374,52 +569,162 @@ export async function updateMyProfile(input: z.infer<typeof communityProfileSche
   const parsed = parsedResult.data;
   const { admin, user } = await requireAuthenticatedProfileUser();
   requireVerifiedProfileFeature(user);
-
-  const payload = {
-    id: user.id,
-    display_name: parsed.displayName,
-    bio: parsed.bio?.trim() ? parsed.bio.trim() : null,
-    interests: parsed.interests,
-    profile_visibility: parsed.profileVisibility,
-    show_department: parsed.showDepartment,
-    show_admission_year: parsed.showAdmissionYear,
-  };
-
-  const { data: existingProfile, error: existingProfileError } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (existingProfileError) {
-    throw new Error(existingProfileError.message);
-  }
-
-  if (existingProfile?.id) {
-    const { error: updateError } = await admin
-      .from("profiles")
-      .update({
-        display_name: payload.display_name,
-        bio: payload.bio,
-        interests: payload.interests,
-        profile_visibility: payload.profile_visibility,
-        show_department: payload.show_department,
-        show_admission_year: payload.show_admission_year,
-      })
-      .eq("id", user.id);
-
-    if (updateError) {
-      throw new Error(updateError.message);
-    }
-  } else {
-    const { error: insertError } = await admin.from("profiles").insert(payload);
-
-    if (insertError) {
-      throw new Error(insertError.message);
-    }
-  }
+  await upsertOwnProfileRow(admin, user, parsed);
 
   revalidateCommunityProfileSurfaces(user.id);
+}
+
+export async function saveCommunityProfileDraft(formData: FormData) {
+  const rawProfile = formData.get("profile");
+  const rawImages = formData.get("images");
+
+  if (typeof rawProfile !== "string" || typeof rawImages !== "string") {
+    throw new Error("프로필 저장 정보를 다시 확인해주세요.");
+  }
+
+  let parsedPayload: z.infer<typeof saveCommunityProfileDraftSchema>;
+  try {
+    const payload = {
+      profile: JSON.parse(rawProfile),
+      images: JSON.parse(rawImages),
+    };
+    const parsedResult = saveCommunityProfileDraftSchema.safeParse(payload);
+    if (!parsedResult.success) {
+      throw new Error("프로필 저장 정보를 다시 확인해주세요.");
+    }
+    parsedPayload = parsedResult.data;
+  } catch {
+    throw new Error("프로필 저장 정보를 다시 확인해주세요.");
+  }
+
+  const { supabase, admin, user } = await requireAuthenticatedProfileUser();
+  requireVerifiedProfileFeature(user);
+  await ensureOwnProfileRow(admin, user);
+  await upsertOwnProfileRow(admin, user, parsedPayload.profile);
+
+  const existingRows = await listOwnProfileImageRows(supabase, user.id);
+  const existingById = new Map(existingRows.map((row) => [String(row.id), row] as const));
+  const resolvedImages: Array<{
+    draft: z.infer<typeof profileDraftImageSchema>;
+    row: ProfileImageRow;
+  }> = [];
+
+  for (const draftImage of [...parsedPayload.images].sort((a, b) => a.imageOrder - b.imageOrder)) {
+    if (draftImage.localFileField) {
+      const file = formData.get(draftImage.localFileField);
+      if (!(file instanceof File)) {
+        throw new Error("프로필 사진 파일을 다시 선택해주세요.");
+      }
+
+      const savedRow = await saveProfileImageSlot({
+        supabase,
+        admin,
+        user,
+        file,
+        imageOrder: draftImage.imageOrder,
+        sensitiveDetected: Boolean(draftImage.sensitiveTextDetected),
+        qrDetected: Boolean(draftImage.qrDetected),
+        processedImage: Boolean(draftImage.wasProcessed),
+        allowFallbackPrimary: false,
+      });
+
+      resolvedImages.push({
+        draft: draftImage,
+        row: savedRow,
+      });
+      continue;
+    }
+
+    if (!draftImage.id) {
+      throw new Error("프로필 사진 정보를 다시 확인해주세요.");
+    }
+
+    const existingRow = existingById.get(draftImage.id);
+    if (!existingRow) {
+      throw new Error("프로필 사진 정보를 다시 확인해주세요.");
+    }
+
+    resolvedImages.push({
+      draft: draftImage,
+      row: existingRow,
+    });
+  }
+
+  const desiredImageIds = resolvedImages.map((item) => String(item.row.id));
+  const removedRows = existingRows.filter((row) => !desiredImageIds.includes(String(row.id)));
+
+  if (removedRows.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("profile_images")
+      .delete()
+      .in(
+        "id",
+        removedRows.map((row) => String(row.id)),
+      )
+      .eq("user_id", user.id);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+
+    await admin.storage
+      .from(PROFILE_IMAGE_BUCKET)
+      .remove(removedRows.map((row) => String(row.image_path)))
+      .catch(() => null);
+  }
+
+  const currentOrderIds = [...resolvedImages]
+    .sort((a, b) => a.row.image_order - b.row.image_order)
+    .map((item) => String(item.row.id));
+
+  if (
+    desiredImageIds.length > 0 &&
+    JSON.stringify(desiredImageIds) !== JSON.stringify(currentOrderIds)
+  ) {
+    const { error } = await supabase.rpc("reorder_profile_images", {
+      p_image_ids: desiredImageIds,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  const desiredPrimaryId =
+    resolvedImages.find(
+      (item) => item.draft.isPrimary && item.row.moderation_status === "approved",
+    )?.row.id ?? null;
+  const currentPrimaryId =
+    resolvedImages.find((item) => item.row.is_primary)?.row.id ?? null;
+
+  if (desiredPrimaryId && currentPrimaryId !== desiredPrimaryId) {
+    const { error } = await supabase.rpc("set_primary_profile_image", {
+      p_image_id: String(desiredPrimaryId),
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  } else if (!desiredPrimaryId && resolvedImages.some((item) => item.row.moderation_status === "approved")) {
+    await assignNextPrimaryProfileImage(supabase, user.id).catch(() => null);
+  }
+
+  const [profile, images, schoolName] = await Promise.all([
+    getProfileRow(admin, user.id),
+    listProfileImages(admin, user.id, true),
+    getSchoolName(admin, user.school_id),
+  ]);
+
+  revalidateCommunityProfileSurfaces(user.id);
+
+  return mapCommunityProfile({
+    viewer: user,
+    target: user,
+    profile,
+    schoolName,
+    images,
+    owner: true,
+  });
 }
 
 export async function uploadProfileImage(formData: FormData) {
@@ -442,76 +747,16 @@ export async function uploadProfileImage(formData: FormData) {
   const { supabase, admin, user } = await requireAuthenticatedProfileUser();
   requireVerifiedProfileFeature(user);
   await ensureOwnProfileRow(admin, user);
-  const hasPrimaryImage = await hasApprovedPrimaryImage(supabase, user.id);
-
-  let moderation = await moderateCommunityProfileImage(file);
-  if (processedImage && !sensitiveDetected && !qrDetected) {
-    moderation = {
-      status: "approved" as const,
-      reason: undefined,
-    };
-  }
-  if (moderation.status === "approved" && (sensitiveDetected || qrDetected)) {
-    moderation = {
-      status: "pending" as const,
-      reason: "연락처, SNS, QR, 학생증 등 개인정보가 포함된 것으로 보여 검토 후 공개됩니다.",
-    };
-  }
-  if (moderation.status === "rejected") {
-    throw new Error(moderation.reason);
-  }
-
-  const { data: existingRow, error: existingError } = await supabase
-    .from("profile_images")
-    .select("id, image_path, is_primary")
-    .eq("user_id", user.id)
-    .eq("image_order", imageOrder)
-    .maybeSingle();
-
-  if (existingError) {
-    throw new Error(existingError.message);
-  }
-
-  const imagePath = buildCommunityProfileImagePath(user.id, file);
-  const uploadResult = await admin.storage.from(PROFILE_IMAGE_BUCKET).upload(imagePath, file, {
-    cacheControl: "3600",
-    upsert: false,
-    contentType: file.type,
+  const savedRow = await saveProfileImageSlot({
+    supabase,
+    admin,
+    user,
+    file,
+    imageOrder,
+    sensitiveDetected,
+    qrDetected,
+    processedImage,
   });
-
-  if (uploadResult.error) {
-    throw new Error(uploadResult.error.message);
-  }
-
-  const { data: savedRow, error: saveError } = await supabase
-    .from("profile_images")
-    .upsert(
-      {
-        user_id: user.id,
-        image_path: imagePath,
-        image_order: imageOrder,
-        is_primary:
-          moderation.status === "approved"
-            ? Boolean(existingRow?.is_primary) || !hasPrimaryImage
-            : false,
-        moderation_status: moderation.status,
-        moderation_reason: moderation.reason ?? null,
-      },
-      { onConflict: "user_id,image_order" },
-    )
-    .select(
-      "id, user_id, image_path, image_order, is_primary, moderation_status, moderation_reason, created_at, updated_at",
-    )
-    .single();
-
-  if (saveError || !savedRow) {
-    await admin.storage.from(PROFILE_IMAGE_BUCKET).remove([imagePath]).catch(() => null);
-    throw new Error(saveError?.message ?? "프로필 사진을 저장하지 못했습니다.");
-  }
-
-  if (existingRow?.image_path && existingRow.image_path !== imagePath) {
-    await admin.storage.from(PROFILE_IMAGE_BUCKET).remove([String(existingRow.image_path)]).catch(() => null);
-  }
 
   revalidateCommunityProfileSurfaces(user.id);
 

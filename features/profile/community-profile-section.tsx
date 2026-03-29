@@ -5,12 +5,9 @@ import { Camera, Check, ChevronLeft, ChevronRight, ImagePlus, Loader2, Pencil, T
 import { Capacitor } from "@capacitor/core";
 
 import {
-  deleteProfileImage,
   getMyProfile,
-  reorderProfileImages,
-  setPrimaryProfileImage,
+  saveCommunityProfileDraft,
   updateMyProfile,
-  uploadProfileImage,
 } from "@/app/actions/profile-actions";
 import { ActionFeedbackBanner } from "@/components/shared/action-feedback-banner";
 import { ProfileImage } from "@/components/shared/profile-image";
@@ -91,21 +88,6 @@ function buildProfileFormState(profile: CommunityProfile): CommunityProfileFormS
     profileVisibility: profile.profileVisibility,
     showDepartment: profile.showDepartment,
     showAdmissionYear: profile.showAdmissionYear,
-  };
-}
-
-function applyTextDraftToProfile(
-  profile: CommunityProfile,
-  formState: CommunityProfileFormState,
-): CommunityProfile {
-  return {
-    ...profile,
-    displayName: formState.displayName,
-    bio: formState.bio.trim() ? formState.bio.trim() : undefined,
-    interests: parseInterestTokens(formState.interestsInput),
-    profileVisibility: formState.profileVisibility,
-    showDepartment: formState.showDepartment,
-    showAdmissionYear: formState.showAdmissionYear,
   };
 }
 
@@ -421,130 +403,40 @@ export function CommunityProfileSection({
       return;
     }
 
-    setSaveStatus("저장 준비 중이에요.");
+    setSaveStatus("변경사항을 저장 중이에요.");
     try {
-      let nextProfile = profile;
-
-      if (hasTextDraftChanges) {
-        setSaveStatus("프로필 정보를 저장 중이에요.");
-        await updateMyProfile({
+      const formData = new FormData();
+      formData.set(
+        "profile",
+        JSON.stringify({
           displayName: formState.displayName,
           bio: formState.bio,
           interests: parseInterestTokens(formState.interestsInput),
           profileVisibility: formState.profileVisibility,
           showDepartment: formState.showDepartment,
           showAdmissionYear: formState.showAdmissionYear,
-        });
-        nextProfile = applyTextDraftToProfile(nextProfile, formState);
-      }
-
-      if (hasImageDraftChanges) {
-        setSaveStatus("사진을 업로드 중이에요.");
-        const uploadedImageResults = await Promise.all(
-          orderedDraftImages.map(async (draftImage) => {
-            if (!draftImage.localFile) {
-              return null;
-            }
-
-            const formData = new FormData();
-            formData.set("file", draftImage.localFile);
-            formData.set("imageOrder", String(draftImage.imageOrder));
-            if (draftImage.moderationReason?.includes("개인정보")) {
-              formData.set("sensitiveDetected", "true");
-            }
-            if (draftImage.moderationReason?.includes("QR")) {
-              formData.set("qrDetected", "true");
-            }
-            if (draftImage.wasProcessed) {
-              formData.set("processedImage", "true");
-            }
-            return uploadProfileImage(formData);
-          }),
-        );
-        const uploadedImages = uploadedImageResults.filter(Boolean) as CommunityProfile["images"];
-
-        setSaveStatus("기존 사진을 정리 중이에요.");
-        await Promise.all(
-          profile.images.map(async (originalImage) => {
-            const keptExistingImage = orderedDraftImages.some(
-              (draftImage) => !draftImage.localFile && draftImage.id === originalImage.id,
-            );
-            const replacedAtSameOrder = orderedDraftImages.some(
-              (draftImage) =>
-                draftImage.imageOrder === originalImage.imageOrder && Boolean(draftImage.localFile),
-            );
-
-            if (!keptExistingImage && !replacedAtSameOrder) {
-              await deleteProfileImage(originalImage.id);
-            }
-          }),
-        );
-
-        const uploadedImageByOrder = new Map(
-          uploadedImages.map((image) => [image.imageOrder, image] as const),
-        );
-        const keptExistingImages = profile.images.filter((originalImage) =>
-          orderedDraftImages.some((draftImage) => !draftImage.localFile && draftImage.id === originalImage.id),
-        );
-        const persistedImagesAfterUpload = [...keptExistingImages, ...uploadedImages].sort(
-          (a, b) => a.imageOrder - b.imageOrder,
-        );
-
-        nextProfile = {
-          ...nextProfile,
-          images: orderedDraftImages
-            .map((draftImage, index) => {
-              const sourceImage = draftImage.localFile
-                ? uploadedImageByOrder.get(draftImage.imageOrder)
-                : keptExistingImages.find((image) => image.id === draftImage.id);
-
-              if (!sourceImage) {
-                return null;
-              }
-
-              return {
-                ...sourceImage,
-                imageOrder: (index + 1) as 1 | 2 | 3,
-              };
-            })
-            .filter((image): image is CommunityProfile["images"][number] => Boolean(image)),
-        };
-
-        const desiredOrderIds = nextProfile.images.map((image) => image.id);
-        const persistedOrderIds = persistedImagesAfterUpload.map((image) => image.id);
-
-        if (
-          desiredOrderIds.length > 0 &&
-          JSON.stringify(desiredOrderIds) !== JSON.stringify(persistedOrderIds)
-        ) {
-          setSaveStatus("사진 순서를 반영 중이에요.");
-          await reorderProfileImages(desiredOrderIds);
-        }
-      }
-
-      const desiredPrimaryImage = orderedDraftImages.find(
-        (draftImage) => draftImage.isPrimary && draftImage.moderationStatus === "approved",
+        }),
       );
-      const desiredPrimaryId = desiredPrimaryImage
-        ? desiredPrimaryImage.localFile
-          ? nextProfile.images.find((image) => image.imageOrder === desiredPrimaryImage.imageOrder)?.id
-          : desiredPrimaryImage.id
-        : null;
 
-      if (desiredPrimaryId) {
-        const currentPrimaryId = nextProfile.images.find((image) => image.isPrimary)?.id;
-        if (currentPrimaryId !== desiredPrimaryId) {
-          setSaveStatus("대표 사진을 반영 중이에요.");
-          await setPrimaryProfileImage(desiredPrimaryId);
-          nextProfile = {
-            ...nextProfile,
-            images: nextProfile.images.map((image) => ({
-              ...image,
-              isPrimary: image.id === desiredPrimaryId,
-            })),
-          };
+      const imagePayload = orderedDraftImages.map((draftImage, index) => {
+        const localFileField = draftImage.localFile ? `imageFile${index + 1}` : undefined;
+        if (localFileField && draftImage.localFile) {
+          formData.set(localFileField, draftImage.localFile);
         }
-      }
+
+        return {
+          id: draftImage.localFile ? undefined : draftImage.id,
+          imageOrder: draftImage.imageOrder,
+          isPrimary: draftImage.isPrimary,
+          localFileField,
+          sensitiveTextDetected: draftImage.moderationReason?.includes("개인정보"),
+          qrDetected: draftImage.moderationReason?.includes("QR"),
+          wasProcessed: draftImage.wasProcessed,
+        };
+      });
+      formData.set("images", JSON.stringify(imagePayload));
+
+      const nextProfile = await saveCommunityProfileDraft(formData);
 
       setError(null);
       setUploadError(null);
@@ -1363,6 +1255,7 @@ export function CommunityProfileSection({
         faceBoxes={editorState?.faceBoxes ?? []}
         sensitiveTextDetected={Boolean(editorState?.sensitiveTextDetected)}
         qrDetected={Boolean(editorState?.qrDetected)}
+        skipDuplicateValidation
         initialProcessedFile={editorState?.processedFile ?? null}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) {
