@@ -57,6 +57,7 @@ export function TopNavActions() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [hydrated, setHydrated] = useState(false);
   const {
     currentUser,
     isAuthenticated,
@@ -70,6 +71,10 @@ export function TopNavActions() {
     runtimeLoading || (isSupabaseEnabled() && source === "mock")
       ? 0
       : notifications.filter((item) => !item.isRead && isMessageNotification(item.type)).length;
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -87,6 +92,8 @@ export function TopNavActions() {
 
     router.prefetch("/profile");
   }, [currentUser.id, isAuthenticated, router]);
+
+  const profileHref = hydrated && isAuthenticated ? `/profile/${currentUser.id}` : "/profile";
 
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -198,7 +205,7 @@ export function TopNavActions() {
           </Link>
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="프로필">
-          <Link href={isAuthenticated ? `/profile/${currentUser.id}` : "/profile"} prefetch>
+          <Link href={profileHref} prefetch>
             <CircleUserRound className="h-5 w-5" />
           </Link>
         </Button>
