@@ -12,8 +12,6 @@ export type SharePayload = {
   buttonTitle?: string;
 };
 
-const DEFAULT_SHARE_IMAGE = "/icons/icon-512.png";
-
 export function getAppOrigin() {
   return resolveAppUrl("https://universeapp.kr").replace(/\/+$/, "");
 }
@@ -30,11 +28,12 @@ export function createPostSharePayload(post: Pick<Post, "id" | "title" | "conten
   const trimmed = post.content.replace(/\s+/g, " ").trim();
   const description =
     trimmed.length > 96 ? `${trimmed.slice(0, 93).trimEnd()}...` : trimmed || "CAMVERSE에서 화제인 글";
+  const fallbackImageUrl = `/posts/${post.id}/opengraph-image`;
 
   return {
     title: post.title,
     description,
-    imageUrl: toAbsoluteAppUrl(post.imageUrl || DEFAULT_SHARE_IMAGE),
+    imageUrl: toAbsoluteAppUrl(post.imageUrl || fallbackImageUrl),
     linkUrl: toAbsoluteAppUrl(`/posts/${post.id}`),
     buttonTitle: "게시글 보기",
   } satisfies SharePayload;
@@ -48,7 +47,7 @@ export function createInviteSharePayload(code: string) {
   return {
     title: "대학생만을 위한 커뮤니티 [CAMVERSE-캠버스]로 초대합니다",
     description: "CAMVERSE 초대",
-    imageUrl: toAbsoluteAppUrl(DEFAULT_SHARE_IMAGE),
+    imageUrl: toAbsoluteAppUrl("/icons/icon-512.png"),
     linkUrl: createInviteLink(code),
     buttonTitle: "초대 링크 열기",
   } satisfies SharePayload;
