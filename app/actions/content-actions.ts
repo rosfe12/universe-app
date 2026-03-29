@@ -837,7 +837,10 @@ export async function createPost(input: z.input<typeof postSchema>) {
   requireVerifiedStudentProfile(profile, "글쓰기", authUser.email);
   if (values.subcategory === "freshman") {
     if (!profile.school_id) {
-      throw new Error("같은 학교 사용자만 새내기 게시판을 작성할 수 있습니다.");
+      throw new Error("같은 학교 예비입학생만 새내기 게시판을 작성할 수 있습니다.");
+    }
+    if (profile.user_type !== "freshman") {
+      throw new Error("새내기 게시판은 같은 학교 예비입학생만 작성할 수 있습니다.");
     }
   }
   await guardPostSubmission(supabase, authUser.id, values);
@@ -999,10 +1002,11 @@ export async function createComment(input: z.input<typeof commentSchema>) {
 
     if (postDetail.subcategory === "freshman") {
       if (
+        profile.user_type !== "freshman" ||
         !profile.school_id ||
         postDetail.school_id !== profile.school_id
       ) {
-        throw new Error("같은 학교 사용자만 새내기 게시판 댓글을 작성할 수 있습니다.");
+        throw new Error("같은 학교 예비입학생만 새내기 게시판 댓글을 작성할 수 있습니다.");
       }
     }
   }
