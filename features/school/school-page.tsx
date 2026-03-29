@@ -53,6 +53,7 @@ import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { STANDARD_VISIBILITY_LEVELS } from "@/lib/constants";
 import { validatePostSubmission } from "@/lib/moderation";
 import {
+  canCommentFreshmanZone,
   canWriteAdmissionQuestion,
   canWriteFreshmanZone,
 } from "@/lib/permissions";
@@ -238,7 +239,11 @@ export function SchoolPage({
     !isApplicantMode;
   const freshmanComposeEnabled =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteFreshmanZone(currentUser);
-  const freshmanCommentEnabled = freshmanComposeEnabled;
+  const freshmanCommentEnabled =
+    isAuthenticated &&
+    hasCompletedOnboarding(currentUser) &&
+    currentUser.schoolId === schoolId &&
+    canCommentFreshmanZone(currentUser);
   const admissionWriteEnabled =
     isAuthenticated && hasCompletedOnboarding(currentUser) && canWriteAdmissionQuestion(currentUser);
   const campusInfoCards = useMemo(
@@ -1121,8 +1126,8 @@ export function SchoolPage({
                 accountRequiredTitle={
                   detailPost.subcategory === "freshman"
                     ? isAuthenticated
-                      ? "새내기존 댓글은 같은 학교 예비입학생만 작성할 수 있습니다"
-                      : "로그인 후 새내기존 댓글을 볼 수 있습니다"
+                      ? "새내기존 댓글은 같은 학교 대학생만 작성할 수 있습니다"
+                      : "로그인 후 새내기존 댓글을 남길 수 있습니다"
                     : isAuthenticated
                       ? "학교 설정을 마치면 바로 댓글을 남길 수 있습니다"
                       : "로그인 후 학교 생활 글에 댓글을 남길 수 있습니다"
@@ -1130,8 +1135,8 @@ export function SchoolPage({
                 accountRequiredDescription={
                   detailPost.subcategory === "freshman"
                     ? isAuthenticated
-                      ? "예비입학생 계정으로 온보딩을 마친 뒤 댓글을 남길 수 있습니다."
-                      : "읽기는 자유롭게, 댓글은 예비입학생 계정 로그인 후 이용할 수 있습니다."
+                      ? "학교 인증을 마친 같은 학교 대학생 계정으로 답변을 남길 수 있습니다."
+                      : "읽기는 자유롭게, 댓글은 같은 학교 대학생 로그인 후 이용할 수 있습니다."
                     : isAuthenticated
                       ? "학교를 선택하고 기본 프로필을 마치면 댓글이 열립니다."
                       : "읽기는 자유롭게, 댓글은 로그인 후 이용할 수 있습니다."

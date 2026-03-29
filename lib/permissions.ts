@@ -38,6 +38,10 @@ export function canWriteCommunity(user: User) {
 }
 
 export function canWriteFreshmanZone(user: User) {
+  return canParticipate(user) && user.userType === "freshman" && Boolean(user.schoolId);
+}
+
+export function canCommentFreshmanZone(user: User) {
   return canParticipate(user) && isVerifiedStudent(user);
 }
 

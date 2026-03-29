@@ -834,7 +834,6 @@ export async function createPost(input: z.input<typeof postSchema>) {
   const values = postSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
-  requireVerifiedStudentProfile(profile, "글쓰기", authUser.email);
   if (values.subcategory === "freshman") {
     if (!profile.school_id) {
       throw new Error("같은 학교 예비입학생만 새내기 게시판을 작성할 수 있습니다.");
@@ -842,6 +841,11 @@ export async function createPost(input: z.input<typeof postSchema>) {
     if (profile.user_type !== "freshman") {
       throw new Error("새내기 게시판은 같은 학교 예비입학생만 작성할 수 있습니다.");
     }
+    if (values.schoolId && values.schoolId !== profile.school_id) {
+      throw new Error("같은 학교 새내기 게시판에만 작성할 수 있습니다.");
+    }
+  } else {
+    requireVerifiedStudentProfile(profile, "글쓰기", authUser.email);
   }
   await guardPostSubmission(supabase, authUser.id, values);
   const rawPollDraft =
@@ -966,7 +970,6 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   const values = commentSchema.parse(input);
   const { supabase, authUser, profile } = await requireCurrentUser();
   ensureWritableTrustLevel(profile);
-  requireVerifiedStudentProfile(profile, "댓글 작성", authUser.email);
   const { data: post, error: postError } = await supabase
     .from("posts")
     .select("id, author_id, category, subcategory, metadata")
@@ -1001,14 +1004,19 @@ export async function createComment(input: z.input<typeof commentSchema>) {
     }
 
     if (postDetail.subcategory === "freshman") {
+      requireVerifiedStudentProfile(profile, "새내기 게시판 댓글", authUser.email);
+
       if (
-        profile.user_type !== "freshman" ||
-        !profile.school_id ||
-        postDetail.school_id !== profile.school_id
+        !isMasterAdminEmail(authUser.email) &&
+        (!profile.school_id || postDetail.school_id !== profile.school_id)
       ) {
-        throw new Error("같은 학교 예비입학생만 새내기 게시판 댓글을 작성할 수 있습니다.");
+        throw new Error("같은 학교 대학생만 새내기 게시판 댓글을 작성할 수 있습니다.");
       }
+    } else {
+      requireVerifiedStudentProfile(profile, "댓글 작성", authUser.email);
     }
+  } else {
+    requireVerifiedStudentProfile(profile, "댓글 작성", authUser.email);
   }
 
   await guardCommentSubmission(supabase, authUser.id, values);
