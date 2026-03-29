@@ -2160,7 +2160,7 @@ export async function createReportRecord(input: {
   memo?: string;
 }) {
   const supabase = createClient();
-  return supabase
+  const { data, error } = await supabase
     .from("reports")
     .insert({
       reporter_id: input.reporterId,
@@ -2172,6 +2172,12 @@ export async function createReportRecord(input: {
     })
     .select("*")
     .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
 }
 
 export async function createBlockRecord(input: {

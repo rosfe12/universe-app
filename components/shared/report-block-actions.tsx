@@ -175,8 +175,12 @@ export function ReportBlockActions({
                     });
                     setReported(true);
                     setReportOpen(false);
-                  } catch {
-                    setErrorMessage("신고를 처리하지 못했습니다.");
+                  } catch (cause) {
+                    setErrorMessage(
+                      cause instanceof Error && cause.message.trim()
+                        ? cause.message
+                        : "신고를 처리하지 못했습니다.",
+                    );
                   } finally {
                     setPending(false);
                   }
