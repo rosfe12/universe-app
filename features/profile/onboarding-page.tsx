@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -86,12 +86,14 @@ export function OnboardingPage() {
   const isVerificationMode = searchParams.get("mode") === "verification";
   const { currentUser, schools, loading, isAuthenticated, refresh } = useAppRuntime();
   const [pending, setPending] = useState(false);
+  const [verificationRequestPending, setVerificationRequestPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [authEmail, setAuthEmail] = useState("");
   const [schoolQuery, setSchoolQuery] = useState("");
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
   const [verificationInfo, setVerificationInfo] = useState<StudentVerification | null>(null);
   const [documentPending, setDocumentPending] = useState(false);
+  const verificationRequestFlowRef = useRef(false);
 
   const schoolOptions = useMemo(
     () => schools.map((school) => ({ id: school.id, name: school.name })),
@@ -207,11 +209,19 @@ export function OnboardingPage() {
   }, [schoolOptions, schoolQuery]);
 
   useEffect(() => {
-    if (loading || pending || !isAuthenticated) return;
+    if (
+      loading ||
+      pending ||
+      verificationRequestPending ||
+      verificationRequestFlowRef.current ||
+      !isAuthenticated
+    ) {
+      return;
+    }
     if (hasCompletedOnboarding(currentUser) && !isVerificationMode) {
       router.replace(nextPath);
     }
-  }, [currentUser, isAuthenticated, isVerificationMode, loading, nextPath, pending, router]);
+  }, [currentUser, isAuthenticated, isVerificationMode, loading, nextPath, pending, verificationRequestPending, router]);
 
   useEffect(() => {
     if (loading) return;
@@ -316,11 +326,13 @@ export function OnboardingPage() {
       ...currentUser,
       userType: values.userType,
       schoolId: values.schoolId,
-      nickname: generateAutoNickname({
-        id: currentUser.id,
-        email: currentLoginEmail || currentUser.email,
-        school: selectedSchool,
-      }),
+      nickname:
+        currentUser.nickname ||
+        generateAutoNickname({
+          id: currentUser.id,
+          email: currentLoginEmail || currentUser.email,
+          school: selectedSchool,
+        }),
       department: values.department?.trim() || undefined,
       grade: values.grade ? Number(values.grade) : undefined,
       schoolEmail:
@@ -469,12 +481,18 @@ export function OnboardingPage() {
   });
 
   const onRequestVerification = form.handleSubmit(async (values) => {
-    const saved = await saveProfile(values, { redirectOnSuccess: false });
-    if (!saved) {
-      return;
-    }
+    verificationRequestFlowRef.current = true;
+    setVerificationRequestPending(true);
+    try {
+      const saved = await saveProfile(values, { redirectOnSuccess: false });
+      if (!saved) {
+        return;
+      }
 
-    await sendVerificationRequest(values);
+      await sendVerificationRequest(values);
+    } finally {
+      setVerificationRequestPending(false);
+    }
   });
 
   if (!isAuthenticated && !loading) {

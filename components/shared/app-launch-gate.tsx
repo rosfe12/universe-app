@@ -118,8 +118,11 @@ export function AppLaunchGate({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<"loading" | "exit" | "done">(
     launchEnabled ? "loading" : "done",
   );
-  const launchStartedRef = useRef(false);
   const launchCompletedRef = useRef(!launchEnabled);
+  const initialLaunchConfigRef = useRef({
+    launchEnabled,
+    preloadScopes,
+  });
 
   useEffect(() => {
     const bootSplash = document.getElementById("app-boot-splash");
@@ -144,22 +147,17 @@ export function AppLaunchGate({ children }: { children: ReactNode }) {
   }, [phase]);
 
   useEffect(() => {
-    if (!launchEnabled) {
+    if (launchCompletedRef.current || !initialLaunchConfigRef.current.launchEnabled) {
       launchCompletedRef.current = true;
       setPhase("done");
       return;
     }
 
-    if (launchCompletedRef.current || launchStartedRef.current) {
-      return;
-    }
-
     let cancelled = false;
-    launchStartedRef.current = true;
     setPhase("loading");
 
     void (async () => {
-      const preloadTask = preloadLaunchData(preloadScopes);
+      const preloadTask = preloadLaunchData(initialLaunchConfigRef.current.preloadScopes);
 
       await Promise.all([
         wait(MIN_LAUNCH_SCREEN_MS),
@@ -184,7 +182,7 @@ export function AppLaunchGate({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [launchEnabled, preloadScopes]);
+  }, []);
 
   return (
     <>
