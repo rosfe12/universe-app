@@ -1,8 +1,3 @@
-import { Capacitor, type PluginListenerHandle } from "@capacitor/core";
-import { App } from "@capacitor/app";
-import { Device } from "@capacitor/device";
-import { PushNotifications } from "@capacitor/push-notifications";
-
 import {
   createClient,
   ensureSupabaseSessionReady,
@@ -18,14 +13,37 @@ type StoredPushRegistration = {
   platform: PushPlatform;
 };
 
+type PushListenerHandle = {
+  remove: () => Promise<void>;
+};
+
 const PUSH_REGISTRATION_STORAGE_KEY = "camverse_native_push_registration";
 const PUSH_PERMISSION_REQUESTED_STORAGE_KEY = "camverse_native_push_requested";
 
 let pushListenersInitialized = false;
-let pushListenerHandles: PluginListenerHandle[] = [];
+let pushListenerHandles: PushListenerHandle[] = [];
 
-function getNativePushPlatform(): PushPlatform | null {
-  const platform = Capacitor.getPlatform();
+async function loadNativePushDependencies() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const [{ Capacitor }, { App }, { Device }, { PushNotifications }] = await Promise.all([
+    import("@capacitor/core"),
+    import("@capacitor/app"),
+    import("@capacitor/device"),
+    import("@capacitor/push-notifications"),
+  ]);
+
+  return {
+    Capacitor,
+    App,
+    Device,
+    PushNotifications,
+  };
+}
+
+function resolveNativePushPlatform(platform: string): PushPlatform | null {
   return platform === "ios" || platform === "android" ? platform : null;
 }
 
@@ -101,7 +119,12 @@ async function postPushRegistration(method: "POST" | "DELETE", payload: Record<s
 }
 
 async function buildPushRegistration(token: string) {
-  const platform = getNativePushPlatform();
+  const dependencies = await loadNativePushDependencies();
+  if (!dependencies) {
+    return null;
+  }
+
+  const platform = resolveNativePushPlatform(dependencies.Capacitor.getPlatform());
   if (!platform) {
     return null;
   }
@@ -112,8 +135,11 @@ async function buildPushRegistration(token: string) {
     return null;
   }
 
-  const [deviceId, deviceInfo] = await Promise.all([Device.getId(), Device.getInfo()]);
-  const appInfo = await App.getInfo().catch(() => null);
+  const [deviceId, deviceInfo] = await Promise.all([
+    dependencies.Device.getId(),
+    dependencies.Device.getInfo(),
+  ]);
+  const appInfo = await dependencies.App.getInfo().catch(() => null);
 
   return {
     token,
@@ -140,19 +166,29 @@ async function syncPushRegistration(token: string) {
 }
 
 export async function initializeNativePushNotifications() {
-  if (!isNativePushEnabled() || !getNativePushPlatform() || pushListenersInitialized) {
+  if (!isNativePushEnabled() || pushListenersInitialized) {
+    return;
+  }
+
+  const dependencies = await loadNativePushDependencies();
+  if (!dependencies) {
+    return;
+  }
+
+  const platform = resolveNativePushPlatform(dependencies.Capacitor.getPlatform());
+  if (!platform) {
     return;
   }
 
   pushListenersInitialized = true;
 
   pushListenerHandles = await Promise.all([
-    PushNotifications.addListener("registration", (token) => {
+    dependencies.PushNotifications.addListener("registration", (token) => {
       void syncPushRegistration(token.value);
     }),
-    PushNotifications.addListener("registrationError", () => {}),
-    PushNotifications.addListener("pushNotificationReceived", () => {}),
-    PushNotifications.addListener("pushNotificationActionPerformed", (event) => {
+    dependencies.PushNotifications.addListener("registrationError", () => {}),
+    dependencies.PushNotifications.addListener("pushNotificationReceived", () => {}),
+    dependencies.PushNotifications.addListener("pushNotificationActionPerformed", (event) => {
       const href =
         typeof event.notification.data?.href === "string" ? event.notification.data.href : null;
       if (href && typeof window !== "undefined") {
@@ -163,7 +199,17 @@ export async function initializeNativePushNotifications() {
 }
 
 export async function requestNativePushPermissionAndRegister(forcePrompt = false) {
-  if (!isNativePushEnabled() || !getNativePushPlatform()) {
+  if (!isNativePushEnabled()) {
+    return false;
+  }
+
+  const dependencies = await loadNativePushDependencies();
+  if (!dependencies) {
+    return false;
+  }
+
+  const platform = resolveNativePushPlatform(dependencies.Capacitor.getPlatform());
+  if (!platform) {
     return false;
   }
 
@@ -175,7 +221,7 @@ export async function requestNativePushPermissionAndRegister(forcePrompt = false
     return false;
   }
 
-  const permissions = await PushNotifications.checkPermissions();
+  const permissions = await dependencies.PushNotifications.checkPermissions();
   let receive = permissions.receive;
 
   if (receive === "prompt") {
@@ -184,7 +230,7 @@ export async function requestNativePushPermissionAndRegister(forcePrompt = false
     }
 
     markPushPermissionRequested();
-    receive = (await PushNotifications.requestPermissions()).receive;
+    receive = (await dependencies.PushNotifications.requestPermissions()).receive;
   }
 
   if (receive !== "granted") {
@@ -192,11 +238,11 @@ export async function requestNativePushPermissionAndRegister(forcePrompt = false
   }
 
   const storedRegistration = readStoredPushRegistration();
-  if (storedRegistration && storedRegistration.platform === getNativePushPlatform()) {
+  if (storedRegistration && storedRegistration.platform === platform) {
     void syncPushRegistration(storedRegistration.token);
   }
 
-  await PushNotifications.register();
+  await dependencies.PushNotifications.register();
   return true;
 }
 
@@ -237,4 +283,16 @@ export function bindNativePushAuthSync() {
   });
 
   return data.subscription;
+}
+
+export async function removeNativePushListeners() {
+  const handles = pushListenerHandles;
+  pushListenerHandles = [];
+  pushListenersInitialized = false;
+
+  await Promise.all(
+    handles.map((handle) =>
+      handle.remove().catch(() => {}),
+    ),
+  );
 }

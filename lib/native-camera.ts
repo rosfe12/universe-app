@@ -1,6 +1,3 @@
-import { Capacitor } from "@capacitor/core";
-import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
-
 function resolveCapturedFileType(format?: string, blobType?: string) {
   if (blobType && blobType.startsWith("image/")) {
     return blobType;
@@ -28,11 +25,20 @@ function resolveCapturedExtension(type: string) {
 }
 
 export async function captureImageFromNativeCamera() {
-  if (!Capacitor.isNativePlatform()) {
+  if (typeof window === "undefined") {
     return null;
   }
 
   try {
+    const [{ Capacitor }, { Camera, CameraResultType, CameraSource }] = await Promise.all([
+      import("@capacitor/core"),
+      import("@capacitor/camera"),
+    ]);
+
+    if (!Capacitor.isNativePlatform()) {
+      return null;
+    }
+
     const photo = await Camera.getPhoto({
       allowEditing: false,
       correctOrientation: true,

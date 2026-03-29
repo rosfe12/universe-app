@@ -6,7 +6,12 @@ import { Keyboard, KeyboardResize } from "@capacitor/keyboard";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
-import { bindNativePushAuthSync, initializeNativePushNotifications, requestNativePushPermissionAndRegister } from "@/lib/native-push";
+import {
+  bindNativePushAuthSync,
+  initializeNativePushNotifications,
+  removeNativePushListeners,
+  requestNativePushPermissionAndRegister,
+} from "@/lib/native-push";
 import { ensureSupabaseSessionReady } from "@/lib/supabase/client";
 
 export function NativeAppSetup() {
@@ -43,6 +48,7 @@ export function NativeAppSetup() {
 
     return () => {
       pushSubscription.unsubscribe();
+      void removeNativePushListeners();
     };
   }, []);
 
