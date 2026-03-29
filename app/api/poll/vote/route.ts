@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       .from("poll_options")
       .select("id, option_text, vote_count")
       .eq("poll_id", payload.pollId)
-      .order("created_at", { ascending: true });
+      .order("position", { ascending: true });
 
     if (optionsError) {
       return NextResponse.json({ error: optionsError.message }, { status: 500 });

@@ -32,7 +32,7 @@ export async function GET(
     .from("poll_options")
     .select("id, option_text, vote_count")
     .eq("poll_id", String(pollRow.id))
-    .order("created_at", { ascending: true });
+    .order("position", { ascending: true });
 
   if (optionError) {
     return NextResponse.json({ error: optionError.message }, { status: 500 });
