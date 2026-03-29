@@ -64,6 +64,7 @@ export function CommentThread({
   accountRequiredTitle,
   accountRequiredDescription,
   initialSnapshot,
+  onMutationComplete,
 }: {
   postId: string;
   allowAccept?: boolean;
@@ -71,6 +72,7 @@ export function CommentThread({
   accountRequiredTitle?: string;
   accountRequiredDescription?: string;
   initialSnapshot?: AppRuntimeSnapshot;
+  onMutationComplete?: () => Promise<unknown> | unknown;
 }) {
   const {
     currentUser: runtimeUser,
@@ -200,6 +202,7 @@ export function CommentThread({
               visibilityLevel: isAnonymousBoard ? "anonymous" : values.visibilityLevel,
             });
             await refresh();
+            await onMutationComplete?.();
             form.reset();
             setReplyTargetId(null);
           } catch (error) {
@@ -274,6 +277,7 @@ export function CommentThread({
                   source={source}
                   refresh={refresh}
                   setSnapshot={setSnapshot}
+                  onMutationComplete={onMutationComplete}
                   onReply={() => {
                     setReplyTargetId((current) => (current === comment.id ? null : comment.id));
                     form.setFocus("content");
@@ -301,6 +305,7 @@ export function CommentThread({
                         source={source}
                         refresh={refresh}
                         setSnapshot={setSnapshot}
+                        onMutationComplete={onMutationComplete}
                         onReply={() => {
                           setReplyTargetId((current) => (current === comment.id ? null : comment.id));
                           form.setFocus("content");
@@ -439,6 +444,7 @@ function CommentRow({
   source,
   refresh,
   setSnapshot,
+  onMutationComplete,
   onReply,
   isAnonymousBoard,
   compact = false,
@@ -452,6 +458,7 @@ function CommentRow({
   source: "mock" | "supabase";
   refresh: () => Promise<unknown>;
   setSnapshot: ReturnType<typeof useAppRuntime>["setSnapshot"];
+  onMutationComplete?: () => Promise<unknown> | unknown;
   onReply: () => void;
   isAnonymousBoard: boolean;
   compact?: boolean;
@@ -491,6 +498,7 @@ function CommentRow({
                       if (source === "supabase") {
                         await deleteComment(comment.id);
                         await refresh();
+                        await onMutationComplete?.();
                         return;
                       }
 
@@ -508,6 +516,7 @@ function CommentRow({
                     if (source === "supabase" && isAuthenticated) {
                       await acceptAdmissionAnswer(postId, comment.id);
                       await refresh();
+                      await onMutationComplete?.();
                       return;
                     }
 
@@ -526,6 +535,7 @@ function CommentRow({
                   if (source === "supabase") {
                     await deleteComment(comment.id);
                     await refresh();
+                    await onMutationComplete?.();
                     return;
                   }
 
@@ -554,6 +564,7 @@ function CommentRow({
                   memo,
                 });
                 await refresh();
+                await onMutationComplete?.();
                 return;
               }
 
@@ -576,6 +587,7 @@ function CommentRow({
                   blockedUserId: targetUserId,
                 });
                 await refresh();
+                await onMutationComplete?.();
                 return;
               }
 

@@ -87,6 +87,7 @@ export function DatingPage({
   const router = useRouter();
   const pathname = usePathname();
   const {
+    snapshot,
     loading,
     posts,
     reports,
@@ -758,7 +759,11 @@ export function DatingPage({
                   ) : null}
                 </CardContent>
               </Card>
-              <CommentThread postId={detailPost.id} initialSnapshot={initialSnapshot} />
+              <CommentThread
+                postId={detailPost.id}
+                initialSnapshot={snapshot}
+                onMutationComplete={refresh}
+              />
             </>
           ) : null}
         </DialogContent>

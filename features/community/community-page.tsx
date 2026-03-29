@@ -370,6 +370,7 @@ export function CommunityPage({
   const filterParam = searchParams.get("filter");
   const detailParam = searchParams.get("post");
   const {
+    snapshot,
     loading,
     currentUser: runtimeUser,
     posts,
@@ -1318,7 +1319,11 @@ export function CommunityPage({
                   ) : null}
                 </CardContent>
               </Card>
-              <CommentThread postId={detailPost.id} initialSnapshot={initialSnapshot} />
+              <CommentThread
+                postId={detailPost.id}
+                initialSnapshot={snapshot}
+                onMutationComplete={refresh}
+              />
             </>
           ) : null}
         </DialogContent>

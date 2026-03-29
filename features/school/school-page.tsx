@@ -1112,6 +1112,7 @@ export function SchoolPage({
               <CommentThread
                 postId={detailPost.id}
                 initialSnapshot={snapshot}
+                onMutationComplete={refresh}
                 canCommentOverride={
                   detailPost.subcategory === "freshman"
                     ? freshmanCommentEnabled

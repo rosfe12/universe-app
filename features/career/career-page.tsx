@@ -86,6 +86,7 @@ export function CareerPage({
 }) {
   const router = useRouter();
   const {
+    snapshot,
     loading,
     isAuthenticated,
     source,
@@ -444,10 +445,11 @@ export function CareerPage({
                 ) : null}
                 <CommentThread
                   postId={detailPost.id}
-                  initialSnapshot={initialSnapshot}
+                  initialSnapshot={snapshot}
                   canCommentOverride={canComment}
                   accountRequiredTitle="로그인 후 댓글에 참여할 수 있습니다"
                   accountRequiredDescription="입시생 계정은 취업 게시판을 읽기 전용으로 이용합니다."
+                  onMutationComplete={refresh}
                 />
               </div>
             </>

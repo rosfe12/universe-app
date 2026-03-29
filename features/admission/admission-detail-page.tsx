@@ -205,7 +205,12 @@ export function AdmissionDetailPage({
         </CardContent>
       </Card>
 
-      <CommentThread postId={question.id} allowAccept initialSnapshot={initialSnapshot} />
+      <CommentThread
+        postId={question.id}
+        allowAccept
+        initialSnapshot={initialSnapshot}
+        onMutationComplete={refresh}
+      />
     </AppShell>
   );
 }
