@@ -11,7 +11,7 @@ import { buildPostHref } from "@/lib/post-links";
 import { createPostSharePayload } from "@/lib/share-utils";
 
 async function loadSharedPost(postId: string) {
-  const snapshot = await loadServerRuntimeSnapshot("full");
+  const snapshot = await loadServerRuntimeSnapshot("share");
   const post = snapshot.posts.find((item) => item.id === postId);
   const school = post?.schoolId ? snapshot.schools.find((item) => item.id === post.schoolId) : undefined;
   return {

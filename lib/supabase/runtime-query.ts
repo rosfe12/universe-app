@@ -271,6 +271,7 @@ export function getClientRuntimeSnapshotTtlMs(scope: string) {
     case "dating":
       return 30000;
     case "search":
+    case "share":
     case "chrome":
     case "messages":
     case "notifications":
@@ -291,6 +292,7 @@ export function getServerRuntimeSnapshotTtlMs(scope: string) {
     case "school":
       return 45000;
     case "chrome":
+    case "share":
       return 30000;
     case "lectures":
     case "lecture-detail":

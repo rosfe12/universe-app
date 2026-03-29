@@ -155,6 +155,7 @@ export type RuntimeSnapshotScope =
   | "full"
   | "home"
   | "search"
+  | "share"
   | "chrome"
   | "community"
   | "school"
@@ -203,6 +204,20 @@ function getSnapshotIncludeConfig(scope: RuntimeSnapshotScope): SnapshotIncludeC
         posts: true,
         comments: false,
         lectures: true,
+        lectureReviews: false,
+        tradePosts: false,
+        notifications: false,
+        reports: false,
+        blocks: false,
+        datingProfiles: false,
+        mediaAssets: false,
+        currentUserProfile: true,
+      };
+    case "share":
+      return {
+        posts: true,
+        comments: false,
+        lectures: false,
         lectureReviews: false,
         tradePosts: false,
         notifications: false,
@@ -390,7 +405,7 @@ function shouldRequirePrimaryContent(scope: RuntimeSnapshotScope) {
 }
 
 function shouldLoadRelatedUsers(scope: RuntimeSnapshotScope) {
-  return !["chrome", "search", "notifications"].includes(scope);
+  return !["chrome", "search", "share", "notifications"].includes(scope);
 }
 
 function shouldLoadProfilePreviews(scope: RuntimeSnapshotScope) {
