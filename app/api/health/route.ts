@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { env, hasAppSmtpConfig } from "@/lib/env";
+import { env, hasAppSmtpConfig, hasNativePushServerConfig, isNativePushEnabled } from "@/lib/env";
 import { verifyAppSmtpConnection } from "@/lib/email/server-mailer";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { logServerEvent } from "@/lib/ops";
@@ -66,6 +66,12 @@ export async function GET() {
       senderName: Boolean(env.SUPABASE_SMTP_SENDER_NAME),
       senderEmail: Boolean(env.SUPABASE_SMTP_SENDER_EMAIL),
     } as const;
+    const nativePushConfig = {
+      enabled: isNativePushEnabled(),
+      firebaseProjectId: Boolean(env.FIREBASE_PROJECT_ID),
+      firebaseClientEmail: Boolean(env.FIREBASE_CLIENT_EMAIL),
+      firebasePrivateKey: Boolean(env.FIREBASE_PRIVATE_KEY),
+    } as const;
 
     let mail = "supabase_auth_fallback";
     const warnings: string[] = [];
@@ -76,12 +82,26 @@ export async function GET() {
       warnings.push("app_smtp_not_configured");
     }
 
+    let push = "disabled";
+    if (isNativePushEnabled()) {
+      if (hasNativePushServerConfig()) {
+        push = "native_push_ready";
+      } else {
+        push = "native_push_server_missing";
+        warnings.push("native_push_server_not_configured");
+      }
+    } else {
+      warnings.push("native_push_disabled");
+    }
+
     return NextResponse.json({
       ok: true,
       database: "ready",
       storage: mediaBucket?.name === "media" ? "ready" : "missing",
       mail,
+      push,
       smtpConfig,
+      nativePushConfig,
       checks,
       warnings,
       timestamp: new Date().toISOString(),

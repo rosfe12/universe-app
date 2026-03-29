@@ -8,6 +8,7 @@ import {
   ensureSupabaseSessionReady,
   getCurrentSupabaseAuthUser,
 } from "@/lib/supabase/client";
+import { isNativePushEnabled } from "@/lib/env";
 
 type PushPlatform = "ios" | "android";
 
@@ -139,7 +140,7 @@ async function syncPushRegistration(token: string) {
 }
 
 export async function initializeNativePushNotifications() {
-  if (!getNativePushPlatform() || pushListenersInitialized) {
+  if (!isNativePushEnabled() || !getNativePushPlatform() || pushListenersInitialized) {
     return;
   }
 
@@ -162,7 +163,7 @@ export async function initializeNativePushNotifications() {
 }
 
 export async function requestNativePushPermissionAndRegister(forcePrompt = false) {
-  if (!getNativePushPlatform()) {
+  if (!isNativePushEnabled() || !getNativePushPlatform()) {
     return false;
   }
 
@@ -200,6 +201,11 @@ export async function requestNativePushPermissionAndRegister(forcePrompt = false
 }
 
 export async function unregisterNativePushDevice(ignoreErrors = false) {
+  if (!isNativePushEnabled()) {
+    clearPushRegistration();
+    return;
+  }
+
   const storedRegistration = readStoredPushRegistration();
   if (!storedRegistration) {
     return;
@@ -217,6 +223,12 @@ export async function unregisterNativePushDevice(ignoreErrors = false) {
 }
 
 export function bindNativePushAuthSync() {
+  if (!isNativePushEnabled()) {
+    return {
+      unsubscribe() {},
+    };
+  }
+
   const supabase = createClient();
   const { data } = supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.user) {

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { existsSync } from "node:fs";
 
 import { loadLocalEnv } from "./_env.mjs";
 
@@ -52,6 +53,19 @@ function hasSmtpConfig() {
   );
 }
 
+function hasNativePushConfig() {
+  return Boolean(
+    parseFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED) &&
+      process.env.FIREBASE_PROJECT_ID &&
+      process.env.FIREBASE_CLIENT_EMAIL &&
+      process.env.FIREBASE_PRIVATE_KEY,
+  );
+}
+
+function hasAndroidGoogleServices() {
+  return existsSync("android/app/google-services.json");
+}
+
 function isDeployedRuntime() {
   return process.env.VERCEL === "1" || process.env.CI === "true";
 }
@@ -88,6 +102,7 @@ async function main() {
   const appUrl = resolveAppUrl();
   const redirectUrls = resolveRedirectUrls();
   const googleEnabled = parseFlag(process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED);
+  const nativePushEnabled = parseFlag(process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED);
   const isLocalAppUrl = /^https?:\/\/(127\.0\.0\.1|localhost)/.test(appUrl);
   const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "";
   const supportUrl = process.env.NEXT_PUBLIC_SUPPORT_URL || "";
@@ -118,6 +133,12 @@ async function main() {
   console.log(`- url: ${supportUrl || "missing"}`);
   console.log("");
 
+  console.log("Native Push");
+  console.log(`- enabled: ${nativePushEnabled ? "yes" : "no"}`);
+  console.log(`- firebase server: ${hasNativePushConfig() ? "ready" : "missing"}`);
+  console.log(`- android google services: ${hasAndroidGoogleServices() ? "ready" : "missing"}`);
+  console.log("");
+
   await verifySmtp();
 
   if (process.env.VERCEL === "1" && isLocalAppUrl) {
@@ -141,6 +162,18 @@ async function main() {
     console.log("- local env에는 앱 SMTP 값이 없습니다.");
     console.log("- 실제 운영 Vercel 환경변수는 별도로 설정되어 있을 수 있습니다.");
     console.log("");
+  }
+
+  if (nativePushEnabled) {
+    if (!hasNativePushConfig()) {
+      throw new Error("네이티브 푸시 활성화 시 Firebase 서버 설정이 필요합니다.");
+    }
+
+    if (!hasAndroidGoogleServices()) {
+      console.log("Notice");
+      console.log("- android/app/google-services.json 이 없어 Android 푸시는 동작하지 않습니다.");
+      console.log("");
+    }
   }
 }
 

@@ -7,6 +7,7 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_AUTH_SITE_URL: z.string().url().optional(),
   NEXT_PUBLIC_KAKAO_JS_KEY: z.string().optional(),
   NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z.string().optional(),
+  NEXT_PUBLIC_NATIVE_PUSH_ENABLED: z.string().optional(),
   NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: z.string().optional(),
   NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().optional(),
   NEXT_PUBLIC_SUPPORT_URL: z.string().url().optional(),
@@ -22,6 +23,9 @@ const serverEnvSchema = publicEnvSchema.extend({
   SUPABASE_SMTP_PASSWORD: z.string().optional(),
   SUPABASE_SMTP_SENDER_NAME: z.string().optional(),
   SUPABASE_SMTP_SENDER_EMAIL: z.string().optional(),
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_CLIENT_EMAIL: z.string().optional(),
+  FIREBASE_PRIVATE_KEY: z.string().optional(),
 });
 
 export const publicEnv = publicEnvSchema.parse({
@@ -31,6 +35,7 @@ export const publicEnv = publicEnvSchema.parse({
   NEXT_PUBLIC_AUTH_SITE_URL: process.env.NEXT_PUBLIC_AUTH_SITE_URL,
   NEXT_PUBLIC_KAKAO_JS_KEY: process.env.NEXT_PUBLIC_KAKAO_JS_KEY,
   NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+  NEXT_PUBLIC_NATIVE_PUSH_ENABLED: process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED,
   NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: process.env.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS,
   NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
   NEXT_PUBLIC_SUPPORT_URL: process.env.NEXT_PUBLIC_SUPPORT_URL,
@@ -43,6 +48,7 @@ export const serverEnv = serverEnvSchema.parse({
   NEXT_PUBLIC_AUTH_SITE_URL: process.env.NEXT_PUBLIC_AUTH_SITE_URL,
   NEXT_PUBLIC_KAKAO_JS_KEY: process.env.NEXT_PUBLIC_KAKAO_JS_KEY,
   NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
+  NEXT_PUBLIC_NATIVE_PUSH_ENABLED: process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED,
   NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: process.env.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS,
   NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
   NEXT_PUBLIC_SUPPORT_URL: process.env.NEXT_PUBLIC_SUPPORT_URL,
@@ -55,6 +61,9 @@ export const serverEnv = serverEnvSchema.parse({
   SUPABASE_SMTP_PASSWORD: process.env.SUPABASE_SMTP_PASSWORD,
   SUPABASE_SMTP_SENDER_NAME: process.env.SUPABASE_SMTP_SENDER_NAME,
   SUPABASE_SMTP_SENDER_EMAIL: process.env.SUPABASE_SMTP_SENDER_EMAIL,
+  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+  FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+  FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
 });
 
 export const env = serverEnv;
@@ -118,6 +127,10 @@ export function isGoogleAuthEnabled() {
   return parseFlag(publicEnv.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED);
 }
 
+export function isNativePushEnabled() {
+  return parseFlag(publicEnv.NEXT_PUBLIC_NATIVE_PUSH_ENABLED);
+}
+
 export function shouldShowTestAccounts() {
   return parseFlag(publicEnv.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS);
 }
@@ -137,5 +150,13 @@ export function hasAppSmtpConfig() {
       serverEnv.SUPABASE_SMTP_USER &&
       serverEnv.SUPABASE_SMTP_PASSWORD &&
       serverEnv.SUPABASE_SMTP_SENDER_EMAIL,
+  );
+}
+
+export function hasNativePushServerConfig() {
+  return Boolean(
+    serverEnv.FIREBASE_PROJECT_ID &&
+      serverEnv.FIREBASE_CLIENT_EMAIL &&
+      serverEnv.FIREBASE_PRIVATE_KEY,
   );
 }
