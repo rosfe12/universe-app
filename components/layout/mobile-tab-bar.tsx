@@ -68,10 +68,10 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className="fixed left-1/2 z-50 w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 rounded-t-[30px] border border-b-0 border-white/10 bg-slate-950/96 px-2 pt-2 shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)] backdrop-blur-xl"
+      className="fixed left-1/2 z-50 flex w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 flex-col justify-end rounded-t-[26px] border border-b-0 border-white/10 bg-slate-950/96 px-2 pt-1.5 shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)] backdrop-blur-xl"
       style={{
         bottom: "0",
-        paddingBottom: "max(0.45rem, calc(env(safe-area-inset-bottom) + 0.15rem))",
+        paddingBottom: "max(0.2rem, calc(env(safe-area-inset-bottom) - 0.35rem))",
       }}
     >
       <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1">
@@ -87,7 +87,7 @@ export function MobileTabBar() {
                 aria-current={active ? "page" : undefined}
                 onClick={(event) => handleTabClick(event, active)}
                 className={cn(
-                  "group relative flex min-w-0 flex-col items-center gap-1 rounded-[22px] px-1 py-2 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
+                  "group relative flex min-w-0 flex-col items-center gap-1 rounded-[20px] px-1 py-1.5 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
                   active
                     ? "bg-[linear-gradient(180deg,rgba(99,102,241,0.16),rgba(79,70,229,0.08))] text-white"
                     : "hover:bg-white/[0.03]",
@@ -101,12 +101,12 @@ export function MobileTabBar() {
                 />
                 <span
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-2xl text-slate-400 transition-all duration-150 group-hover:bg-white/5 group-hover:text-white",
+                    "flex h-9 w-9 items-center justify-center rounded-2xl text-slate-400 transition-all duration-150 group-hover:bg-white/5 group-hover:text-white",
                     active &&
                       "bg-[linear-gradient(135deg,rgba(79,70,229,0.28),rgba(99,102,241,0.52))] text-white shadow-[0_14px_26px_-18px_rgba(99,102,241,0.95)]",
                   )}
                 >
-                  <Icon className="h-[18px] w-[18px]" />
+                  <Icon className="h-[17px] w-[17px]" />
                 </span>
                 <span
                   className={cn(
