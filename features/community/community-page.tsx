@@ -1075,7 +1075,7 @@ export function CommunityPage({
             {feedSlots.map((slot) => {
             if (slot.kind === "ad") {
               return (
-                <div key={slot.id} className="border-b border-gray-100 last:border-b-0 px-4 py-4">
+                <div key={slot.id} className="px-1 py-2">
                   <AdPlaceholderCard placement={slot.placement} />
                 </div>
               );
