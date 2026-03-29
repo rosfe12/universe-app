@@ -29,6 +29,8 @@ const tabs = [
   { href: "/profile", label: "마이" },
 ] as const;
 
+const AUTH_SENSITIVE_TABS = new Set(["/notifications", "/profile"]);
+
 export function MobileTabBar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -60,7 +62,7 @@ export function MobileTabBar() {
 
   useEffect(() => {
     tabs.forEach((tab) => {
-      if (tab.href !== pathname) {
+      if (tab.href !== pathname && !AUTH_SENSITIVE_TABS.has(tab.href)) {
         router.prefetch(tab.href);
       }
     });
@@ -83,7 +85,7 @@ export function MobileTabBar() {
             <li key={tab.href}>
               <Link
                 href={tab.href}
-                prefetch
+                prefetch={AUTH_SENSITIVE_TABS.has(tab.href) ? false : undefined}
                 aria-current={active ? "page" : undefined}
                 onClick={(event) => handleTabClick(event, active)}
                 className={cn(
