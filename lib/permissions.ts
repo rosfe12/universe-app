@@ -10,11 +10,11 @@ function canParticipate(user: User) {
 }
 
 export function canWriteAdmissionQuestion(user: User) {
-  return canParticipate(user) && isVerifiedStudent(user);
+  return canParticipate(user) && user.userType === "applicant" && Boolean(user.schoolId);
 }
 
 export function canWriteAdmissionAnswer(user: User) {
-  return canParticipate(user) && isVerifiedStudent(user);
+  return canParticipate(user) && isVerifiedStudent(user) && Boolean(user.schoolId);
 }
 
 export function canWriteLectureReview(user: User) {

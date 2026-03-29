@@ -272,6 +272,24 @@ function requireVerifiedStudentProfile(
   }
 }
 
+function requireAdmissionApplicantProfile(
+  profile: CurrentProfile,
+  featureLabel: string,
+  authEmail?: string | null,
+) {
+  if (isMasterAdminEmail(authEmail)) {
+    return;
+  }
+
+  if (profile.user_type !== "applicant") {
+    throw new Error(`${featureLabel}은 입시생만 사용할 수 있습니다.`);
+  }
+
+  if (!profile.school_id) {
+    throw new Error(`${featureLabel}은 지망학교를 먼저 설정해야 합니다.`);
+  }
+}
+
 function inferScope(input: {
   category: "admission" | "community" | "dating";
   subcategory?: string;
@@ -844,6 +862,11 @@ export async function createPost(input: z.input<typeof postSchema>) {
     if (values.schoolId && values.schoolId !== profile.school_id) {
       throw new Error("같은 학교 새내기 게시판에만 작성할 수 있습니다.");
     }
+  } else if (values.category === "admission") {
+    requireAdmissionApplicantProfile(profile, "입시 질문", authUser.email);
+    if (values.schoolId && values.schoolId !== profile.school_id) {
+      throw new Error("지망학교 입시 Q&A에만 질문할 수 있습니다.");
+    }
   } else {
     requireVerifiedStudentProfile(profile, "글쓰기", authUser.email);
   }
@@ -972,7 +995,7 @@ export async function createComment(input: z.input<typeof commentSchema>) {
   ensureWritableTrustLevel(profile);
   const { data: post, error: postError } = await supabase
     .from("posts")
-    .select("id, author_id, category, subcategory, metadata")
+    .select("id, author_id, category, subcategory, metadata, school_id")
     .eq("id", values.postId)
     .single();
 
@@ -992,7 +1015,16 @@ export async function createComment(input: z.input<typeof commentSchema>) {
     }
   }
 
-  if (post.category === "community") {
+  if (post.category === "admission") {
+    requireVerifiedStudentProfile(profile, "입시 답변", authUser.email);
+
+    if (
+      !isMasterAdminEmail(authUser.email) &&
+      (!profile.school_id || post.school_id !== profile.school_id)
+    ) {
+      throw new Error("같은 학교 인증 대학생만 입시 답변을 작성할 수 있습니다.");
+    }
+  } else if (post.category === "community") {
     const { data: postDetail, error: postDetailError } = await supabase
       .from("posts")
       .select("school_id, subcategory")

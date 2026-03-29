@@ -2181,20 +2181,24 @@ with check (
     or school_id = public.current_user_school_id()
   )
   and (
-    (
+    public.is_admin()
+    or (
       subcategory = 'freshman'
-      and (
-        public.is_admin()
-        or (
-          public.current_user_type() = 'freshman'
-          and scope = 'school'
-          and school_id = public.current_user_school_id()
-        )
-      )
+      and public.current_user_type() = 'freshman'
+      and scope = 'school'
+      and school_id = public.current_user_school_id()
     )
     or (
-      subcategory is distinct from 'freshman'
-      and (public.is_verified_student() or public.is_admin())
+      category = 'admission'
+      and subcategory is distinct from 'freshman'
+      and public.current_user_type() = 'applicant'
+      and scope = 'school'
+      and school_id = public.current_user_school_id()
+    )
+    or (
+      category <> 'admission'
+      and subcategory is distinct from 'freshman'
+      and public.is_verified_student()
     )
   )
 );
