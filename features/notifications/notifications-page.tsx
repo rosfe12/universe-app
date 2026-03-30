@@ -405,12 +405,19 @@ export function NotificationsPage({
         ),
     [currentUser.id, notifications],
   );
-  const effectiveActualItems = actualItems.map((item) =>
-    item.isRead || optimisticMarkAllRead || optimisticReadIds.includes(item.id)
-      ? { ...item, isRead: true }
-      : item,
+  const effectiveActualItems = useMemo(
+    () =>
+      actualItems.map((item) =>
+        item.isRead || optimisticMarkAllRead || optimisticReadIds.includes(item.id)
+          ? { ...item, isRead: true }
+          : item,
+      ),
+    [actualItems, optimisticMarkAllRead, optimisticReadIds],
   );
-  const recommendedItems = buildRecommendedNotifications(currentUser.id, schoolName, schoolId);
+  const recommendedItems = useMemo(
+    () => buildRecommendedNotifications(currentUser.id, schoolName, schoolId),
+    [currentUser.id, schoolId, schoolName],
+  );
 
   useEffect(() => {
     setOptimisticReadIds([]);
@@ -444,19 +451,37 @@ export function NotificationsPage({
     };
   }, [currentUser.id, isAuthenticated, refresh]);
 
-  const activityItems = effectiveActualItems.filter((item) => item.category === "activity");
-  const noticeItems = effectiveActualItems.filter((item) => item.category === "notice");
-  const unreadCount = effectiveActualItems.filter((item) => !item.isRead).length;
-  const activityUnreadCount = activityItems.filter((item) => !item.isRead).length;
-  const noticeUnreadCount = noticeItems.filter((item) => !item.isRead).length;
+  const activityItems = useMemo(
+    () => effectiveActualItems.filter((item) => item.category === "activity"),
+    [effectiveActualItems],
+  );
+  const noticeItems = useMemo(
+    () => effectiveActualItems.filter((item) => item.category === "notice"),
+    [effectiveActualItems],
+  );
+  const unreadCount = useMemo(
+    () => effectiveActualItems.filter((item) => !item.isRead).length,
+    [effectiveActualItems],
+  );
+  const activityUnreadCount = useMemo(
+    () => activityItems.filter((item) => !item.isRead).length,
+    [activityItems],
+  );
+  const noticeUnreadCount = useMemo(
+    () => noticeItems.filter((item) => !item.isRead).length,
+    [noticeItems],
+  );
 
-  const actualByTab: Record<NotificationTab, Notification[]> = {
-    all: effectiveActualItems,
-    activity: activityItems,
-    notice: noticeItems,
-  };
+  const actualByTab = useMemo<Record<NotificationTab, Notification[]>>(
+    () => ({
+      all: effectiveActualItems,
+      activity: activityItems,
+      notice: noticeItems,
+    }),
+    [activityItems, effectiveActualItems, noticeItems],
+  );
 
-  const visibleItems = (() => {
+  const visibleItems = useMemo(() => {
     const baseItems = actualByTab[tab];
     const fallbackItems = recommendedItems
       .filter((item) => tab === "all" || item.category === (tab as NotificationCategory))
@@ -469,7 +494,7 @@ export function NotificationsPage({
       .slice(0, Math.max(0, TAB_TARGET_SIZE[tab] - baseItems.length));
 
     return [...baseItems, ...fallbackItems];
-  })();
+  }, [actualByTab, recommendedItems, tab]);
 
   if (showInitialLoading) {
     return (

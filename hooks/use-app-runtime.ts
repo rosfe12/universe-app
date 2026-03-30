@@ -40,17 +40,12 @@ export function useAppRuntime(
     (!initialSnapshot && !scopedSnapshot) || Boolean(initialSnapshot && !initialSnapshotMatchesScope),
   );
   const setSnapshot = useCallback((nextValue: SetStateAction<AppRuntimeSnapshot>) => {
-    setSnapshotState((currentSnapshot) => {
-      const nextSnapshot =
-        typeof nextValue === "function"
-          ? (nextValue as (snapshot: AppRuntimeSnapshot) => AppRuntimeSnapshot)(currentSnapshot)
-          : nextValue;
-      if (shouldSyncGlobalSnapshot) {
-        setRuntimeSnapshot(nextSnapshot);
-      }
-      return nextSnapshot;
-    });
-  }, [shouldSyncGlobalSnapshot]);
+    setSnapshotState((currentSnapshot) =>
+      typeof nextValue === "function"
+        ? (nextValue as (snapshot: AppRuntimeSnapshot) => AppRuntimeSnapshot)(currentSnapshot)
+        : nextValue,
+    );
+  }, []);
 
   useEffect(() => {
     if (!shouldSyncGlobalSnapshot) {
@@ -65,8 +60,10 @@ export function useAppRuntime(
       return;
     }
 
-    setSnapshot(initialSnapshot);
-  }, [initialSnapshot, setSnapshot]);
+    setSnapshotState((currentSnapshot) =>
+      currentSnapshot === initialSnapshot ? currentSnapshot : initialSnapshot,
+    );
+  }, [initialSnapshot]);
 
   useEffect(() => {
     if (loading) {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CircleUserRound, MessagesSquare, Search } from "lucide-react";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Dialog,
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { getPostHref } from "@/lib/mock-queries";
-import { getRuntimeSnapshot, subscribeRuntimeSnapshot } from "@/lib/runtime-state";
+import { getRuntimeSnapshot } from "@/lib/runtime-state";
 import { peekClientRuntimeSnapshot } from "@/lib/supabase/app-data";
 import { cn } from "@/lib/utils";
 
@@ -54,13 +54,11 @@ function isMessageNotification(type: string) {
 }
 
 function SearchDialogPanel({
-  open,
   query,
   onQueryChange,
   onOpenChange,
   initialSnapshot,
 }: {
-  open: boolean;
   query: string;
   onQueryChange: (value: string) => void;
   onOpenChange: (open: boolean) => void;
@@ -155,12 +153,8 @@ function SearchDialogPanel({
       }));
   }, [lectures, posts, query]);
 
-  if (!open) {
-    return null;
-  }
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={true} onOpenChange={onOpenChange}>
       <DialogContent className="top-[calc(env(safe-area-inset-top)+0.75rem)] w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 translate-y-0 gap-3 overflow-hidden rounded-[24px] border border-white/80 p-4 md:top-1/2 md:w-full md:-translate-y-1/2">
         <DialogHeader className="space-y-1 pr-8">
           <DialogTitle>검색</DialogTitle>
@@ -211,11 +205,7 @@ export function TopNavActions() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
-  const runtimeSnapshot = useSyncExternalStore(
-    subscribeRuntimeSnapshot,
-    getRuntimeSnapshot,
-    getRuntimeSnapshot,
-  );
+  const runtimeSnapshot = getRuntimeSnapshot();
   const cachedChromeSnapshot = peekClientRuntimeSnapshot("chrome");
   const cachedNotificationSnapshot = peekClientRuntimeSnapshot("notifications");
   const cachedSearchSnapshot = peekClientRuntimeSnapshot("search");
@@ -268,13 +258,14 @@ export function TopNavActions() {
         </Button>
       </div>
 
-      <SearchDialogPanel
-        open={open}
-        query={query}
-        onQueryChange={setQuery}
-        onOpenChange={setOpen}
-        initialSnapshot={searchSnapshot}
-      />
+      {open ? (
+        <SearchDialogPanel
+          query={query}
+          onQueryChange={setQuery}
+          onOpenChange={setOpen}
+          initialSnapshot={searchSnapshot}
+        />
+      ) : null}
     </>
   );
 }
