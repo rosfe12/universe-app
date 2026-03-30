@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CircleUserRound, MessagesSquare, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import {
   Dialog,
@@ -15,6 +16,7 @@ import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { getPostHref } from "@/lib/mock-queries";
+import { prewarmClientRuntimeSnapshots } from "@/lib/supabase/app-data";
 import { isSupabaseEnabled } from "@/lib/supabase/app-data";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +58,7 @@ export function TopNavActions() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const pathname = usePathname();
   const {
     currentUser,
     isAuthenticated,
@@ -80,7 +83,21 @@ export function TopNavActions() {
     }
   }, [open]);
 
+  useEffect(() => {
+    prewarmClientRuntimeSnapshots(["messages", "profile"], {
+      key: `top-nav:background:${pathname}`,
+      delayMs: 0,
+    });
+  }, [pathname]);
+
   const profileHref = hydrated && isAuthenticated ? `/profile/${currentUser.id}` : "/profile";
+
+  function prewarmActionScope(scope: "messages" | "profile") {
+    prewarmClientRuntimeSnapshots([scope], {
+      key: `top-nav:${scope}:${pathname}`,
+      delayMs: 0,
+    });
+  }
 
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -182,7 +199,13 @@ export function TopNavActions() {
           <Search className="h-5 w-5" />
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="메시지">
-          <Link href="/messages" prefetch={false} className="relative">
+          <Link
+            href="/messages"
+            prefetch={false}
+            className="relative"
+            onTouchStart={() => prewarmActionScope("messages")}
+            onMouseEnter={() => prewarmActionScope("messages")}
+          >
             <MessagesSquare className="h-5 w-5" />
             {unreadMessageCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold leading-4 text-white">
@@ -192,7 +215,12 @@ export function TopNavActions() {
           </Link>
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="프로필">
-          <Link href={profileHref} prefetch={false}>
+          <Link
+            href={profileHref}
+            prefetch={false}
+            onTouchStart={() => prewarmActionScope("profile")}
+            onMouseEnter={() => prewarmActionScope("profile")}
+          >
             <CircleUserRound className="h-5 w-5" />
           </Link>
         </Button>

@@ -70,7 +70,7 @@ export function MobileTabBar() {
 
   function prewarmTab(href: (typeof tabs)[number]["href"]) {
     const scope = TAB_RUNTIME_SCOPES[href];
-    if (!scope || href === pathname || AUTH_SENSITIVE_TABS.has(href)) {
+    if (!scope || href === pathname) {
       return;
     }
 
@@ -86,6 +86,16 @@ export function MobileTabBar() {
         router.prefetch(tab.href);
       }
     });
+
+    prewarmClientRuntimeSnapshots(
+      tabs
+        .filter((tab) => tab.href !== pathname && AUTH_SENSITIVE_TABS.has(tab.href))
+        .map((tab) => TAB_RUNTIME_SCOPES[tab.href]),
+      {
+        key: `auth-tabs:${pathname}`,
+        delayMs: 0,
+      },
+    );
   }, [pathname, router]);
 
   return (

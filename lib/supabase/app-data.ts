@@ -1396,6 +1396,14 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
     let currentUserProfileResult = authUser
       ? await supabase.from("users").select(CURRENT_USER_PROFILE_SELECT).eq("id", authUser.id).single()
       : null;
+    if (authUser && currentUserProfileResult?.error) {
+      await ensureClientProfileRow(supabase, authUser);
+      currentUserProfileResult = await supabase
+        .from("users")
+        .select(CURRENT_USER_PROFILE_SELECT)
+        .eq("id", authUser.id)
+        .single();
+    }
     const currentUserProfileRow =
       currentUserProfileResult?.error || !currentUserProfileResult?.data
         ? null
@@ -1426,15 +1434,6 @@ async function fetchClientRuntimeSnapshot(scope: RuntimeSnapshotScope = "full"):
           lecturesResult?.error ?? undefined,
         ),
       );
-    }
-
-    if (authUser && currentUserProfileResult?.error) {
-      await ensureClientProfileRow(supabase, authUser);
-      currentUserProfileResult = await supabase
-        .from("users")
-        .select(CURRENT_USER_PROFILE_SELECT)
-        .eq("id", authUser.id)
-        .single();
     }
 
     const postRows = asRecordRows(postsResult?.data);
