@@ -62,19 +62,7 @@ const bootSplashBypassScript = `
   if (!shouldSkipSplash) {
     return;
   }
-
-  const hideSplash = () => {
-    const splash = document.getElementById("app-boot-splash");
-    if (!splash) {
-      return;
-    }
-    splash.style.opacity = "0";
-    splash.style.display = "none";
-    splash.setAttribute("aria-hidden", "true");
-  };
-
-  hideSplash();
-  window.requestAnimationFrame(hideSplash);
+  document.documentElement.dataset.skipBootSplash = "true";
 })();
 `;
 
@@ -132,6 +120,13 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <style>{`
+          html[data-skip-boot-splash="true"] #app-boot-splash {
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+          }
+        `}</style>
       </head>
       <body>
         <LaunchScreen id="app-boot-splash" fixed />

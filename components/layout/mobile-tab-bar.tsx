@@ -1,6 +1,6 @@
 "use client";
 
-import { MouseEvent, useEffect } from "react";
+import { MouseEvent } from "react";
 import {
   Bell,
   Home,
@@ -9,7 +9,7 @@ import {
   UserCircle2,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { prewarmClientRuntimeSnapshots, type RuntimeSnapshotScope } from "@/lib/supabase/app-data";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,6 @@ const tabs = [
   { href: "/profile", label: "마이" },
 ] as const;
 
-const AUTH_SENSITIVE_TABS = new Set(["/notifications", "/profile"]);
 const TAB_RUNTIME_SCOPES: Record<(typeof tabs)[number]["href"], RuntimeSnapshotScope> = {
   "/home": "home",
   "/community": "community",
@@ -41,7 +40,6 @@ const TAB_RUNTIME_SCOPES: Record<(typeof tabs)[number]["href"], RuntimeSnapshotS
 
 export function MobileTabBar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   function scrollActiveViewToTop() {
     const scrollRoots = Array.from(document.querySelectorAll<HTMLElement>("[data-app-scroll-root]"));
@@ -59,8 +57,8 @@ export function MobileTabBar() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function handleTabClick(event: MouseEvent<HTMLAnchorElement>, active: boolean) {
-    if (!active) {
+  function handleTabClick(event: MouseEvent<HTMLAnchorElement>, isRootPage: boolean) {
+    if (!isRootPage) {
       return;
     }
 
@@ -75,28 +73,10 @@ export function MobileTabBar() {
     }
 
     prewarmClientRuntimeSnapshots([scope], {
-      key: `tab:${href}:${pathname}`,
+      key: `tab:${href}`,
       delayMs: 0,
     });
   }
-
-  useEffect(() => {
-    tabs.forEach((tab) => {
-      if (tab.href !== pathname && !AUTH_SENSITIVE_TABS.has(tab.href)) {
-        router.prefetch(tab.href);
-      }
-    });
-
-    prewarmClientRuntimeSnapshots(
-      tabs
-        .filter((tab) => tab.href !== pathname && AUTH_SENSITIVE_TABS.has(tab.href))
-        .map((tab) => TAB_RUNTIME_SCOPES[tab.href]),
-      {
-        key: `auth-tabs:${pathname}`,
-        delayMs: 0,
-      },
-    );
-  }, [pathname, router]);
 
   return (
     <nav
@@ -108,15 +88,16 @@ export function MobileTabBar() {
       <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1 px-2">
         {tabs.map((tab) => {
           const Icon = icons[tab.href];
-          const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+          const isRootPage = pathname === tab.href;
+          const active = isRootPage || pathname.startsWith(`${tab.href}/`);
 
           return (
             <li key={tab.href}>
               <Link
                 href={tab.href}
-                prefetch={AUTH_SENSITIVE_TABS.has(tab.href) ? false : undefined}
+                prefetch={false}
                 aria-current={active ? "page" : undefined}
-                onClick={(event) => handleTabClick(event, active)}
+                onClick={(event) => handleTabClick(event, isRootPage)}
                 onTouchStart={() => prewarmTab(tab.href)}
                 onMouseEnter={() => prewarmTab(tab.href)}
                 className={cn(

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { CircleUserRound, MessagesSquare, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
 
 import {
   Dialog,
@@ -58,7 +57,6 @@ export function TopNavActions() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hydrated, setHydrated] = useState(false);
-  const pathname = usePathname();
   const {
     currentUser,
     isAuthenticated,
@@ -83,18 +81,11 @@ export function TopNavActions() {
     }
   }, [open]);
 
-  useEffect(() => {
-    prewarmClientRuntimeSnapshots(["messages", "profile"], {
-      key: `top-nav:background:${pathname}`,
-      delayMs: 0,
-    });
-  }, [pathname]);
-
   const profileHref = hydrated && isAuthenticated ? `/profile/${currentUser.id}` : "/profile";
 
   function prewarmActionScope(scope: "messages" | "profile") {
     prewarmClientRuntimeSnapshots([scope], {
-      key: `top-nav:${scope}:${pathname}`,
+      key: `top-nav:${scope}`,
       delayMs: 0,
     });
   }

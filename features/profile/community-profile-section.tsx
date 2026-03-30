@@ -770,7 +770,7 @@ export function CommunityProfileSection({
       <Dialog
         open={open}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen && viewerIndex !== null) {
+          if (!nextOpen && (viewerIndex !== null || editorState !== null)) {
             return;
           }
 
@@ -793,12 +793,12 @@ export function CommunityProfileSection({
         <DialogContent
           className="max-h-[calc(100vh-3rem)] overflow-y-auto"
           onInteractOutside={(event) => {
-            if (viewerIndex !== null) {
+            if (viewerIndex !== null || editorState !== null) {
               event.preventDefault();
             }
           }}
           onEscapeKeyDown={(event) => {
-            if (viewerIndex !== null) {
+            if (viewerIndex !== null || editorState !== null) {
               event.preventDefault();
             }
           }}

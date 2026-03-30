@@ -18,62 +18,10 @@ import {
   isSupabaseEnabled,
   loadClientRuntimeSnapshot,
   peekClientRuntimeSnapshot,
-  prewarmClientRuntimeSnapshots,
   type RuntimeSnapshotScope,
 } from "@/lib/supabase/app-data";
 import { logPerformanceEvent } from "@/lib/ops";
 import type { AppRuntimeSnapshot } from "@/types";
-
-function getPrewarmScopes(
-  scope: RuntimeSnapshotScope,
-  isAuthenticated: boolean,
-): RuntimeSnapshotScope[] {
-  if (!isAuthenticated) {
-    switch (scope) {
-      case "home":
-        return ["community", "school"];
-      case "community":
-        return ["home"];
-      case "school":
-        return ["home", "community"];
-      default:
-        return [];
-    }
-  }
-
-  switch (scope) {
-    case "home":
-      return ["community", "school"];
-    case "community":
-      return ["home", "school"];
-    case "school":
-      return ["home", "community", "trade"];
-    case "trade":
-      return ["messages", "school"];
-    case "messages":
-      return ["notifications", "trade"];
-    case "notifications":
-      return ["messages"];
-    case "profile":
-      return [];
-    default:
-      return [];
-  }
-}
-
-function getPrewarmDelayMs(scope: RuntimeSnapshotScope) {
-  switch (scope) {
-    case "home":
-    case "community":
-    case "school":
-    case "trade":
-    case "messages":
-    case "notifications":
-      return 700;
-    default:
-      return 900;
-  }
-}
 
 export function useAppRuntime(
   initialSnapshot?: AppRuntimeSnapshot,
@@ -238,25 +186,6 @@ export function useAppRuntime(
       subscription.unsubscribe();
     };
   }, [initialSnapshot, initialSnapshotMatchesScope, scope, setSnapshot]);
-
-  useEffect(() => {
-    if (loading || snapshot.source !== "supabase") {
-      return;
-    }
-
-    const scopes = getPrewarmScopes(scope, snapshot.isAuthenticated);
-    if (scopes.length === 0) {
-      return;
-    }
-
-    prewarmClientRuntimeSnapshots(
-      scopes.filter((candidate) => candidate !== scope),
-      {
-        key: `${snapshot.isAuthenticated ? "auth" : "guest"}:${snapshot.currentUser.id}:${scope}`,
-        delayMs: getPrewarmDelayMs(scope),
-      },
-    );
-  }, [loading, scope, snapshot.currentUser.id, snapshot.isAuthenticated, snapshot.source]);
 
   return {
     snapshot,

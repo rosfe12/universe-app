@@ -25,7 +25,11 @@ export async function getDatingPageSnapshot() {
 }
 
 export async function getProfilePageSnapshot() {
-  return loadServerRuntimeSnapshot("chrome");
+  return loadServerRuntimeSnapshot("profile");
+}
+
+export async function getMessagesPageSnapshot() {
+  return loadServerRuntimeSnapshot("messages");
 }
 
 export async function getChromePageSnapshot() {
