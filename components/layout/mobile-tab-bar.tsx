@@ -100,13 +100,12 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className="fixed left-1/2 z-50 flex w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 flex-col justify-end overflow-hidden rounded-t-[26px] border border-b-0 border-white/10 bg-slate-950/96 px-2 pt-1 shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)] backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-50 flex flex-col justify-end overflow-hidden border-t border-white/10 bg-slate-950/96 pt-1 shadow-[0_-18px_42px_-28px_rgba(2,6,23,0.96)] backdrop-blur-xl md:left-1/2 md:w-full md:max-w-[440px] md:-translate-x-1/2 md:rounded-t-[26px] md:border md:border-b-0 md:shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)]"
       style={{
-        bottom: "0",
-        paddingBottom: "max(0.12rem, calc(env(safe-area-inset-bottom) - 0.9rem))",
+        paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1">
+      <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1 px-2">
         {tabs.map((tab) => {
           const Icon = icons[tab.href];
           const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
