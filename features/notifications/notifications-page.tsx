@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   BellRing,
   BookOpenCheck,
@@ -15,8 +16,7 @@ import {
   Siren,
   Sparkles,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { markAllNotificationsRead, markNotificationRead } from "@/app/actions/notification-actions";
 import { AppShell } from "@/components/layout/app-shell";
@@ -35,7 +35,6 @@ import {
   getCommunityPosts,
   getHotGalleryPosts,
   getLectureSummaries,
-  getNotifications,
   getPostHref,
   getSchoolHotPosts,
   getTradePosts,
@@ -145,38 +144,71 @@ function minutesAgo(minutes: number) {
   return new Date(Date.now() - minutes * 60 * 1000).toISOString();
 }
 
-function getNotificationHref(item: Notification) {
-  if (item.href) {
-    return item.href;
+function getNotificationMetadataValue(
+  item: Notification,
+  key: string,
+) {
+  const value = item.metadata?.[key];
+  return typeof value === "string" && value ? value : undefined;
+}
+
+function getNotificationPostId(item: Notification) {
+  if (item.targetType === "post" && item.targetId) {
+    return item.targetId;
   }
 
-  if (item.targetType === "post" && item.targetId) {
-    return getPostHref(item.targetId);
+  return getNotificationMetadataValue(item, "postId");
+}
+
+function getNotificationTradeId(item: Notification) {
+  if (item.targetType === "trade" && item.targetId) {
+    return item.targetId;
+  }
+
+  return getNotificationMetadataValue(item, "tradePostId");
+}
+
+function getNotificationHref(item: Notification) {
+  const postId = getNotificationPostId(item);
+  const tradeId = getNotificationTradeId(item);
+
+  if (
+    item.type === "comment" ||
+    item.type === "reply" ||
+    item.type === "trendingPost" ||
+    item.type === "admissionAnswer" ||
+    item.type === "admissionUnanswered" ||
+    item.type === "schoolRecommendation" ||
+    item.type === "freshmanTrending"
+  ) {
+    if (postId) {
+      return getPostHref(postId);
+    }
   }
 
   switch (item.type) {
     case "admissionAnswer":
     case "admissionUnanswered":
-      return item.targetId ? getPostHref(item.targetId) : "/school?tab=admission";
+      return item.href ?? "/school?tab=admission";
     case "lectureReaction":
-      return item.targetId ? `/lectures/${item.targetId}` : "/lectures";
+      return item.targetId ? `/lectures/${item.targetId}` : (item.href ?? "/lectures");
     case "tradeMatch":
-      return "/trade";
+      return tradeId ? `/trade?post=${tradeId}&chat=1` : (item.href ?? "/trade");
     case "verificationApproved":
     case "reportUpdate":
       return "/profile";
     case "schoolRecommendation":
-      return item.targetId ? getPostHref(item.targetId) : "/school";
+      return item.href ?? "/school";
     case "freshmanTrending":
-      return item.targetId ? getPostHref(item.targetId) : "/school?tab=freshman";
+      return item.href ?? "/school?tab=freshman";
     case "comment":
     case "reply":
     case "trendingPost":
-      return item.targetId ? getPostHref(item.targetId) : "/community";
+      return item.href ?? "/community";
     case "announcement":
-      return "/community";
+      return item.href ?? "/community";
     default:
-      return undefined;
+      return item.href;
   }
 }
 
@@ -344,7 +376,6 @@ export function NotificationsPage({
 }: {
   initialSnapshot?: AppRuntimeSnapshot;
 }) {
-  const router = useRouter();
   const {
     currentUser,
     loading,
@@ -352,6 +383,7 @@ export function NotificationsPage({
     isAuthenticated,
     refresh,
     schools,
+    notifications,
   } = useAppRuntime(initialSnapshot, "notifications");
   const [tab, setTab] = useState<NotificationTab>("all");
   const [isPending, startTransition] = useTransition();
@@ -361,7 +393,18 @@ export function NotificationsPage({
   const schoolName = schools.find((school) => school.id === schoolId)?.name;
   const showInitialLoading = loading && source === "mock";
 
-  const actualItems = getNotifications(currentUser.id);
+  const actualItems = useMemo(
+    () =>
+      notifications
+        .filter((item) => item.userId === currentUser.id)
+        .slice()
+        .sort(
+          (a, b) =>
+            Number(a.isRead) - Number(b.isRead) ||
+            +new Date(b.createdAt) - +new Date(a.createdAt),
+        ),
+    [currentUser.id, notifications],
+  );
   const effectiveActualItems = actualItems.map((item) =>
     item.isRead || optimisticMarkAllRead || optimisticReadIds.includes(item.id)
       ? { ...item, isRead: true }
@@ -450,26 +493,14 @@ export function NotificationsPage({
   }
 
   const handleOpen = (item: Notification) => {
-    const href = getNotificationHref(item);
-    if (!href) {
-      return;
+    if (!item.isRead && !item.recommended) {
+      setOptimisticReadIds((current) =>
+        current.includes(item.id) ? current : [...current, item.id],
+      );
+      void markNotificationRead(item.id).catch(() => {
+        setOptimisticReadIds((current) => current.filter((id) => id !== item.id));
+      });
     }
-
-    startTransition(() => {
-      void (async () => {
-        if (!item.isRead && !item.recommended) {
-          setOptimisticReadIds((current) =>
-            current.includes(item.id) ? current : [...current, item.id],
-          );
-          try {
-            await markNotificationRead(item.id);
-          } catch {
-            setOptimisticReadIds((current) => current.filter((id) => id !== item.id));
-          }
-        }
-        router.push(href);
-      })();
-    });
   };
 
   const handleMarkAllRead = () => {
@@ -586,70 +617,132 @@ export function NotificationsPage({
                         highlightUnread ? "shadow-[0_24px_52px_-30px_rgba(79,70,229,0.34)]" : "shadow-[0_18px_44px_-32px_rgba(15,23,42,0.16)]",
                       )}
                     >
-                      <button
-                        type="button"
-                        className="block w-full text-left transition-colors duration-150 hover:bg-gray-50/70 active:scale-[0.995] disabled:opacity-60 dark:hover:bg-white/5"
-                        onClick={() => handleOpen(item)}
-                        disabled={!href || isPending}
-                      >
-                        <CardContent className="flex gap-4 py-5">
-                          <div
-                            className={cn(
-                              "flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px]",
-                              meta.iconClassName,
-                            )}
-                          >
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start gap-3">
-                              <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                  {(() => {
-                                    const badgeLabel =
-                                      item.sourceKind === "recommendation"
+                      {href ? (
+                        <Link
+                          href={href}
+                          className={cn(
+                            "block w-full text-left transition-colors duration-150 hover:bg-gray-50/70 active:scale-[0.995] dark:hover:bg-white/5",
+                            isPending ? "pointer-events-none opacity-60" : undefined,
+                          )}
+                          onClick={() => handleOpen(item)}
+                          prefetch={false}
+                        >
+                          <CardContent className="flex gap-4 py-5">
+                            <div
+                              className={cn(
+                                "flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px]",
+                                meta.iconClassName,
+                              )}
+                            >
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start gap-3">
+                                <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {(() => {
+                                      const badgeLabel =
+                                        item.sourceKind === "recommendation"
+                                          ? "추천"
+                                          : item.type === "announcement"
+                                            ? "공지"
+                                            : meta.label;
+
+                                      return (
+                                    <Badge
+                                      variant={
+                                        item.sourceKind === "recommendation" ? "outline" : meta.badgeVariant
+                                      }
+                                    >
+                                          {badgeLabel}
+                                    </Badge>
+                                      );
+                                    })()}
+                                    {highlightUnread ? (
+                                      <span className="text-[11px] font-semibold text-primary">읽지 않음</span>
+                                    ) : null}
+                                    <span className="text-[11px] font-medium text-muted-foreground">
+                                      {getDeliveryLabel(item)}
+                                    </span>
+                                  </div>
+                                  <p className="mt-3 text-[15px] font-semibold leading-6 text-balance text-foreground">
+                                    {item.title}
+                                  </p>
+                                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                                    {item.body}
+                                  </p>
+                                </div>
+                                {highlightUnread ? (
+                                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
+                                ) : null}
+                              </div>
+                              <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                                <RelativeTimeText dateString={item.createdAt} />
+                                <span className="font-semibold text-primary">
+                                  {item.sourceKind === "recommendation" ? "지금 보기" : "열기"}
+                                </span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          className="block w-full cursor-default text-left opacity-60"
+                          disabled
+                        >
+                          <CardContent className="flex gap-4 py-5">
+                            <div
+                              className={cn(
+                                "flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px]",
+                                meta.iconClassName,
+                              )}
+                            >
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge
+                                      variant={
+                                        item.sourceKind === "recommendation" ? "outline" : meta.badgeVariant
+                                      }
+                                    >
+                                      {item.sourceKind === "recommendation"
                                         ? "추천"
                                         : item.type === "announcement"
                                           ? "공지"
-                                          : meta.label;
-
-                                    return (
-                                  <Badge
-                                    variant={
-                                      item.sourceKind === "recommendation" ? "outline" : meta.badgeVariant
-                                    }
-                                  >
-                                        {badgeLabel}
-                                  </Badge>
-                                    );
-                                  })()}
-                                  {highlightUnread ? (
-                                    <span className="text-[11px] font-semibold text-primary">읽지 않음</span>
-                                  ) : null}
-                                  <span className="text-[11px] font-medium text-muted-foreground">
-                                    {getDeliveryLabel(item)}
-                                  </span>
+                                          : meta.label}
+                                    </Badge>
+                                    {highlightUnread ? (
+                                      <span className="text-[11px] font-semibold text-primary">읽지 않음</span>
+                                    ) : null}
+                                    <span className="text-[11px] font-medium text-muted-foreground">
+                                      {getDeliveryLabel(item)}
+                                    </span>
+                                  </div>
+                                  <p className="mt-3 text-[15px] font-semibold leading-6 text-balance text-foreground">
+                                    {item.title}
+                                  </p>
+                                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                                    {item.body}
+                                  </p>
                                 </div>
-                                <p className="mt-3 text-[15px] font-semibold leading-6 text-balance text-foreground">
-                                  {item.title}
-                                </p>
-                                <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
-                                  {item.body}
-                                </p>
+                                {highlightUnread ? (
+                                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
+                                ) : null}
                               </div>
-                              {highlightUnread ? (
-                                <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
-                              ) : null}
+                              <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                                <RelativeTimeText dateString={item.createdAt} />
+                                <span className="font-semibold text-primary">
+                                  {item.sourceKind === "recommendation" ? "지금 보기" : "열기"}
+                                </span>
+                              </div>
                             </div>
-                            <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                              <RelativeTimeText dateString={item.createdAt} />
-                              <span className="font-semibold text-primary">
-                                {item.sourceKind === "recommendation" ? "지금 보기" : "열기"}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </button>
+                          </CardContent>
+                        </button>
+                      )}
                     </Card>
                   );
                 })

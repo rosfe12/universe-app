@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MessageCircleMore, MessagesSquare, RefreshCw } from "lucide-react";
 
 import {
@@ -67,13 +67,27 @@ function getThreadHref(
   targetType?: "post" | "trade",
   targetId?: string,
   fallbackHref?: string,
+  metadata?: Record<string, unknown>,
 ) {
+  const metadataPostId =
+    typeof metadata?.postId === "string" && metadata.postId ? metadata.postId : undefined;
+  const metadataTradeId =
+    typeof metadata?.tradePostId === "string" && metadata.tradePostId ? metadata.tradePostId : undefined;
+
   if (targetType === "post" && targetId) {
     return getPostHref(targetId);
   }
 
+  if (metadataPostId) {
+    return getPostHref(metadataPostId);
+  }
+
   if (targetType === "trade" && targetId) {
     return `/trade?post=${targetId}&chat=1`;
+  }
+
+  if (metadataTradeId) {
+    return `/trade?post=${metadataTradeId}&chat=1`;
   }
 
   return fallbackHref ?? "/notifications";
@@ -91,33 +105,20 @@ function ThreadLink({
   readIcon?: ReactNode;
 }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
   return (
       <button
         type="button"
         onClick={() => {
-        startTransition(() => {
-          void (async () => {
-            if (thread.notificationId) {
-              try {
-                await markNotificationRead(thread.notificationId);
-              } catch {
-                // ignore read sync errors and continue navigation
-              }
-            } else if (thread.targetType && thread.targetId) {
-              try {
-                await markNotificationsReadByTarget(thread.targetType, thread.targetId);
-              } catch {
-                // ignore read sync errors and continue navigation
-              }
-            }
-            router.push(thread.href);
-          })();
-        });
+        if (thread.notificationId) {
+          void markNotificationRead(thread.notificationId).catch(() => {});
+        } else if (thread.targetType && thread.targetId) {
+          void markNotificationsReadByTarget(thread.targetType, thread.targetId).catch(() => {});
+        }
+
+        router.push(thread.href);
       }}
       className="flex w-full items-start justify-between gap-3 px-4 py-4 text-left transition-colors duration-150 hover:bg-gray-50 active:scale-[0.99] disabled:opacity-60 dark:hover:bg-white/5"
-      disabled={isPending}
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -194,7 +195,7 @@ export function MessagesPage({
             id: key,
             title: item.title,
             preview: item.body,
-            href: getThreadHref(normalizedTargetType, item.targetId, item.href),
+            href: getThreadHref(normalizedTargetType, item.targetId, item.href, item.metadata),
             unread: !item.isRead,
             createdAt: item.createdAt,
             notificationId: item.id,

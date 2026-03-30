@@ -27,6 +27,7 @@ export function useAppRuntime(
   initialSnapshot?: AppRuntimeSnapshot,
   scope: RuntimeSnapshotScope = "full",
 ) {
+  const shouldSyncGlobalSnapshot = scope !== "search";
   const initialSnapshotScope = initialSnapshot?.runtimeScope;
   const initialSnapshotMatchesScope = !initialSnapshot || initialSnapshotScope === scope;
   const scopedSnapshot = initialSnapshotMatchesScope
@@ -44,10 +45,20 @@ export function useAppRuntime(
         typeof nextValue === "function"
           ? (nextValue as (snapshot: AppRuntimeSnapshot) => AppRuntimeSnapshot)(currentSnapshot)
           : nextValue;
-      setRuntimeSnapshot(nextSnapshot);
+      if (shouldSyncGlobalSnapshot) {
+        setRuntimeSnapshot(nextSnapshot);
+      }
       return nextSnapshot;
     });
-  }, []);
+  }, [shouldSyncGlobalSnapshot]);
+
+  useEffect(() => {
+    if (!shouldSyncGlobalSnapshot) {
+      return;
+    }
+
+    setRuntimeSnapshot(snapshot);
+  }, [shouldSyncGlobalSnapshot, snapshot]);
 
   useEffect(() => {
     if (!initialSnapshot) {

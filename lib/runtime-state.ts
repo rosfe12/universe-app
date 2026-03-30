@@ -59,6 +59,7 @@ const baseMockRuntimeSnapshot: AppRuntimeSnapshot = {
 };
 
 let runtimeSnapshot: AppRuntimeSnapshot = baseMockRuntimeSnapshot;
+const runtimeSnapshotListeners = new Set<() => void>();
 
 export function getRuntimeSnapshot() {
   return runtimeSnapshot;
@@ -83,9 +84,27 @@ export function getMockRuntimeSnapshot(): AppRuntimeSnapshot {
 }
 
 export function setRuntimeSnapshot(nextSnapshot: AppRuntimeSnapshot) {
+  if (runtimeSnapshot === nextSnapshot) {
+    return;
+  }
+
   runtimeSnapshot = nextSnapshot;
+  runtimeSnapshotListeners.forEach((listener) => {
+    listener();
+  });
 }
 
 export function resetRuntimeSnapshot() {
   runtimeSnapshot = getMockRuntimeSnapshot();
+  runtimeSnapshotListeners.forEach((listener) => {
+    listener();
+  });
+}
+
+export function subscribeRuntimeSnapshot(listener: () => void) {
+  runtimeSnapshotListeners.add(listener);
+
+  return () => {
+    runtimeSnapshotListeners.delete(listener);
+  };
 }

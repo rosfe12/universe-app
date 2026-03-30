@@ -8,8 +8,8 @@ import {
   type RuntimeSnapshotScope,
 } from "@/lib/supabase/app-data";
 
-const MIN_LAUNCH_SCREEN_MS = 650;
-const PRELOAD_DEADLINE_MS = 1200;
+const MIN_LAUNCH_SCREEN_MS = 320;
+const PRELOAD_DEADLINE_MS = 700;
 const EXIT_TRANSITION_MS = 160;
 
 function wait(ms: number) {

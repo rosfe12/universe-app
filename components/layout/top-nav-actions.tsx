@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CircleUserRound, MessagesSquare, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import {
   Dialog,
@@ -11,12 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { getPostHref } from "@/lib/mock-queries";
-import { prewarmClientRuntimeSnapshots } from "@/lib/supabase/app-data";
-import { isSupabaseEnabled } from "@/lib/supabase/app-data";
+import { getRuntimeSnapshot, subscribeRuntimeSnapshot } from "@/lib/runtime-state";
+import { peekClientRuntimeSnapshot } from "@/lib/supabase/app-data";
 import { cn } from "@/lib/utils";
 
 function getSearchScore(input: {
@@ -53,42 +53,20 @@ function isMessageNotification(type: string) {
   );
 }
 
-export function TopNavActions() {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [hydrated, setHydrated] = useState(false);
-  const {
-    currentUser,
-    isAuthenticated,
-    notifications,
-    posts,
-    lectures,
-    loading: runtimeLoading,
-    source,
-  } = useAppRuntime(undefined, open ? "search" : "chrome");
-  const unreadMessageCount =
-    runtimeLoading || (isSupabaseEnabled() && source === "mock")
-      ? 0
-      : notifications.filter((item) => !item.isRead && isMessageNotification(item.type)).length;
-
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!open) {
-      setQuery("");
-    }
-  }, [open]);
-
-  const profileHref = hydrated && isAuthenticated ? `/profile/${currentUser.id}` : "/profile";
-
-  function prewarmActionScope(scope: "messages" | "profile") {
-    prewarmClientRuntimeSnapshots([scope], {
-      key: `top-nav:${scope}`,
-      delayMs: 0,
-    });
-  }
+function SearchDialogPanel({
+  open,
+  query,
+  onQueryChange,
+  onOpenChange,
+  initialSnapshot,
+}: {
+  open: boolean;
+  query: string;
+  onQueryChange: (value: string) => void;
+  onOpenChange: (open: boolean) => void;
+  initialSnapshot: ReturnType<typeof getRuntimeSnapshot>;
+}) {
+  const { posts, lectures, loading } = useAppRuntime(initialSnapshot, "search");
 
   const searchResults = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -177,6 +155,90 @@ export function TopNavActions() {
       }));
   }, [lectures, posts, query]);
 
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="top-[calc(env(safe-area-inset-top)+0.75rem)] w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 translate-y-0 gap-3 overflow-hidden rounded-[24px] border border-white/80 p-4 md:top-1/2 md:w-full md:-translate-y-1/2">
+        <DialogHeader className="space-y-1 pr-8">
+          <DialogTitle>검색</DialogTitle>
+          <DialogDescription>게시글과 강의정보를 바로 찾을 수 있습니다.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            className="text-base md:text-sm"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="제목, 내용, 강의명, 교수명 검색"
+            autoFocus
+          />
+          <div className="max-h-[min(58vh,420px)] overflow-y-auto overscroll-contain rounded-2xl border border-gray-100">
+            {loading ? (
+              <div className="px-4 py-8 text-center text-sm text-gray-500">검색 항목을 불러오는 중입니다.</div>
+            ) : searchResults.length > 0 ? (
+              <div className="divide-y divide-gray-100 dark:divide-white/10">
+                {searchResults.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    onClick={() => onOpenChange(false)}
+                    className="block px-4 py-3 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-white/5"
+                  >
+                    <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
+                    <p className="mt-1 text-xs text-gray-500">{item.meta}</p>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="px-4 py-8 text-center text-sm text-gray-500">
+                검색 결과가 없습니다.
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span className={cn("inline-block h-1.5 w-1.5 rounded-full bg-indigo-400")} />
+            최근 반응이 높은 글부터 추천합니다.
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function TopNavActions() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const runtimeSnapshot = useSyncExternalStore(
+    subscribeRuntimeSnapshot,
+    getRuntimeSnapshot,
+    getRuntimeSnapshot,
+  );
+  const cachedChromeSnapshot = peekClientRuntimeSnapshot("chrome");
+  const cachedNotificationSnapshot = peekClientRuntimeSnapshot("notifications");
+  const cachedSearchSnapshot = peekClientRuntimeSnapshot("search");
+  const badgeSnapshot = cachedNotificationSnapshot ?? cachedChromeSnapshot ?? runtimeSnapshot;
+  const authSnapshot = cachedChromeSnapshot ?? runtimeSnapshot;
+  const searchSnapshot = cachedSearchSnapshot ?? cachedChromeSnapshot ?? runtimeSnapshot;
+  const unreadMessageCount = badgeSnapshot.notifications.filter(
+    (item) => !item.isRead && isMessageNotification(item.type),
+  ).length;
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+    }
+  }, [open]);
+
+  const profileHref =
+    hydrated && authSnapshot.isAuthenticated ? `/profile/${authSnapshot.currentUser.id}` : "/profile";
+
   return (
     <>
       <div className="flex shrink-0 items-center gap-1">
@@ -190,13 +252,7 @@ export function TopNavActions() {
           <Search className="h-5 w-5" />
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="메시지">
-          <Link
-            href="/messages"
-            prefetch={false}
-            className="relative"
-            onTouchStart={() => prewarmActionScope("messages")}
-            onMouseEnter={() => prewarmActionScope("messages")}
-          >
+          <Link href="/messages" className="relative">
             <MessagesSquare className="h-5 w-5" />
             {unreadMessageCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold leading-4 text-white">
@@ -206,61 +262,19 @@ export function TopNavActions() {
           </Link>
         </Button>
         <Button asChild size="icon" variant="ghost" aria-label="프로필">
-          <Link
-            href={profileHref}
-            prefetch={false}
-            onTouchStart={() => prewarmActionScope("profile")}
-            onMouseEnter={() => prewarmActionScope("profile")}
-          >
+          <Link href={profileHref}>
             <CircleUserRound className="h-5 w-5" />
           </Link>
         </Button>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="top-[calc(env(safe-area-inset-top)+0.75rem)] w-[calc(100vw-1rem)] max-w-[440px] -translate-x-1/2 translate-y-0 gap-3 overflow-hidden rounded-[24px] border border-white/80 p-4 md:top-1/2 md:w-full md:-translate-y-1/2">
-          <DialogHeader className="space-y-1 pr-8">
-            <DialogTitle>검색</DialogTitle>
-            <DialogDescription>게시글과 강의정보를 바로 찾을 수 있습니다.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              className="text-base md:text-sm"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="제목, 내용, 강의명, 교수명 검색"
-              autoFocus
-            />
-            <div className="max-h-[min(58vh,420px)] overflow-y-auto overscroll-contain rounded-2xl border border-gray-100">
-              {runtimeLoading ? (
-                <div className="px-4 py-8 text-center text-sm text-gray-500">검색 항목을 불러오는 중입니다.</div>
-              ) : searchResults.length > 0 ? (
-                <div className="divide-y divide-gray-100 dark:divide-white/10">
-                  {searchResults.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className="block px-4 py-3 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-white/5"
-                    >
-                      <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
-                      <p className="mt-1 text-xs text-gray-500">{item.meta}</p>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="px-4 py-8 text-center text-sm text-gray-500">
-                  검색 결과가 없습니다.
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span className={cn("inline-block h-1.5 w-1.5 rounded-full bg-indigo-400")} />
-              최근 반응이 높은 글부터 추천합니다.
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SearchDialogPanel
+        open={open}
+        query={query}
+        onQueryChange={setQuery}
+        onOpenChange={setOpen}
+        initialSnapshot={searchSnapshot}
+      />
     </>
   );
 }

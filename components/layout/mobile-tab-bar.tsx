@@ -11,7 +11,6 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { prewarmClientRuntimeSnapshots, type RuntimeSnapshotScope } from "@/lib/supabase/app-data";
 import { cn } from "@/lib/utils";
 
 const icons = {
@@ -29,14 +28,6 @@ const tabs = [
   { href: "/notifications", label: "알림" },
   { href: "/profile", label: "마이" },
 ] as const;
-
-const TAB_RUNTIME_SCOPES: Record<(typeof tabs)[number]["href"], RuntimeSnapshotScope> = {
-  "/home": "home",
-  "/community": "community",
-  "/school": "school",
-  "/notifications": "notifications",
-  "/profile": "profile",
-};
 
 export function MobileTabBar() {
   const pathname = usePathname();
@@ -66,18 +57,6 @@ export function MobileTabBar() {
     scrollActiveViewToTop();
   }
 
-  function prewarmTab(href: (typeof tabs)[number]["href"]) {
-    const scope = TAB_RUNTIME_SCOPES[href];
-    if (!scope || href === pathname) {
-      return;
-    }
-
-    prewarmClientRuntimeSnapshots([scope], {
-      key: `tab:${href}`,
-      delayMs: 0,
-    });
-  }
-
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-50 flex flex-col justify-end overflow-hidden border-t border-white/10 bg-slate-950/96 pt-1 shadow-[0_-18px_42px_-28px_rgba(2,6,23,0.96)] backdrop-blur-xl md:left-1/2 md:w-full md:max-w-[440px] md:-translate-x-1/2 md:rounded-t-[26px] md:border md:border-b-0 md:shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)]"
@@ -95,11 +74,8 @@ export function MobileTabBar() {
             <li key={tab.href}>
               <Link
                 href={tab.href}
-                prefetch={false}
                 aria-current={active ? "page" : undefined}
                 onClick={(event) => handleTabClick(event, isRootPage)}
-                onTouchStart={() => prewarmTab(tab.href)}
-                onMouseEnter={() => prewarmTab(tab.href)}
                 className={cn(
                   "group relative flex min-w-0 flex-col items-center gap-1 rounded-[20px] px-1 py-1 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
                   active

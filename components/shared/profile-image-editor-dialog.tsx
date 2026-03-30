@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownRight, Loader2, Move, RotateCcw, ScanFace, Sparkles, X } from "lucide-react";
 
@@ -619,12 +620,14 @@ export function ProfileImageEditorDialog({
               <div className="overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.03]">
                 <div className="relative aspect-[0.92] w-full">
                   {processedPreviewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <>
-                      <img
+                      <Image
                         src={processedPreviewUrl}
                         alt="편집 미리보기"
-                        className="h-full w-full object-contain"
+                        fill
+                        unoptimized
+                        sizes="(max-width: 768px) 100vw, 320px"
+                        className="object-contain"
                       />
                       <Button
                         type="button"
