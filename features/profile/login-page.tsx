@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Chrome, Mail } from "lucide-react";
+import { Chrome, Fingerprint, Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -36,6 +36,11 @@ import {
   setSupabaseSessionPersistence,
   waitForSupabaseAuthCookie,
 } from "@/lib/supabase/client";
+import {
+  getNativeQuickLoginStatus,
+  maybePromptEnableNativeQuickLogin,
+  signInWithNativeQuickLogin,
+} from "@/lib/native-quick-login";
 import { shouldShowTestAccounts } from "@/lib/env";
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { cn } from "@/lib/utils";
@@ -122,6 +127,9 @@ export function LoginPage({
   const [mode, setMode] = useState<AuthMode>(adminOnlyFlow ? "login" : "login");
   const [saveEmail, setSaveEmail] = useState(true);
   const [keepLoggedIn, setKeepLoggedIn] = useState(true);
+  const [quickLoginReady, setQuickLoginReady] = useState(false);
+  const [quickLoginMethodLabel, setQuickLoginMethodLabel] = useState("간편 로그인");
+  const [quickLoginEmail, setQuickLoginEmail] = useState("");
   const [signupConsents, setSignupConsents] = useState<SignupConsentState>({
     terms: false,
     privacy: false,
@@ -162,6 +170,28 @@ export function LoginPage({
     if (savedEmail) {
       form.setValue("email", savedEmail, { shouldDirty: false });
     }
+  }, [form]);
+
+  useEffect(() => {
+    let active = true;
+
+    void getNativeQuickLoginStatus().then((status) => {
+      if (!active) {
+        return;
+      }
+
+      setQuickLoginReady(status.ready);
+      setQuickLoginMethodLabel(status.methodLabel);
+      setQuickLoginEmail(status.email ?? "");
+
+      if (!form.getValues("email").trim() && status.email) {
+        form.setValue("email", status.email, { shouldDirty: false });
+      }
+    });
+
+    return () => {
+      active = false;
+    };
   }, [form]);
 
   useEffect(() => {
@@ -262,6 +292,7 @@ export function LoginPage({
     if (result.data.session) {
       persistSupabaseSession(result.data.session, keepLoggedIn);
       await waitForSupabaseAuthCookie(true);
+      await maybePromptEnableNativeQuickLogin(result.data.session, values.email);
     }
 
     if (mode === "signup") {
@@ -365,6 +396,57 @@ export function LoginPage({
               title={mode === "signup" ? "회원가입 실패" : "로그인 실패"}
               description={errorMessage}
             />
+          ) : null}
+          {mode === "login" && quickLoginReady ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={pending || loading}
+              onClick={async () => {
+                setErrorMessage("");
+                setSuccessMessage("");
+                setPending(true);
+
+                const result = await signInWithNativeQuickLogin();
+
+                setPending(false);
+
+                if (result.error) {
+                  setErrorMessage(result.error.message);
+                  return;
+                }
+
+                const nextSnapshot = await waitForAuthenticatedSnapshot(refresh);
+                if (!nextSnapshot.isAuthenticated) {
+                  setErrorMessage("로그인을 완료하지 못했습니다. 다시 시도해주세요.");
+                  return;
+                }
+
+                const target = getAuthFlowHref({
+                  isAuthenticated: nextSnapshot.isAuthenticated,
+                  user: nextSnapshot.currentUser,
+                  nextPath,
+                });
+
+                if (typeof window !== "undefined") {
+                  resetClientAuthRuntime();
+                  window.location.replace(target);
+                  return;
+                }
+
+                router.replace(target);
+                router.refresh();
+              }}
+            >
+              <Fingerprint className="h-4 w-4" />
+              {quickLoginMethodLabel}로 간편 로그인
+            </Button>
+          ) : null}
+          {mode === "login" && quickLoginReady && quickLoginEmail ? (
+            <p className="text-center text-xs text-muted-foreground">
+              {quickLoginEmail} 계정으로 바로 로그인할 수 있습니다.
+            </p>
           ) : null}
           {googleSignInEnabled && !adminOnlyFlow ? (
             <>

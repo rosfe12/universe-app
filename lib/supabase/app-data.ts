@@ -1843,6 +1843,9 @@ export async function signOutFromSupabase() {
   await unregisterNativePushDevice(true).catch(() => {});
   const result = await supabase.auth.signOut();
   if (!result.error) {
+    await import("@/lib/native-quick-login")
+      .then((module) => module.clearNativeQuickLogin())
+      .catch(() => {});
     await waitForSupabaseAuthCookie(false);
     resetSupabaseAuthUserCache();
     clearSupabaseSessionStorage();

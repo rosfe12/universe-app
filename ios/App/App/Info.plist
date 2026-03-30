@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>프로필 사진을 직접 촬영해 올리기 위해 카메라 접근이 필요합니다.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>간편 로그인을 위해 Face ID 인증이 필요합니다.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>프로필 사진을 저장하고 다시 선택할 수 있도록 사진 보관함 접근이 필요합니다.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 
 import { getRuntimeSnapshot, setRuntimeSnapshot } from "@/lib/runtime-state";
+import { syncNativeQuickLoginSession } from "@/lib/native-quick-login";
 import {
   clearSupabaseSessionStorage,
   createClient,
@@ -213,6 +214,9 @@ export function useAppRuntime(
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "INITIAL_SESSION" || session) {
         persistSupabaseSession(session ?? null);
+        if (session) {
+          syncNativeQuickLoginSession(session);
+        }
       }
 
       if (event === "INITIAL_SESSION") {

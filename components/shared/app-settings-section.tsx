@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Monitor, Moon, Sparkles, Sun } from "lucide-react";
+import { Fingerprint, Monitor, Moon, Sparkles, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import {
   type ThemeMode,
   getResolvedThemeMode,
 } from "@/lib/app-preferences";
+import { getNativeQuickLoginStatus, setNativeQuickLoginEnabled } from "@/lib/native-quick-login";
 
 const THEME_OPTIONS: Array<{
   value: ThemeMode;
@@ -34,6 +35,12 @@ export function AppSettingsSection() {
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [prefersDark, setPrefersDark] = useState(false);
+  const [quickLoginSupported, setQuickLoginSupported] = useState(false);
+  const [quickLoginAvailable, setQuickLoginAvailable] = useState(false);
+  const [quickLoginEnabled, setQuickLoginEnabledState] = useState(false);
+  const [quickLoginMethodLabel, setQuickLoginMethodLabel] = useState("간편 로그인");
+  const [quickLoginPending, setQuickLoginPending] = useState(false);
+  const [quickLoginMessage, setQuickLoginMessage] = useState("");
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -57,6 +64,25 @@ export function AppSettingsSection() {
     localStorage.setItem(APP_MOTION_STORAGE_KEY, reduceMotion ? "true" : "false");
     applyAppPreferences(themeMode, reduceMotion, prefersDark);
   }, [themeMode, reduceMotion, prefersDark]);
+
+  useEffect(() => {
+    let active = true;
+
+    void getNativeQuickLoginStatus().then((status) => {
+      if (!active) {
+        return;
+      }
+
+      setQuickLoginSupported(status.supported);
+      setQuickLoginAvailable(status.available);
+      setQuickLoginEnabledState(status.enabled);
+      setQuickLoginMethodLabel(status.methodLabel);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const currentThemeLabel =
     getResolvedThemeMode(themeMode, prefersDark) === "dark" ? "다크 모드" : "일반 모드";
@@ -105,6 +131,50 @@ export function AppSettingsSection() {
               </Button>
             </div>
           </div>
+
+          {quickLoginSupported ? (
+            <div className="space-y-2 border-t border-gray-100 pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-900">간편 로그인</p>
+                  <p className="text-sm text-gray-500">
+                    {quickLoginAvailable
+                      ? `${quickLoginMethodLabel} 또는 기기 인증으로 빠르게 다시 로그인합니다.`
+                      : "생체인증 또는 기기 화면 잠금을 설정하면 사용할 수 있습니다."}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant={quickLoginEnabled ? "default" : "outline"}
+                  disabled={quickLoginPending || !quickLoginAvailable}
+                  onClick={async () => {
+                    setQuickLoginPending(true);
+                    setQuickLoginMessage("");
+
+                    try {
+                      const status = await setNativeQuickLoginEnabled(!quickLoginEnabled);
+                      setQuickLoginSupported(status.supported);
+                      setQuickLoginAvailable(status.available);
+                      setQuickLoginEnabledState(status.enabled);
+                      setQuickLoginMethodLabel(status.methodLabel);
+                    } catch (error) {
+                      setQuickLoginMessage(
+                        error instanceof Error ? error.message : "간편 로그인을 설정하지 못했습니다.",
+                      );
+                    } finally {
+                      setQuickLoginPending(false);
+                    }
+                  }}
+                >
+                  <Fingerprint className="h-4 w-4" />
+                  {quickLoginEnabled ? "사용 중" : "켜기"}
+                </Button>
+              </div>
+              {quickLoginMessage ? (
+                <p className="text-sm text-rose-500">{quickLoginMessage}</p>
+              ) : null}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </section>
