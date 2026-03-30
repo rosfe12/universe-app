@@ -20,6 +20,12 @@ import {
   requestPasswordReset,
   updateSupabasePassword,
 } from "@/lib/supabase/app-data";
+import {
+  getPasswordPolicyError,
+  isPasswordPolicyExemptEmail,
+  PASSWORD_POLICY_EXEMPT_HELPER_TEXT,
+  PASSWORD_POLICY_HELPER_TEXT,
+} from "@/lib/password-policy";
 import { cn } from "@/lib/utils";
 
 const requestSchema = z.object({
@@ -28,7 +34,7 @@ const requestSchema = z.object({
 
 const updateSchema = z
   .object({
-    password: z.string().min(8, "비밀번호는 8자 이상 입력해주세요."),
+    password: z.string().min(4, "비밀번호는 4자 이상 입력해주세요."),
     confirmPassword: z.string().min(1, "비밀번호 확인을 입력해주세요."),
   })
   .refine((value) => value.password === value.confirmPassword, {
@@ -49,6 +55,7 @@ export function ResetPasswordPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [hasSession, setHasSession] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [sessionEmail, setSessionEmail] = useState("");
 
   const requestForm = useForm<RequestFormValues>({
     resolver: zodResolver(requestSchema),
@@ -74,6 +81,7 @@ export function ResetPasswordPage() {
         return;
       }
       setHasSession(Boolean(data.session));
+      setSessionEmail(data.session?.user.email ?? "");
       setSessionReady(true);
     });
 
@@ -84,6 +92,7 @@ export function ResetPasswordPage() {
         return;
       }
       setHasSession(Boolean(session));
+      setSessionEmail(session?.user.email ?? "");
       setSessionReady(true);
     });
 
@@ -126,6 +135,14 @@ export function ResetPasswordPage() {
   const onSubmitUpdate = updateForm.handleSubmit(async (values) => {
     setErrorMessage("");
     setSuccessMessage("");
+
+    const passwordPolicyError = getPasswordPolicyError(values.password, sessionEmail);
+    if (passwordPolicyError) {
+      updateForm.setError("password", {
+        message: passwordPolicyError,
+      });
+      return;
+    }
 
     if (!isSupabaseEnabled()) {
       setSuccessMessage("비밀번호가 변경되었습니다.");
@@ -194,7 +211,11 @@ export function ResetPasswordPage() {
                 {updateForm.formState.errors.password ? (
                   <p className="text-xs text-rose-500">{updateForm.formState.errors.password.message}</p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">8자 이상 입력해주세요.</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isPasswordPolicyExemptEmail(sessionEmail)
+                      ? PASSWORD_POLICY_EXEMPT_HELPER_TEXT
+                      : PASSWORD_POLICY_HELPER_TEXT}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">

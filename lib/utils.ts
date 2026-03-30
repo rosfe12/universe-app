@@ -107,8 +107,9 @@ export function getOfficialStarterMeta(
   const title = post.title?.trim() ?? "";
   const tags = new Set((post.tags ?? []).filter(Boolean));
   const isOfficialExampleAuthor = OFFICIAL_EXAMPLE_AUTHOR_IDS.has(post.authorId ?? "");
+  const isSeedAuthor = (post.authorId ?? "").startsWith("user-");
   const hasOfficialSource =
-    isOfficialExampleAuthor || title.startsWith("[공식]") || tags.has("공식자료");
+    isOfficialExampleAuthor || isSeedAuthor || title.startsWith("[공식]") || tags.has("공식자료");
   const isFreshmanGuide =
     title.startsWith("[새내기 체크]") ||
     (post.subcategory === "freshman" && hasOfficialSource);
@@ -119,7 +120,10 @@ export function getOfficialStarterMeta(
 
   return {
     name: "CAMVERSE 운영팀",
-    label: isFreshmanGuide ? "공식 예시 콘텐츠" : isOfficialExampleAuthor ? "공식 예시 콘텐츠" : "운영팀 큐레이션",
+    label:
+      isFreshmanGuide || isOfficialExampleAuthor || isSeedAuthor
+        ? "공식 예시 콘텐츠"
+        : "운영팀 큐레이션",
     badge: isFreshmanGuide ? "운영팀 가이드" : "운영팀",
   };
 }

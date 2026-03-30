@@ -212,9 +212,13 @@ export function TopNavActions() {
   const badgeSnapshot = cachedNotificationSnapshot ?? cachedChromeSnapshot ?? runtimeSnapshot;
   const authSnapshot = cachedChromeSnapshot ?? runtimeSnapshot;
   const searchSnapshot = cachedSearchSnapshot ?? cachedChromeSnapshot ?? runtimeSnapshot;
-  const unreadMessageCount = badgeSnapshot.notifications.filter(
-    (item) => !item.isRead && isMessageNotification(item.type),
-  ).length;
+  const unreadMessageCount = useMemo(
+    () =>
+      badgeSnapshot.notifications.filter(
+        (item) => !item.isRead && isMessageNotification(item.type),
+      ).length,
+    [badgeSnapshot.notifications],
+  );
 
   useEffect(() => {
     setHydrated(true);

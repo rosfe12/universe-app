@@ -17,6 +17,7 @@ import { unregisterNativePushDevice } from "@/lib/native-push";
 import { logPerformanceEvent } from "@/lib/ops";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
 import { getMockRuntimeSnapshot, guestUser } from "@/lib/runtime-state";
+import { getPasswordPolicyError } from "@/lib/password-policy";
 import {
   hasPublicSupabaseEnv,
   isGoogleAuthEnabled,
@@ -1685,7 +1686,7 @@ export async function loadClientRuntimeSnapshot(options?: {
     return cachedSnapshot.snapshot;
   }
 
-  if (!force && inFlightSnapshot) {
+  if (inFlightSnapshot) {
     return inFlightSnapshot;
   }
 
@@ -1770,6 +1771,21 @@ export async function signUpWithSupabase({
   };
 }) {
   const supabase = createClient();
+  const passwordPolicyError = getPasswordPolicyError(password, email);
+
+  if (passwordPolicyError) {
+    return {
+      data: {
+        user: null,
+        session: null,
+      },
+      error: {
+        message: passwordPolicyError,
+      },
+      needsEmailConfirmation: false,
+    };
+  }
+
   const normalizedReferralCode = normalizeReferralCode(referralCode);
   const agreedAt = new Date().toISOString();
   const redirectTo =
@@ -1833,6 +1849,22 @@ export async function requestPasswordReset(email: string) {
 
 export async function updateSupabasePassword(password: string) {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const passwordPolicyError = getPasswordPolicyError(password, user?.email);
+
+  if (passwordPolicyError) {
+    return {
+      data: {
+        user,
+      },
+      error: {
+        message: passwordPolicyError,
+      },
+    };
+  }
+
   return supabase.auth.updateUser({
     password,
   });

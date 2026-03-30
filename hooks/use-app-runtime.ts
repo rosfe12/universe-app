@@ -46,6 +46,11 @@ export function useAppRuntime(
         : nextValue,
     );
   }, []);
+  const refresh = useCallback(async () => {
+    const nextSnapshot = await loadClientRuntimeSnapshot({ force: true, scope });
+    setSnapshot(nextSnapshot);
+    return nextSnapshot;
+  }, [scope, setSnapshot]);
 
   useEffect(() => {
     if (!shouldSyncGlobalSnapshot) {
@@ -200,10 +205,6 @@ export function useAppRuntime(
     ...snapshot,
     loading,
     setSnapshot,
-    refresh: async () => {
-      const nextSnapshot = await loadClientRuntimeSnapshot({ force: true, scope });
-      setSnapshot(nextSnapshot);
-      return nextSnapshot;
-    },
+    refresh,
   };
 }

@@ -451,35 +451,47 @@ export function NotificationsPage({
     };
   }, [currentUser.id, isAuthenticated, refresh]);
 
-  const activityItems = useMemo(
-    () => effectiveActualItems.filter((item) => item.category === "activity"),
-    [effectiveActualItems],
-  );
-  const noticeItems = useMemo(
-    () => effectiveActualItems.filter((item) => item.category === "notice"),
-    [effectiveActualItems],
-  );
-  const unreadCount = useMemo(
-    () => effectiveActualItems.filter((item) => !item.isRead).length,
-    [effectiveActualItems],
-  );
-  const activityUnreadCount = useMemo(
-    () => activityItems.filter((item) => !item.isRead).length,
-    [activityItems],
-  );
-  const noticeUnreadCount = useMemo(
-    () => noticeItems.filter((item) => !item.isRead).length,
-    [noticeItems],
-  );
+  const notificationBuckets = useMemo(() => {
+    const activity: Notification[] = [];
+    const notice: Notification[] = [];
+    let unread = 0;
+    let activityUnread = 0;
+    let noticeUnread = 0;
 
-  const actualByTab = useMemo<Record<NotificationTab, Notification[]>>(
-    () => ({
-      all: effectiveActualItems,
-      activity: activityItems,
-      notice: noticeItems,
-    }),
-    [activityItems, effectiveActualItems, noticeItems],
-  );
+    for (const item of effectiveActualItems) {
+      if (item.category === "activity") {
+        activity.push(item);
+        if (!item.isRead) {
+          activityUnread += 1;
+        }
+      } else if (item.category === "notice") {
+        notice.push(item);
+        if (!item.isRead) {
+          noticeUnread += 1;
+        }
+      }
+
+      if (!item.isRead) {
+        unread += 1;
+      }
+    }
+
+    return {
+      actualByTab: {
+        all: effectiveActualItems,
+        activity,
+        notice,
+      } satisfies Record<NotificationTab, Notification[]>,
+      unreadCount: unread,
+      activityUnreadCount: activityUnread,
+      noticeUnreadCount: noticeUnread,
+    };
+  }, [effectiveActualItems]);
+
+  const actualByTab = notificationBuckets.actualByTab;
+  const unreadCount = notificationBuckets.unreadCount;
+  const activityUnreadCount = notificationBuckets.activityUnreadCount;
+  const noticeUnreadCount = notificationBuckets.noticeUnreadCount;
 
   const visibleItems = useMemo(() => {
     const baseItems = actualByTab[tab];

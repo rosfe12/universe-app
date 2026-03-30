@@ -42,6 +42,12 @@ import {
   signInWithNativeQuickLogin,
 } from "@/lib/native-quick-login";
 import { shouldShowTestAccounts } from "@/lib/env";
+import {
+  getPasswordPolicyError,
+  isPasswordPolicyExemptEmail,
+  PASSWORD_POLICY_EXEMPT_HELPER_TEXT,
+  PASSWORD_POLICY_HELPER_TEXT,
+} from "@/lib/password-policy";
 import { AppFooterLinks } from "@/components/layout/app-footer-links";
 import { cn } from "@/lib/utils";
 import type { AppRuntimeSnapshot } from "@/types";
@@ -212,6 +218,10 @@ export function LoginPage({
   const watchedPassword = form.watch("password");
   const watchedConfirmPassword = form.watch("confirmPassword");
   const watchedBirthDate = form.watch("birthDate");
+  const isSignupPasswordPolicyExempt =
+    mode === "signup" ? isPasswordPolicyExemptEmail(watchedEmail) : false;
+  const signupPasswordPolicyError =
+    mode === "signup" ? getPasswordPolicyError(watchedPassword, watchedEmail) : null;
   const loginSubmitDisabled =
     pending || loading || watchedEmail.trim().length === 0 || watchedPassword.trim().length === 0;
   const signupSubmitDisabled =
@@ -219,7 +229,7 @@ export function LoginPage({
     loading ||
     !requiredSignupConsentsComplete ||
     watchedEmail.trim().length === 0 ||
-    watchedPassword.length < 8 ||
+    Boolean(signupPasswordPolicyError) ||
     watchedConfirmPassword?.trim().length === 0 ||
     watchedPassword !== watchedConfirmPassword;
 
@@ -246,9 +256,12 @@ export function LoginPage({
       return;
     }
 
-    if (mode === "signup" && values.password.length < 8) {
+    const passwordPolicyError =
+      mode === "signup" ? getPasswordPolicyError(values.password, values.email) : null;
+
+    if (mode === "signup" && passwordPolicyError) {
       form.setError("password", {
-        message: "비밀번호는 8자 이상 입력해주세요.",
+        message: passwordPolicyError,
       });
       return;
     }
@@ -562,7 +575,9 @@ export function LoginPage({
               ) : null}
               {mode === "signup" ? (
                 <p className="text-xs text-muted-foreground">
-                  8자 이상 입력해주세요.
+                  {isSignupPasswordPolicyExempt
+                    ? PASSWORD_POLICY_EXEMPT_HELPER_TEXT
+                    : PASSWORD_POLICY_HELPER_TEXT}
                 </p>
               ) : null}
             </div>

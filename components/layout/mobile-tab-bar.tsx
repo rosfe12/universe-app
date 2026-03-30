@@ -59,12 +59,12 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 flex flex-col justify-end overflow-hidden border-t border-white/10 bg-slate-950/96 pt-1 shadow-[0_-18px_42px_-28px_rgba(2,6,23,0.96)] backdrop-blur-xl md:left-1/2 md:w-full md:max-w-[440px] md:-translate-x-1/2 md:rounded-t-[26px] md:border md:border-b-0 md:shadow-[0_24px_60px_-30px_rgba(2,6,23,0.96)]"
+      className="fixed inset-x-0 bottom-0 z-50 flex items-end border-t border-white/10 bg-slate-950/96 shadow-[0_-18px_42px_-28px_rgba(2,6,23,0.96)] backdrop-blur-xl"
       style={{
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <ul className="mx-auto grid w-full max-w-[440px] grid-cols-5 gap-1 px-2">
+      <ul className="mx-auto grid h-16 w-full max-w-[440px] grid-cols-5 gap-0 px-1">
         {tabs.map((tab) => {
           const Icon = icons[tab.href];
           const isRootPage = pathname === tab.href;
@@ -77,7 +77,7 @@ export function MobileTabBar() {
                 aria-current={active ? "page" : undefined}
                 onClick={(event) => handleTabClick(event, isRootPage)}
                 className={cn(
-                  "group relative flex min-w-0 flex-col items-center gap-1 rounded-[20px] px-1 py-1 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
+                  "group relative flex h-full min-w-0 flex-col items-center justify-center gap-1 rounded-[18px] px-1 py-0.5 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
                   active
                     ? "bg-[linear-gradient(180deg,rgba(99,102,241,0.16),rgba(79,70,229,0.08))] text-white"
                     : "hover:bg-white/[0.03]",
