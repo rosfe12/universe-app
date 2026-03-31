@@ -2848,8 +2848,9 @@ export const notifications: Notification[] = [
     title: "수강신청 매칭 가능 글이 생겼어요",
     body: "경영데이터분석 ↔ 알고리즘 교환 후보 1건이 새로 잡혔습니다.",
     isRead: false,
-    href: "/trade",
+    href: "/trade?post=trade-1&chat=1",
     targetType: "trade",
+    targetId: "trade-1",
     createdAt: at(20, "08:20:00"),
   },
   {
@@ -2862,8 +2863,9 @@ export const notifications: Notification[] = [
     title: "브런치 카페 추천 글에 댓글이 달렸어요",
     body: "건대 브런치 카페 글에 새로운 댓글이 달렸습니다.",
     isRead: false,
-    href: "/community",
+    href: "/community?post=community-16",
     targetType: "post",
+    targetId: "community-16",
     createdAt: at(20, "07:45:00"),
   },
   {
@@ -2877,8 +2879,12 @@ export const notifications: Notification[] = [
     body: "새내기존 OT 글에서 내 댓글에 이어서 답이 달렸습니다.",
     isRead: true,
     readAt: at(19, "22:45:00"),
-    href: "/school?tab=freshman",
+    href: "/school?tab=freshman&post=community-29",
     targetType: "comment",
+    targetId: "comment-29",
+    metadata: {
+      postId: "community-29",
+    },
     createdAt: at(19, "22:40:00"),
   },
   {
