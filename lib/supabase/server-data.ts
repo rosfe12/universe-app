@@ -7,9 +7,10 @@ import type {
 import { publicEnv } from "@/lib/env";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { PROFILE_IMAGE_BUCKET } from "@/lib/community-profile";
+import { getMockRuntimeSnapshot } from "@/lib/mock-runtime";
 import { measureServerOperation } from "@/lib/ops";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
-import { getMockRuntimeSnapshot, guestUser } from "@/lib/runtime-state";
+import { guestUser } from "@/lib/runtime-state";
 import {
   BLOCK_SELECT,
   collectRuntimeUserIds,

@@ -2,11 +2,7 @@
 
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ensureSupabaseSessionReady } from "@/lib/supabase/client";
-import {
-  loadClientRuntimeSnapshot,
-  type RuntimeSnapshotScope,
-} from "@/lib/supabase/app-data";
+import type { RuntimeSnapshotScope } from "@/lib/supabase/app-data";
 
 const MIN_LAUNCH_SCREEN_MS = 320;
 const PRELOAD_DEADLINE_MS = 700;
@@ -91,6 +87,11 @@ function getLaunchPreloadScopes(pathname: string): RuntimeSnapshotScope[] {
 }
 
 async function preloadLaunchData(scopes: RuntimeSnapshotScope[]) {
+  const [{ ensureSupabaseSessionReady }, { loadClientRuntimeSnapshot }] = await Promise.all([
+    import("@/lib/supabase/client"),
+    import("@/lib/supabase/app-data"),
+  ]);
+
   try {
     await ensureSupabaseSessionReady();
   } catch {}

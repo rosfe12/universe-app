@@ -14,9 +14,10 @@ import {
 } from "@/lib/supabase/client";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { unregisterNativePushDevice } from "@/lib/native-push";
+import { getMockRuntimeSnapshot } from "@/lib/mock-runtime";
 import { logPerformanceEvent } from "@/lib/ops";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
-import { getMockRuntimeSnapshot, guestUser } from "@/lib/runtime-state";
+import { guestUser } from "@/lib/runtime-state";
 import { getPasswordPolicyError } from "@/lib/password-policy";
 import {
   hasPublicSupabaseEnv,

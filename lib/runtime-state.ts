@@ -1,17 +1,3 @@
-import {
-  blocks,
-  comments,
-  datingProfiles,
-  lectureReviews,
-  lectures,
-  mediaAssets,
-  notifications,
-  posts,
-  reports,
-  schools,
-  tradePosts,
-  users,
-} from "@/data/mock";
 import type { AppRuntimeSnapshot } from "@/types";
 
 export const guestUser = {
@@ -20,7 +6,7 @@ export const guestUser = {
   name: "게스트",
   nickname: "게스트",
   userType: "student",
-  schoolId: schools[0]?.id,
+  schoolId: "school-konkuk",
   department: undefined,
   grade: undefined,
   verified: false,
@@ -37,19 +23,19 @@ export const guestUser = {
   avatarUrl: undefined,
 } satisfies AppRuntimeSnapshot["currentUser"];
 
-const baseMockRuntimeSnapshot: AppRuntimeSnapshot = {
-  schools,
-  users,
-  posts,
-  comments,
-  lectures,
-  lectureReviews,
-  tradePosts,
-  notifications,
-  reports,
-  blocks,
-  datingProfiles,
-  mediaAssets,
+const baseRuntimeSnapshot: AppRuntimeSnapshot = {
+  schools: [],
+  users: [],
+  posts: [],
+  comments: [],
+  lectures: [],
+  lectureReviews: [],
+  tradePosts: [],
+  notifications: [],
+  reports: [],
+  blocks: [],
+  datingProfiles: [],
+  mediaAssets: [],
   currentUser: guestUser,
   source: "mock",
   isAuthenticated: false,
@@ -58,7 +44,7 @@ const baseMockRuntimeSnapshot: AppRuntimeSnapshot = {
   setupIssue: undefined,
 };
 
-let runtimeSnapshot: AppRuntimeSnapshot = baseMockRuntimeSnapshot;
+let runtimeSnapshot: AppRuntimeSnapshot = baseRuntimeSnapshot;
 
 export function getRuntimeSnapshot() {
   return runtimeSnapshot;
@@ -66,19 +52,19 @@ export function getRuntimeSnapshot() {
 
 export function getMockRuntimeSnapshot(): AppRuntimeSnapshot {
   return {
-    ...baseMockRuntimeSnapshot,
-    schools: [...baseMockRuntimeSnapshot.schools],
-    users: [...baseMockRuntimeSnapshot.users],
-    posts: [...baseMockRuntimeSnapshot.posts],
-    comments: [...baseMockRuntimeSnapshot.comments],
-    lectures: [...baseMockRuntimeSnapshot.lectures],
-    lectureReviews: [...baseMockRuntimeSnapshot.lectureReviews],
-    tradePosts: [...baseMockRuntimeSnapshot.tradePosts],
-    notifications: [...baseMockRuntimeSnapshot.notifications],
-    reports: [...baseMockRuntimeSnapshot.reports],
-    blocks: [...baseMockRuntimeSnapshot.blocks],
-    datingProfiles: [...baseMockRuntimeSnapshot.datingProfiles],
-    mediaAssets: [...baseMockRuntimeSnapshot.mediaAssets],
+    ...baseRuntimeSnapshot,
+    schools: [],
+    users: [],
+    posts: [],
+    comments: [],
+    lectures: [],
+    lectureReviews: [],
+    tradePosts: [],
+    notifications: [],
+    reports: [],
+    blocks: [],
+    datingProfiles: [],
+    mediaAssets: [],
   };
 }
 
