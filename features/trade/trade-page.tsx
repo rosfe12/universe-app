@@ -53,6 +53,7 @@ import {
 import { TradePostCard } from "@/features/common/trade-post-card";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import { injectInlineAdSlots, SCHOOL_FEED_AD_RULES } from "@/lib/ads";
+import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { STANDARD_VISIBILITY_LEVELS, TRADE_STATUS_LABELS } from "@/lib/constants";
 import { validateTradeSubmission } from "@/lib/moderation";
 import {
@@ -70,6 +71,7 @@ import {
   getSchoolScopedTradePosts,
   getTradeMatchCandidates,
   getTradeMatchInsight,
+  getTradePosts,
   isRepeatedlyReportedUser,
 } from "@/lib/mock-queries";
 import { canAccessTrade } from "@/lib/permissions";
@@ -122,6 +124,12 @@ type TradeChatParticipant = {
   updatedAt: string;
 };
 
+function getTradeItemsForViewer(schoolId: string | undefined, canViewAllSchools: boolean) {
+  return canViewAllSchools
+    ? getTradePosts()
+    : getSchoolScopedTradePosts(schoolId ?? "school-default");
+}
+
 export function TradePage({
   initialSnapshot,
 }: {
@@ -144,10 +152,11 @@ export function TradePage({
   } = useAppRuntime(initialSnapshot, "trade");
   const currentUser = runtimeUser;
   const schoolId = currentUser.schoolId;
+  const canViewAllTradePosts = isMasterAdminEmail(currentUser.email);
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [tradeItems, setTradeItems] = useState(
-    getSchoolScopedTradePosts(schoolId),
+    getTradeItemsForViewer(schoolId, canViewAllTradePosts),
   );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tradeMessages, setTradeMessages] = useState<TradeMessage[]>([]);
@@ -189,8 +198,8 @@ export function TradePage({
   const showInitialLoading = loading && source === "mock";
 
   useEffect(() => {
-    setTradeItems(getSchoolScopedTradePosts(schoolId));
-  }, [blocks, reports, schoolId, tradePosts]);
+    setTradeItems(getTradeItemsForViewer(schoolId, canViewAllTradePosts));
+  }, [blocks, canViewAllTradePosts, reports, schoolId, tradePosts]);
 
   useEffect(() => {
     const queryPostId = searchParams.get("post");
@@ -270,7 +279,11 @@ export function TradePage({
     });
   }, [detailId, isAuthenticated, source]);
 
-  const detailItem = tradeItems.find((item) => item.id === detailId) ?? null;
+  const detailItem =
+    tradeItems.find((item) => item.id === detailId) ??
+    (detailId && canViewAllTradePosts
+      ? getTradePosts().find((item) => item.id === detailId) ?? null
+      : null);
   const chatHighlighted = searchParams.get("chat") === "1";
   const selectedHaveLecture = getLectureById(form.watch("haveLectureId"));
   const selectedWantLecture = getLectureById(form.watch("wantLectureId"));
