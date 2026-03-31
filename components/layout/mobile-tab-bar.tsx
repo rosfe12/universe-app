@@ -1,6 +1,6 @@
 "use client";
 
-import { MouseEvent } from "react";
+import { MouseEvent, useCallback, useEffect, useRef } from "react";
 import {
   Bell,
   Home,
@@ -9,7 +9,7 @@ import {
   UserCircle2,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
@@ -31,6 +31,33 @@ const tabs = [
 
 export function MobileTabBar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const prefetchedRef = useRef<Set<string>>(new Set());
+
+  const prefetchTab = useCallback((href: string) => {
+    if (prefetchedRef.current.has(href)) {
+      return;
+    }
+
+    prefetchedRef.current.add(href);
+    router.prefetch(href);
+  }, [router]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      tabs.forEach((tab) => {
+        if (pathname === tab.href || pathname.startsWith(`${tab.href}/`)) {
+          return;
+        }
+
+        prefetchTab(tab.href);
+      });
+    }, 1200);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [pathname, prefetchTab]);
 
   function scrollActiveViewToTop() {
     const scrollRoots = Array.from(document.querySelectorAll<HTMLElement>("[data-app-scroll-root]"));
@@ -79,6 +106,9 @@ export function MobileTabBar() {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 onClick={(event) => handleTabClick(event, isRootPage)}
+                onTouchStart={() => prefetchTab(tab.href)}
+                onMouseEnter={() => prefetchTab(tab.href)}
+                onFocus={() => prefetchTab(tab.href)}
                 className={cn(
                   "group relative flex h-full min-w-0 flex-col items-center justify-end gap-1 rounded-[18px] px-1 pb-2 pt-1 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
                   active
