@@ -2223,6 +2223,13 @@ export function AdminPage({
               <CardContent className="py-4 text-sm text-rose-700">{reportError}</CardContent>
             </Card>
           ) : null}
+          {!reportError && reportItems.length === 0 ? (
+            <Card>
+              <CardContent className="py-4 text-sm text-muted-foreground">
+                현재 접수된 신고가 없습니다.
+              </CardContent>
+            </Card>
+          ) : null}
           {reportItems.map((item) => {
             const targetUserId = getReportTargetUserId(item.targetType, item.targetId);
             const contentTargetType =
