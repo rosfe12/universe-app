@@ -43,21 +43,36 @@ export function MobileTabBar() {
     router.prefetch(href);
   }, [router]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      tabs.forEach((tab) => {
-        if (pathname === tab.href || pathname.startsWith(`${tab.href}/`)) {
-          return;
-        }
+  const primeTabs = useCallback((activeHref?: string) => {
+    tabs.forEach((tab) => {
+      if (tab.href === activeHref) {
+        return;
+      }
 
-        prefetchTab(tab.href);
-      });
-    }, 1200);
+      prefetchTab(tab.href);
+    });
+  }, [prefetchTab]);
+
+  useEffect(() => {
+    const runPrefetch = () => {
+      primeTabs(pathname);
+    };
+
+    const idleCallback = window.requestIdleCallback?.(
+      () => {
+        runPrefetch();
+      },
+      { timeout: 300 },
+    );
+    const timer = window.setTimeout(runPrefetch, 250);
 
     return () => {
+      if (idleCallback) {
+        window.cancelIdleCallback?.(idleCallback);
+      }
       window.clearTimeout(timer);
     };
-  }, [pathname, prefetchTab]);
+  }, [pathname, primeTabs]);
 
   function scrollActiveViewToTop() {
     const scrollRoots = Array.from(document.querySelectorAll<HTMLElement>("[data-app-scroll-root]"));
@@ -106,9 +121,10 @@ export function MobileTabBar() {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 onClick={(event) => handleTabClick(event, isRootPage)}
-                onTouchStart={() => prefetchTab(tab.href)}
-                onMouseEnter={() => prefetchTab(tab.href)}
-                onFocus={() => prefetchTab(tab.href)}
+                onPointerDown={() => primeTabs(tab.href)}
+                onTouchStart={() => primeTabs(tab.href)}
+                onMouseEnter={() => primeTabs(tab.href)}
+                onFocus={() => primeTabs(tab.href)}
                 className={cn(
                   "group relative flex h-full min-w-0 flex-col items-center justify-end gap-1 rounded-[18px] px-1 pb-2 pt-1 text-[10px] font-medium leading-none text-slate-400 transition-all duration-150 active:scale-[0.97]",
                   active
