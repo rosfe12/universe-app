@@ -34,6 +34,7 @@ export function NativeAppSetup() {
     let active = true;
     let unsubscribePushSync = () => {};
     let removePushListeners = async () => {};
+    let deferredPushTimer: number | null = null;
 
     void (async () => {
       const [
@@ -75,17 +76,28 @@ export function NativeAppSetup() {
         await SplashScreen.hide();
       } catch {}
 
-      try {
-        await nativePushModule.initializeNativePushNotifications();
-        const session = await ensureSupabaseSessionReady();
-        if (session?.user) {
-          await nativePushModule.requestNativePushPermissionAndRegister();
+      deferredPushTimer = window.setTimeout(() => {
+        if (!active) {
+          return;
         }
-      } catch {}
+
+        void (async () => {
+          try {
+            await nativePushModule.initializeNativePushNotifications();
+            const session = await ensureSupabaseSessionReady();
+            if (session?.user) {
+              await nativePushModule.requestNativePushPermissionAndRegister();
+            }
+          } catch {}
+        })();
+      }, 900);
     })();
 
     return () => {
       active = false;
+      if (deferredPushTimer !== null) {
+        window.clearTimeout(deferredPushTimer);
+      }
       unsubscribePushSync();
       void removePushListeners();
     };

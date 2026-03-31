@@ -323,7 +323,7 @@ function shouldRequirePrimaryContent(scope: RuntimeSnapshotScope) {
 }
 
 function shouldLoadRelatedUsers(scope: RuntimeSnapshotScope) {
-  return !["chrome", "search", "share", "notifications"].includes(scope);
+  return !["chrome", "search", "share", "notifications", "profile", "messages"].includes(scope);
 }
 
 function shouldLoadProfilePreviews(scope: RuntimeSnapshotScope) {
@@ -692,19 +692,28 @@ function mapSchoolRow(row: Record<string, unknown>): School {
   };
 }
 
-async function createServerProfileImageUrl(
+async function createServerProfileImageUrls(
   supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
-  path: string,
+  paths: string[],
 ) {
-  const { data, error } = await supabase.storage
-    .from(PROFILE_IMAGE_BUCKET)
-    .createSignedUrl(path, 60 * 60);
-
-  if (error) {
-    return undefined;
+  const uniquePaths = [...new Set(paths.filter(Boolean))];
+  if (uniquePaths.length === 0) {
+    return new Map<string, string>();
   }
 
-  return data.signedUrl;
+  const { data, error } = await supabase.storage
+    .from(PROFILE_IMAGE_BUCKET)
+    .createSignedUrls(uniquePaths, 60 * 60);
+
+  if (error) {
+    return new Map();
+  }
+
+  return new Map(
+    (data ?? [])
+      .filter((entry) => entry.path && entry.signedUrl)
+      .map((entry) => [entry.path, entry.signedUrl] as const),
+  );
 }
 
 async function buildVisibleProfilePreviewMap(
@@ -738,23 +747,28 @@ async function buildVisibleProfilePreviewMap(
     return empty;
   }
 
-  const primaryImageUrlEntries = await Promise.all(
-    asRecordRows(primaryImagesResult.data).map(async (row) => [
+  const primaryImagePathByUserId = new Map(
+    asRecordRows(primaryImagesResult.data).map((row) => [
       String(row.user_id),
-      await createServerProfileImageUrl(supabase, String(row.image_path)),
+      String(row.image_path),
     ] as const),
   );
-  const primaryImageUrlByUserId = new Map(
-    primaryImageUrlEntries.filter(([, value]) => Boolean(value)),
+  const primaryImageUrlByPath = await createServerProfileImageUrls(
+    supabase,
+    [...primaryImagePathByUserId.values()],
   );
 
   for (const row of asRecordRows(profilesResult.data)) {
+    const userId = String(row.id);
+    const primaryImagePath = primaryImagePathByUserId.get(userId);
     empty.set(String(row.id), {
       bio: row.bio ? String(row.bio) : undefined,
       interests: Array.isArray(row.interests)
         ? row.interests.map((value) => String(value)).filter(Boolean)
         : [],
-      primaryImageUrl: primaryImageUrlByUserId.get(String(row.id)),
+      primaryImageUrl: primaryImagePath
+        ? primaryImageUrlByPath.get(primaryImagePath)
+        : undefined,
     });
   }
 

@@ -212,12 +212,16 @@ export function TopNavActions() {
   const badgeSnapshot = cachedNotificationSnapshot ?? cachedChromeSnapshot ?? runtimeSnapshot;
   const authSnapshot = cachedChromeSnapshot ?? runtimeSnapshot;
   const searchSnapshot = cachedSearchSnapshot ?? cachedChromeSnapshot ?? runtimeSnapshot;
+  const badgeUserId = authSnapshot.isAuthenticated ? authSnapshot.currentUser.id : null;
   const unreadMessageCount = useMemo(
     () =>
       badgeSnapshot.notifications.filter(
-        (item) => !item.isRead && isMessageNotification(item.type),
+        (item) =>
+          item.userId === badgeUserId &&
+          !item.isRead &&
+          isMessageNotification(item.type),
       ).length,
-    [badgeSnapshot.notifications],
+    [badgeSnapshot.notifications, badgeUserId],
   );
 
   useEffect(() => {

@@ -73,7 +73,7 @@ export function AppShell({
           data-app-scroll-root
           className={`flex-1 min-h-0 space-y-7 overflow-y-auto overscroll-contain px-4 ${
             showTabs
-              ? "pb-[calc(env(safe-area-inset-bottom)+5.15rem)]"
+              ? "pb-[calc(env(safe-area-inset-bottom)+4.55rem)]"
               : "pb-5"
           } pt-5 ${
             desktopWide ? "md:px-6" : ""

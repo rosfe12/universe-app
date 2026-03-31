@@ -406,7 +406,7 @@ function shouldRequirePrimaryContent(scope: RuntimeSnapshotScope) {
 }
 
 function shouldLoadRelatedUsers(scope: RuntimeSnapshotScope) {
-  return !["chrome", "search", "share", "notifications"].includes(scope);
+  return !["chrome", "search", "share", "notifications", "profile", "messages"].includes(scope);
 }
 
 function shouldLoadProfilePreviews(scope: RuntimeSnapshotScope) {
@@ -673,28 +673,50 @@ function buildMediaAssetsQuery(supabase: ReturnType<typeof createClient>, contex
   return context.userId ? base.eq("owner_id", context.userId).limit(MEDIA_ASSET_LIMIT) : EMPTY_RESULT;
 }
 
-async function createClientProfileImageUrl(
+async function createClientProfileImageUrls(
   supabase: ReturnType<typeof createClient>,
-  path: string,
+  paths: string[],
 ) {
-  const cachedImage = clientProfileImageUrlCache.get(path);
-  if (cachedImage && Date.now() - cachedImage.at < CLIENT_PROFILE_IMAGE_URL_TTL_MS) {
-    return cachedImage.url;
+  const uniquePaths = [...new Set(paths.filter(Boolean))];
+  const now = Date.now();
+  const urlByPath = new Map<string, string>();
+  const uncachedPaths: string[] = [];
+
+  for (const path of uniquePaths) {
+    const cachedImage = clientProfileImageUrlCache.get(path);
+    if (cachedImage && now - cachedImage.at < CLIENT_PROFILE_IMAGE_URL_TTL_MS) {
+      urlByPath.set(path, cachedImage.url);
+      continue;
+    }
+
+    uncachedPaths.push(path);
+  }
+
+  if (uncachedPaths.length === 0) {
+    return urlByPath;
   }
 
   const { data, error } = await supabase.storage
     .from(PROFILE_IMAGE_BUCKET)
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrls(uncachedPaths, 60 * 60);
 
   if (error) {
-    return cachedImage?.url;
+    return urlByPath;
   }
 
-  clientProfileImageUrlCache.set(path, {
-    url: data.signedUrl,
-    at: Date.now(),
-  });
-  return data.signedUrl;
+  for (const entry of data ?? []) {
+    if (!entry.path || !entry.signedUrl) {
+      continue;
+    }
+
+    clientProfileImageUrlCache.set(entry.path, {
+      url: entry.signedUrl,
+      at: now,
+    });
+    urlByPath.set(entry.path, entry.signedUrl);
+  }
+
+  return urlByPath;
 }
 
 async function buildVisibleProfilePreviewMap(
@@ -728,23 +750,28 @@ async function buildVisibleProfilePreviewMap(
     return empty;
   }
 
-  const primaryImageUrlEntries = await Promise.all(
-    asRecordRows(primaryImagesResult.data).map(async (row) => [
+  const primaryImagePathByUserId = new Map(
+    asRecordRows(primaryImagesResult.data).map((row) => [
       String(row.user_id),
-      await createClientProfileImageUrl(supabase, String(row.image_path)),
+      String(row.image_path),
     ] as const),
   );
-  const primaryImageUrlByUserId = new Map(
-    primaryImageUrlEntries.filter(([, value]) => Boolean(value)),
+  const primaryImageUrlByPath = await createClientProfileImageUrls(
+    supabase,
+    [...primaryImagePathByUserId.values()],
   );
 
   for (const row of asRecordRows(profilesResult.data)) {
+    const userId = String(row.id);
+    const primaryImagePath = primaryImagePathByUserId.get(userId);
     empty.set(String(row.id), {
       bio: row.bio ? String(row.bio) : undefined,
       interests: Array.isArray(row.interests)
         ? row.interests.map((value) => String(value)).filter(Boolean)
         : [],
-      primaryImageUrl: primaryImageUrlByUserId.get(String(row.id)),
+      primaryImageUrl: primaryImagePath
+        ? primaryImageUrlByPath.get(primaryImagePath)
+        : undefined,
     });
   }
 
