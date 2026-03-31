@@ -3,11 +3,21 @@ import { createServerClient } from "@supabase/ssr";
 
 import { SUPABASE_AUTH_STORAGE_KEY } from "@/lib/app-preferences";
 
+function hasSupabaseAuthCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some(
+      (cookie) =>
+        cookie.name === SUPABASE_AUTH_STORAGE_KEY ||
+        cookie.name.startsWith(`${SUPABASE_AUTH_STORAGE_KEY}.`),
+    );
+}
+
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !hasSupabaseAuthCookie(request)) {
     return NextResponse.next({
       request,
     });
