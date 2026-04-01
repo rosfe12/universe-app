@@ -58,19 +58,21 @@ export function MobileTabBar() {
       primeTabs(pathname);
     };
 
+    const frame = window.requestAnimationFrame(() => {
+      runPrefetch();
+    });
     const idleCallback = window.requestIdleCallback?.(
       () => {
         runPrefetch();
       },
-      { timeout: 300 },
+      { timeout: 120 },
     );
-    const timer = window.setTimeout(runPrefetch, 250);
 
     return () => {
+      window.cancelAnimationFrame(frame);
       if (idleCallback) {
         window.cancelIdleCallback?.(idleCallback);
       }
-      window.clearTimeout(timer);
     };
   }, [pathname, primeTabs]);
 
