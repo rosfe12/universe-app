@@ -166,9 +166,15 @@ export function deriveModerationSnapshot(snapshot: AppRuntimeSnapshot) {
   const currentUser = matchedCurrentUser
     ? {
         ...matchedCurrentUser,
-        email: snapshot.currentUser.email,
-        schoolEmail: snapshot.currentUser.schoolEmail,
-        schoolEmailVerifiedAt: snapshot.currentUser.schoolEmailVerifiedAt,
+        ...snapshot.currentUser,
+        trustScore: matchedCurrentUser.trustScore,
+        reportCount: matchedCurrentUser.reportCount,
+        warningCount: matchedCurrentUser.warningCount,
+        isRestricted: matchedCurrentUser.isRestricted,
+        profileBio: matchedCurrentUser.profileBio ?? snapshot.currentUser.profileBio,
+        profileInterests: matchedCurrentUser.profileInterests ?? snapshot.currentUser.profileInterests,
+        profilePrimaryImageUrl:
+          matchedCurrentUser.profilePrimaryImageUrl ?? snapshot.currentUser.profilePrimaryImageUrl,
       }
     : snapshot.currentUser;
 
