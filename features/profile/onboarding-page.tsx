@@ -136,7 +136,7 @@ export function OnboardingPage({
     defaultValues: {
       userType: isVerificationMode ? "student" : currentUser.userType,
       birthDate: currentUser.birthDate ?? pendingBirthDate,
-      schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
+      schoolId: currentUser.schoolId ?? "",
       schoolEmail: currentUser.schoolEmail ?? "",
       studentNumber: currentUser.studentNumber ?? "",
       department: currentUser.department ?? "",
@@ -262,7 +262,7 @@ export function OnboardingPage({
     form.reset({
       userType: isVerificationMode ? "student" : currentUser.userType,
       birthDate: currentUser.birthDate ?? pendingBirthDate,
-      schoolId: currentUser.schoolId ?? schoolOptions[0]?.id ?? "",
+      schoolId: currentUser.schoolId ?? "",
       schoolEmail: currentUser.schoolEmail ?? "",
       studentNumber: currentUser.studentNumber ?? "",
       department: currentUser.department ?? "",

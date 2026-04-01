@@ -7,7 +7,6 @@ import type {
 import { publicEnv } from "@/lib/env";
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 import { PROFILE_IMAGE_BUCKET } from "@/lib/community-profile";
-import { schools as mockSchools } from "@/data/mock";
 import { getMockRuntimeSnapshot } from "@/lib/mock-runtime";
 import { measureServerOperation } from "@/lib/ops";
 import { deriveModerationSnapshot } from "@/lib/runtime-mutations";
@@ -368,15 +367,6 @@ const DATING_PROFILE_LIMIT = 20;
 const MEDIA_ASSET_LIMIT = 12;
 const SCHOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 
-const initialSchoolRows = [...mockSchools]
-  .sort((left, right) => left.name.localeCompare(right.name, "ko"))
-  .map((school) => ({
-    id: school.id,
-    name: school.name,
-    domain: school.domain,
-    city: school.city,
-  }));
-
 function asRecordRows(value: unknown) {
   return (value ?? []) as unknown as Record<string, unknown>[];
 }
@@ -402,10 +392,7 @@ const COMMUNITY_POST_SUBCATEGORIES = [
 ];
 const DATING_POST_SUBCATEGORIES = ["dating", "meeting"] as const;
 const serverRuntimeSnapshotCache = new Map<string, { snapshot: AppRuntimeSnapshot; at: number }>();
-let cachedSchoolRows: { data: Record<string, unknown>[]; at: number } | null = {
-  data: initialSchoolRows,
-  at: Date.now(),
-};
+let cachedSchoolRows: { data: Record<string, unknown>[]; at: number } | null = null;
 let schoolRowsInFlight:
   | Promise<{ data: Record<string, unknown>[] | null; error: PostgrestError | null }>
   | null = null;

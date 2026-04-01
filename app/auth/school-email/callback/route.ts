@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { createClient, type EmailOtpType } from "@supabase/supabase-js";
 
 import { publicEnv, resolveAuthSiteUrl } from "@/lib/env";
@@ -6,6 +6,8 @@ import { evaluateStudentVerification } from "@/lib/student-verification";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function sanitizeNextPath(value?: string | null) {
   if (!value || !value.startsWith("/")) {
@@ -95,6 +97,34 @@ export async function GET(request: Request) {
 
   let verifiedEmail = "";
   let verificationUserId: string | null = verificationRequest.verification_user_id ?? null;
+  const verificationContextPromise = Promise.all([
+    admin
+      .from("users")
+      .select("id, user_type, department, student_number, admission_year, verification_requested_at")
+      .eq("id", verificationRequest.user_id)
+      .single(),
+    admin
+      .from("school_email_rules")
+      .select("id, school_id, domain, email_regex, priority, is_active")
+      .eq("school_id", verificationRequest.school_id)
+      .eq("is_active", true)
+      .order("priority", { ascending: true }),
+    admin
+      .from("school_student_rules")
+      .select("id, school_id, student_id_regex, admission_year_regex, admission_year_min, admission_year_max, expected_student_number_length, score_email_domain, score_email_regex, score_student_id, score_admission_year, score_department, is_active")
+      .eq("school_id", verificationRequest.school_id)
+      .maybeSingle(),
+    admin
+      .from("school_departments")
+      .select("id, school_id, name, aliases, is_active")
+      .eq("school_id", verificationRequest.school_id)
+      .eq("is_active", true),
+    admin
+      .from("student_verifications")
+      .select("id")
+      .eq("request_id", verificationRequest.id)
+      .maybeSingle(),
+  ]);
 
   const authClient = createClient(
     publicEnv.NEXT_PUBLIC_SUPABASE_URL,
@@ -142,34 +172,7 @@ export async function GET(request: Request) {
     { data: studentRule, error: studentRuleError },
     { data: departments, error: departmentError },
     { data: verificationRow, error: verificationRowError },
-  ] = await Promise.all([
-    admin
-      .from("users")
-      .select("id, user_type, department, student_number, admission_year, verification_requested_at")
-      .eq("id", verificationRequest.user_id)
-      .single(),
-    admin
-      .from("school_email_rules")
-      .select("id, school_id, domain, email_regex, priority, is_active")
-      .eq("school_id", verificationRequest.school_id)
-      .eq("is_active", true)
-      .order("priority", { ascending: true }),
-    admin
-      .from("school_student_rules")
-      .select("id, school_id, student_id_regex, admission_year_regex, admission_year_min, admission_year_max, expected_student_number_length, score_email_domain, score_email_regex, score_student_id, score_admission_year, score_department, is_active")
-      .eq("school_id", verificationRequest.school_id)
-      .maybeSingle(),
-    admin
-      .from("school_departments")
-      .select("id, school_id, name, aliases, is_active")
-      .eq("school_id", verificationRequest.school_id)
-      .eq("is_active", true),
-    admin
-      .from("student_verifications")
-      .select("id")
-      .eq("request_id", verificationRequest.id)
-      .maybeSingle(),
-  ]);
+  ] = await verificationContextPromise;
 
   if (userProfileError || !userProfile || emailRuleError || studentRuleError || departmentError || verificationRowError) {
     return NextResponse.redirect(
@@ -301,7 +304,9 @@ export async function GET(request: Request) {
   }
 
   if (verificationUserId && verificationUserId !== verificationRequest.user_id) {
-    await admin.auth.admin.deleteUser(verificationUserId).catch(() => null);
+    after(async () => {
+      await admin.auth.admin.deleteUser(verificationUserId).catch(() => null);
+    });
   }
 
   if (evaluation.state === "student_verified") {

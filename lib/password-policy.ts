@@ -1,7 +1,7 @@
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
 
 const SPECIAL_CHARACTER_PATTERN = /[^A-Za-z0-9]/;
-const BASE_MIN_LENGTH = 4;
+const BASE_MIN_LENGTH = 6;
 
 function normalizeEmail(value?: string | null) {
   return value?.trim().toLowerCase() ?? "";

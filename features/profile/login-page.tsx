@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Chrome, Fingerprint, Mail } from "lucide-react";
+import { Fingerprint, Mail } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
 import {
-  AUTH_PENDING_BIRTH_DATE_STORAGE_KEY,
   AUTH_SAVED_EMAIL_STORAGE_KEY,
   getKeepLoggedInPreference,
   setKeepLoggedInPreference,
@@ -23,11 +22,9 @@ import {
 import { getRememberedReferralCode } from "@/lib/referral-code";
 import {
   getAuthFlowHref,
-  isGoogleSignInEnabled,
   isSupabaseEnabled,
   requestPasswordReset,
   resetClientAuthRuntime,
-  signInWithGoogle,
   signInWithSupabase,
   signUpWithSupabase,
 } from "@/lib/supabase/app-data";
@@ -54,7 +51,7 @@ import type { AppRuntimeSnapshot } from "@/types";
 
 const authSchema = z.object({
   email: z.string().email("이메일 형식이 필요합니다."),
-  password: z.string().min(4, "비밀번호를 4자 이상 입력해주세요."),
+  password: z.string().min(6, "비밀번호를 6자 이상 입력해주세요."),
   confirmPassword: z.string().optional(),
   birthDate: z.string().optional(),
 });
@@ -143,7 +140,6 @@ export function LoginPage({
     marketingEmail: false,
     marketingSms: false,
   });
-  const googleSignInEnabled = isGoogleSignInEnabled();
   const showTestAccounts = shouldShowTestAccounts();
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(authSchema),
@@ -461,61 +457,6 @@ export function LoginPage({
               {quickLoginEmail} 계정으로 바로 로그인할 수 있습니다.
             </p>
           ) : null}
-          {googleSignInEnabled && !adminOnlyFlow ? (
-            <>
-              <Button
-                type="button"
-                className="w-full"
-                onClick={async () => {
-                  setErrorMessage("");
-                  setSuccessMessage("");
-
-                  if (!isSupabaseEnabled()) {
-                    router.push("/home");
-                    return;
-                  }
-
-                  if (mode === "signup" && !requiredSignupConsentsComplete) {
-                    setErrorMessage("필수 약관 동의와 생년월일 확인이 필요합니다.");
-                    if (!watchedBirthDate?.trim()) {
-                      form.setError("birthDate", {
-                        message: "생년월일을 입력해주세요.",
-                      });
-                    } else if (!isAtLeastFourteen(watchedBirthDate)) {
-                      form.setError("birthDate", {
-                        message: "만 14세 이상만 가입할 수 있습니다.",
-                      });
-                    }
-                    return;
-                  }
-
-                  if (typeof window !== "undefined" && watchedBirthDate?.trim()) {
-                    window.sessionStorage.setItem(
-                      AUTH_PENDING_BIRTH_DATE_STORAGE_KEY,
-                      watchedBirthDate.trim(),
-                    );
-                  }
-
-                  setSupabaseSessionPersistence(keepLoggedIn);
-                  setKeepLoggedInPreference(keepLoggedIn);
-                  setPending(true);
-                  const result = await signInWithGoogle(nextPath);
-                  if (result.error) {
-                    setErrorMessage(result.error.message);
-                    setPending(false);
-                  }
-                }}
-              >
-                <Chrome className="h-4 w-4" />
-                {mode === "login" ? "구글로 로그인" : "구글로 회원가입"}
-              </Button>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <div className="h-px flex-1 bg-border" />
-                <span>또는 이메일로</span>
-                <div className="h-px flex-1 bg-border" />
-              </div>
-            </>
-          ) : null}
           {!adminOnlyFlow ? (
             <div className="grid grid-cols-2 gap-2 rounded-[22px] bg-secondary/70 p-1">
               <button
@@ -828,9 +769,6 @@ export function LoginPage({
             <div className="space-y-2 rounded-[24px] bg-secondary/70 p-4 text-sm">
               <p className="font-semibold">테스트 계정</p>
               <p>기본 계정: `jiyoon@konkuk.ac.kr` / `univers123`</p>
-              {googleSignInEnabled ? (
-                <p>구글 로그인은 계정 생성용이며, 대학생 권한은 학교 메일 인증 후 열립니다.</p>
-              ) : null}
               <p>로그인 후 학교와 이용 유형을 선택할 수 있습니다.</p>
             </div>
           ) : null}

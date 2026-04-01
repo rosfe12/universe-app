@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
@@ -696,16 +696,6 @@ export async function POST(request: Request) {
 
   const origin = resolveAuthSiteUrl(new URL(request.url).origin);
 
-  const existingVerificationAuthUserId = await findVerificationAuthUserIdByEmail(
-    admin,
-    normalizedSchoolEmail,
-    authUser.id,
-  );
-
-  if (existingVerificationAuthUserId) {
-    await admin.auth.admin.deleteUser(existingVerificationAuthUserId).catch(() => null);
-  }
-
   if (hasAppSmtpConfig()) {
     const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
       type: "signup",
@@ -838,28 +828,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const verificationUserId = await findVerificationAuthUserIdByEmail(
-    admin,
-    normalizedSchoolEmail,
-    authUser.id,
-  );
+  after(async () => {
+    const verificationUserId = await findVerificationAuthUserIdByEmail(
+      admin,
+      normalizedSchoolEmail,
+      authUser.id,
+    ).catch(() => null);
 
-  if (verificationUserId) {
     await updateDeliveryState(admin, verificationRequestId, {
       deliveryMethod: "supabase_auth",
       deliveryStatus: "sent",
       deliveryError: null,
       deliveredAt: new Date().toISOString(),
       verificationUserId,
-    });
-  } else {
-    await updateDeliveryState(admin, verificationRequestId, {
-      deliveryMethod: "supabase_auth",
-      deliveryStatus: "sent",
-      deliveryError: null,
-      deliveredAt: new Date().toISOString(),
-    });
-  }
+    }).catch(() => null);
+  });
 
   return NextResponse.json({ ok: true, pending: true, deliveryMode: "supabase_auth" });
   } catch (error) {

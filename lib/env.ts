@@ -6,7 +6,6 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   NEXT_PUBLIC_AUTH_SITE_URL: z.string().url().optional(),
   NEXT_PUBLIC_KAKAO_JS_KEY: z.string().optional(),
-  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z.string().optional(),
   NEXT_PUBLIC_NATIVE_PUSH_ENABLED: z.string().optional(),
   NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: z.string().optional(),
   NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().optional(),
@@ -39,7 +38,6 @@ export const publicEnv = publicEnvSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_AUTH_SITE_URL: process.env.NEXT_PUBLIC_AUTH_SITE_URL,
   NEXT_PUBLIC_KAKAO_JS_KEY: process.env.NEXT_PUBLIC_KAKAO_JS_KEY,
-  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
   NEXT_PUBLIC_NATIVE_PUSH_ENABLED: process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED,
   NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: process.env.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS,
   NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
@@ -52,7 +50,6 @@ export const serverEnv = serverEnvSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_AUTH_SITE_URL: process.env.NEXT_PUBLIC_AUTH_SITE_URL,
   NEXT_PUBLIC_KAKAO_JS_KEY: process.env.NEXT_PUBLIC_KAKAO_JS_KEY,
-  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
   NEXT_PUBLIC_NATIVE_PUSH_ENABLED: process.env.NEXT_PUBLIC_NATIVE_PUSH_ENABLED,
   NEXT_PUBLIC_SHOW_TEST_ACCOUNTS: process.env.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS,
   NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
@@ -139,10 +136,6 @@ function parseOptionalFlag(value?: string | null) {
   }
 
   return parseFlag(value);
-}
-
-export function isGoogleAuthEnabled() {
-  return parseFlag(publicEnv.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED);
 }
 
 export function isNativePushEnabled() {

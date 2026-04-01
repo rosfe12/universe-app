@@ -5,7 +5,6 @@ import type {
   User as SupabaseAuthUser,
 } from "@supabase/supabase-js";
 
-import { schools as mockSchools } from "@/data/mock";
 import {
   clearSupabaseSessionStorage,
   createClient,
@@ -22,7 +21,6 @@ import { guestUser } from "@/lib/runtime-state";
 import { getPasswordPolicyError } from "@/lib/password-policy";
 import {
   hasPublicSupabaseEnv,
-  isGoogleAuthEnabled,
   resolveAppUrl,
 } from "@/lib/env";
 import { PROFILE_IMAGE_BUCKET } from "@/lib/community-profile";
@@ -451,15 +449,6 @@ const DATING_PROFILE_LIMIT = 20;
 const MEDIA_ASSET_LIMIT = 12;
 const SCHOOL_CACHE_TTL_MS = 5 * 60 * 1000;
 
-const initialSchoolRows = [...mockSchools]
-  .sort((left, right) => left.name.localeCompare(right.name, "ko"))
-  .map((school) => ({
-    id: school.id,
-    name: school.name,
-    domain: school.domain,
-    city: school.city,
-  }));
-
 function asRecordRows(value: unknown) {
   return (value ?? []) as unknown as Record<string, unknown>[];
 }
@@ -481,10 +470,7 @@ const COMMUNITY_POST_SUBCATEGORIES = [
   "hot",
 ];
 const DATING_POST_SUBCATEGORIES = ["dating", "meeting"] as const;
-let cachedSchoolRows: { data: Record<string, unknown>[]; at: number } | null = {
-  data: initialSchoolRows,
-  at: Date.now(),
-};
+let cachedSchoolRows: { data: Record<string, unknown>[]; at: number } | null = null;
 let schoolRowsInFlight:
   | Promise<{ data: Record<string, unknown>[] | null; error: PostgrestError | null }>
   | null = null;
@@ -1775,25 +1761,6 @@ export async function loadClientRuntimeSnapshot(options?: {
 export async function signInWithSupabase(email: string, password: string) {
   const supabase = createClient();
   return supabase.auth.signInWithPassword({ email, password });
-}
-
-export async function signInWithGoogle(nextPath = "/home") {
-  const supabase = createClient();
-  const redirectTo =
-    typeof window === "undefined"
-      ? undefined
-      : `${resolveAppUrl(window.location.origin)}/login?next=${encodeURIComponent(nextPath)}`;
-
-  return supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo,
-    },
-  });
-}
-
-export function isGoogleSignInEnabled() {
-  return isGoogleAuthEnabled();
 }
 
 export async function signUpWithSupabase({
