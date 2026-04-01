@@ -16,9 +16,18 @@ async function waitForBootSplashReady() {
   }
 
   const startedAt = Date.now();
-  while (Date.now() - startedAt < 3000) {
+  while (Date.now() - startedAt < 8000) {
     const bootSplash = document.getElementById("app-boot-splash");
-    if (bootSplash) {
+    if (
+      bootSplash &&
+      bootSplash.getBoundingClientRect().height > 0 &&
+      window.getComputedStyle(bootSplash).display !== "none"
+    ) {
+      await waitForNextPaint();
+      return;
+    }
+
+    if (document.readyState === "complete") {
       await waitForNextPaint();
       return;
     }

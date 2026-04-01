@@ -35,37 +35,6 @@ const serviceWorkerRegisterScript = `
 })();
 `;
 
-const bootSplashBypassScript = `
-(() => {
-  const pathname = window.location.pathname || "/";
-  const shouldSkipSplash =
-    pathname === "/" ||
-    pathname === "/home" ||
-    pathname.startsWith("/home/") ||
-    pathname === "/community" ||
-    pathname.startsWith("/community/") ||
-    pathname === "/school" ||
-    pathname.startsWith("/school/") ||
-    pathname === "/trade" ||
-    pathname.startsWith("/trade/") ||
-    pathname === "/notifications" ||
-    pathname.startsWith("/notifications/") ||
-    pathname === "/messages" ||
-    pathname.startsWith("/messages/") ||
-    pathname === "/dating" ||
-    pathname.startsWith("/dating/") ||
-    pathname === "/lectures" ||
-    pathname.startsWith("/lectures/") ||
-    pathname === "/profile" ||
-    pathname.startsWith("/profile/");
-
-  if (!shouldSkipSplash) {
-    return;
-  }
-  document.documentElement.dataset.skipBootSplash = "true";
-})();
-`;
-
 export const metadata: Metadata = {
   applicationName: "CAMVERSE",
   title: "CAMVERSE",
@@ -120,17 +89,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-        <style>{`
-          html[data-skip-boot-splash="true"] #app-boot-splash {
-            display: none !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-          }
-        `}</style>
       </head>
       <body>
         <LaunchScreen id="app-boot-splash" fixed />
-        <script dangerouslySetInnerHTML={{ __html: bootSplashBypassScript }} />
         <Script id="theme-boot" strategy="beforeInteractive">
           {themeBootScript}
         </Script>

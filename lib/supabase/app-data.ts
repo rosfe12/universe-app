@@ -5,6 +5,7 @@ import type {
   User as SupabaseAuthUser,
 } from "@supabase/supabase-js";
 
+import { schools as mockSchools } from "@/data/mock";
 import {
   clearSupabaseSessionStorage,
   createClient,
@@ -422,7 +423,7 @@ type RuntimeQueryContext = {
 };
 
 const EMPTY_RESULT = Promise.resolve({ data: [], error: null });
-const HOME_POST_LIMIT = 18;
+const HOME_POST_LIMIT = 12;
 const SEARCH_POST_LIMIT = 48;
 const COMMUNITY_POST_LIMIT = 40;
 const ADMISSION_POST_LIMIT = 36;
@@ -433,11 +434,13 @@ const NOTIFICATION_POST_LIMIT = 16;
 const FULL_POST_LIMIT = 120;
 const COMMENT_LIMIT = 64;
 const PROFILE_COMMENT_LIMIT = 48;
+const HOME_LECTURE_LIMIT = 6;
 const SCHOOL_LECTURE_LIMIT = 16;
 const NOTIFICATION_LECTURE_LIMIT = 8;
 const FULL_LECTURE_LIMIT = 64;
 const LECTURE_REVIEW_LIMIT = 48;
 const PROFILE_LECTURE_REVIEW_LIMIT = 48;
+const HOME_TRADE_LIMIT = 6;
 const SCHOOL_TRADE_LIMIT = 12;
 const PROFILE_TRADE_LIMIT = 16;
 const FULL_TRADE_LIMIT = 48;
@@ -447,6 +450,15 @@ const BLOCK_LIMIT = 60;
 const DATING_PROFILE_LIMIT = 20;
 const MEDIA_ASSET_LIMIT = 12;
 const SCHOOL_CACHE_TTL_MS = 5 * 60 * 1000;
+
+const initialSchoolRows = [...mockSchools]
+  .sort((left, right) => left.name.localeCompare(right.name, "ko"))
+  .map((school) => ({
+    id: school.id,
+    name: school.name,
+    domain: school.domain,
+    city: school.city,
+  }));
 
 function asRecordRows(value: unknown) {
   return (value ?? []) as unknown as Record<string, unknown>[];
@@ -469,7 +481,10 @@ const COMMUNITY_POST_SUBCATEGORIES = [
   "hot",
 ];
 const DATING_POST_SUBCATEGORIES = ["dating", "meeting"] as const;
-let cachedSchoolRows: { data: Record<string, unknown>[]; at: number } | null = null;
+let cachedSchoolRows: { data: Record<string, unknown>[]; at: number } | null = {
+  data: initialSchoolRows,
+  at: Date.now(),
+};
 let schoolRowsInFlight:
   | Promise<{ data: Record<string, unknown>[] | null; error: PostgrestError | null }>
   | null = null;
@@ -570,6 +585,7 @@ function buildLectureQuery(
 
   switch (context.scope) {
     case "home":
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(HOME_LECTURE_LIMIT) : EMPTY_RESULT;
     case "search":
     case "school":
     case "lectures":
@@ -610,6 +626,7 @@ function buildTradePostsQuery(
 
   switch (context.scope) {
     case "home":
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(HOME_TRADE_LIMIT) : EMPTY_RESULT;
     case "school":
     case "lectures":
     case "trade":
