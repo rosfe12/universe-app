@@ -438,6 +438,12 @@ export function CommunityPage({
   }, [canViewSchoolScope, feedScope]);
 
   useEffect(() => {
+    if (feedScope === "hot" && activeFilter === "hot") {
+      setActiveFilter("all");
+    }
+  }, [activeFilter, feedScope]);
+
+  useEffect(() => {
     if (recoveredEmptyGuestFeedRef.current) {
       return;
     }
@@ -571,9 +577,10 @@ export function CommunityPage({
   }
 
   const filteredItems = useMemo(() => {
+    if (feedScope === "hot" && activeFilter === "hot") return feedItems;
     if (activeFilter === "all") return feedItems;
     return feedItems.filter((post) => getFilterForPost(post) === activeFilter);
-  }, [activeFilter, feedItems]);
+  }, [activeFilter, feedItems, feedScope]);
   const sortedItems = useMemo(() => {
     const items = [...filteredItems];
     if (sortMode === "latest") {
@@ -648,8 +655,19 @@ export function CommunityPage({
   const canCompose =
     activeFilter === "career" ? canComposeCareer : canComposeCommunity;
   const availableFilters = useMemo(
-    () => FILTERS.filter((filter) => filter.value !== "anonymous" || canAccessAnonymousBoard),
-    [canAccessAnonymousBoard],
+    () =>
+      FILTERS.filter((filter) => {
+        if (filter.value === "anonymous" && !canAccessAnonymousBoard) {
+          return false;
+        }
+
+        if (feedScope === "hot" && filter.value === "hot") {
+          return false;
+        }
+
+        return true;
+      }),
+    [canAccessAnonymousBoard, feedScope],
   );
 
   const form = useForm<CommunityFormValues>({

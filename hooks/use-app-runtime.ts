@@ -35,17 +35,31 @@ export function useAppRuntime(
     : peekClientRuntimeSnapshot(scope);
   const seedSnapshot = scopedSnapshot ?? initialSnapshot ?? getRuntimeSnapshot();
   const mountedAtRef = useRef(typeof performance !== "undefined" ? performance.now() : Date.now());
-  const [snapshot, setSnapshotState] = useState<AppRuntimeSnapshot>(() => seedSnapshot);
+  const [snapshot, setSnapshotState] = useState<AppRuntimeSnapshot>(() => {
+    if (shouldSyncGlobalSnapshot) {
+      setRuntimeSnapshot(seedSnapshot);
+    }
+    return seedSnapshot;
+  });
   const [loading, setLoading] = useState(
     (!initialSnapshot && !scopedSnapshot) || Boolean(initialSnapshot && !initialSnapshotMatchesScope),
   );
   const setSnapshot = useCallback((nextValue: SetStateAction<AppRuntimeSnapshot>) => {
     setSnapshotState((currentSnapshot) =>
-      typeof nextValue === "function"
-        ? (nextValue as (snapshot: AppRuntimeSnapshot) => AppRuntimeSnapshot)(currentSnapshot)
-        : nextValue,
+      {
+        const resolvedSnapshot =
+          typeof nextValue === "function"
+            ? (nextValue as (snapshot: AppRuntimeSnapshot) => AppRuntimeSnapshot)(currentSnapshot)
+            : nextValue;
+
+        if (shouldSyncGlobalSnapshot) {
+          setRuntimeSnapshot(resolvedSnapshot);
+        }
+
+        return resolvedSnapshot;
+      },
     );
-  }, []);
+  }, [shouldSyncGlobalSnapshot]);
   const refresh = useCallback(async () => {
     const nextSnapshot = await loadClientRuntimeSnapshot({ force: true, scope });
     setSnapshot(nextSnapshot);
@@ -53,22 +67,14 @@ export function useAppRuntime(
   }, [scope, setSnapshot]);
 
   useEffect(() => {
-    if (!shouldSyncGlobalSnapshot) {
-      return;
-    }
-
-    setRuntimeSnapshot(snapshot);
-  }, [shouldSyncGlobalSnapshot, snapshot]);
-
-  useEffect(() => {
     if (!initialSnapshot) {
       return;
     }
 
-    setSnapshotState((currentSnapshot) =>
+    setSnapshot((currentSnapshot) =>
       currentSnapshot === initialSnapshot ? currentSnapshot : initialSnapshot,
     );
-  }, [initialSnapshot]);
+  }, [initialSnapshot, setSnapshot]);
 
   useEffect(() => {
     if (loading) {

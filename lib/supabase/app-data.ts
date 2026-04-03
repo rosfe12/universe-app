@@ -621,7 +621,7 @@ function buildTradePostsQuery(
     case "profile":
       return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_TRADE_LIMIT) : EMPTY_RESULT;
     case "messages":
-      return context.userId ? base.eq("author_id", context.userId).limit(PROFILE_TRADE_LIMIT) : EMPTY_RESULT;
+      return context.schoolId ? base.eq("school_id", context.schoolId).limit(SCHOOL_TRADE_LIMIT) : EMPTY_RESULT;
     case "admin":
     case "full":
     default:
@@ -1123,12 +1123,52 @@ function toNotificationCategory(
   return "activity";
 }
 
+const LEGACY_NOTIFICATION_NORMALIZERS: Record<
+  string,
+  Partial<Pick<Notification, "href" | "targetType" | "targetId">> & {
+    metadata?: Record<string, unknown>;
+  }
+> = {
+  "81111111-1111-4111-8111-111111111501": {
+    targetType: "post",
+    targetId: "41111111-1111-4111-8111-111111111101",
+    metadata: { postId: "41111111-1111-4111-8111-111111111101" },
+  },
+  "81111111-1111-4111-8111-111111111502": {
+    targetType: "comment",
+    metadata: { postId: "41111111-1111-4111-8111-111111111161" },
+  },
+  "81111111-1111-4111-8111-111111111503": {
+    targetType: "trade",
+    targetId: "71111111-1111-4111-8111-111111111405",
+    metadata: { tradePostId: "71111111-1111-4111-8111-111111111405" },
+  },
+  "81111111-1111-4111-8111-111111111504": {
+    targetType: "post",
+    targetId: "41111111-1111-4111-8111-111111111103",
+    metadata: { postId: "41111111-1111-4111-8111-111111111103" },
+  },
+  "81111111-1111-4111-8111-111111111505": {
+    targetType: "lecture",
+    targetId: "31111111-1111-4111-8111-111111111114",
+  },
+};
+
 function mapNotificationRow(row: Record<string, unknown>): Notification {
   const type = toNotificationType(row.type as string | null | undefined);
   const sourceKind =
     row.source_kind === "recommendation" || row.source_kind === "system"
       ? row.source_kind
       : "activity";
+  const legacyPatch = LEGACY_NOTIFICATION_NORMALIZERS[String(row.id)] ?? undefined;
+  const baseMetadata =
+    row.metadata && typeof row.metadata === "object"
+      ? (row.metadata as Record<string, unknown>)
+      : undefined;
+  const metadata = legacyPatch?.metadata
+    ? { ...legacyPatch.metadata, ...baseMetadata }
+    : baseMetadata;
+
   return {
     id: String(row.id),
     userId: String(row.user_id),
@@ -1140,13 +1180,12 @@ function mapNotificationRow(row: Record<string, unknown>): Notification {
     body: String(row.body),
     isRead: Boolean(row.is_read),
     readAt: row.read_at ? String(row.read_at) : undefined,
-    href: row.href ? String(row.href) : undefined,
-    targetType: row.target_type ? String(row.target_type) as Notification["targetType"] : undefined,
-    targetId: row.target_id ? String(row.target_id) : undefined,
-    metadata:
-      row.metadata && typeof row.metadata === "object"
-        ? (row.metadata as Record<string, unknown>)
-        : undefined,
+    href: legacyPatch?.href ?? (row.href ? String(row.href) : undefined),
+    targetType:
+      legacyPatch?.targetType ??
+      (row.target_type ? String(row.target_type) as Notification["targetType"] : undefined),
+    targetId: legacyPatch?.targetId ?? (row.target_id ? String(row.target_id) : undefined),
+    metadata,
     recommended:
       sourceKind === "recommendation" ||
       Boolean((row.metadata as { recommended?: boolean } | null)?.recommended),

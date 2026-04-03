@@ -86,9 +86,10 @@ export async function POST(request: Request) {
     const { data: optionRows, error: optionsError } = await admin
       .from("poll_options")
       .insert(
-        payload.options.map((option) => ({
+        payload.options.map((option, index) => ({
           poll_id: String(pollRow.id),
           option_text: option,
+          position: index + 1,
         })),
       )
       .select("id, option_text, vote_count");

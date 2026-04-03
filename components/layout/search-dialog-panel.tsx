@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useAppRuntime } from "@/hooks/use-app-runtime";
-import { getPostHref } from "@/lib/mock-queries";
+import { buildPostHref } from "@/lib/post-links";
 import { peekClientRuntimeSnapshot } from "@/lib/supabase/app-data";
 import type { AppRuntimeSnapshot } from "@/types";
 
@@ -73,7 +73,7 @@ export function SearchDialogPanel({
           id: post.id,
           title: post.title,
           meta,
-          href: getPostHref(post.id),
+          href: buildPostHref(post),
           score: getSearchScore({
             title: post.title,
             body: post.content,
@@ -138,7 +138,7 @@ export function SearchDialogPanel({
               : post.category === "dating"
                 ? "연애/미팅"
                 : "커뮤니티",
-        href: getPostHref(post.id),
+        href: buildPostHref(post),
       }));
   }, [lectures, posts, query]);
 

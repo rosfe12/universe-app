@@ -168,6 +168,29 @@ function getNotificationTradeId(item: Notification) {
   return getNotificationMetadataValue(item, "tradePostId");
 }
 
+function withNotificationPostParam(href: string, postId: string) {
+  try {
+    const url = new URL(href, "https://camverse.local");
+    if (url.searchParams.get("post") === postId) {
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+
+    if (
+      url.pathname.startsWith("/community") ||
+      url.pathname.startsWith("/school") ||
+      url.pathname.startsWith("/dating") ||
+      url.pathname.startsWith("/posts/")
+    ) {
+      url.searchParams.set("post", postId);
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+  } catch {
+    return href;
+  }
+
+  return href;
+}
+
 function getNotificationHref(item: Notification) {
   const postId = getNotificationPostId(item);
   const tradeId = getNotificationTradeId(item);
@@ -182,6 +205,9 @@ function getNotificationHref(item: Notification) {
     item.type === "freshmanTrending"
   ) {
     if (postId) {
+      if (item.href) {
+        return withNotificationPostParam(item.href, postId);
+      }
       return getPostHref(postId);
     }
   }

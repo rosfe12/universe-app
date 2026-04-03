@@ -754,6 +754,25 @@ create table if not exists public.trade_messages (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.direct_message_threads (
+  id uuid primary key default gen_random_uuid(),
+  user_a_id uuid not null references public.users(id) on delete cascade,
+  user_b_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now()),
+  last_message_at timestamptz not null default timezone('utc', now()),
+  constraint direct_message_threads_users_different_check check (user_a_id <> user_b_id)
+);
+
+create table if not exists public.direct_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.direct_message_threads(id) on delete cascade,
+  sender_id uuid not null references public.users(id) on delete cascade,
+  content text not null,
+  created_at timestamptz not null default timezone('utc', now()),
+  read_at timestamptz
+);
+
 create table if not exists public.trade_chat_participants (
   id uuid primary key default gen_random_uuid(),
   trade_post_id uuid not null references public.trade_posts(id) on delete cascade,
@@ -1022,6 +1041,18 @@ create index if not exists idx_lecture_reviews_author_created_at on public.lectu
 create index if not exists idx_trade_posts_school_status on public.trade_posts (school_id, status);
 create index if not exists idx_trade_posts_author_created_at on public.trade_posts (author_id, created_at desc);
 create index if not exists idx_trade_messages_trade_post_created_at on public.trade_messages (trade_post_id, created_at desc);
+create unique index if not exists idx_direct_message_threads_user_pair
+  on public.direct_message_threads (least(user_a_id, user_b_id), greatest(user_a_id, user_b_id));
+create index if not exists idx_direct_message_threads_user_a_last_message_at
+  on public.direct_message_threads (user_a_id, last_message_at desc);
+create index if not exists idx_direct_message_threads_user_b_last_message_at
+  on public.direct_message_threads (user_b_id, last_message_at desc);
+create index if not exists idx_direct_messages_thread_created_at
+  on public.direct_messages (thread_id, created_at desc);
+create index if not exists idx_direct_messages_sender_created_at
+  on public.direct_messages (sender_id, created_at desc);
+create index if not exists idx_direct_messages_thread_unread
+  on public.direct_messages (thread_id, read_at, created_at desc);
 create index if not exists idx_trade_chat_participants_post_status on public.trade_chat_participants (trade_post_id, status, created_at desc);
 create index if not exists idx_trade_chat_participants_user_created_at on public.trade_chat_participants (user_id, created_at desc);
 create index if not exists idx_polls_post_id on public.polls (post_id);
@@ -1978,6 +2009,8 @@ alter table public.lectures enable row level security;
 alter table public.lecture_reviews enable row level security;
 alter table public.trade_posts enable row level security;
 alter table public.trade_messages enable row level security;
+alter table public.direct_message_threads enable row level security;
+alter table public.direct_messages enable row level security;
 alter table public.trade_chat_participants enable row level security;
 alter table public.polls enable row level security;
 alter table public.poll_options enable row level security;
@@ -2552,6 +2585,98 @@ with check (
           and trade_post.school_id = public.current_user_school_id()
       )
     )
+  )
+);
+
+drop policy if exists "direct_message_threads participant read" on public.direct_message_threads;
+create policy "direct_message_threads participant read"
+on public.direct_message_threads
+for select
+to authenticated
+using (
+  auth.uid() = user_a_id
+  or auth.uid() = user_b_id
+  or public.is_admin()
+);
+
+drop policy if exists "direct_message_threads participant insert" on public.direct_message_threads;
+create policy "direct_message_threads participant insert"
+on public.direct_message_threads
+for insert
+to authenticated
+with check (
+  public.is_admin()
+  or auth.uid() = user_a_id
+  or auth.uid() = user_b_id
+);
+
+drop policy if exists "direct_message_threads participant update" on public.direct_message_threads;
+create policy "direct_message_threads participant update"
+on public.direct_message_threads
+for update
+to authenticated
+using (
+  public.is_admin()
+  or auth.uid() = user_a_id
+  or auth.uid() = user_b_id
+)
+with check (
+  public.is_admin()
+  or auth.uid() = user_a_id
+  or auth.uid() = user_b_id
+);
+
+drop policy if exists "direct_messages participant read" on public.direct_messages;
+create policy "direct_messages participant read"
+on public.direct_messages
+for select
+to authenticated
+using (
+  public.is_admin()
+  or exists (
+    select 1
+    from public.direct_message_threads thread
+    where thread.id = direct_messages.thread_id
+      and (auth.uid() = thread.user_a_id or auth.uid() = thread.user_b_id)
+  )
+);
+
+drop policy if exists "direct_messages sender insert" on public.direct_messages;
+create policy "direct_messages sender insert"
+on public.direct_messages
+for insert
+to authenticated
+with check (
+  (public.is_admin() or auth.uid() = sender_id)
+  and exists (
+    select 1
+    from public.direct_message_threads thread
+    where thread.id = direct_messages.thread_id
+      and (sender_id = thread.user_a_id or sender_id = thread.user_b_id)
+  )
+);
+
+drop policy if exists "direct_messages participant update" on public.direct_messages;
+create policy "direct_messages participant update"
+on public.direct_messages
+for update
+to authenticated
+using (
+  public.is_admin()
+  or exists (
+    select 1
+    from public.direct_message_threads thread
+    where thread.id = direct_messages.thread_id
+      and (auth.uid() = thread.user_a_id or auth.uid() = thread.user_b_id)
+  )
+)
+with check (
+  public.is_admin()
+  or exists (
+    select 1
+    from public.direct_message_threads thread
+    where thread.id = direct_messages.thread_id
+      and (auth.uid() = thread.user_a_id or auth.uid() = thread.user_b_id)
   )
 );
 

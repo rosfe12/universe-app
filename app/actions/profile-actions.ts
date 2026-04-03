@@ -59,6 +59,8 @@ type CurrentProfileUserRow = {
   department: string | null;
   admission_year: number | null;
   verification_state: VerificationState | null;
+  student_verification_status: string | null;
+  verified: boolean;
   nickname: string | null;
   name: string | null;
 };
@@ -111,7 +113,9 @@ async function requireAuthenticatedProfileUser() {
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
-    .select("id, email, school_id, department, admission_year, verification_state, nickname, name")
+    .select(
+      "id, email, school_id, department, admission_year, verification_state, student_verification_status, verified, nickname, name",
+    )
     .eq("id", user.id)
     .single();
 
@@ -127,11 +131,16 @@ async function requireAuthenticatedProfileUser() {
 }
 
 function requireVerifiedProfileFeature(
-  user: Pick<CurrentProfileUserRow, "verification_state" | "email">,
+  user: Pick<
+    CurrentProfileUserRow,
+    "verification_state" | "student_verification_status" | "verified" | "email"
+  >,
 ) {
   if (
     !canUseCommunityProfileFeature({
       verificationState: user.verification_state ?? undefined,
+      studentVerificationStatus: user.student_verification_status ?? undefined,
+      verified: user.verified,
       email: user.email ?? undefined,
     })
   ) {
@@ -165,7 +174,9 @@ async function getUserBaseRow(
 ) {
   const { data, error } = await admin
     .from("users")
-    .select("id, school_id, department, admission_year, verification_state, nickname, name")
+    .select(
+      "id, email, school_id, department, admission_year, verification_state, student_verification_status, verified, nickname, name",
+    )
     .eq("id", userId)
     .maybeSingle();
 
@@ -174,6 +185,22 @@ async function getUserBaseRow(
   }
 
   return (data ?? null) as CurrentProfileUserRow | null;
+}
+
+function toCommunityProfileAccessUser(
+  user: Pick<
+    CurrentProfileUserRow,
+    "id" | "email" | "school_id" | "verification_state" | "student_verification_status" | "verified"
+  >,
+) {
+  return {
+    id: user.id,
+    email: user.email ?? undefined,
+    schoolId: user.school_id ?? undefined,
+    verificationState: user.verification_state ?? undefined,
+    studentVerificationStatus: user.student_verification_status ?? undefined,
+    verified: Boolean(user.verified),
+  };
 }
 
 async function getProfileRow(
@@ -912,32 +939,20 @@ export async function getPrimaryProfileImage(targetUserId: string) {
   const blocked = await hasProfileBlock(admin, user.id, targetUser.id);
   if (
     !canReadCommunityProfile(
+      toCommunityProfileAccessUser(user),
       {
-        id: user.id,
-        schoolId: user.school_id ?? undefined,
-        verificationState: user.verification_state ?? undefined,
-      },
-      {
-        id: targetUser.id,
+        ...toCommunityProfileAccessUser(targetUser),
         profileVisibility: profile?.profile_visibility ?? "university_only",
-        schoolId: targetUser.school_id ?? undefined,
-        verificationState: targetUser.verification_state ?? undefined,
       },
       blocked,
     )
   ) {
     throw new Error(
       getCommunityProfileRestrictionMessage(
+        toCommunityProfileAccessUser(user),
         {
-          id: user.id,
-          schoolId: user.school_id ?? undefined,
-          verificationState: user.verification_state ?? undefined,
-        },
-        {
-          id: targetUser.id,
+          ...toCommunityProfileAccessUser(targetUser),
           profileVisibility: profile?.profile_visibility ?? "university_only",
-          schoolId: targetUser.school_id ?? undefined,
-          verificationState: targetUser.verification_state ?? undefined,
         },
         blocked,
       ) ?? COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
@@ -970,16 +985,10 @@ export async function getUserProfile(targetUserId: string) {
   const profile = await getProfileRow(admin, targetUser.id);
   const blocked = await hasProfileBlock(admin, user.id, targetUser.id);
   if (!canReadCommunityProfile(
+    toCommunityProfileAccessUser(user),
     {
-      id: user.id,
-      schoolId: user.school_id ?? undefined,
-      verificationState: user.verification_state ?? undefined,
-    },
-    {
-      id: targetUser.id,
+      ...toCommunityProfileAccessUser(targetUser),
       profileVisibility: profile?.profile_visibility ?? "university_only",
-      schoolId: targetUser.school_id ?? undefined,
-      verificationState: targetUser.verification_state ?? undefined,
     },
     blocked,
   )) {
@@ -987,16 +996,10 @@ export async function getUserProfile(targetUserId: string) {
       ok: false as const,
       error:
         getCommunityProfileRestrictionMessage(
+          toCommunityProfileAccessUser(user),
           {
-            id: user.id,
-            schoolId: user.school_id ?? undefined,
-            verificationState: user.verification_state ?? undefined,
-          },
-          {
-            id: targetUser.id,
+            ...toCommunityProfileAccessUser(targetUser),
             profileVisibility: profile?.profile_visibility ?? "university_only",
-            schoolId: targetUser.school_id ?? undefined,
-            verificationState: targetUser.verification_state ?? undefined,
           },
           blocked,
         ) ?? COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
@@ -1126,31 +1129,19 @@ export async function blockUser(targetUserId: string) {
   const profile = await getProfileRow(admin, targetUser.id);
   if (
     !canReadCommunityProfile(
+      toCommunityProfileAccessUser(user),
       {
-        id: user.id,
-        schoolId: user.school_id ?? undefined,
-        verificationState: user.verification_state ?? undefined,
-      },
-      {
-        id: targetUser.id,
+        ...toCommunityProfileAccessUser(targetUser),
         profileVisibility: profile?.profile_visibility ?? "university_only",
-        schoolId: targetUser.school_id ?? undefined,
-        verificationState: targetUser.verification_state ?? undefined,
       },
     )
   ) {
     throw new Error(
       getCommunityProfileRestrictionMessage(
+        toCommunityProfileAccessUser(user),
         {
-          id: user.id,
-          schoolId: user.school_id ?? undefined,
-          verificationState: user.verification_state ?? undefined,
-        },
-        {
-          id: targetUser.id,
+          ...toCommunityProfileAccessUser(targetUser),
           profileVisibility: profile?.profile_visibility ?? "university_only",
-          schoolId: targetUser.school_id ?? undefined,
-          verificationState: targetUser.verification_state ?? undefined,
         },
       ) ?? COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
     );
@@ -1224,31 +1215,19 @@ export async function reportProfile(
   const profile = await getProfileRow(admin, targetUser.id);
   if (
     !canReadCommunityProfile(
+      toCommunityProfileAccessUser(user),
       {
-        id: user.id,
-        schoolId: user.school_id ?? undefined,
-        verificationState: user.verification_state ?? undefined,
-      },
-      {
-        id: targetUser.id,
+        ...toCommunityProfileAccessUser(targetUser),
         profileVisibility: profile?.profile_visibility ?? "university_only",
-        schoolId: targetUser.school_id ?? undefined,
-        verificationState: targetUser.verification_state ?? undefined,
       },
     )
   ) {
     throw new Error(
       getCommunityProfileRestrictionMessage(
+        toCommunityProfileAccessUser(user),
         {
-          id: user.id,
-          schoolId: user.school_id ?? undefined,
-          verificationState: user.verification_state ?? undefined,
-        },
-        {
-          id: targetUser.id,
+          ...toCommunityProfileAccessUser(targetUser),
           profileVisibility: profile?.profile_visibility ?? "university_only",
-          schoolId: targetUser.school_id ?? undefined,
-          verificationState: targetUser.verification_state ?? undefined,
         },
       ) ?? COMMUNITY_PROFILE_RESTRICTION_MESSAGE,
     );

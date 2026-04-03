@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { ChevronLeft, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -44,7 +44,8 @@ export function UserProfilePage({
   initialProfileError?: string;
 }) {
   const router = useRouter();
-  const { currentUser, isAuthenticated, loading } = useAppRuntime(initialSnapshot, "chrome");
+  const { currentUser, isAuthenticated, loading, refresh } = useAppRuntime(initialSnapshot, "profile");
+  const recoveryAttemptedRef = useRef(false);
   const [profile, setProfile] = useState<CommunityProfile | null>(initialProfile ?? null);
   const [profileLoading, setProfileLoading] = useState(!initialProfile && !initialProfileError);
   const [error, setError] = useState<string | null>(initialProfileError ?? null);
@@ -88,6 +89,20 @@ export function UserProfilePage({
 
     router.push("/home");
   }
+
+  useEffect(() => {
+    if (
+      loading ||
+      !isAuthenticated ||
+      canUseCommunityProfileFeature(currentUser) ||
+      recoveryAttemptedRef.current
+    ) {
+      return;
+    }
+
+    recoveryAttemptedRef.current = true;
+    void refresh();
+  }, [currentUser, isAuthenticated, loading, refresh]);
 
   useEffect(() => {
     if (!isAuthenticated || loading || !canUseCommunityProfileFeature(currentUser)) {
@@ -286,6 +301,9 @@ export function UserProfilePage({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  <Button asChild>
+                    <Link href={`/messages?compose=${userId}`}>쪽지 보내기</Link>
+                  </Button>
                   <Button type="button" variant="outline" onClick={() => setReportOpen(true)}>
                     신고
                   </Button>

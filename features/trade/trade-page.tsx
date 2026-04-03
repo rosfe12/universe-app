@@ -84,7 +84,7 @@ import {
   hasCompletedOnboarding,
 } from "@/lib/supabase/app-data";
 import { getStandardVisibilityLevel } from "@/lib/user-identity";
-import type { AppRuntimeSnapshot } from "@/types";
+import type { AppRuntimeSnapshot, TradePost } from "@/types";
 
 const tradeSchema = z.object({
   schoolId: z.string().min(1),
@@ -130,6 +130,22 @@ function getTradeItemsForViewer(schoolId: string | undefined, canViewAllSchools:
     : getSchoolScopedTradePosts(schoolId ?? "school-default");
 }
 
+function mergeTradeItems(primary: TradePost[], fallback: TradePost[]) {
+  const merged = new Map<string, TradePost>();
+
+  for (const item of fallback) {
+    merged.set(item.id, item);
+  }
+
+  for (const item of primary) {
+    merged.set(item.id, item);
+  }
+
+  return Array.from(merged.values()).sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  );
+}
+
 export function TradePage({
   initialSnapshot,
 }: {
@@ -153,11 +169,20 @@ export function TradePage({
   const currentUser = runtimeUser;
   const schoolId = currentUser.schoolId;
   const canViewAllTradePosts = isMasterAdminEmail(currentUser.email);
+  const fallbackTradeItems = useMemo(
+    () => getTradeItemsForViewer(schoolId, canViewAllTradePosts),
+    [canViewAllTradePosts, schoolId],
+  );
+  const runtimeTradeItems = useMemo(
+    () =>
+      source === "supabase"
+        ? mergeTradeItems(tradePosts, fallbackTradeItems)
+        : fallbackTradeItems,
+    [fallbackTradeItems, source, tradePosts],
+  );
   const [open, setOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [tradeItems, setTradeItems] = useState(
-    getTradeItemsForViewer(schoolId, canViewAllTradePosts),
-  );
+  const [tradeItems, setTradeItems] = useState(runtimeTradeItems);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tradeMessages, setTradeMessages] = useState<TradeMessage[]>([]);
   const [tradeParticipants, setTradeParticipants] = useState<TradeChatParticipant[]>([]);
@@ -198,8 +223,8 @@ export function TradePage({
   const showInitialLoading = loading && source === "mock";
 
   useEffect(() => {
-    setTradeItems(getTradeItemsForViewer(schoolId, canViewAllTradePosts));
-  }, [blocks, canViewAllTradePosts, reports, schoolId, tradePosts]);
+    setTradeItems(runtimeTradeItems);
+  }, [blocks, reports, runtimeTradeItems]);
 
   useEffect(() => {
     const queryPostId = searchParams.get("post");
@@ -281,8 +306,9 @@ export function TradePage({
 
   const detailItem =
     tradeItems.find((item) => item.id === detailId) ??
+    runtimeTradeItems.find((item) => item.id === detailId) ??
     (detailId && canViewAllTradePosts
-      ? getTradePosts().find((item) => item.id === detailId) ?? null
+      ? fallbackTradeItems.find((item) => item.id === detailId) ?? null
       : null);
   const chatHighlighted = searchParams.get("chat") === "1";
   const selectedHaveLecture = getLectureById(form.watch("haveLectureId"));

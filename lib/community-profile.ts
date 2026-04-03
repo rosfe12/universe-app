@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { isMasterAdminEmail } from "@/lib/admin/master-admin-shared";
-import type { ProfileVisibility, User, VerificationState } from "@/types";
+import type { ProfileVisibility, VerificationState } from "@/types";
 
 export const PROFILE_IMAGE_BUCKET = "profile-images";
 export const MAX_PROFILE_IMAGES = 3;
@@ -120,14 +120,44 @@ export function parseInterestTokens(input: string) {
 }
 
 export function canUseCommunityProfileFeature(
-  user?: { verificationState?: VerificationState; email?: string | null } | null,
+  user?: {
+    verificationState?: VerificationState;
+    studentVerificationStatus?: string | null;
+    verified?: boolean;
+    email?: string | null;
+  } | null,
 ): user is { verificationState?: VerificationState; email?: string | null } {
-  return user?.verificationState === "student_verified" || isMasterAdminEmail(user?.email);
+  return isVerifiedCommunityProfileUser(user);
 }
 
+function isVerifiedCommunityProfileUser(
+  user?: {
+    verificationState?: VerificationState;
+    studentVerificationStatus?: string | null;
+    verified?: boolean;
+    email?: string | null;
+  } | null,
+) {
+  return (
+    user?.verificationState === "student_verified" ||
+    user?.studentVerificationStatus === "verified" ||
+    Boolean(user?.verified) ||
+    isMasterAdminEmail(user?.email)
+  );
+}
+
+type CommunityProfileAccessUser = {
+  id: string;
+  schoolId?: string;
+  verificationState?: VerificationState;
+  studentVerificationStatus?: string | null;
+  verified?: boolean;
+  email?: string | null;
+};
+
 export function canReadCommunityProfile(
-  viewer: Pick<User, "id" | "schoolId" | "verificationState">,
-  target: Pick<User, "id" | "schoolId" | "verificationState"> & {
+  viewer: CommunityProfileAccessUser,
+  target: CommunityProfileAccessUser & {
     profileVisibility?: ProfileVisibility;
   },
   blocked = false,
@@ -141,8 +171,8 @@ export function canReadCommunityProfile(
   }
 
   return (
-    viewer.verificationState === "student_verified" &&
-    target.verificationState === "student_verified" &&
+    isVerifiedCommunityProfileUser(viewer) &&
+    isVerifiedCommunityProfileUser(target) &&
     (
       (target.profileVisibility ?? "university_only") === "university_only" ||
       (Boolean(viewer.schoolId) &&
@@ -153,8 +183,8 @@ export function canReadCommunityProfile(
 }
 
 export function getCommunityProfileRestrictionMessage(
-  viewer: Pick<User, "id" | "schoolId" | "verificationState">,
-  target: Pick<User, "id" | "schoolId" | "verificationState"> & {
+  viewer: CommunityProfileAccessUser,
+  target: CommunityProfileAccessUser & {
     profileVisibility?: ProfileVisibility;
   },
   blocked = false,
@@ -167,7 +197,7 @@ export function getCommunityProfileRestrictionMessage(
     return COMMUNITY_PROFILE_BLOCKED_MESSAGE;
   }
 
-  if (viewer.verificationState !== "student_verified" || target.verificationState !== "student_verified") {
+  if (!isVerifiedCommunityProfileUser(viewer) || !isVerifiedCommunityProfileUser(target)) {
     return COMMUNITY_PROFILE_RESTRICTION_MESSAGE;
   }
 
